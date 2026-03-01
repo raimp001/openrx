@@ -148,10 +148,10 @@ export default function OnboardingPage() {
     completeOnboarding()
   }, [isConnected, walletAddress, patient, updateProfile, completeOnboarding])
 
-  const handleSubmit = useCallback(async () => {
-    const val = input.trim()
+  const handleSubmit = useCallback(async (directValue?: string) => {
+    const val = (directValue !== undefined ? directValue : input).trim()
     if (!val && step !== "med-more") return
-    setInput("")
+    if (directValue === undefined) setInput("")
 
     switch (step) {
       case "has-pcp":
@@ -411,10 +411,7 @@ export default function OnboardingPage() {
   }, [input, step, patient, searchResults, addUser, addAgent, addSystem, isConnected, saveToWallet])
 
   const handleOption = useCallback((value: string) => {
-    setInput(value)
-    Promise.resolve().then(() => {
-      handleSubmit()
-    })
+    handleSubmit(value)
   }, [handleSubmit])
 
   return (
@@ -521,7 +518,7 @@ export default function OnboardingPage() {
                 className="flex-1 px-4 py-2.5 rounded-xl border border-sand bg-pampas text-sm placeholder:text-cloudy focus:outline-none focus:border-terra/40 focus:ring-1 focus:ring-terra/20 transition disabled:opacity-50"
               />
               <button
-                onClick={handleSubmit}
+                onClick={() => handleSubmit()}
                 disabled={isTyping || isSearching || !input.trim()}
                 aria-label="Send message"
                 className="px-4 py-2.5 bg-terra text-white rounded-xl hover:bg-terra-dark transition disabled:opacity-50"

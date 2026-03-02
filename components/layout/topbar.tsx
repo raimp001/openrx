@@ -146,10 +146,10 @@ export default function Topbar() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-30 border-b border-sand/70 bg-pampas/85 shadow-topbar backdrop-blur-lg">
-      <div className="flex h-[72px] items-center justify-between gap-3 px-4 lg:px-8">
-        <div ref={searchRef} className="relative ml-10 w-full max-w-xl lg:ml-0">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-cloudy" />
+    <header className="sticky top-0 z-30 border-b border-sand/40 bg-white/80 shadow-topbar backdrop-blur-xl">
+      <div className="flex h-[64px] items-center justify-between gap-3 px-4 lg:px-8">
+        <div ref={searchRef} className="relative ml-10 w-full max-w-lg lg:ml-0">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-cloudy/70" />
           <input
             ref={inputRef}
             type="text"
@@ -159,8 +159,8 @@ export default function Topbar() {
               setIsOpen(true)
             }}
             onFocus={() => query.length >= 2 && setIsOpen(true)}
-            placeholder={'Ask in plain language (e.g. "book cardiology near me next week")'}
-            className="w-full rounded-2xl border border-sand/80 bg-cream/80 py-2.5 pl-10 pr-16 text-sm text-warm-800 placeholder:text-cloudy/95 transition focus:border-terra/35 focus:bg-white"
+            placeholder="Search anything — meds, labs, appointments, claims…"
+            className="w-full rounded-xl border border-sand/70 bg-cream/60 py-2 pl-9 pr-14 text-[13px] text-warm-800 placeholder:text-cloudy/60 transition focus:border-terra/40 focus:bg-white focus:shadow-[0_0_0_3px_rgba(240,90,61,0.08)]"
           />
           {query ? (
             <button
@@ -168,19 +168,19 @@ export default function Topbar() {
                 setQuery("")
                 setIsOpen(false)
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-cloudy transition hover:text-warm-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-cloudy/60 transition hover:text-warm-700"
               aria-label="Clear search"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           ) : (
-            <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-md border border-sand/80 bg-pampas px-1.5 py-0.5 text-[10px] text-cloudy lg:flex">
-              <Command size={9} />K
+            <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded border border-sand/80 bg-cream/80 px-1.5 py-0.5 text-[9px] font-medium text-cloudy/70 lg:flex">
+              <Command size={8} />K
             </span>
           )}
 
           {isOpen && results && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-1.5 max-h-[500px] overflow-y-auto rounded-2xl border border-sand bg-pampas shadow-soft-card animate-fade-in">
+            <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[500px] overflow-y-auto rounded-2xl border border-sand/60 bg-white shadow-premium animate-scale-in">
               {results.total === 0 ? (
                 <div className="px-4 py-3 text-xs text-warm-500">No results for &ldquo;{query}&rdquo;</div>
               ) : (
@@ -358,7 +358,7 @@ export default function Topbar() {
           )}
         </div>
 
-        <div className="hidden items-center gap-1 rounded-xl border border-sand/70 bg-cream/60 p-1 xl:flex">
+        <div className="hidden items-center gap-1 rounded-xl border border-sand/50 bg-cream/50 px-1 py-1 xl:flex">
           <QuickAction href="/scheduling" icon={Calendar} label="Book" />
           <QuickAction href="/billing" icon={Receipt} label="Bills" />
           <QuickAction href="/prescriptions" icon={Pill} label="Meds" />
@@ -366,10 +366,12 @@ export default function Topbar() {
 
         <div className="flex items-center gap-2">
           {isConnected && profile && (
-            <div className="hidden items-center gap-1.5 rounded-xl border border-accent/20 bg-accent/10 px-2.5 py-1.5 lg:flex">
-              <UserCircle size={13} className="text-accent" />
+            <div className="hidden items-center gap-1.5 rounded-xl border border-accent/20 bg-accent/8 px-2.5 py-1.5 lg:flex">
+              <div className="h-4 w-4 rounded-full bg-accent/20 flex items-center justify-center">
+                <UserCircle size={11} className="text-accent" />
+              </div>
               <span className="text-[11px] font-semibold text-accent">
-                {profile.onboardingComplete ? profile.fullName || "Profile Active" : "Wallet Linked"}
+                {profile.onboardingComplete ? profile.fullName?.split(" ")[0] || "Active" : "Linked"}
               </span>
             </div>
           )}
@@ -377,26 +379,26 @@ export default function Topbar() {
           {isConnected && isNewUser && (
             <Link
               href="/onboarding"
-              className="hidden items-center gap-1.5 rounded-xl border border-terra/25 bg-terra/12 px-3 py-1.5 text-[11px] font-semibold text-terra transition hover:bg-terra/18 lg:flex"
+              className="hidden items-center gap-1.5 rounded-xl border border-terra/25 bg-terra/10 px-3 py-1.5 text-[11px] font-semibold text-terra transition hover:bg-terra/16 lg:flex"
             >
-              <Sparkles size={10} /> Complete Setup
+              <Sparkles size={10} /> Setup
             </Link>
           )}
 
           <Link
             href="/messages"
             aria-label="Notifications"
-            className="relative rounded-xl border border-transparent p-2 transition hover:border-sand/80 hover:bg-cream/70"
+            className="relative rounded-xl border border-transparent p-2 transition hover:border-sand/60 hover:bg-cream/70"
           >
-            <Bell size={18} className="text-warm-600" />
+            <Bell size={17} className="text-warm-500" />
             {unread > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-terra px-1 text-[9px] font-bold text-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-terra px-1 text-[8px] font-bold text-white">
                 {unread}
               </span>
             )}
           </Link>
 
-          <div className="border-l border-sand/80 pl-3">
+          <div className="border-l border-sand/60 pl-2.5">
             <Wallet>
               <ConnectWallet className="!rounded-xl !bg-terra !px-3 !py-2 !text-xs !font-semibold !text-white !transition hover:!bg-terra-dark">
                 <Avatar className="h-5 w-5" />
@@ -433,9 +435,9 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-warm-600 transition hover:bg-pampas hover:text-warm-800"
+      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-warm-600 transition hover:bg-white hover:text-warm-800 hover:shadow-sm"
     >
-      <Icon size={12} className="text-terra" />
+      <Icon size={11} className="text-terra" />
       {label}
     </Link>
   )

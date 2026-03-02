@@ -11,7 +11,7 @@
 :root {
   --font-sans: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
   --font-serif: "Fraunces", "Iowan Old Style", "Times New Roman", serif;
-  --focus-ring: 0 0 0 3px rgba(240, 90, 61, 0.24);
+  --focus-ring: 0 0 0 2px rgba(240, 90, 61, 0.5);
 }
 
 html,
@@ -22,13 +22,15 @@ body {
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
   background:
-    radial-gradient(1100px 600px at 8% -10%, rgba(240, 90, 61, 0.18), transparent 56%),
-    radial-gradient(900px 540px at 100% 0%, rgba(31, 169, 113, 0.14), transparent 55%),
-    linear-gradient(180deg, #f9fcfa 0%, #f3f8f6 50%, #edf5f1 100%);
+    radial-gradient(ellipse 900px 500px at 5% -5%, rgba(240, 90, 61, 0.10), transparent 55%),
+    radial-gradient(ellipse 800px 600px at 98% 2%, rgba(31, 169, 113, 0.09), transparent 52%),
+    radial-gradient(ellipse 600px 400px at 50% 100%, rgba(30, 136, 182, 0.05), transparent 60%),
+    linear-gradient(160deg, #f8fcfa 0%, #f3f8f6 45%, #eef5f2 100%);
   color: #14231f;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.35;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
 }
 
 a {
@@ -36,25 +38,30 @@ a {
 }
 
 ::selection {
-  background: rgba(240, 90, 61, 0.24);
+  background: rgba(240, 90, 61, 0.18);
   color: #14231f;
 }
 
 *:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
+/* Premium scrollbar — main content area */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(220, 233, 228, 0.4);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(103, 122, 114, 0.55);
+  background: rgba(103, 122, 114, 0.3);
   border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(103, 122, 114, 0.5);
 }
 
 @keyframes dot-pulse {
@@ -63,25 +70,78 @@ a {
 }
 
 @layer base {
-  h1,
-  h2,
-  h3,
-  h4 {
+  h1 {
     font-family: var(--font-serif), serif;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+  h2, h3, h4 {
+    font-family: var(--font-serif), serif;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
   }
 }
 
 @layer utilities {
+  /* Core surface styles */
   .surface-card {
-    @apply rounded-2xl border border-sand/70 bg-pampas shadow-soft-card;
+    @apply rounded-2xl border border-sand/60 bg-white/90 shadow-soft-card backdrop-blur-sm;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+  .surface-card:hover {
+    @apply shadow-card-hover border-sand/80;
   }
 
   .surface-muted {
-    @apply rounded-xl border border-sand/60 bg-cream/70;
+    @apply rounded-xl border border-sand/50 bg-cream/60;
   }
 
   .section-title {
-    @apply text-[11px] font-bold uppercase tracking-[0.18em] text-cloudy;
+    @apply text-[10px] font-bold uppercase tracking-[0.2em] text-cloudy/80;
+  }
+
+  /* Sidebar dark scrollbar */
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 3px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+  }
+
+  /* Premium glass card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 1px 2px rgba(20,35,31,0.04), 0 8px 20px rgba(20,35,31,0.06);
+  }
+
+  /* Terra gradient text */
+  .text-gradient-terra {
+    background: linear-gradient(135deg, #F05A3D 0%, #F47F5C 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Sidebar nav active indicator */
+  .nav-active-bar {
+    position: relative;
+  }
+  .nav-active-bar::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 2px;
+    background: #F05A3D;
+    border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 8px rgba(240, 90, 61, 0.6);
   }
 }

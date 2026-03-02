@@ -4,12 +4,37 @@ import {
   Calendar, Pill, MessageSquare, AlertTriangle, Receipt,
   ArrowRight, Bot, Send, CheckCircle2, Heart, ShieldCheck,
   FlaskConical, Activity, Syringe, ArrowRightCircle,
-  AlertCircle, Search, Workflow,
+  AlertCircle, Search, Workflow, TrendingUp, TrendingDown,
+  Minus, Zap, Clock, ChevronRight,
 } from "lucide-react"
 import Link from "next/link"
 import { cn, formatTime, formatDate, getStatusColor } from "@/lib/utils"
 import PlatformReadiness from "@/components/platform-readiness"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import { useMemo } from "react"
+
+function Sparkline({ values, color = "#1FA971", height = 28, width = 72 }: { values: number[]; color?: string; height?: number; width?: number }) {
+  if (values.length < 2) return null
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  const padX = 2
+  const padY = 3
+  const w = width - padX * 2
+  const h = height - padY * 2
+  const points = values.map((v, i) => {
+    const x = padX + (i / (values.length - 1)) * w
+    const y = padY + h - ((v - min) / range) * h
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(" ")
+  const trend = values[values.length - 1] - values[0]
+  const strokeColor = trend < -1 ? "#E85D5D" : trend > 1 ? color : "#A0A0A0"
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+      <polyline points={points} fill="none" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 export default function DashboardPage() {
   const { snapshot, getPhysician } = useLiveSnapshot()
@@ -50,6 +75,65 @@ export default function DashboardPage() {
   const healthScoreLabel = healthScore >= 80 ? "Good" : healthScore >= 60 ? "Fair" : "Needs Attention"
   const healthScoreColor = healthScore >= 80 ? "text-accent" : healthScore >= 60 ? "text-yellow-600" : "text-soft-red"
   const healthScoreBg = healthScore >= 80 ? "bg-accent" : healthScore >= 60 ? "bg-yellow-400" : "bg-soft-red"
+
+  // Dynamic proactive action items
+  const actionItems = useMemo(() => {
+    const items: { icon: React.ElementType; color: string; bg: string; label: string; href: string; priority: number }[] = []
+    const deniedClaims = snapshot.claims.filter((c) => c.status === "denied")
+    if (deniedClaims.length > 0) {
+      items.push({ icon: Receipt, color: "text-soft-red", bg: "bg-soft-red/8", label: `${deniedClaims.length} claim${deniedClaims.length > 1 ? "s" : ""} denied — Vera can file an appeal`, href: "/billing", priority: 10 })
+    }
+    if (abnormalLabCount > 0) {
+      items.push({ icon: FlaskConical, color: "text-soft-red", bg: "bg-soft-red/8", label: `${abnormalLabCount} abnormal lab value${abnormalLabCount > 1 ? "s" : ""} — review with your doctor`, href: "/lab-results", priority: 9 })
+    }
+    const overdueVax = dueVaccines.filter((v) => v.status === "overdue")
+    if (overdueVax.length > 0) {
+      items.push({ icon: Syringe, color: "text-yellow-600", bg: "bg-yellow-50", label: `${overdueVax[0].vaccine_name} is overdue — schedule now`, href: "/vaccinations", priority: 8 })
+    }
+    const noRefills = myRx.filter((rx) => rx.refills_remaining === 0 && rx.status === "active")
+    if (noRefills.length > 0) {
+      items.push({ icon: Pill, color: "text-yellow-600", bg: "bg-yellow-50", label: `${noRefills[0].medication_name} has no refills — Maya can request one`, href: "/prescriptions", priority: 7 })
+    }
+    if (lowAdherenceRx.length > 0) {
+      items.push({ icon: Pill, color: "text-yellow-600", bg: "bg-yellow-50", label: `${lowAdherenceRx[0].medication_name} adherence is ${lowAdherenceRx[0].adherence_pct}% — set a reminder`, href: "/prescriptions", priority: 6 })
+    }
+    if (pendingPA.length > 0) {
+      items.push({ icon: ShieldCheck, color: "text-soft-blue", bg: "bg-soft-blue/8", label: `Prior auth for ${pendingPA[0].procedure_name} is pending`, href: "/prior-auth", priority: 5 })
+    }
+    if (upcomingApts.length > 0) {
+      items.push({ icon: Calendar, color: "text-terra", bg: "bg-terra/8", label: `Next visit: ${upcomingApts[0].reason || "appointment"} on ${formatDate(upcomingApts[0].scheduled_at)}`, href: "/scheduling", priority: 4 })
+    }
+    if (unreadCount > 0) {
+      items.push({ icon: MessageSquare, color: "text-warm-600", bg: "bg-sand/40", label: `${unreadCount} unread message${unreadCount > 1 ? "s" : ""} from your care team`, href: "/messages", priority: 3 })
+    }
+    if (pendingLabs.length > 0) {
+      items.push({ icon: FlaskConical, color: "text-soft-blue", bg: "bg-soft-blue/8", label: `${pendingLabs.length} lab result${pendingLabs.length > 1 ? "s" : ""} pending — we'll notify you`, href: "/lab-results", priority: 2 })
+    }
+    return items.sort((a, b) => b.priority - a.priority).slice(0, 4)
+  }, [snapshot.claims, abnormalLabCount, dueVaccines, myRx, lowAdherenceRx, pendingPA, upcomingApts, unreadCount, pendingLabs])
+
+  // Insurance intelligence
+  const insuranceIntel = useMemo(() => {
+    const paidClaims = snapshot.claims.filter((c) => c.status === "paid" || c.status === "approved")
+    const totalPatientPaid = paidClaims.reduce((s, c) => s + c.patient_responsibility, 0)
+    const assumedDeductible = 2000
+    const pctUsed = Math.min(100, Math.round((totalPatientPaid / assumedDeductible) * 100))
+    const now = new Date()
+    const nextReset = new Date(now.getFullYear() + 1, 0, 1)
+    const daysToReset = Math.ceil((nextReset.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    return { totalPatientPaid, assumedDeductible, pctUsed, daysToReset }
+  }, [snapshot.claims])
+
+  // Vital sparklines data
+  const vitalHistory = useMemo(() => {
+    const sorted = [...myVitals].sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()).slice(-8)
+    return {
+      systolic: sorted.filter((v) => v.systolic).map((v) => v.systolic!),
+      heartRate: sorted.filter((v) => v.heart_rate).map((v) => v.heart_rate!),
+      glucose: sorted.filter((v) => v.blood_glucose).map((v) => v.blood_glucose!),
+      weight: sorted.filter((v) => v.weight_lbs).map((v) => v.weight_lbs!),
+    }
+  }, [myVitals])
 
   function formatActivityTime(value: string): string {
     const then = new Date(value).getTime()
@@ -135,14 +219,33 @@ export default function DashboardPage() {
             Your care plan is organized and ready. Use natural language to book, search, and resolve tasks quickly.
           </p>
 
-          <div className="mt-4 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border border-sand bg-cream/60 px-3 py-1.5 text-warm-600">
-              Try: &ldquo;Find a lab near me for A1C this week&rdquo;
-            </span>
-            <span className="rounded-full border border-sand bg-cream/60 px-3 py-1.5 text-warm-600">
-              Try: &ldquo;Show claims with denied status&rdquo;
-            </span>
-          </div>
+          {actionItems.length > 0 ? (
+            <div className="mt-4 space-y-1.5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Zap size={11} className="text-terra" />
+                <span className="text-[10px] font-bold text-warm-500 uppercase tracking-wider">Priority Actions</span>
+              </div>
+              {actionItems.map((item, i) => {
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={i}
+                    href={item.href}
+                    className={cn("flex items-center gap-2.5 rounded-xl border border-sand/60 px-3 py-2 text-xs font-medium text-warm-700 transition hover:border-terra/25 hover:text-terra", item.bg)}
+                  >
+                    <Icon size={12} className={item.color} />
+                    <span className="flex-1">{item.label}</span>
+                    <ChevronRight size={11} className="text-cloudy shrink-0" />
+                  </Link>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center gap-2 text-xs text-accent">
+              <CheckCircle2 size={13} />
+              <span className="font-semibold">You&rsquo;re all caught up — no pending actions</span>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-2 border-t border-sand/70 bg-cream/60 p-3 sm:grid-cols-4">
@@ -200,6 +303,58 @@ export default function DashboardPage() {
           <div className="text-lg font-bold text-warm-800">{unreadCount}</div>
           <div className="text-xs text-warm-500">Unread Messages</div>
         </Link>
+      </div>
+
+      {/* Insurance Intelligence */}
+      <div className="surface-card p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={14} className="text-soft-blue" />
+            <span className="text-xs font-bold text-warm-800">Insurance Intelligence</span>
+          </div>
+          <Link href="/billing" className="text-[10px] font-semibold text-terra flex items-center gap-0.5 hover:gap-1 transition-all">
+            View claims <ChevronRight size={10} />
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] text-cloudy">Deductible Used</span>
+              <span className="text-[10px] font-bold text-warm-700">${insuranceIntel.totalPatientPaid.toFixed(0)} / ${insuranceIntel.assumedDeductible.toLocaleString()}</span>
+            </div>
+            <div className="w-full h-1.5 bg-sand/40 rounded-full overflow-hidden">
+              <div
+                className={cn("h-full rounded-full transition-all duration-700", insuranceIntel.pctUsed >= 80 ? "bg-accent" : insuranceIntel.pctUsed >= 50 ? "bg-yellow-400" : "bg-soft-blue")}
+                style={{ width: `${insuranceIntel.pctUsed}%` }}
+              />
+            </div>
+            <p className="text-[9px] text-cloudy mt-1">{insuranceIntel.pctUsed}% of annual deductible</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-sand/40 flex items-center justify-center shrink-0">
+              <Clock size={16} className="text-warm-600" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-warm-800">{insuranceIntel.daysToReset}</p>
+              <p className="text-[10px] text-cloudy leading-tight">days until benefit<br />year resets (Jan 1)</p>
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-warm-700 mb-1">Use before reset</p>
+            {[
+              { label: "Annual wellness visit", done: upcomingApts.some((a) => a.reason?.toLowerCase().includes("wellness") || a.reason?.toLowerCase().includes("annual")) },
+              { label: "Preventive screenings", done: false },
+              { label: "Lab panels", done: resultedLabs.length > 0 },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-1.5 mb-0.5">
+                <div className={cn("w-3 h-3 rounded-full flex items-center justify-center shrink-0", item.done ? "bg-accent/20" : "bg-sand/60")}>
+                  {item.done ? <CheckCircle2 size={8} className="text-accent" /> : <Minus size={8} className="text-cloudy" />}
+                </div>
+                <span className={cn("text-[10px]", item.done ? "text-accent font-medium" : "text-warm-600")}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Precision Care Tools */}
@@ -402,33 +557,54 @@ export default function DashboardPage() {
                   {new Date(latestVital.recorded_at).toLocaleDateString()}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-x-2 gap-y-3">
                 {latestVital.systolic && (
                   <div>
-                    <p className={cn("text-sm font-bold", latestVital.systolic >= 140 ? "text-soft-red" : "text-warm-800")}>
-                      {latestVital.systolic}/{latestVital.diastolic}
-                    </p>
-                    <p className="text-[9px] text-cloudy">Blood Pressure</p>
+                    <div className="flex items-end justify-between">
+                      <p className={cn("text-sm font-bold leading-none", latestVital.systolic >= 140 ? "text-soft-red" : "text-warm-800")}>
+                        {latestVital.systolic}/{latestVital.diastolic}
+                      </p>
+                      <Sparkline values={vitalHistory.systolic} color={latestVital.systolic >= 140 ? "#E85D5D" : "#1FA971"} />
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <p className="text-[9px] text-cloudy">Blood Pressure</p>
+                      {vitalHistory.systolic.length >= 2 && (
+                        vitalHistory.systolic[vitalHistory.systolic.length - 1] > vitalHistory.systolic[0]
+                          ? <TrendingUp size={9} className="text-soft-red" />
+                          : vitalHistory.systolic[vitalHistory.systolic.length - 1] < vitalHistory.systolic[0]
+                          ? <TrendingDown size={9} className="text-accent" />
+                          : <Minus size={9} className="text-cloudy" />
+                      )}
+                    </div>
                   </div>
                 )}
                 {latestVital.heart_rate && (
                   <div>
-                    <p className="text-sm font-bold text-warm-800">{latestVital.heart_rate} bpm</p>
-                    <p className="text-[9px] text-cloudy">Heart Rate</p>
+                    <div className="flex items-end justify-between">
+                      <p className="text-sm font-bold text-warm-800 leading-none">{latestVital.heart_rate} bpm</p>
+                      <Sparkline values={vitalHistory.heartRate} />
+                    </div>
+                    <p className="text-[9px] text-cloudy mt-0.5">Heart Rate</p>
                   </div>
                 )}
                 {latestVital.blood_glucose && (
                   <div>
-                    <p className={cn("text-sm font-bold", latestVital.blood_glucose > 130 ? "text-yellow-600" : "text-warm-800")}>
-                      {latestVital.blood_glucose}
-                    </p>
-                    <p className="text-[9px] text-cloudy">Glucose mg/dL</p>
+                    <div className="flex items-end justify-between">
+                      <p className={cn("text-sm font-bold leading-none", latestVital.blood_glucose > 130 ? "text-yellow-600" : "text-warm-800")}>
+                        {latestVital.blood_glucose}
+                      </p>
+                      <Sparkline values={vitalHistory.glucose} color={latestVital.blood_glucose > 130 ? "#D97706" : "#1FA971"} />
+                    </div>
+                    <p className="text-[9px] text-cloudy mt-0.5">Glucose mg/dL</p>
                   </div>
                 )}
                 {latestVital.weight_lbs && (
                   <div>
-                    <p className="text-sm font-bold text-warm-800">{latestVital.weight_lbs} lbs</p>
-                    <p className="text-[9px] text-cloudy">Weight</p>
+                    <div className="flex items-end justify-between">
+                      <p className="text-sm font-bold text-warm-800 leading-none">{latestVital.weight_lbs} lbs</p>
+                      <Sparkline values={vitalHistory.weight} color="#A0A0A0" />
+                    </div>
+                    <p className="text-[9px] text-cloudy mt-0.5">Weight</p>
                   </div>
                 )}
               </div>

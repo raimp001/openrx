@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   UserPlus,
   Workflow,
+  Clock,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
@@ -34,6 +35,7 @@ const navSections = [
     label: null,
     items: [
       { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+      { href: "/timeline", label: "Health Timeline", icon: Clock },
       { href: "/onboarding", label: "Get Started", icon: Heart },
     ],
   },
@@ -103,39 +105,59 @@ export default function Sidebar() {
 
   const sidebarContent = (
     <>
-      <div className="border-b border-sand/70 px-4 pb-3 pt-4">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-terra via-terra-light to-accent shadow-lg shadow-terra/20">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 4v16M4 12h16" stroke="#11221D" strokeWidth="3" strokeLinecap="round" />
+      {/* Logo area */}
+      <div className="px-5 pb-4 pt-5">
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-terra via-terra to-terra-dark shadow-terra-glow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M12 4v16M4 12h16" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
+            {/* Subtle glow ring */}
+            <div className="absolute inset-0 rounded-xl ring-1 ring-terra/30" />
           </div>
           <div className="min-w-0">
-            <h1 className="truncate text-base font-bold text-warm-800">OpenRx Care OS</h1>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cloudy">patient-first command center</p>
+            <h1 className="truncate text-[15px] font-bold tracking-tight text-white">OpenRx</h1>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/30">Care OS</p>
           </div>
           <button
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
-            className="ml-auto rounded-lg p-1 text-warm-500 transition hover:bg-cream lg:hidden"
+            className="ml-auto rounded-lg p-1 text-white/30 transition hover:bg-white/10 hover:text-white/60 lg:hidden"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
 
-        <div className="mt-3 rounded-xl border border-sand/80 bg-cream/60 px-3 py-2">
-          <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-cloudy">Signed in</p>
-          <p className="mt-0.5 truncate text-sm font-semibold text-warm-800">
-            {snapshot.patient?.full_name || "Connect wallet to load profile"}
-          </p>
-        </div>
+        {/* Patient chip */}
+        {snapshot.patient && (
+          <div className="mt-4 rounded-xl border border-white/8 bg-white/5 px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-terra/40 to-accent/40 flex items-center justify-center shrink-0">
+                <span className="text-[10px] font-bold text-white/80">
+                  {snapshot.patient.full_name.charAt(0)}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-[12px] font-semibold text-white/85 leading-tight">
+                  {snapshot.patient.full_name}
+                </p>
+                <p className="text-[10px] text-white/35 leading-tight mt-0.5">{snapshot.patient.insurance_provider || "Patient"}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-3" aria-label="Main navigation">
+      {/* Nav */}
+      <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 pb-3" aria-label="Main navigation">
         {navSections.map((section, si) => (
-          <div key={si} className={si > 0 ? "mt-4" : ""}>
-            {section.label && <p className="section-title px-3 pb-1">{section.label}</p>}
-            <div className="space-y-1">
+          <div key={si} className={si > 0 ? "mt-5" : ""}>
+            {section.label && (
+              <p className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.22em] text-white/25">
+                {section.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
               {section.items.map((item) => {
                 const matchAlso = "matchAlso" in item ? (item.matchAlso as string[]) : undefined
                 const active =
@@ -150,23 +172,30 @@ export default function Sidebar() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "group flex items-center gap-3 rounded-xl border px-3 py-2 text-[12px] font-medium transition-all",
+                      "nav-active-bar group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12.5px] font-medium transition-all duration-150",
                       active
-                        ? "border-terra/25 bg-terra/10 text-terra shadow-sm"
-                        : "border-transparent text-warm-600 hover:border-sand/70 hover:bg-pampas hover:text-warm-800"
+                        ? "bg-white/10 text-white"
+                        : "text-white/50 hover:bg-white/6 hover:text-white/80"
                     )}
                   >
-                    <item.icon size={15} className={cn("shrink-0", active ? "text-terra" : "text-warm-500 group-hover:text-warm-700")} />
+                    <item.icon
+                      size={14}
+                      className={cn(
+                        "shrink-0 transition-colors",
+                        active ? "text-terra" : "text-white/35 group-hover:text-white/60"
+                      )}
+                    />
                     <span className="flex-1 truncate">{item.label}</span>
                     {badgeCount > 0 && (
-                      <span
-                        className={cn(
-                          "flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold",
-                          active ? "bg-terra text-white" : "bg-terra/15 text-terra"
-                        )}
-                      >
+                      <span className={cn(
+                        "flex h-4.5 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold",
+                        active ? "bg-terra/30 text-terra" : "bg-white/12 text-white/60"
+                      )}>
                         {badgeCount}
                       </span>
+                    )}
+                    {active && (
+                      <div className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-terra shadow-[0_0_8px_rgba(240,90,61,0.7)]" />
                     )}
                   </Link>
                 )
@@ -176,21 +205,32 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-sand/70 px-3 py-3">
+      {/* Footer */}
+      <div className="border-t border-white/8 px-3 py-3 space-y-1">
         <Link
           href="/chat"
-          className="flex items-center justify-between rounded-xl border border-terra/20 bg-terra/10 px-3 py-2 text-xs font-semibold text-terra transition hover:bg-terra/15"
+          className="flex items-center gap-2.5 rounded-xl border border-terra/25 bg-terra/12 px-3 py-2.5 text-[12px] font-semibold text-terra transition hover:bg-terra/20 hover:border-terra/40"
         >
-          AI Concierge
-          <Bot size={13} />
+          <Bot size={13} className="text-terra" />
+          <span className="flex-1">AI Concierge</span>
+          <span className="h-1.5 w-1.5 rounded-full bg-terra animate-glow-pulse" />
         </Link>
-        <Link
-          href="/"
-          className="mt-2 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-cloudy transition hover:bg-cream hover:text-warm-700"
-        >
-          <ExternalLink size={13} />
-          Open Marketing Site
-        </Link>
+        <div className="flex gap-1">
+          <Link
+            href="/"
+            className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-medium text-white/28 transition hover:bg-white/6 hover:text-white/55"
+          >
+            <ExternalLink size={11} />
+            Site
+          </Link>
+          <Link
+            href="/privacy-explained"
+            className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-medium text-white/28 transition hover:bg-white/6 hover:text-white/55"
+          >
+            <ShieldCheck size={11} />
+            Privacy
+          </Link>
+        </div>
       </div>
     </>
   )
@@ -199,29 +239,29 @@ export default function Sidebar() {
     <>
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 rounded-xl border border-sand bg-pampas p-2 text-warm-700 shadow-soft-card transition hover:bg-cream lg:hidden"
+        className="fixed left-4 top-4 z-50 rounded-xl border border-white/15 bg-midnight p-2 text-white/60 shadow-sidebar transition hover:bg-white/10 hover:text-white lg:hidden"
         aria-label="Open navigation"
       >
-        <Menu size={20} />
+        <Menu size={19} />
       </button>
 
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-[#0d1e18]/30 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[286px] flex-col border-r border-sand/80 bg-pampas/95 shadow-2xl backdrop-blur-sm transition-transform duration-300 lg:hidden",
+          "fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col bg-midnight shadow-sidebar transition-transform duration-300 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {sidebarContent}
       </aside>
 
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[248px] flex-col border-r border-sand/70 bg-pampas/90 backdrop-blur-md lg:flex">
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[248px] flex-col bg-midnight shadow-sidebar lg:flex">
         {sidebarContent}
       </aside>
     </>

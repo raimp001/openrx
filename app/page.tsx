@@ -239,7 +239,10 @@ export default function LandingPage() {
       <footer className="border-t border-sand/70 bg-pampas">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-7 text-xs text-warm-500">
           <p>OpenRx · Powered by OpenClaw</p>
-          <p>Live data environment · wallet-linked patient context</p>
+          <div className="flex items-center gap-4">
+            <Link href="/privacy-explained" className="hover:text-terra transition">Privacy</Link>
+            <p>Live data environment · wallet-linked patient context</p>
+          </div>
         </div>
       </footer>
     </div>

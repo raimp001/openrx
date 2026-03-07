@@ -1,5 +1,8 @@
 "use client"
 
+"use client"
+
+import { useEffect, useMemo, useState } from "react"
 import {
   ConnectWallet,
   Wallet,
@@ -12,6 +15,12 @@ import { Address, Avatar, Name, Identity } from "@coinbase/onchainkit/identity"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import { PLATFORM_WALLET, DEVELOPER_WALLET } from "@/app/providers"
 import {
+  getBaseBuilderChainId,
+  getBaseBuilderExplorerRootUrl,
+  getBaseBuilderNetwork,
+  toBaseBuilderTxUrl,
+} from "@/lib/basebuilder/config"
+import {
   Wallet as WalletIcon,
   Shield,
   Zap,
@@ -23,9 +32,28 @@ import {
   UserCircle,
   Sparkles,
   BookText,
+  Loader2,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import type { PaymentRecord } from "@/lib/payments-ledger"
+
+interface LedgerSnapshotResponse {
+  payments: PaymentRecord[]
+}
+
+function txHashLooksValid(value?: string): boolean {
+  if (!value) return false
+  return /^0x[a-fA-F0-9]{64}$/.test(value.trim())
+}
+
+function statusColor(status: PaymentRecord["status"]): string {
+  if (status === "verified") return "bg-accent/10 text-accent"
+  if (status === "pending_verification") return "bg-yellow-100/30 text-yellow-700"
+  if (status === "failed") return "bg-soft-red/10 text-soft-red"
+  if (status === "refunded") return "bg-soft-blue/10 text-soft-blue"
+  return "bg-sand text-warm-600"
+}
 
 export default function WalletPage() {
   const {
@@ -35,6 +63,58 @@ export default function WalletPage() {
     setAgentAutoPay,
     setAgentRxAutoPay,
   } = useWalletIdentity()
+  const baseBuilderNetwork = getBaseBuilderNetwork()
+  const baseBuilderChainId = getBaseBuilderChainId()
+  const baseBuilderExplorer = getBaseBuilderExplorerRootUrl()
+  const baseBuilderLabel = baseBuilderNetwork === "base-sepolia" ? "Base Sepolia" : "Base Mainnet"
+  const [recentPayments, setRecentPayments] = useState<PaymentRecord[]>([])
+  const [loadingPayments, setLoadingPayments] = useState(false)
+  const [paymentsError, setPaymentsError] = useState("")
+
+  useEffect(() => {
+    if (!walletAddress) {
+      setRecentPayments([])
+      setPaymentsError("")
+      setLoadingPayments(false)
+      return
+    }
+
+    let active = true
+    setLoadingPayments(true)
+    setPaymentsError("")
+
+    fetch(`/api/payments/ledger?walletAddress=${encodeURIComponent(walletAddress)}`, {
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Failed to load payment ledger.")
+        }
+        return (await response.json()) as LedgerSnapshotResponse
+      })
+      .then((payload) => {
+        if (!active) return
+        setRecentPayments((payload.payments || []).slice(0, 5))
+      })
+      .catch((issue) => {
+        if (!active) return
+        setRecentPayments([])
+        setPaymentsError(issue instanceof Error ? issue.message : "Failed to load payment ledger.")
+      })
+      .finally(() => {
+        if (!active) return
+        setLoadingPayments(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [walletAddress])
+
+  const paymentsWithTx = useMemo(
+    () => recentPayments.filter((payment) => txHashLooksValid(payment.txHash)),
+    [recentPayments]
+  )
 
   return (
     <div className="animate-slide-up space-y-6 max-w-3xl mx-auto">
@@ -139,6 +219,17 @@ export default function WalletPage() {
                 </div>
                 <p className="text-sm font-semibold text-warm-800">Base (Coinbase L2)</p>
                 <p className="text-[10px] text-cloudy mt-0.5">Fast, low-cost healthcare payments</p>
+                <p className="text-[10px] text-warm-600 mt-1">
+                  BaseBuilder runtime: {baseBuilderLabel} (chain {baseBuilderChainId})
+                </p>
+                <a
+                  href={baseBuilderExplorer}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold text-terra hover:underline"
+                >
+                  Open BaseScan <ArrowUpRight size={10} />
+                </a>
               </div>
             </div>
           </div>
@@ -192,6 +283,89 @@ export default function WalletPage() {
               Open Ledger
             </Link>
           </div>
+        </div>
+      )}
+
+      {isConnected && (
+        <div className="bg-pampas rounded-2xl border border-sand p-6">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h2 className="text-base font-serif text-warm-800">Recent BaseBuilder Transactions</h2>
+              <p className="text-xs text-warm-500 mt-1">
+                Latest wallet-linked payment events from the compliance ledger.
+              </p>
+            </div>
+            <Link
+              href="/compliance-ledger"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-terra hover:underline"
+            >
+              Full ledger <ArrowUpRight size={11} />
+            </Link>
+          </div>
+
+          {loadingPayments && (
+            <p className="text-xs text-cloudy inline-flex items-center gap-2">
+              <Loader2 size={12} className="animate-spin" />
+              Loading transactions...
+            </p>
+          )}
+
+          {!loadingPayments && paymentsError && (
+            <p className="text-xs text-soft-red">{paymentsError}</p>
+          )}
+
+          {!loadingPayments && !paymentsError && recentPayments.length === 0 && (
+            <p className="text-xs text-cloudy">
+              No payment activity yet for this wallet.
+            </p>
+          )}
+
+          {!loadingPayments && !paymentsError && recentPayments.length > 0 && (
+            <div className="space-y-2">
+              {recentPayments.map((payment) => {
+                const txUrl = txHashLooksValid(payment.txHash) ? toBaseBuilderTxUrl(payment.txHash!) : ""
+                return (
+                  <div
+                    key={payment.id}
+                    className="rounded-xl border border-sand/70 bg-cream/30 p-3 flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-warm-800 truncate">
+                        {payment.category} · ${payment.settledAmount || payment.expectedAmount} USDC
+                      </p>
+                      <p className="text-[10px] text-cloudy truncate mt-0.5">
+                        {payment.description}
+                      </p>
+                      <p className="text-[10px] text-cloudy mt-0.5">
+                        {new Date(payment.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full uppercase", statusColor(payment.status))}>
+                        {payment.status.replaceAll("_", " ")}
+                      </span>
+                      {txUrl && (
+                        <a
+                          href={txUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block mt-1 text-[10px] font-semibold text-terra hover:underline"
+                        >
+                          View tx
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {!loadingPayments && !paymentsError && paymentsWithTx.length > 0 && (
+            <p className="text-[10px] text-cloudy mt-2">
+              Transactions resolve on {baseBuilderLabel}.
+            </p>
+          )}
         </div>
       )}
 

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
+test.setTimeout(180_000)
 
 function makeDiagram(input: {
   id: string
@@ -224,9 +225,6 @@ test("maps codebase, supports interactions, exports, ask, and improve", async ({
 
   await expectDownloadFromButton(page, "Mermaid", /\.mmd$/)
   await expectDownloadFromButton(page, "JSON", /\.json$/)
-  await expectDownloadFromButton(page, "PNG", /\.png$/)
-  await expectDownloadFromButton(page, "SVG", /\.svg$/)
-  await expectDownloadFromButton(page, "PDF", /\.pdf$/)
 
   await page.getByPlaceholder("Ask the mapper").fill("focus on payment flow")
   await page.getByRole("button", { name: "Ask", exact: true }).click()

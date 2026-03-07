@@ -3,6 +3,8 @@ import Topbar from "@/components/layout/topbar"
 import AgentBar from "@/components/layout/agent-bar"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const isDatabaseConfigured = Boolean(process.env.DATABASE_URL?.trim())
+
   return (
     <div className="relative min-h-screen overflow-x-hidden" style={{ background: "linear-gradient(160deg, #f8fcfa 0%, #f3f8f6 45%, #eef5f2 100%)" }}>
       {/* Ambient gradients */}
@@ -14,7 +16,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="relative lg:ml-[248px]">
         <AgentBar />
         <Topbar />
-        <main className="px-4 pb-12 pt-6 sm:px-6 lg:px-8 lg:pt-7">
+        {!isDatabaseConfigured && (
+          <div className="mx-auto mt-3 w-full max-w-[1200px] px-4 sm:px-5 lg:px-8">
+            <div className="rounded-xl border border-yellow-300/40 bg-yellow-100/20 px-3 py-2 text-xs text-warm-700">
+              Live DB is not configured (`DATABASE_URL` missing). OpenRx is running in fallback mode with limited persisted data.
+            </div>
+          </div>
+        )}
+        <main className="px-4 pb-10 pt-5 sm:px-5 lg:px-8 lg:pt-6">
           <div className="mx-auto w-full max-w-[1200px]">{children}</div>
         </main>
       </div>

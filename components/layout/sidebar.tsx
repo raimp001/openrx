@@ -27,10 +27,11 @@ import {
   Clock,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import { useCareTeamSession } from "@/lib/hooks/use-care-team-session"
 
-const navSections = [
+const baseNavSections = [
   {
     label: null,
     items: [
@@ -82,6 +83,8 @@ export default function Sidebar() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { snapshot } = useLiveSnapshot()
+  const { session: careTeamSession } = useCareTeamSession({ pollMs: 15000 })
+  const careTeamVisible = Boolean(careTeamSession?.canAccessCareTeam)
   const badges = {
     unreadMessages: snapshot.messages.filter((message) => !message.read).length,
     pendingRefills: snapshot.prescriptions.filter((prescription) => prescription.status === "pending-refill").length,
@@ -102,6 +105,20 @@ export default function Sidebar() {
     document.addEventListener("keydown", handleEscape)
     return () => document.removeEventListener("keydown", handleEscape)
   }, [])
+
+  const navSections = useMemo(() => {
+    const sections = baseNavSections.map((section) => ({
+      label: section.label,
+      items: [...section.items],
+    }))
+    if (careTeamVisible) {
+      const moreSection = sections.find((section) => section.label === "More")
+      if (moreSection && !moreSection.items.some((item) => item.href === "/dashboard/care-team")) {
+        moreSection.items.unshift({ href: "/dashboard/care-team", label: "AI Care Team", icon: Bot })
+      }
+    }
+    return sections
+  }, [careTeamVisible])
 
   const sidebarContent = (
     <>

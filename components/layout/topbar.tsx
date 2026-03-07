@@ -14,10 +14,12 @@ import { cn, formatDate, formatTime } from "@/lib/utils"
 import Link from "next/link"
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import { useCareTeamSession } from "@/lib/hooks/use-care-team-session"
 
 export default function Topbar() {
   const { isConnected, profile, isNewUser } = useWalletIdentity()
   const { snapshot, getPhysician } = useLiveSnapshot()
+  const { session: careTeamSession } = useCareTeamSession({ pollMs: 10000 })
   const myMessages = snapshot.messages
   const unread = myMessages.filter((m) => !m.read).length
   const [query, setQuery] = useState("")
@@ -399,6 +401,20 @@ export default function Topbar() {
           </Link>
 
           <div className="border-l border-sand/60 pl-2.5">
+          {careTeamSession?.canAccessCareTeam && (
+            <Link
+              href="/dashboard/care-team"
+              aria-label="AI Care Team Command Center"
+              className="relative rounded-xl border border-transparent p-2 transition hover:border-sand/80 hover:bg-cream/70"
+            >
+              <Bot size={18} className="text-warm-600" />
+              {careTeamSession.needsInputCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-[10px] w-[10px] rounded-full bg-soft-blue shadow-[0_0_0_3px_rgba(96,182,255,0.24)]" />
+              )}
+            </Link>
+          )}
+
+          <div className="border-l border-sand/80 pl-3">
             <Wallet>
               <ConnectWallet className="!rounded-xl !bg-terra !px-3 !py-2 !text-xs !font-semibold !text-white !transition hover:!bg-terra-dark">
                 <Avatar className="h-5 w-5" />

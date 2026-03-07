@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CreditCard,
   Download,
+  ExternalLink,
   FileText,
   Loader2,
   RefreshCcw,
@@ -14,6 +15,8 @@ import {
 } from "lucide-react"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import { cn } from "@/lib/utils"
+import { toBaseBuilderTxUrl } from "@/lib/basebuilder/config"
+import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
 import type {
   AttestationRecord,
   LedgerEntry,
@@ -48,6 +51,10 @@ const PAYMENT_CATEGORIES: PaymentCategory[] = [
   "subscription",
   "other",
 ]
+
+function isBaseTxHash(value: string): boolean {
+  return /^0x[a-fA-F0-9]{64}$/.test(value.trim())
+}
 
 function isPositiveMoney(value: string): boolean {
   const parsed = Number.parseFloat(value)
@@ -97,6 +104,14 @@ export default function ComplianceLedgerPage() {
     () => snapshot.payments.find((item) => item.id === selectedPaymentId),
     [selectedPaymentId, snapshot.payments]
   )
+  const verifyTxUrl = useMemo(() => {
+    if (!isBaseTxHash(verifyTxHash)) return ""
+    return toBaseBuilderTxUrl(verifyTxHash.trim())
+  }, [verifyTxHash])
+  const refundTxUrl = useMemo(() => {
+    if (!isBaseTxHash(refundTxHash)) return ""
+    return toBaseBuilderTxUrl(refundTxHash.trim())
+  }, [refundTxHash])
   const canCreateIntent = isPositiveMoney(amount) && description.trim().length > 2
   const canRequestRefund = !!selectedPaymentId && isPositiveMoney(refundAmount) && refundReason.trim().length > 2
 
@@ -175,12 +190,11 @@ export default function ComplianceLedgerPage() {
     setPaying(true)
     setError("")
     try {
-      const { pay } = await import("@base-org/account")
-      const result = await pay({
+      const result = await launchBaseBuilderPay({
         amount: payment.expectedAmount,
-        to: payment.recipientAddress,
+        recipientAddress: payment.recipientAddress,
       })
-      setVerifyTxHash(result.id)
+      setVerifyTxHash(result.paymentId)
     } catch (issue) {
       setError(
         issue instanceof Error
@@ -440,6 +454,16 @@ export default function ComplianceLedgerPage() {
                   className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
                 />
               </label>
+              {verifyTxUrl && (
+                <a
+                  href={verifyTxUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-terra hover:text-terra-dark"
+                >
+                  View verify tx on BaseScan <ExternalLink size={11} />
+                </a>
+              )}
               {selectedPayment && (
                 <p className="text-[10px] text-cloudy">
                   Expected: ${selectedPayment.expectedAmount} to {selectedPayment.recipientAddress.slice(0, 10)}...
@@ -572,6 +596,16 @@ export default function ComplianceLedgerPage() {
                   className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
                 />
               </label>
+              {refundTxUrl && (
+                <a
+                  href={refundTxUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-terra hover:text-terra-dark"
+                >
+                  View refund tx on BaseScan <ExternalLink size={11} />
+                </a>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => void approveRefund()}

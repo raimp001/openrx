@@ -6,7 +6,7 @@ export const CARE_SEARCH_PROMPT_IMAGE_PATH = "/prompts/npi-care-search-prompt.sv
 export const CARE_SEARCH_PROMPT_TEXT = `You are OpenRx Care Search.
 Goal: Find providers, caregivers, laboratories, and radiology centers in NPI Registry using natural language.
 Rules:
-1) Extract intent (provider, caregiver, lab, radiology), specialty/role, and location (zip OR city+state).
+1) Extract intent (provider, caregiver, lab, radiology), specialty/role, and location (ZIP OR city OR city+state).
 2) Do not run NPI search until enough info is present.
 3) If info is missing, return one concise clarification question.
 4) Prefer closest match for specialty and location, then active status.
@@ -356,6 +356,8 @@ function applyLocation(params: URLSearchParams, parsed: ParsedCareQuery): void {
 interface SearchPlan {
   serviceType: CareSearchType
   params: URLSearchParams
+  phase: "primary" | "fallback"
+  note: string
 }
 
 function buildSearchPlan(parsed: ParsedCareQuery, limit: number): SearchPlan[] {
@@ -363,33 +365,111 @@ function buildSearchPlan(parsed: ParsedCareQuery, limit: number): SearchPlan[] {
   const targetTypes = parsed.serviceTypes
 
   targetTypes.forEach((serviceType) => {
-    const params = new URLSearchParams()
-    params.set("version", "2.1")
-    params.set("limit", String(limit))
-    params.set("skip", "0")
-    applyLocation(params, parsed)
+    const createParams = (input: {
+      enumerationType: "NPI-1" | "NPI-2"
+      taxonomyDescription?: string
+      organizationName?: string
+    }): URLSearchParams => {
+      const params = new URLSearchParams()
+      params.set("version", "2.1")
+      params.set("limit", String(limit))
+      params.set("skip", "0")
+      params.set("enumeration_type", input.enumerationType)
+      if (input.taxonomyDescription) params.set("taxonomy_description", input.taxonomyDescription)
+      if (input.organizationName) params.set("organization_name", input.organizationName)
+      applyLocation(params, parsed)
+      return params
+    }
 
     if (serviceType === "provider") {
-      params.set("enumeration_type", "NPI-1")
-      if (parsed.specialty) params.set("taxonomy_description", parsed.specialty)
+      plans.push({
+        serviceType,
+        phase: "primary",
+        note: "provider-individual-specialty",
+        params: createParams({
+          enumerationType: "NPI-1",
+          ...(parsed.specialty ? { taxonomyDescription: parsed.specialty } : {}),
+        }),
+      })
+      plans.push({
+        serviceType,
+        phase: "primary",
+        note: "provider-organization-specialty",
+        params: createParams({
+          enumerationType: "NPI-2",
+          ...(parsed.specialty ? { taxonomyDescription: parsed.specialty } : {}),
+        }),
+      })
+      plans.push({
+        serviceType,
+        phase: "fallback",
+        note: "provider-individual-broad",
+        params: createParams({ enumerationType: "NPI-1" }),
+      })
+      plans.push({
+        serviceType,
+        phase: "fallback",
+        note: "provider-organization-broad",
+        params: createParams({ enumerationType: "NPI-2" }),
+      })
+      return
     }
 
     if (serviceType === "caregiver") {
-      params.set("enumeration_type", "NPI-1")
-      params.set("taxonomy_description", parsed.caregiverRole || "home health")
+      plans.push({
+        serviceType,
+        phase: "primary",
+        note: "caregiver-role",
+        params: createParams({
+          enumerationType: "NPI-1",
+          taxonomyDescription: parsed.caregiverRole || "home health",
+        }),
+      })
+      plans.push({
+        serviceType,
+        phase: "fallback",
+        note: "caregiver-broad",
+        params: createParams({ enumerationType: "NPI-1" }),
+      })
+      return
     }
 
     if (serviceType === "lab") {
-      params.set("enumeration_type", "NPI-2")
-      params.set("taxonomy_description", "laboratory")
+      plans.push({
+        serviceType,
+        phase: "primary",
+        note: "lab-taxonomy",
+        params: createParams({ enumerationType: "NPI-2", taxonomyDescription: "laboratory" }),
+      })
+      plans.push({
+        serviceType,
+        phase: "fallback",
+        note: "lab-broad",
+        params: createParams({ enumerationType: "NPI-2" }),
+      })
+      return
     }
 
     if (serviceType === "radiology") {
-      params.set("enumeration_type", "NPI-2")
-      params.set("taxonomy_description", "radiology")
+      plans.push({
+        serviceType,
+        phase: "primary",
+        note: "radiology-organization",
+        params: createParams({ enumerationType: "NPI-2", taxonomyDescription: "radiology" }),
+      })
+      plans.push({
+        serviceType,
+        phase: "fallback",
+        note: "radiology-individual",
+        params: createParams({ enumerationType: "NPI-1", taxonomyDescription: "radiology" }),
+      })
+      plans.push({
+        serviceType,
+        phase: "fallback",
+        note: "radiology-broad",
+        params: createParams({ enumerationType: "NPI-2" }),
+      })
     }
-
-    plans.push({ serviceType, params })
   })
 
   return plans
@@ -400,7 +480,7 @@ function classifyKind(desc: string, requested: CareSearchType): CareSearchType {
   if (includesAny(lowered, RADIOLOGY_KEYWORDS)) return "radiology"
   if (includesAny(lowered, LAB_KEYWORDS)) return "lab"
   if (extractMappedValue(lowered, CAREGIVER_ROLE_MAP)) return "caregiver"
-  if (requested) return requested
+  if (requested === "provider") return "provider"
   return "provider"
 }
 
@@ -419,10 +499,13 @@ function mapResult(result: NppesResult, requested: CareSearchType, parsed: Parse
     {}
   const taxonomyDesc = taxonomy.desc || ""
   const kind = classifyKind(taxonomyDesc, requested)
+  const taxonomyLower = taxonomyDesc.toLowerCase()
+  const specialtyLower = parsed.specialty?.toLowerCase() || ""
+  const roleLower = parsed.caregiverRole?.toLowerCase() || ""
   const isHighConfidence =
-    (!!parsed.specialty && taxonomyDesc.toLowerCase().includes(parsed.specialty.toLowerCase())) ||
-    (!!parsed.caregiverRole && taxonomyDesc.toLowerCase().includes(parsed.caregiverRole.toLowerCase())) ||
-    kind === requested
+    (!!specialtyLower && taxonomyLower.includes(specialtyLower)) ||
+    (!!roleLower && taxonomyLower.includes(roleLower)) ||
+    (kind === requested && (requested === "provider" || taxonomyLower.length > 0))
 
   const fullAddress = [
     locationAddress.address_1,
@@ -480,42 +563,51 @@ export async function searchNpiCareDirectory(
   }
 
   const plan = buildSearchPlan(parsed, limit)
+  const primaryPlan = plan.filter((step) => step.phase === "primary")
+  const fallbackPlan = plan.filter((step) => step.phase === "fallback")
   const results: CareDirectoryMatch[] = []
   const dedupe = new Set<string>()
   let successfulResponses = 0
 
-  const payloads = await Promise.all(
-    plan.map(async (searchStep) => {
-      try {
-        const response = await fetchWithTimeout(
-          `${NPPES_BASE}&${searchStep.params.toString()}`,
-          { next: { revalidate: 300 } },
-          9000
-        )
-        if (!response.ok) return null
-        successfulResponses += 1
-        const payload = (await response.json()) as NppesResponse
-        return {
-          serviceType: searchStep.serviceType,
-          list: payload.results || [],
+  async function runPlans(steps: SearchPlan[]): Promise<void> {
+    const payloads = await Promise.all(
+      steps.map(async (searchStep) => {
+        try {
+          const response = await fetchWithTimeout(
+            `${NPPES_BASE}&${searchStep.params.toString()}`,
+            { next: { revalidate: 300 } },
+            9000
+          )
+          if (!response.ok) return null
+          successfulResponses += 1
+          const payload = (await response.json()) as NppesResponse
+          return {
+            serviceType: searchStep.serviceType,
+            list: payload.results || [],
+          }
+        } catch {
+          return null
         }
-      } catch {
-        return null
-      }
-    })
-  )
+      })
+    )
 
-  payloads.forEach((payload) => {
-    if (!payload) return
-    payload.list.forEach((entry) => {
-      const mapped = mapResult(entry, payload.serviceType, parsed)
-      if (!mapped) return
-      const key = `${mapped.kind}:${mapped.npi}`
-      if (dedupe.has(key)) return
-      dedupe.add(key)
-      results.push(mapped)
+    payloads.forEach((payload) => {
+      if (!payload) return
+      payload.list.forEach((entry) => {
+        const mapped = mapResult(entry, payload.serviceType, parsed)
+        if (!mapped) return
+        const key = `${mapped.kind}:${mapped.npi}`
+        if (dedupe.has(key)) return
+        dedupe.add(key)
+        results.push(mapped)
+      })
     })
-  })
+  }
+
+  await runPlans(primaryPlan)
+  if (results.length < Math.min(limit, 8) && fallbackPlan.length > 0) {
+    await runPlans(fallbackPlan)
+  }
 
   const sorted = results.sort((a, b) => {
     if (a.confidence !== b.confidence) return a.confidence === "high" ? -1 : 1

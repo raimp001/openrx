@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import {
   assessHealthScreening,
   type ScreeningAssessment,
+  type ScreeningFactor,
   type ScreeningInput,
   type ScreeningRecommendation,
 } from "@/lib/basehealth"
@@ -59,12 +60,41 @@ const GENETIC_MARKERS = [
   "palb2",
   "atm",
   "chek2",
+  "hoxb13",
   "lynch",
   "mlh1",
   "msh2",
   "msh6",
   "pms2",
+  "apc",
+  "mutyh",
+  "epcam",
 ]
+const FAMILY_TERMS = [
+  "family history",
+  "mother",
+  "father",
+  "brother",
+  "sister",
+  "sibling",
+  "parent",
+  "uncle",
+  "aunt",
+  "grandmother",
+  "grandfather",
+  "cousin",
+]
+const BRCA_PROSTATE_MARKERS = ["brca1", "brca2", "palb2", "atm", "chek2", "hoxb13", "prostate cancer"]
+const COLORECTAL_MARKERS = ["colorectal cancer", "colon cancer", "rectal cancer", "colorectal", "colon"]
+const POLYPOSIS_MARKERS = [
+  "polyposis",
+  "familial adenomatous polyposis",
+  "fap",
+  "mutyh-associated polyposis",
+  "apc",
+  "mutyh",
+]
+const LYNCH_MARKERS = ["lynch", "mlh1", "msh2", "msh6", "pms2", "epcam"]
 
 function resolveAnalysisLevel(value?: string | null): ScreeningAnalysisLevel {
   return value === "deep" ? "deep" : "preview"
@@ -106,60 +136,134 @@ function withAction(actions: string[], candidate: string): string[] {
   return [...actions, candidate]
 }
 
+function withFactor(factors: ScreeningFactor[], candidate: ScreeningFactor): ScreeningFactor[] {
+  if (factors.some((factor) => factor.label === candidate.label)) return factors
+  return [...factors, candidate]
+}
+
+function hasAnySignal(terms: string[], targets: string[]): boolean {
+  return terms.some((term) => targets.some((target) => term.includes(target)))
+}
+
 function applyGeneticsDeepDive(
   assessment: ScreeningAssessment,
   input: ScreeningInput
 ): ScreeningAssessment {
   const terms = [...normalizeTerms(input.conditions), ...normalizeTerms(input.familyHistory)]
   const geneticsTerms = terms.filter((term) => hasGeneticSignal(term))
-  if (geneticsTerms.length === 0) return assessment
+  const hasFamilyContext = hasAnySignal(terms, FAMILY_TERMS)
+  const hasProstateSignal = hasAnySignal(terms, BRCA_PROSTATE_MARKERS)
+  const hasColorectalSignal = hasAnySignal(terms, COLORECTAL_MARKERS)
+  const hasPolyposisSignal = hasAnySignal(terms, POLYPOSIS_MARKERS)
+  const hasLynchSignal = hasAnySignal(terms, LYNCH_MARKERS)
+  const hasProstateFamilyRisk = hasFamilyContext && hasProstateSignal
+  const hasColorectalFamilyRisk = hasFamilyContext && (hasColorectalSignal || hasPolyposisSignal)
+
+  if (
+    geneticsTerms.length === 0 &&
+    !hasProstateFamilyRisk &&
+    !hasColorectalFamilyRisk &&
+    !hasLynchSignal &&
+    !hasPolyposisSignal
+  ) {
+    return assessment
+  }
 
   let recommendations = assessment.recommendedScreenings
   let nextActions = assessment.nextActions
+  let factors = assessment.factors
+  let riskBoost = 0
   const mention = GENETIC_MARKERS.filter((marker) => geneticsTerms.some((term) => term.includes(marker)))
 
-  recommendations = withRecommendation(recommendations, {
-    id: "genetics-counseling-cascade",
-    name: "Hereditary-risk counseling and cascade testing",
-    priority: "high",
-    ownerAgent: "screening",
-    reason:
-      "Reported genetic risk signals warrant counseling plus family cascade testing and personalized preventive intervals.",
-  })
-
-  if (mention.some((marker) => ["brca1", "brca2", "palb2", "atm", "chek2"].includes(marker))) {
+  if (geneticsTerms.length > 0 || hasProstateFamilyRisk || hasColorectalFamilyRisk) {
     recommendations = withRecommendation(recommendations, {
-      id: "hereditary-breast-prostate-pathway",
-      name: "Mutation-informed breast/prostate surveillance planning",
+      id: "genetics-counseling-cascade",
+      name: "Hereditary-risk counseling and cascade testing",
       priority: "high",
       ownerAgent: "screening",
       reason:
-        "BRCA-pathway and related mutation signals can justify earlier or intensified surveillance planning.",
+        "Inherited-risk signals warrant counseling plus family cascade testing and personalized preventive intervals.",
+    })
+  }
+
+  if (
+    mention.some((marker) => ["brca1", "brca2", "palb2", "atm", "chek2", "hoxb13"].includes(marker)) ||
+    hasProstateFamilyRisk
+  ) {
+    factors = withFactor(factors, {
+      label: "Inherited prostate-cancer risk context",
+      impact: "elevated",
+      scoreDelta: 8,
+      evidence:
+        "Family prostate history and/or germline markers can warrant earlier or more intensive surveillance planning.",
+    })
+    riskBoost += 8
+
+    recommendations = withRecommendation(recommendations, {
+      id: "hereditary-prostate-screening-pathway",
+      name: "Hereditary-risk prostate screening pathway",
+      priority: "high",
+      ownerAgent: "screening",
+      reason:
+        "Family prostate cancer and related germline markers can justify earlier or intensified prostate screening strategy.",
     })
     nextActions = withAction(
       nextActions,
-      "Discuss mutation-informed screening start ages and interval cadence with a genetics-enabled clinician."
+      "Capture which relatives had prostate cancer and diagnosis ages so start-age decisions can be personalized."
     )
   }
 
-  if (mention.some((marker) => ["lynch", "mlh1", "msh2", "msh6", "pms2"].includes(marker))) {
+  if (
+    mention.some((marker) => ["lynch", "mlh1", "msh2", "msh6", "pms2", "apc", "mutyh", "epcam"].includes(marker)) ||
+    hasLynchSignal ||
+    hasPolyposisSignal ||
+    hasColorectalFamilyRisk
+  ) {
+    factors = withFactor(factors, {
+      label: "Inherited colorectal/polyposis risk context",
+      impact: "elevated",
+      scoreDelta: 9,
+      evidence:
+        "Family colorectal history, polyposis syndromes, or Lynch-spectrum markers support intensified colorectal surveillance.",
+    })
+    riskBoost += 9
+
     recommendations = withRecommendation(recommendations, {
-      id: "lynch-colorectal-surveillance",
-      name: "Enhanced colorectal surveillance pathway",
+      id: "hereditary-colorectal-surveillance",
+      name: "Hereditary colorectal/polyposis surveillance pathway",
       priority: "high",
       ownerAgent: "screening",
       reason:
-        "Lynch-spectrum mutation signals support a personalized colorectal surveillance strategy.",
+        "Family colorectal/polyposis or Lynch-spectrum signals support earlier and more frequent surveillance planning.",
     })
+    nextActions = withAction(
+      nextActions,
+      "Bring prior colonoscopy records, pathology, and any APC/MUTYH/Lynch reports to your next screening visit."
+    )
+  }
+
+  if (geneticsTerms.length > 0) {
+    factors = withFactor(factors, {
+      label: "Reported germline mutation signal",
+      impact: "elevated",
+      scoreDelta: 7,
+      evidence: "Known germline mutation status can materially change preventive screening cadence.",
+    })
+    riskBoost += 7
   }
 
   nextActions = withAction(
     nextActions,
-    "Share prior genetic test reports with your care team to lock in precise screening timing."
+    "Share prior genetic test reports and family diagnosis ages with your care team to lock in precise screening timing."
   )
+
+  const boostedScore = Math.max(0, Math.min(100, assessment.overallRiskScore + riskBoost))
 
   return {
     ...assessment,
+    overallRiskScore: boostedScore,
+    riskTier: boostedScore >= 65 ? "high" : boostedScore >= 35 ? "moderate" : "low",
+    factors: factors.sort((a, b) => b.scoreDelta - a.scoreDelta),
     recommendedScreenings: recommendations,
     nextActions,
   }
@@ -209,6 +313,9 @@ function inferServiceTypes(rec: ScreeningRecommendation): CareSearchType[] {
 
 function inferSpecialtyHint(rec: ScreeningRecommendation): string | undefined {
   const text = `${rec.name} ${rec.reason}`.toLowerCase()
+  if (text.includes("hereditary") || text.includes("genetic") || text.includes("mutation")) {
+    return "Medical Genetics"
+  }
   if (text.includes("diabetes") || text.includes("a1c")) return "Endocrinology"
   if (text.includes("kidney") || text.includes("microalbumin")) return "Nephrology"
   if (text.includes("retinal") || text.includes("eye")) return "Ophthalmology"
@@ -387,7 +494,7 @@ async function buildAssessmentPayload(
     ...(options.analysisLevel === "preview"
       ? {
           upgradeMessage:
-            "Free preview includes USPSTF guidance. Deep dive unlocks mutation-informed personalization and full evidence synthesis.",
+            "Free preview is ready. Deep dive unlocks inherited-risk personalization, full evidence synthesis, and local care routing.",
         }
       : {}),
   }

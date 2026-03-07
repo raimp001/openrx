@@ -55,6 +55,12 @@ const USPSTF_SCREENING_LINKS: Array<{
     url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/prostate-cancer-screening",
     summary: "Shared decision framework for PSA-based prostate cancer screening.",
   },
+  {
+    id: "uspstf-colorectal",
+    title: "USPSTF Colorectal Cancer Screening",
+    url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening",
+    summary: "Routine colorectal screening recommendations and intervals for adults.",
+  },
 ]
 
 export function buildUspstfGuidelineCitations(): ScreeningEvidenceCitation[] {

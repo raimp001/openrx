@@ -22,6 +22,7 @@ import {
   ArrowRightCircle,
   AlertCircle,
   ShieldCheck,
+  ClipboardList,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
@@ -69,6 +70,7 @@ const navSections = [
       { href: "/billing", label: "Bills & Claims", icon: Receipt },
       { href: "/drug-prices", label: "Drug Prices", icon: DollarSign },
       { href: "/prior-auth", label: "Prior Auth", icon: ShieldCheck, badgeKey: "pendingPA" as const },
+      { href: "/prior-auth/audit", label: "PA Audit Trail", icon: ClipboardList },
       { href: "/wallet", label: "Wallet", icon: WalletIcon },
     ],
   },

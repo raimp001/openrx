@@ -4,7 +4,6 @@ import { CHAT_DEMOS } from "@/lib/seed-data"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 import { cn } from "@/lib/utils"
 import {
-  executeWorkflow,
   getRecentMessages as getOrchestratorMessages,
   getActiveTasks,
 } from "@/lib/openclaw/orchestrator"
@@ -26,8 +25,6 @@ import {
   User,
   Stethoscope,
   Loader2,
-  Wifi,
-  WifiOff,
   Zap,
   Clock,
   ArrowRight,
@@ -37,6 +34,7 @@ import {
   AlertCircle,
   GitBranch,
   Trash2,
+  Cpu,
 } from "lucide-react"
 import { useState, useEffect, useRef, useCallback } from "react"
 
@@ -59,6 +57,8 @@ interface ChatMessage {
   collaborators?: string[]
   routingInfo?: string
   timestamp: Date
+  streaming?: boolean
+  model?: string
 }
 
 const agentMeta: Record<string, { label: string; icon: typeof Bot; color: string }> = {
@@ -81,25 +81,23 @@ const iconMap: Record<string, typeof Calendar> = {
   Pill,
 }
 
+const WELCOME_CONTENT =
+  "Welcome to OpenRx AI — I'm Atlas, your healthcare coordination agent powered by Claude.\n\nI orchestrate a team of specialist agents who can help with prior authorizations, medications, billing, scheduling, and more.\n\nHow can I help you today?"
+
 export default function ChatPage() {
-  const { isConnected, profile, walletAddress } = useWalletIdentity()
+  const { isConnected, walletAddress } = useWalletIdentity()
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
       role: "agent",
-      content:
-        "Welcome to OpenRx AI. I'm Atlas, your healthcare coordination agent powered by OpenClaw.\n\nI orchestrate a team of 9 specialist agents who collaborate to help you:\n\n" +
-        (isConnected
-          ? "Your wallet is connected. I can see your profile and personalize my responses.\n\n"
-          : "") +
-        "How can I help you today?",
+      content: WELCOME_CONTENT,
       agentId: "coordinator",
       timestamp: new Date(),
     },
   ])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [gatewayStatus, setGatewayStatus] = useState<"checking" | "online" | "demo">("checking")
+  const [usingClaude, setUsingClaude] = useState(false)
   const [activeAgent, setActiveAgent] = useState<AgentId>("coordinator")
   const [showDemos, setShowDemos] = useState(false)
   const [activeDemo, setActiveDemo] = useState<string | null>(null)
@@ -107,24 +105,17 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const welcomeMessage: ChatMessage = {
-    id: "welcome",
-    role: "agent",
-    content:
-      "Welcome to OpenRx AI. I'm Atlas, your healthcare coordination agent powered by OpenClaw.\n\nI orchestrate a team of 9 specialist agents who collaborate to help you:\n\n" +
-      (isConnected
-        ? "Your wallet is connected. I can see your profile and personalize my responses.\n\n"
-        : "") +
-      "How can I help you today?",
-    agentId: "coordinator",
-    timestamp: new Date(),
-  }
-
   const clearChat = useCallback(() => {
-    setMessages([welcomeMessage])
+    setMessages([{
+      id: "welcome",
+      role: "agent",
+      content: WELCOME_CONTENT,
+      agentId: "coordinator",
+      timestamp: new Date(),
+    }])
     setActiveDemo(null)
     inputRef.current?.focus()
-  }, [isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const sendQuickPrompt = useCallback((prompt: string, agentId: AgentId) => {
     setInput(prompt)
@@ -132,23 +123,8 @@ export default function ChatPage() {
     inputRef.current?.focus()
   }, [])
 
-  // Run improvement cycle on mount
-  useEffect(() => {
-    runImprovementCycle()
-  }, [])
-
-  // Check gateway status
-  useEffect(() => {
-    fetch("/api/openclaw/status")
-      .then((r) => r.json())
-      .then((d) => setGatewayStatus(d.connected ? "online" : "demo"))
-      .catch(() => setGatewayStatus("demo"))
-  }, [])
-
-  // Auto-scroll
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+  useEffect(() => { runImprovementCycle() }, [])
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return
@@ -164,108 +140,110 @@ export default function ChatPage() {
     setInput("")
     setIsLoading(true)
 
-    // Execute orchestrator workflow — route to best agent with collaborators
-    const workflow = executeWorkflow(userMsg.content)
-
-    // If the orchestrator routes to a different agent, auto-switch
-    if (workflow.route.primaryAgent !== activeAgent) {
-      setActiveAgent(workflow.route.primaryAgent)
-    }
-
-    // Show routing info as a system message if collaborators are involved
-    if (workflow.route.collaborators.length > 0) {
-      const collaboratorNames = workflow.route.collaborators
-        .map((id) => {
-          const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === id)
-          return agent ? agent.name : id
-        })
-        .join(", ")
-      const primaryAgent = OPENCLAW_CONFIG.agents.find((a) => a.id === workflow.route.primaryAgent)
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `routing-${Date.now()}`,
-          role: "system",
-          content: `${primaryAgent?.name || "Agent"} is handling this with support from ${collaboratorNames}`,
-          timestamp: new Date(),
-        },
-      ])
-    }
+    // Placeholder for streaming response
+    const agentMsgId = `agent-${Date.now()}`
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: agentMsgId,
+        role: "agent",
+        content: "",
+        agentId: activeAgent,
+        timestamp: new Date(),
+        streaming: true,
+      },
+    ])
 
     try {
-      const res = await fetch("/api/openclaw/chat", {
+      const conversationHistory = messages
+        .filter((m) => m.role !== "system" && m.id !== "welcome")
+        .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content }))
+
+      const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: userMsg.content,
-          agentId: workflow.route.primaryAgent,
-          walletAddress: walletAddress,
+          messages: [...conversationHistory, { role: "user", content: userMsg.content }],
+          agentType: activeAgent,
+          patientContext: { walletAddress: walletAddress ?? undefined },
+          stream: true,
         }),
       })
 
-      const data = await res.json()
+      // Handle SSE streaming
+      if (res.headers.get("Content-Type")?.includes("text/event-stream")) {
+        setUsingClaude(true)
+        const reader = res.body?.getReader()
+        const decoder = new TextDecoder()
+        let accumulated = ""
 
-      const agentMsg: ChatMessage = {
-        id: `agent-${Date.now()}`,
-        role: "agent",
-        content: data.response || data.error || "No response received.",
-        agentId: workflow.route.primaryAgent,
-        collaborators: workflow.route.collaborators,
-        routingInfo: workflow.route.reasoning,
-        timestamp: new Date(),
-      }
-
-      setMessages((prev) => [...prev, agentMsg])
-
-      // If collaborators are involved, simulate their contributions
-      if (workflow.route.collaborators.length > 0) {
-        for (const collabId of workflow.route.collaborators) {
-          await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 400))
-          const collabAgent = OPENCLAW_CONFIG.agents.find((a) => a.id === collabId)
-          if (collabAgent) {
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: `collab-${collabId}-${Date.now()}`,
-                role: "agent",
-                content: getCollaboratorResponse(collabId as AgentId, userMsg.content),
-                agentId: collabId,
-                timestamp: new Date(),
-              },
-            ])
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            const chunk = decoder.decode(value)
+            const lines = chunk.split("\n")
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue
+              try {
+                const data = JSON.parse(line.slice(6)) as { type: string; delta?: string; model?: string }
+                if (data.type === "text_delta" && data.delta) {
+                  accumulated += data.delta
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === agentMsgId
+                        ? { ...m, content: accumulated, streaming: true }
+                        : m
+                    )
+                  )
+                } else if (data.type === "done") {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === agentMsgId
+                        ? { ...m, content: accumulated, streaming: false, model: data.model }
+                        : m
+                    )
+                  )
+                }
+              } catch { /* malformed SSE line */ }
+            }
           }
         }
+      } else {
+        // Non-streaming JSON fallback
+        const data = await res.json() as { message: string; model?: string }
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === agentMsgId
+              ? { ...m, content: data.message || "No response.", streaming: false, model: data.model }
+              : m
+          )
+        )
       }
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `error-${Date.now()}`,
-          role: "system",
-          content: "Connection error. Please try again.",
-          timestamp: new Date(),
-        },
-      ])
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === agentMsgId
+            ? { ...m, content: "Connection error. Please try again.", streaming: false }
+            : m
+        )
+      )
     } finally {
       setIsLoading(false)
     }
-  }, [input, isLoading, activeAgent, walletAddress])
+  }, [input, isLoading, activeAgent, walletAddress, messages])
 
   const loadDemo = (demoId: string) => {
     const demo = CHAT_DEMOS.find((d) => d.id === demoId)
     if (!demo) return
     setActiveDemo(demoId)
-
-    const demoMessages: ChatMessage[] = demo.messages.map((m, i) => ({
+    setMessages(demo.messages.map((m, i) => ({
       id: `demo-${demoId}-${i}`,
       role: m.role === "agent" ? ("agent" as const) : ("user" as const),
       content: m.content,
       agentId: m.role === "agent" ? "coordinator" : undefined,
       timestamp: new Date(Date.now() - (demo.messages.length - i) * 60000),
-    }))
-
-    setMessages(demoMessages)
+    })))
     setShowDemos(false)
   }
 
@@ -285,17 +263,13 @@ export default function ChatPage() {
           <div>
             <h1 className="text-2xl font-serif text-warm-800">AI Agent</h1>
             <div className="flex items-center gap-2 mt-0.5">
-              {gatewayStatus === "checking" ? (
-                <span className="flex items-center gap-1 text-[10px] text-cloudy">
-                  <Loader2 size={10} className="animate-spin" /> Connecting...
-                </span>
-              ) : gatewayStatus === "online" ? (
+              {usingClaude ? (
                 <span className="flex items-center gap-1 text-[10px] text-accent font-semibold">
-                  <Wifi size={10} /> OpenClaw Gateway Connected
+                  <Cpu size={9} /> Claude Sonnet 4.6
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-[10px] text-terra font-semibold">
-                  <WifiOff size={10} /> Demo Mode
+                  <Zap size={9} /> Demo Mode
                 </span>
               )}
               {isConnected && (
@@ -340,69 +314,41 @@ export default function ChatPage() {
         <div className="bg-pampas rounded-2xl border border-sand p-4">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={14} className="text-accent" />
-            <span className="text-xs font-bold text-warm-800">
-              Self-Improvement Pipeline
-            </span>
-            <span className="text-[10px] text-warm-500 ml-auto">
-              Agents recursively suggest and vote on improvements
-            </span>
+            <span className="text-xs font-bold text-warm-800">Self-Improvement Pipeline</span>
+            <span className="text-[10px] text-warm-500 ml-auto">Agents recursively suggest and vote on improvements</span>
           </div>
           <div className="grid grid-cols-4 gap-3 mb-3">
-            <div className="bg-cream/50 rounded-lg p-2.5 text-center">
-              <div className="text-lg font-bold text-warm-800">{improvementMetrics.totalSuggested}</div>
-              <div className="text-[9px] text-warm-500">Suggested</div>
-            </div>
-            <div className="bg-cream/50 rounded-lg p-2.5 text-center">
-              <div className="text-lg font-bold text-accent">{improvementMetrics.totalDeployed}</div>
-              <div className="text-[9px] text-warm-500">Deployed</div>
-            </div>
-            <div className="bg-cream/50 rounded-lg p-2.5 text-center">
-              <div className="text-lg font-bold text-yellow-600">
-                {getImprovements({ status: "in_progress" }).length}
+            {[
+              { label: "Suggested", value: improvementMetrics.totalSuggested, color: "text-warm-800" },
+              { label: "Deployed", value: improvementMetrics.totalDeployed, color: "text-accent" },
+              { label: "In Progress", value: getImprovements({ status: "in_progress" }).length, color: "text-yellow-600" },
+              { label: "Approved", value: getImprovements({ status: "approved" }).length, color: "text-soft-blue" },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="bg-cream/50 rounded-lg p-2.5 text-center">
+                <div className={cn("text-lg font-bold", color)}>{value}</div>
+                <div className="text-[9px] text-warm-500">{label}</div>
               </div>
-              <div className="text-[9px] text-warm-500">In Progress</div>
-            </div>
-            <div className="bg-cream/50 rounded-lg p-2.5 text-center">
-              <div className="text-lg font-bold text-soft-blue">
-                {getImprovements({ status: "approved" }).length}
-              </div>
-              <div className="text-[9px] text-warm-500">Approved</div>
-            </div>
+            ))}
           </div>
           <div className="space-y-1.5">
             {recentImprovements.map((imp) => {
               const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === imp.suggestedBy)
               return (
-                <div
-                  key={imp.id}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-cream/30 border border-sand/50"
-                >
-                  <div
-                    className={cn(
-                      "w-1.5 h-1.5 rounded-full",
-                      imp.status === "deployed" ? "bg-accent" :
-                      imp.status === "in_progress" ? "bg-yellow-400" :
-                      imp.status === "approved" ? "bg-soft-blue" :
-                      "bg-warm-300"
-                    )}
-                  />
+                <div key={imp.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-cream/30 border border-sand/50">
+                  <div className={cn("w-1.5 h-1.5 rounded-full",
+                    imp.status === "deployed" ? "bg-accent" :
+                    imp.status === "in_progress" ? "bg-yellow-400" :
+                    imp.status === "approved" ? "bg-soft-blue" : "bg-warm-300"
+                  )} />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-semibold text-warm-800 truncate">{imp.title}</p>
-                    <p className="text-[9px] text-cloudy">
-                      {agent?.name} &middot; {imp.category} &middot; {imp.votes.length} votes
-                    </p>
+                    <p className="text-[9px] text-cloudy">{agent?.name} &middot; {imp.category} &middot; {imp.votes.length} votes</p>
                   </div>
-                  <span
-                    className={cn(
-                      "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                      imp.status === "deployed" ? "bg-accent/10 text-accent" :
-                      imp.status === "in_progress" ? "bg-yellow-100 text-yellow-700" :
-                      imp.status === "approved" ? "bg-blue-100 text-blue-700" :
-                      "bg-warm-100 text-warm-600"
-                    )}
-                  >
-                    {imp.status}
-                  </span>
+                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                    imp.status === "deployed" ? "bg-accent/10 text-accent" :
+                    imp.status === "in_progress" ? "bg-yellow-100 text-yellow-700" :
+                    imp.status === "approved" ? "bg-blue-100 text-blue-700" : "bg-warm-100 text-warm-600"
+                  )}>{imp.status}</span>
                 </div>
               )
             })}
@@ -410,24 +356,18 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Demo Scenarios Dropdown */}
+      {/* Demo Scenarios */}
       {showDemos && (
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
           {CHAT_DEMOS.map((d) => {
             const Icon = iconMap[d.icon] || Bot
             return (
-              <button
-                key={d.id}
-                onClick={() => loadDemo(d.id)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all border",
-                  activeDemo === d.id
-                    ? "bg-terra text-white border-terra"
-                    : "bg-pampas text-warm-600 border-sand hover:border-terra/30"
+              <button key={d.id} onClick={() => loadDemo(d.id)}
+                className={cn("flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all border",
+                  activeDemo === d.id ? "bg-terra text-white border-terra" : "bg-pampas text-warm-600 border-sand hover:border-terra/30"
                 )}
               >
-                <Icon size={14} />
-                {d.title}
+                <Icon size={14} /> {d.title}
               </button>
             )
           })}
@@ -440,11 +380,8 @@ export default function ChatPage() {
           const meta = agentMeta[agent.id]
           const Icon = meta?.icon || Bot
           return (
-            <button
-              key={agent.id}
-              onClick={() => setActiveAgent(agent.id as AgentId)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
+            <button key={agent.id} onClick={() => setActiveAgent(agent.id as AgentId)}
+              className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
                 activeAgent === agent.id
                   ? "bg-terra/10 text-terra border-terra/20"
                   : "text-warm-500 border-transparent hover:text-warm-700 hover:bg-cream"
@@ -459,7 +396,6 @@ export default function ChatPage() {
 
       {/* Chat Window */}
       <div className="bg-pampas rounded-2xl border border-sand overflow-hidden flex flex-col h-[calc(100vh-420px)] min-h-[400px]">
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {messages.map((msg) => {
             const meta = msg.agentId ? agentMeta[msg.agentId] : null
@@ -467,21 +403,12 @@ export default function ChatPage() {
 
             return (
               <div key={msg.id}>
-                <div
-                  className={cn(
-                    "flex gap-3",
-                    msg.role === "user" ? "flex-row-reverse" : ""
-                  )}
-                >
+                <div className={cn("flex gap-3", msg.role === "user" ? "flex-row-reverse" : "")}>
                   {msg.role !== "system" && (
-                    <div
-                      className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                        msg.role === "agent"
-                          ? "bg-terra/10"
-                          : "bg-soft-blue/10"
-                      )}
-                    >
+                    <div className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                      msg.role === "agent" ? "bg-terra/10" : "bg-soft-blue/10"
+                    )}>
                       {msg.role === "user" ? (
                         <User size={14} className="text-soft-blue" />
                       ) : (
@@ -489,16 +416,12 @@ export default function ChatPage() {
                       )}
                     </div>
                   )}
-                  <div
-                    className={cn(
-                      "rounded-xl border px-4 py-3 max-w-[80%]",
-                      msg.role === "user"
-                        ? "bg-soft-blue/5 border-soft-blue/10"
-                        : msg.role === "system"
-                        ? "bg-yellow-50 border-yellow-200/50 w-full text-center"
-                        : "bg-terra/5 border-terra/10"
-                    )}
-                  >
+                  <div className={cn(
+                    "rounded-xl border px-4 py-3 max-w-[80%]",
+                    msg.role === "user" ? "bg-soft-blue/5 border-soft-blue/10" :
+                    msg.role === "system" ? "bg-yellow-50 border-yellow-200/50 w-full text-center" :
+                    "bg-terra/5 border-terra/10"
+                  )}>
                     {msg.role === "system" && (
                       <div className="flex items-center justify-center gap-1.5">
                         <GitBranch size={10} className="text-yellow-600" />
@@ -510,13 +433,14 @@ export default function ChatPage() {
                         <span className={cn("text-[10px] font-bold uppercase tracking-wider", meta.color)}>
                           {meta.label}
                         </span>
-                        {gatewayStatus === "online" && (
-                          <Zap size={8} className="text-accent" />
+                        {msg.model && (
+                          <span className="flex items-center gap-0.5 text-[9px] text-accent font-semibold">
+                            <Cpu size={7} /> {msg.model.includes("claude") ? "Claude" : msg.model}
+                          </span>
                         )}
                         {msg.collaborators && msg.collaborators.length > 0 && (
                           <span className="flex items-center gap-0.5 text-[9px] text-warm-400 ml-1">
-                            <Users size={8} />
-                            +{msg.collaborators.length} agents
+                            <Users size={8} /> +{msg.collaborators.length} agents
                           </span>
                         )}
                       </div>
@@ -524,9 +448,12 @@ export default function ChatPage() {
                     {msg.role !== "system" && (
                       <p className="text-sm text-warm-700 leading-relaxed whitespace-pre-line">
                         {msg.content}
+                        {msg.streaming && (
+                          <span className="inline-block w-1 h-3.5 bg-terra ml-0.5 animate-pulse align-middle" />
+                        )}
                       </p>
                     )}
-                    {msg.role !== "system" && (
+                    {msg.role !== "system" && !msg.streaming && (
                       <span className="text-[9px] text-cloudy mt-1 block">
                         {msg.timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                       </span>
@@ -534,7 +461,6 @@ export default function ChatPage() {
                   </div>
                 </div>
 
-                {/* Routing info */}
                 {msg.routingInfo && (
                   <div className="ml-11 mt-1 flex items-center gap-1.5">
                     <AlertCircle size={8} className="text-warm-400" />
@@ -545,7 +471,7 @@ export default function ChatPage() {
             )
           })}
 
-          {isLoading && (
+          {isLoading && messages[messages.length - 1]?.content === "" && (
             <div className="flex gap-3">
               <div className="w-8 h-8 rounded-lg bg-terra/10 flex items-center justify-center">
                 <Bot size={14} className="text-terra" />
@@ -553,9 +479,7 @@ export default function ChatPage() {
               <div className="rounded-xl border bg-terra/5 border-terra/10 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Loader2 size={14} className="text-terra animate-spin" />
-                  <span className="text-xs text-warm-500">
-                    Agents collaborating...
-                  </span>
+                  <span className="text-xs text-warm-500">Thinking...</span>
                 </div>
               </div>
             </div>
@@ -568,9 +492,7 @@ export default function ChatPage() {
         {messages.length <= 1 && (
           <div className="px-5 py-3 border-t border-sand/50 flex flex-wrap gap-1.5">
             {QUICK_PROMPTS.map((qp) => (
-              <button
-                key={qp.label}
-                onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
+              <button key={qp.label} onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
                 className="px-2.5 py-1 text-[10px] font-semibold text-warm-600 bg-sand/30 hover:bg-terra/10 hover:text-terra border border-sand/60 hover:border-terra/20 rounded-lg transition"
               >
                 {qp.label}
@@ -593,23 +515,21 @@ export default function ChatPage() {
               className="flex-1 px-4 py-2.5 rounded-xl border border-sand bg-pampas text-sm placeholder:text-cloudy focus:outline-none focus:border-terra/40 focus:ring-1 focus:ring-terra/20 transition disabled:opacity-50"
             />
             {messages.length > 1 && (
-              <button
-                onClick={clearChat}
-                disabled={isLoading}
-                title="Clear conversation"
+              <button onClick={clearChat} disabled={isLoading} title="Clear conversation"
                 className="px-3 py-2.5 text-cloudy hover:text-warm-600 rounded-xl hover:bg-sand/30 transition disabled:opacity-50"
               >
                 <Trash2 size={14} />
               </button>
             )}
-            <button
-              onClick={sendMessage}
-              disabled={isLoading || !input.trim()}
+            <button onClick={sendMessage} disabled={isLoading || !input.trim()}
               className="px-4 py-2.5 bg-terra text-white rounded-xl hover:bg-terra-dark transition flex items-center gap-2 text-sm font-semibold disabled:opacity-50"
             >
               <Send size={14} />
             </button>
           </div>
+          <p className="text-[10px] text-cloudy mt-1.5 text-center">
+            Powered by Claude Sonnet 4.6 &middot; Set <span className="font-mono">ANTHROPIC_API_KEY</span> to enable
+          </p>
         </div>
       </div>
 
@@ -627,10 +547,7 @@ export default function ChatPage() {
               const meta = agentMeta[job.agentId]
               const Icon = meta?.icon || Bot
               return (
-                <div
-                  key={job.id}
-                  className="flex items-start gap-2 p-2.5 rounded-lg bg-cream/50 border border-sand/50"
-                >
+                <div key={job.id} className="flex items-start gap-2 p-2.5 rounded-lg bg-cream/50 border border-sand/50">
                   <Icon size={12} className={cn("mt-0.5 shrink-0", meta?.color || "text-terra")} />
                   <div>
                     <p className="text-[11px] font-semibold text-warm-800">{job.description}</p>
@@ -657,25 +574,17 @@ export default function ChatPage() {
                 const fromAgent = OPENCLAW_CONFIG.agents.find((a) => a.id === msg.fromAgent)
                 const toAgent = msg.toAgent === "*" ? "All" : OPENCLAW_CONFIG.agents.find((a) => a.id === msg.toAgent)?.name || msg.toAgent
                 return (
-                  <div
-                    key={msg.id}
-                    className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-cream/50 border border-sand/50"
-                  >
+                  <div key={msg.id} className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-cream/50 border border-sand/50">
                     <ArrowRight size={10} className="text-terra shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] text-warm-800 truncate">
-                        <span className="font-semibold">{fromAgent?.name}</span>
-                        {" → "}
-                        <span className="font-semibold">{toAgent}</span>
+                        <span className="font-semibold">{fromAgent?.name}</span> → <span className="font-semibold">{toAgent}</span>
                       </p>
                       <p className="text-[9px] text-cloudy truncate">{msg.content}</p>
                     </div>
-                    <span className={cn(
-                      "text-[8px] font-bold px-1 py-0.5 rounded",
+                    <span className={cn("text-[8px] font-bold px-1 py-0.5 rounded",
                       msg.status === "delivered" ? "bg-accent/10 text-accent" : "bg-warm-100 text-warm-500"
-                    )}>
-                      {msg.status}
-                    </span>
+                    )}>{msg.status}</span>
                   </div>
                 )
               })}
@@ -704,45 +613,4 @@ export default function ChatPage() {
       </div>
     </div>
   )
-}
-
-/** Generate contextual collaborator responses */
-function getCollaboratorResponse(agentId: AgentId, userMessage: string): string {
-  const lower = userMessage.toLowerCase()
-
-  switch (agentId) {
-    case "billing":
-      if (lower.includes("appointment") || lower.includes("schedule"))
-        return "I've checked your insurance plan for this visit type. Estimated copay: $35 for in-network specialist, $0 for preventive care. Let me know if you need a cost breakdown."
-      return "I'll review the billing implications and check your insurance coverage for this."
-
-    case "scheduling":
-      if (lower.includes("refill") || lower.includes("medication"))
-        return "If you need lab work for this medication, I can schedule that too. Dr. Patel has morning slots available this week."
-      if (lower.includes("symptom") || lower.includes("pain"))
-        return "Based on the triage assessment, I can book a same-day visit. Dr. Chen has a 2:00 PM slot available today."
-      return "I'll check physician availability and can book any follow-up appointments needed."
-
-    case "rx":
-      if (lower.includes("symptom") || lower.includes("pain"))
-        return "I've checked your current medications for any interactions with common treatments for these symptoms. No conflicts found with your Metformin, Lisinopril, or Atorvastatin."
-      return "I'll review your medication list to ensure there are no interactions or concerns."
-
-    case "prior-auth":
-      if (lower.includes("bill") || lower.includes("denied"))
-        return "I'll check if this denial is PA-related. If prior authorization was missing, I can file a retroactive PA and appeal simultaneously."
-      return "I'll verify if prior authorization is needed and prepare documentation."
-
-    case "coordinator":
-      return "I'm monitoring this conversation and will route to additional specialists if needed."
-
-    case "wellness":
-      return "I'll check if this relates to any of your pending screenings or preventive care recommendations."
-
-    case "triage":
-      return "I'm standing by for any symptom assessment needs."
-
-    default:
-      return "I'm available to assist with my area of expertise."
-  }
 }

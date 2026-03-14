@@ -5,9 +5,10 @@ import { getPatientLabResults, getPhysician } from "@/lib/seed-data"
 import { cn } from "@/lib/utils"
 import {
   FlaskConical, AlertTriangle, CheckCircle2, Clock, ArrowRight,
-  ChevronDown, ChevronUp, Bot, FileText,
+  ChevronDown, ChevronUp, FileText,
 } from "lucide-react"
 import { useState } from "react"
+import AIAction from "@/components/ai-action"
 
 export default function LabResultsPage() {
   const labs = getPatientLabResults(currentUser.id)
@@ -195,18 +196,14 @@ export default function LabResultsPage() {
       </div>
 
       {/* AI Insight */}
-      <div className="bg-terra/5 rounded-2xl border border-terra/10 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Bot size={14} className="text-terra" />
-          <span className="text-xs font-bold text-warm-800">Maya&apos;s Lab Analysis</span>
-        </div>
-        <p className="text-xs text-warm-600 leading-relaxed">
-          Your A1C improved from 7.2% to 6.8% — great progress! Your LDL is slightly above the
-          recommended target for diabetic patients. Improving Atorvastatin adherence (currently 78%)
-          could help bring it under 100 mg/dL. The microalbumin finding is worth monitoring — I&apos;ve
-          flagged Dr. Chen&apos;s nephrology referral.
-        </p>
-      </div>
+      <AIAction
+        agentId="rx"
+        label="Maya's Lab Analysis"
+        prompt="Analyze my recent lab results and provide personalized insights. Highlight any abnormal values, trends, and specific recommendations for my conditions and medications."
+        context={`Labs: ${labs.slice(0, 3).map(l => `${l.test_name} (${l.status}): ${l.results.map(r => `${r.name}=${r.value}${r.unit}${r.flag !== "normal" ? ` [${r.flag}]` : ""}`).join(", ")}`).join(" | ")}`}
+        variant="inline"
+        className="bg-terra/5 rounded-2xl border border-terra/10 p-4"
+      />
     </div>
   )
 }

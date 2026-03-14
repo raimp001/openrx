@@ -5,9 +5,10 @@ import { getPatientVitals } from "@/lib/seed-data"
 import { cn } from "@/lib/utils"
 import {
   Activity, Heart, Thermometer, Weight, Droplets,
-  Wind, TrendingDown, TrendingUp, Minus, Bot, Clock,
+  Wind, TrendingDown, TrendingUp, Minus, Clock,
 } from "lucide-react"
 import { useState } from "react"
+import AIAction from "@/components/ai-action"
 
 type TimeRange = "7d" | "14d" | "30d"
 
@@ -237,22 +238,14 @@ export default function VitalsPage() {
       </div>
 
       {/* AI Insight */}
-      <div className="bg-terra/5 rounded-2xl border border-terra/10 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Bot size={14} className="text-terra" />
-          <span className="text-xs font-bold text-warm-800">Ivy&apos;s Wellness Analysis</span>
-        </div>
-        <p className="text-xs text-warm-600 leading-relaxed">
-          Your blood pressure is averaging {avgSystolic}/{avgDiastolic} mmHg — slightly above the
-          130/80 target for diabetic patients.{" "}
-          {glucoseTrend === "down"
-            ? "Good news: your fasting glucose is trending downward, which aligns with your improving A1C."
-            : "Your fasting glucose has been variable — consistent timing of readings and medication can help."}
-          {latestWeight && latestWeight > 195
-            ? " Your weight has decreased by 2 lbs this month — keep up the great work with Dr. Nguyen's dietitian referral."
-            : ""}
-        </p>
-      </div>
+      <AIAction
+        agentId="wellness"
+        label="Ivy's Wellness Analysis"
+        prompt="Analyze my vital signs and provide personalized health insights. Include trends, targets for my conditions, and specific recommendations."
+        context={`BP avg: ${avgSystolic}/${avgDiastolic} mmHg | Glucose trend: ${glucoseTrend} | Latest weight: ${latestWeight ?? "N/A"} lbs | Data range: ${range}`}
+        variant="inline"
+        className="bg-terra/5 rounded-2xl border border-terra/10 p-4"
+      />
     </div>
   )
 }

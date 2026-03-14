@@ -5,8 +5,9 @@ import { getPatientVaccinations } from "@/lib/seed-data"
 import { cn } from "@/lib/utils"
 import {
   Syringe, CheckCircle2, AlertTriangle, Clock, Calendar,
-  Bot, Shield, ArrowRight,
+  Shield, ArrowRight,
 } from "lucide-react"
+import AIAction from "@/components/ai-action"
 import Link from "next/link"
 
 export default function VaccinationsPage() {
@@ -133,18 +134,14 @@ export default function VaccinationsPage() {
       </div>
 
       {/* AI Insight */}
-      <div className="bg-terra/5 rounded-2xl border border-terra/10 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Bot size={14} className="text-terra" />
-          <span className="text-xs font-bold text-warm-800">Ivy&apos;s Vaccination Review</span>
-        </div>
-        <p className="text-xs text-warm-600 leading-relaxed">
-          You&apos;re up to date on your flu shot and COVID booster. As a patient over 50 with diabetes,
-          the CDC recommends both the Shingrix (shingles) and PCV20 (pneumococcal) vaccines.
-          Both are covered by most insurance plans with no copay. Want me to check your coverage
-          and schedule these at your next visit?
-        </p>
-      </div>
+      <AIAction
+        agentId="wellness"
+        label="Ivy's Vaccination Review"
+        prompt="Review my vaccination records and recommend any vaccines I may need based on my age, conditions, and CDC guidelines. Include insurance coverage information."
+        context={`Completed: ${completed.length} vaccines. Due/overdue: ${due.map(v => v.vaccine_name).join(", ") || "none"}. Incomplete series: ${incomplete.map(v => v.vaccine_name).join(", ") || "none"}.`}
+        variant="inline"
+        className="bg-terra/5 rounded-2xl border border-terra/10 p-4"
+      />
     </div>
   )
 }

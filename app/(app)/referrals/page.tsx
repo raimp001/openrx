@@ -5,8 +5,9 @@ import { getPatientReferrals, getPhysician } from "@/lib/seed-data"
 import { cn } from "@/lib/utils"
 import {
   ArrowRightCircle, Clock, CheckCircle2, Calendar, Phone,
-  AlertTriangle, Bot, ArrowRight, MapPin,
+  AlertTriangle, ArrowRight, MapPin,
 } from "lucide-react"
+import AIAction from "@/components/ai-action"
 
 export default function ReferralsPage() {
   const referrals = getPatientReferrals(currentUser.id)
@@ -159,18 +160,14 @@ export default function ReferralsPage() {
       </div>
 
       {/* AI Insight */}
-      <div className="bg-terra/5 rounded-2xl border border-terra/10 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Bot size={14} className="text-terra" />
-          <span className="text-xs font-bold text-warm-800">Atlas&apos; Referral Coordination</span>
-        </div>
-        <p className="text-xs text-warm-600 leading-relaxed">
-          You have {scheduled.length} upcoming specialist visit{scheduled.length !== 1 ? "s" : ""}.
-          {pending.length > 0 && ` I'm working with Rex to get insurance authorization for your ${pending.length} pending referral${pending.length !== 1 ? "s" : ""}.`}
-          {" "}Your ophthalmology screening was clear — retinopathy check due again in 12 months.
-          The dietitian visit with Dr. Nguyen is coming up — this can help with your weight and glucose goals.
-        </p>
-      </div>
+      <AIAction
+        agentId="coordinator"
+        label="Atlas' Referral Coordination"
+        prompt="Review my specialist referrals and help me understand next steps, any pending insurance authorizations needed, and how each referral relates to my overall care plan."
+        context={`Referrals — pending: ${pending.length}, scheduled: ${scheduled.length}, completed: ${completed.length}. ${pending.map(r => r.specialist_specialty).join(", ")} pending auth.`}
+        variant="inline"
+        className="bg-terra/5 rounded-2xl border border-terra/10 p-4"
+      />
     </div>
   )
 }

@@ -107,7 +107,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as {
       messages: Array<{ role: string; content: string }>
       agentType?: string
-      userId?: string
       sessionId?: string
       patientContext?: Record<string, unknown> | null
       stream?: boolean
@@ -116,7 +115,6 @@ export async function POST(request: NextRequest) {
     const {
       messages,
       agentType = "general",
-      userId,
       sessionId,
       patientContext = null,
       stream: wantsStream = true,

@@ -443,14 +443,97 @@ export default function DashboardPage() {
         </div>
         <div className="divide-y divide-sand/50">
           {[
-            { icon: FlaskConical, color: "text-soft-blue", bg: "bg-soft-blue/5", action: "Lab results reviewed", detail: "A1C improved to 6.8% — great progress!", agent: "Maya", time: "Today" },
-            { icon: Send, color: "text-soft-blue", bg: "bg-soft-blue/5", action: "Appointment reminder", detail: "Dietitian visit with Dr. Nguyen in 3 days", agent: "Cal", time: "2 min ago" },
-            { icon: Pill, color: "text-yellow-600", bg: "bg-yellow-50", action: "Refill checked", detail: "Atorvastatin refill needed soon — 2 refills remaining", agent: "Maya", time: "1 hr ago" },
-            { icon: CheckCircle2, color: "text-accent", bg: "bg-accent/5", action: "Bill reviewed", detail: "Your latest claim was paid correctly — no action needed", agent: "Vera", time: "3 hrs ago" },
-            { icon: Syringe, color: "text-yellow-600", bg: "bg-yellow-50", action: "Vaccine reminder", detail: "Shingrix and pneumococcal vaccines recommended for your age", agent: "Ivy", time: "Yesterday" },
-            { icon: Heart, color: "text-terra", bg: "bg-terra/5", action: "Referral update", detail: "Endocrinology appointment confirmed for next week", agent: "Atlas", time: "Yesterday" },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-3 px-4 py-3 hover:bg-cream/30 transition">
+            // Dynamically synthesise activity from real patient data
+            ...(lowAdherenceRx.length > 0 ? [{
+              icon: Pill,
+              color: "text-yellow-600",
+              bg: "bg-yellow-50",
+              action: "Adherence alert",
+              detail: `${lowAdherenceRx[0].medication_name} adherence is ${lowAdherenceRx[0].adherence_pct}% — below target`,
+              agent: "Maya",
+              href: "/prescriptions",
+              time: "Today",
+            }] : [{
+              icon: Pill,
+              color: "text-accent",
+              bg: "bg-accent/5",
+              action: "Medications on track",
+              detail: `All ${myRx.length} active medications at target adherence`,
+              agent: "Maya",
+              href: "/prescriptions",
+              time: "Today",
+            }]),
+            ...(abnormalLabCount > 0 ? [{
+              icon: FlaskConical,
+              color: "text-soft-red",
+              bg: "bg-soft-red/5",
+              action: "Lab results need attention",
+              detail: `${abnormalLabCount} abnormal result${abnormalLabCount > 1 ? "s" : ""} in recent labs — review recommended`,
+              agent: "Maya",
+              href: "/lab-results",
+              time: "Today",
+            }] : myLabs.length > 0 ? [{
+              icon: FlaskConical,
+              color: "text-soft-blue",
+              bg: "bg-soft-blue/5",
+              action: "Lab results reviewed",
+              detail: `Latest panel complete — all results within normal range`,
+              agent: "Maya",
+              href: "/lab-results",
+              time: "Recent",
+            }] : []),
+            ...(upcomingApts.length > 0 ? [{
+              icon: Calendar,
+              color: "text-soft-blue",
+              bg: "bg-soft-blue/5",
+              action: "Appointment reminder",
+              detail: `${getPhysician(upcomingApts[0].physician_id)?.full_name ?? "Upcoming visit"} on ${formatDate(upcomingApts[0].scheduled_at)}`,
+              agent: "Cal",
+              href: "/scheduling",
+              time: formatDate(upcomingApts[0].scheduled_at),
+            }] : []),
+            ...(pendingPA.length > 0 ? [{
+              icon: ShieldCheck,
+              color: "text-yellow-600",
+              bg: "bg-yellow-50",
+              action: "Prior auth pending",
+              detail: `${pendingPA[0].procedure_name} awaiting ${pendingPA[0].insurance_provider}`,
+              agent: "Rex",
+              href: "/prior-auth",
+              time: "Active",
+            }] : []),
+            ...(dueVaccines.length > 0 ? [{
+              icon: Syringe,
+              color: "text-yellow-600",
+              bg: "bg-yellow-50",
+              action: `Vaccine${dueVaccines.length > 1 ? "s" : ""} recommended`,
+              detail: `${dueVaccines.slice(0, 2).map(v => v.vaccine_name).join(", ")} due for your age group`,
+              agent: "Ivy",
+              href: "/vaccinations",
+              time: dueVaccines.some(v => v.status === "overdue") ? "Overdue" : "Due",
+            }] : []),
+            ...(pendingReferrals.length > 0 ? [{
+              icon: ArrowRightCircle,
+              color: "text-terra",
+              bg: "bg-terra/5",
+              action: "Referral in progress",
+              detail: `${pendingReferrals[0].specialist_specialty} referral is ${pendingReferrals[0].status}`,
+              agent: "Atlas",
+              href: "/referrals",
+              time: "Active",
+            }] : []),
+            ...(myClaims.filter(c => c.status === "denied").length > 0 ? [{
+              icon: Receipt,
+              color: "text-soft-red",
+              bg: "bg-soft-red/5",
+              action: "Claim denied",
+              detail: `${myClaims.filter(c => c.status === "denied").length} claim${myClaims.filter(c => c.status === "denied").length > 1 ? "s" : ""} denied — may be eligible for appeal`,
+              agent: "Vera",
+              href: "/billing",
+              time: "Action needed",
+            }] : []),
+          ].slice(0, 6).map((item, i) => (
+            <Link key={i} href={item.href} className="flex items-center gap-3 px-4 py-3 hover:bg-cream/30 transition">
               <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", item.bg)}>
                 <item.icon size={14} className={item.color} />
               </div>
@@ -462,7 +545,7 @@ export default function DashboardPage() {
                 <p className="text-[11px] text-warm-500 mt-0.5 truncate">{item.detail}</p>
               </div>
               <span className="text-[10px] text-cloudy shrink-0">{item.time}</span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

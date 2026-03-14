@@ -21,6 +21,8 @@ import {
   PA_FORM_FIELDS,
   buildAppealLetter,
 } from "./pa-tools"
+import { evaluatePACriteria, getPayerOverride, isOnFormulary } from "../payer-rules/engine"
+import { getDemoPatient, DEMO_PATIENTS } from "../hermes/demo-patients"
 
 // ── Server singleton ─────────────────────────────────────────────────
 
@@ -436,6 +438,195 @@ export function createOpenRxMcpServer() {
             }),
           },
         ],
+      }
+    }
+  )
+
+  // ── Tool 7: evaluate_pa_criteria ──────────────────────────────────
+
+  server.registerTool(
+    "evaluate_pa_criteria",
+    {
+      title: "Evaluate PA Criteria",
+      description:
+        "Real-time PA approval likelihood scoring using the OpenRx payer rules engine. " +
+        "Returns a 0-100 approval score, met/missing clinical criteria, step therapy gaps, " +
+        "NCCN evidence level, and specific recommendations. Powered by LCD/NCD data for " +
+        "teclistamab, CAR-T, gilteritinib, pembrolizumab, dupilumab, adalimumab, semaglutide, and more.",
+      inputSchema: {
+        drug_name: z.string().describe("Brand or generic drug name (e.g. Teclistamab, Dupixent, Keytruda)"),
+        hcpcs_code: z.string().optional().describe("HCPCS/CPT code if known (e.g. J9269, Q2050)"),
+        icd10_codes: z.array(z.string()).describe("ICD-10 diagnosis codes (primary first)"),
+        prior_therapies: z.array(z.string()).optional().describe("Prior drug therapies attempted (for step therapy check)"),
+        payer: z.string().optional().describe("Insurance payer for payer-specific criteria"),
+        clinical_notes: z.string().optional().describe("Any clinical notes to check against criteria"),
+        ecog_score: z.number().optional().describe("ECOG performance status (0-5)"),
+      },
+    },
+    async ({ drug_name, hcpcs_code, icd10_codes, prior_therapies, payer, clinical_notes, ecog_score }) => {
+      const evaluation = evaluatePACriteria({
+        drugName: drug_name,
+        hcpcsCode: hcpcs_code,
+        icd10Codes: icd10_codes,
+        priorTherapies: prior_therapies ?? [],
+        clinicalNotes: clinical_notes ?? "",
+        ecogScore: ecog_score,
+      })
+
+      if (!evaluation) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({
+              found: false,
+              message: `No structured PA rules found for "${drug_name}". PA may still be required — verify with payer directly.`,
+              formulary: isOnFormulary({ drugName: drug_name, payer: payer ?? "", hcpcsCode: hcpcs_code }),
+            }),
+          }],
+        }
+      }
+
+      const override = payer ? getPayerOverride(payer, evaluation.drugClass) : null
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            drug: evaluation.drug,
+            drugClass: evaluation.drugClass,
+            approvalScore: evaluation.score,
+            approvalLikelihood: evaluation.score >= 85 ? "HIGH" : evaluation.score >= 60 ? "MODERATE" : "LOW",
+            passed: evaluation.passed,
+            criteriaMet: evaluation.met.map((c) => ({ label: c.label, required: c.required, evidenceLevel: c.evidenceLevel })),
+            criteriaMissing: evaluation.missing.map((c) => ({ label: c.label, description: c.description, required: c.required, source: c.source })),
+            stepTherapy: { met: evaluation.stepTherapyMet, gaps: evaluation.stepTherapyGaps },
+            remsRequired: evaluation.remsRequired,
+            formulary: isOnFormulary({ drugName: drug_name, payer: payer ?? "", hcpcsCode: hcpcs_code }),
+            payerSpecificNotes: override ? override.additionalCriteria : [],
+            preferredBiosimilar: override?.preferredBiosimilar ?? null,
+            warnings: evaluation.warnings,
+            recommendations: evaluation.recommendations,
+            guidelines: {
+              nccnCategory: evaluation.nccnCategory,
+              references: evaluation.guidelineReferences,
+            },
+          }),
+        }],
+      }
+    }
+  )
+
+  // ── Tool 8: get_demo_scenario ──────────────────────────────────────
+
+  server.registerTool(
+    "get_demo_scenario",
+    {
+      title: "Get Investor Demo Scenario",
+      description:
+        "Retrieve a pre-built investor demo scenario showing the full PA workflow for a specific patient. " +
+        "Returns step-by-step flow, talking points, and the 'wow moment' for investor presentations. " +
+        "Available scenarios: demo-mitchell (teclistamab/Aetna), demo-chen (CAR-T/UHC), demo-ramirez (gilteritinib/Cigna).",
+      inputSchema: {
+        scenario_id: z.string().optional().describe("Demo patient ID (demo-mitchell, demo-chen, demo-ramirez). Omit to list all."),
+        format: z.enum(["json", "script"]).optional().default("json").describe("Output format: json (structured) or script (plain text for presentations)"),
+      },
+    },
+    async ({ scenario_id, format }) => {
+      if (!scenario_id) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({
+              available: DEMO_PATIENTS.map((p) => ({
+                id: p.id,
+                patient: p.name,
+                drug: p.drug,
+                payer: p.payer,
+                scenario: p.scenario,
+                steps: p.paFlow.length,
+                wowMoment: p.wowMoment,
+              })),
+              tip: "Use scenario_id='demo-mitchell' for the teclistamab/Aetna demo — best for investor presentations.",
+            }),
+          }],
+        }
+      }
+
+      const patient = getDemoPatient(scenario_id)
+      if (!patient) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify({ error: `Scenario "${scenario_id}" not found.`, available: DEMO_PATIENTS.map((p) => p.id) }),
+          }],
+        }
+      }
+
+      if (format === "script") {
+        const { getDemoScriptText } = await import("../hermes/demo-patients")
+        return {
+          content: [{
+            type: "text" as const,
+            text: getDemoScriptText(patient),
+          }],
+        }
+      }
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify(patient, null, 2),
+        }],
+      }
+    }
+  )
+
+  // ── Tool 9: queue_hermes_task ──────────────────────────────────────
+
+  server.registerTool(
+    "queue_hermes_task",
+    {
+      title: "Queue Hermes Research Task",
+      description:
+        "Queue a new autonomous research or build task for the Hermes agent. " +
+        "Hermes will execute it using Claude claude-opus-4-6 with adaptive thinking. " +
+        "Use this to request: payer policy research, FDA approval tracking, PA appeal generation, " +
+        "whitepaper sections, competitive analysis, or new feature generation.",
+      inputSchema: {
+        task_type: z.enum([
+          "RESEARCH_PAYER_POLICY", "RESEARCH_FDA_APPROVAL", "RESEARCH_CLINICAL_TRIAL",
+          "UPDATE_PAYER_RULES", "GENERATE_FEATURE", "DRAFT_WHITEPAPER_SECTION",
+          "GENERATE_PA_APPEAL", "ANALYZE_PA_OUTCOMES", "MONITOR_COMPETITOR", "BUILD_DEMO_SCENARIO",
+        ]).describe("Type of task for Hermes to execute"),
+        title: z.string().describe("Short task title (used in PR title if code is generated)"),
+        description: z.string().describe("Full task description with all context Hermes needs"),
+        priority: z.enum(["1", "2", "3"]).optional().default("2").describe("Priority: 1=urgent, 2=normal, 3=low"),
+        requires_human_review: z.boolean().optional().default(true).describe("Whether result requires human review before applying"),
+      },
+    },
+    async ({ task_type, title, description, priority, requires_human_review }) => {
+      const { queueHermesTask } = await import("../hermes/agent")
+      const task = queueHermesTask({
+        type: task_type as Parameters<typeof queueHermesTask>[0]["type"],
+        title,
+        description,
+        priority: Number(priority) as 1 | 2 | 3,
+        requiresHumanReview: requires_human_review,
+      })
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            queued: true,
+            taskId: task.id,
+            title: task.title,
+            type: task.type,
+            priority: task.priority,
+            message: `Task queued. Run via POST /api/hermes?action=run with taskId="${task.id}" to execute with Claude Opus 4.6.`,
+            hintUrl: `/hermes`,
+          }),
+        }],
       }
     }
   )

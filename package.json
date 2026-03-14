@@ -12,6 +12,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@base-org/account": "^2.5.2",
     "@coinbase/onchainkit": "^1.1.2",
     "@modelcontextprotocol/sdk": "^1.27.1",

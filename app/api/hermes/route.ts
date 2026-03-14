@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
     const task = getHermesTask(taskId)
     if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 })
 
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) return NextResponse.json({ error: "OPENAI_API_KEY not configured" }, { status: 503 })
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 503 })
 
     task.status = "running"
     task.startedAt = new Date().toISOString()

@@ -1,7 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import { currentUser } from "@/lib/current-user"
-import { priorAuths, getPhysician } from "@/lib/seed-data"
+import { priorAuths, getPhysician, type PriorAuth } from "@/lib/seed-data"
 import { cn, formatDate } from "@/lib/utils"
 import {
   ShieldCheck,
@@ -16,7 +17,7 @@ import {
   ChevronUp,
 } from "lucide-react"
 import AIAction from "@/components/ai-action"
-import { useState } from "react"
+import PAAppealModal from "@/components/pa-appeal-modal"
 
 interface TimelineStep {
   label: string
@@ -26,7 +27,7 @@ interface TimelineStep {
   failed?: boolean
 }
 
-function getTimeline(pa: typeof priorAuths[0]): TimelineStep[] {
+function getTimeline(pa: PriorAuth): TimelineStep[] {
   const steps: TimelineStep[] = [
     {
       label: "Submitted",
@@ -58,17 +59,16 @@ function getTimeline(pa: typeof priorAuths[0]): TimelineStep[] {
   return steps
 }
 
-function estimateDecision(pa: typeof priorAuths[0]): string {
+function estimateDecision(pa: PriorAuth): string {
   if (!pa.submitted_at) return "Pending submission"
   const submitted = new Date(pa.submitted_at)
-  // Standard = 14 days, urgent = 3 days per CMS
   const businessDays = pa.urgency === "urgent" ? 3 : 14
   const est = new Date(submitted)
   est.setDate(est.getDate() + businessDays)
   return `Est. by ${est.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
 }
 
-function urgencyLabel(pa: typeof priorAuths[0]): string {
+function urgencyLabel(pa: PriorAuth): string {
   if (pa.urgency === "urgent") return "Urgent — insurer must respond within 72 hrs"
   return "Standard — insurer must respond within 14 days"
 }
@@ -76,6 +76,7 @@ function urgencyLabel(pa: typeof priorAuths[0]): string {
 export default function PriorAuthPage() {
   const myAuths = priorAuths.filter((pa) => pa.patient_id === currentUser.id)
   const [expanded, setExpanded] = useState<string | null>(myAuths[0]?.id ?? null)
+  const [appealingPA, setAppealingPA] = useState<PriorAuth | null>(null)
 
   const pending = myAuths.filter((p) => p.status === "pending" || p.status === "submitted")
   const approved = myAuths.filter((p) => p.status === "approved")
@@ -209,7 +210,6 @@ export default function PriorAuthPage() {
                     <div className="relative flex items-start gap-0">
                       {timeline.map((step, i) => (
                         <div key={i} className="flex-1 relative">
-                          {/* Connector line */}
                           {i < timeline.length - 1 && (
                             <div className={cn(
                               "absolute top-3.5 left-1/2 right-0 h-0.5",
@@ -217,7 +217,6 @@ export default function PriorAuthPage() {
                             )} />
                           )}
                           <div className="flex flex-col items-center relative z-10">
-                            {/* Circle */}
                             <div className={cn(
                               "w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0",
                               step.failed ? "border-soft-red bg-soft-red/10" :
@@ -235,7 +234,6 @@ export default function PriorAuthPage() {
                                 <div className="w-2 h-2 rounded-full bg-sand" />
                               )}
                             </div>
-                            {/* Label */}
                             <div className="text-center mt-2 px-1">
                               <p className={cn(
                                 "text-[10px] font-bold",
@@ -254,7 +252,6 @@ export default function PriorAuthPage() {
                       ))}
                     </div>
 
-                    {/* Urgency note */}
                     {(pa.status === "pending" || pa.status === "submitted") && (
                       <p className="text-[10px] text-warm-500 mt-3 text-center">
                         {urgencyLabel(pa)}
@@ -282,18 +279,18 @@ export default function PriorAuthPage() {
                       </p>
                       <p className="text-xs text-soft-red leading-relaxed">{pa.denial_reason}</p>
                       <div className="mt-3 flex gap-2 flex-wrap">
+                        <button
+                          onClick={() => setAppealingPA(pa)}
+                          className="flex items-center gap-1.5 text-[11px] font-bold text-white bg-soft-red hover:bg-soft-red/90 px-3 py-1.5 rounded-lg transition"
+                        >
+                          <FileText size={10} />
+                          Generate Appeal Letter
+                        </button>
                         <AIAction
                           agentId="prior-auth"
                           label="Help Me Appeal"
                           prompt={`Help me understand and appeal the denial for my prior authorization. Denial reason: "${pa.denial_reason}". What are my strongest arguments and what documentation should I gather?`}
                           context={`Procedure: ${pa.procedure_name} (${pa.procedure_code}), ICD: ${pa.icd_codes.join(",")}, Insurer: ${pa.insurance_provider}`}
-                          variant="compact"
-                        />
-                        <AIAction
-                          agentId="prior-auth"
-                          label="Draft Appeal Letter"
-                          prompt={`Write a formal appeal letter for the denial of ${pa.procedure_name} by ${pa.insurance_provider}. Include relevant clinical arguments based on the denial reason: "${pa.denial_reason}".`}
-                          context={`CPT: ${pa.procedure_code}, ICD: ${pa.icd_codes.join(",")}, Clinical notes: ${pa.clinical_notes}`}
                           variant="compact"
                         />
                       </div>
@@ -324,12 +321,30 @@ export default function PriorAuthPage() {
                       </button>
                     </div>
                   )}
+
+                  {/* Approved */}
+                  {pa.status === "approved" && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-accent">
+                      <CheckCircle2 size={11} />
+                      <span>Approved &middot; Valid 180 days from approval date</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )
         })}
       </div>
+
+      {/* PA Appeal Modal */}
+      {appealingPA && (
+        <PAAppealModal
+          pa={appealingPA}
+          patientName={currentUser.full_name}
+          physicianName={getPhysician(appealingPA.physician_id)?.full_name}
+          onClose={() => setAppealingPA(null)}
+        />
+      )}
     </div>
   )
 }

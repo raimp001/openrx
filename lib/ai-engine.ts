@@ -1,12 +1,19 @@
+import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import { OPENCLAW_CONFIG } from "./openclaw/config"
 import { currentUser, getMyAppointments, getMyClaims, getMyPrescriptions, getMyMessages } from "./current-user"
 import { physicians, priorAuths } from "./seed-data"
 
-// ── OpenAI Client ────────────────────────────────────────
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-})
+// ── AI Clients ────────────────────────────────────────────
+const getClaudeClient = () =>
+  process.env.ANTHROPIC_API_KEY
+    ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    : null
+
+const getOpenAIClient = () =>
+  process.env.OPENAI_API_KEY
+    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    : null
 
 // ── Agent Action Log (in-memory, production would use DB) ─
 export interface AgentAction {
@@ -59,7 +66,6 @@ function getConversation(sessionKey: string): ConversationMessage[] {
 function addToConversation(sessionKey: string, role: "user" | "assistant", content: string) {
   const conv = getConversation(sessionKey)
   conv.push({ role, content })
-  // Keep last 20 messages to avoid token overflow
   if (conv.length > 20) {
     conversations.set(sessionKey, conv.slice(-20))
   }
@@ -116,15 +122,16 @@ export async function runAgent(params: {
     return { response: "Unknown agent.", agentId }
   }
 
-  // Check if OpenAI API key is configured
-  if (!process.env.OPENAI_API_KEY) {
+  const claude = getClaudeClient()
+  const openaiClient = getOpenAIClient()
+
+  if (!claude && !openaiClient) {
     return { response: getFallbackResponse(agentId, message), agentId }
   }
 
   const sessionKey = sessionId || `${agentId}-default`
   const patientContext = getPatientContext()
 
-  // Build system prompt with patient context
   const systemPrompt = `${agent.systemPrompt}
 
 ${patientContext}
@@ -140,20 +147,47 @@ IMPORTANT RULES:
   const conv = getConversation(sessionKey)
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...conv,
+    let response: string
+
+    if (claude) {
+      // Claude path (preferred)
+      const anthropicMessages: Anthropic.MessageParam[] = [
+        ...conv
+          .filter((m) => m.role !== "system")
+          .map((m) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          })),
         { role: "user", content: message },
-      ],
-      max_tokens: 500,
-      temperature: 0.7,
-    })
+      ]
 
-    let response = completion.choices[0]?.message?.content || "I couldn't process that. Could you try again?"
+      const completion = await claude.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 600,
+        system: systemPrompt,
+        messages: anthropicMessages,
+      })
 
-    // Check for handoff
+      response = completion.content
+        .filter((b) => b.type === "text")
+        .map((b) => (b as { type: "text"; text: string }).text)
+        .join("") || "I couldn't process that. Could you try again?"
+    } else {
+      // OpenAI fallback
+      const completion = await openaiClient!.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...conv,
+          { role: "user", content: message },
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      })
+      response = completion.choices[0]?.message?.content || "I couldn't process that. Could you try again?"
+    }
+
+    // Parse handoff
     let handoff: string | undefined
     const handoffMatch = response.match(/\[HANDOFF:(\w[\w-]*)\]/)
     if (handoffMatch) {
@@ -161,21 +195,17 @@ IMPORTANT RULES:
       response = response.replace(/\[HANDOFF:\w[\w-]*\]/, "").trim()
     }
 
-    // Save to memory
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
-
-    // Log the action
     logAction(agentId, "responded", `${message.slice(0, 60)}...`, "portal")
 
     return { response, agentId, handoff }
-  } catch (error: any) {
-    console.error(`Agent ${agentId} error:`, error?.message || error)
-
-    if (error?.status === 401) {
-      return { response: "API key is invalid. Please check your OpenAI API key in the environment variables.", agentId }
+  } catch (error) {
+    const err = error as { status?: number; message?: string }
+    console.error(`Agent ${agentId} error:`, err?.message || error)
+    if (err?.status === 401) {
+      return { response: "API key is invalid. Please check your API key configuration.", agentId }
     }
-
     return { response: getFallbackResponse(agentId, message), agentId }
   }
 }
@@ -186,13 +216,8 @@ export async function runCoordinator(message: string, sessionId?: string): Promi
   agentId: string
   handoff?: string
 }> {
-  const result = await runAgent({
-    agentId: "coordinator",
-    message,
-    sessionId,
-  })
+  const result = await runAgent({ agentId: "coordinator", message, sessionId })
 
-  // If coordinator hands off, run the target agent
   if (result.handoff) {
     const targetAgent = OPENCLAW_CONFIG.agents.find((a) => a.id === result.handoff)
     if (targetAgent) {
@@ -204,7 +229,6 @@ export async function runCoordinator(message: string, sessionId?: string): Promi
         sessionId: sessionId ? `${sessionId}-${result.handoff}` : undefined,
       })
 
-      // Combine coordinator's intro with specialist's response
       return {
         response: `${result.response}\n\n---\n\n**${targetAgent.name}:** ${followUp.response}`,
         agentId: result.handoff,
@@ -238,13 +262,15 @@ function getFallbackResponse(agentId: string, message: string): string {
     case "scheduling":
       return `I've checked your insurance (${currentUser.insurance_provider}) and found some openings. Would you like morning or afternoon?`
 
-    case "billing":
+    case "billing": {
       const denied = getMyClaims().filter((c) => c.status === "denied")
       return `I've reviewed your ${getMyClaims().length} claims. ${denied.length > 0 ? `Found ${denied.length} denied — I can draft appeals.` : "Everything looks clean."}`
+    }
 
-    case "rx":
+    case "rx": {
       const lowAdh = getMyPrescriptions().filter((r) => r.status === "active" && r.adherence_pct < 80)
       return `Your medication status:\n${getMyPrescriptions().filter((r) => r.status === "active").map((r) => `• ${r.medication_name} ${r.dosage} — ${r.adherence_pct}% adherence`).join("\n")}${lowAdh.length > 0 ? `\n\n⚠️ ${lowAdh.length} medication(s) below 80% adherence.` : ""}`
+    }
 
     case "prior-auth":
       return `Checking your prior auths... ${priorAuths.filter((p) => p.patient_id === currentUser.id).map((p) => `${p.procedure_name}: ${p.status}`).join(", ") || "No pending authorizations."}`

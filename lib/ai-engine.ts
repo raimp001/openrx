@@ -79,36 +79,30 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-async function createCompletionWithRetry(params: {
-  model: string
-  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>
-  max_tokens: number
-  temperature: number
-}) {
-  let lastError: unknown = null
+// ── GQA-inspired Patient Context Cache ───────────────────
+// Mirrors grouped-query attention: one expensive context fetch is shared
+// across multiple agent heads in the same session window, avoiding
+// re-fetching the same patient snapshot for every expert in a fan-out call.
+interface CachedContext {
+  text: string
+  expiresAt: number
+}
+const contextCache = new Map<string, CachedContext>()
+const CONTEXT_TTL_MS = 30_000 // 30 s — covers a full MoE fan-out round-trip
 
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      return await openai.chat.completions.create(params, { timeout: 20000 })
-    } catch (error) {
-      lastError = error
-      const status = typeof error === "object" && error !== null && "status" in error
-        ? Number((error as { status?: unknown }).status)
-        : undefined
-      const retryable = status === 408 || status === 429 || (typeof status === "number" && status >= 500)
-      if (!retryable || attempt === 1) break
-      await delay(350 * (attempt + 1))
-    }
+async function getPatientContext(walletAddress?: string): Promise<string> {
+  const cacheKey = walletAddress || "__anonymous__"
+  const cached = contextCache.get(cacheKey)
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.text
   }
 
-  throw lastError
-}
-
-// ── Patient Context Builder ──────────────────────────────
-async function getPatientContext(walletAddress?: string): Promise<string> {
   const snapshot = await getLiveSnapshotByWallet(walletAddress)
   if (!snapshot.patient) {
-    return "CURRENT PATIENT DATA: No live patient profile found. Ask the user to connect a wallet and complete onboarding."
+    const text =
+      "CURRENT PATIENT DATA: No live patient profile found. Ask the user to connect a wallet and complete onboarding."
+    contextCache.set(cacheKey, { text, expiresAt: Date.now() + CONTEXT_TTL_MS })
+    return text
   }
 
   const patient = snapshot.patient
@@ -119,7 +113,7 @@ async function getPatientContext(walletAddress?: string): Promise<string> {
   const unreadCount = snapshot.messages.filter((message) => !message.read).length
   const pcp = snapshot.physicians.find((physician) => physician.id === patient.primary_physician_id)
 
-  return `
+  const text = `
 CURRENT PATIENT DATA (use this to give specific, personalized answers):
 
 Patient: ${patient.full_name}
@@ -146,6 +140,34 @@ ${snapshot.priorAuths.map((auth) => `- ${auth.procedure_name}: ${auth.status}${a
 
 Unread Messages: ${unreadCount}
 `.trim()
+
+  contextCache.set(cacheKey, { text, expiresAt: Date.now() + CONTEXT_TTL_MS })
+  return text
+}
+
+async function createCompletionWithRetry(params: {
+  model: string
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>
+  max_tokens: number
+  temperature: number
+}) {
+  let lastError: unknown = null
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await openai.chat.completions.create(params, { timeout: 20000 })
+    } catch (error) {
+      lastError = error
+      const status = typeof error === "object" && error !== null && "status" in error
+        ? Number((error as { status?: unknown }).status)
+        : undefined
+      const retryable = status === 408 || status === 429 || (typeof status === "number" && status >= 500)
+      if (!retryable || attempt === 1) break
+      await delay(350 * (attempt + 1))
+    }
+  }
+
+  throw lastError
 }
 
 // ── Core Agent Engine ────────────────────────────────────
@@ -154,6 +176,8 @@ export async function runAgent(params: {
   message: string
   sessionId?: string
   walletAddress?: string
+  // Pre-fetched context can be passed in to avoid re-fetching during fan-out.
+  _cachedPatientContext?: string
 }): Promise<{ response: string; agentId: string; handoff?: string }> {
   const { agentId, message, sessionId, walletAddress } = params
   const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === agentId)
@@ -170,7 +194,7 @@ export async function runAgent(params: {
   }
 
   const sessionKey = sessionId || `${agentId}-default`
-  const patientContext = await getPatientContext(walletAddress)
+  const patientContext = params._cachedPatientContext ?? await getPatientContext(walletAddress)
 
   // Build system prompt with patient context
   const systemPrompt = `${agent.systemPrompt}
@@ -187,6 +211,14 @@ IMPORTANT RULES:
 
   const conv = getConversation(sessionKey)
 
+  // ── Reasoning mode (DeepSeek R1-inspired) ───────────────
+  // High-stakes agents (prior-auth, second-opinion, triage) get an
+  // internal chain-of-thought scratchpad that is stripped before the
+  // final answer reaches the patient — matching how reasoning-specialized
+  // models like DeepSeek R1 separate thinking from output tokens.
+  const highStakesAgents = new Set(["prior-auth", "second-opinion", "triage"])
+  const useReasoning = highStakesAgents.has(agentId) && !!claude
+
   try {
     let response: string
 
@@ -198,16 +230,34 @@ IMPORTANT RULES:
         })),
         { role: "user", content: message },
       ]
-      const completion = await claude.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 600,
-        system: systemPrompt,
-        messages: anthropicMessages,
-      })
-      response = completion.content
-        .filter((b) => b.type === "text")
-        .map((b) => (b as { type: "text"; text: string }).text)
-        .join("") || "I couldn't process that. Could you try again?"
+
+      if (useReasoning) {
+        // Extended thinking: give the model a private scratchpad (budget_tokens)
+        // before producing its visible response. Reasoning blocks are stripped
+        // so only the answer text reaches the caller.
+        const completion = await claude.messages.create({
+          model: "claude-sonnet-4-6",
+          max_tokens: 16000,
+          thinking: { type: "enabled", budget_tokens: 10000 },
+          system: systemPrompt,
+          messages: anthropicMessages,
+        })
+        response = completion.content
+          .filter((b) => b.type === "text")
+          .map((b) => (b as { type: "text"; text: string }).text)
+          .join("") || "I couldn't process that. Could you try again?"
+      } else {
+        const completion = await claude.messages.create({
+          model: "claude-sonnet-4-6",
+          max_tokens: 600,
+          system: systemPrompt,
+          messages: anthropicMessages,
+        })
+        response = completion.content
+          .filter((b) => b.type === "text")
+          .map((b) => (b as { type: "text"; text: string }).text)
+          .join("") || "I couldn't process that. Could you try again?"
+      }
     } else {
       const completion = await createCompletionWithRetry({
         model: "gpt-4o-mini",
@@ -239,18 +289,46 @@ IMPORTANT RULES:
 
     return { response, agentId, handoff }
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error)
+    const errMsg = error instanceof Error ? error.message : String(error)
     const status = typeof error === "object" && error !== null && "status" in error
       ? Number((error as { status?: unknown }).status)
       : undefined
-    console.error(`Agent ${agentId} error:`, message || error)
+    console.error(`Agent ${agentId} error:`, errMsg || error)
 
     if (status === 401) {
-      return { response: "AI service authentication failed. Verify OPENAI_API_KEY.", agentId }
+      return { response: "AI service authentication failed. Verify ANTHROPIC_API_KEY.", agentId }
     }
 
     return { response: "AI service is temporarily unavailable. Please retry shortly.", agentId }
   }
+}
+
+// ── MoE-Inspired Parallel Expert Fan-out ────────────────
+// Mirrors Sparse MoE architecture: instead of routing to a single expert
+// sequentially, fan out to the top-K most relevant specialist agents in
+// parallel (like how MoE layers activate multiple experts per token),
+// then synthesize with a coordinator pass.
+export async function runParallelExperts(params: {
+  expertIds: string[]
+  message: string
+  sessionId?: string
+  walletAddress?: string
+}): Promise<{ agentId: string; response: string }[]> {
+  // Fetch patient context once — shared across all expert calls (GQA cache hit)
+  const sharedContext = await getPatientContext(params.walletAddress)
+
+  const results = await Promise.all(
+    params.expertIds.map((agentId) =>
+      runAgent({
+        agentId,
+        message: params.message,
+        sessionId: params.sessionId ? `${params.sessionId}-${agentId}` : undefined,
+        walletAddress: params.walletAddress,
+        _cachedPatientContext: sharedContext,
+      }).then((r) => ({ agentId: r.agentId, response: r.response }))
+    )
+  )
+  return results
 }
 
 // ── Coordinator with Real Routing ────────────────────────

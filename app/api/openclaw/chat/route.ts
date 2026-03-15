@@ -3,9 +3,9 @@ import { runAgent, runCoordinator } from "@/lib/ai-engine"
 
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { error: "OpenClaw AI service is unavailable. Set OPENAI_API_KEY." },
+        { error: "OpenClaw AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY." },
         { status: 503 }
       )
     }
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       response: result.response,
       agentId: result.agentId,
       handoff: result.handoff || null,
-      live: !!process.env.OPENAI_API_KEY,
+      live: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
     })
   } catch (error) {
     console.error("Chat API error:", error)

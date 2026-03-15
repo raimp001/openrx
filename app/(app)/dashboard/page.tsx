@@ -3,13 +3,12 @@
 import {
   Calendar, Pill, MessageSquare, AlertTriangle, Receipt,
   ArrowRight, Bot, Send, CheckCircle2, Heart, ShieldCheck,
-  FlaskConical, Activity, Syringe, ArrowRightCircle,
+  FlaskConical, Activity, Syringe,
   AlertCircle, Search, Workflow, TrendingUp, TrendingDown,
-  Minus, Zap, Clock, ChevronRight,
+  Minus, Zap, ChevronRight,
 } from "lucide-react"
 import Link from "next/link"
 import { cn, formatTime, formatDate, getStatusColor } from "@/lib/utils"
-import PlatformReadiness from "@/components/platform-readiness"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useMemo } from "react"
 
@@ -209,7 +208,7 @@ export default function DashboardPage() {
   ].slice(0, 6)
 
   return (
-    <div className="animate-slide-up space-y-6">
+    <div className="animate-slide-up space-y-5">
       <section className="surface-card overflow-hidden">
         <div className="px-5 py-5 lg:px-6 lg:py-6">
           <h1 className="text-3xl text-warm-800">
@@ -327,19 +326,20 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* Insurance Intelligence */}
-      <div className="surface-card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={14} className="text-soft-blue" />
-            <span className="text-xs font-bold text-warm-800">Insurance Intelligence</span>
-          </div>
-          <Link href="/billing" className="text-[10px] font-semibold text-terra flex items-center gap-0.5 hover:gap-1 transition-all">
-            View claims <ChevronRight size={10} />
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
+      {/* Insurance + Health Score */}
+      <div className="surface-card p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 divide-y sm:divide-y-0 sm:divide-x divide-sand/60">
+          {/* Insurance */}
+          <div className="pb-5 sm:pb-0 sm:pr-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={14} className="text-soft-blue" />
+                <span className="text-xs font-bold text-warm-800">Insurance</span>
+              </div>
+              <Link href="/billing" className="text-[10px] font-semibold text-terra flex items-center gap-0.5 hover:gap-1 transition-all">
+                View claims <ChevronRight size={10} />
+              </Link>
+            </div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[10px] text-cloudy">Deductible Used</span>
               <span className="text-[10px] font-bold text-warm-700">${insuranceIntel.totalPatientPaid.toFixed(0)} / ${insuranceIntel.assumedDeductible.toLocaleString()}</span>
@@ -350,151 +350,50 @@ export default function DashboardPage() {
                 style={{ width: `${insuranceIntel.pctUsed}%` }}
               />
             </div>
-            <p className="text-[9px] text-cloudy mt-1">{insuranceIntel.pctUsed}% of annual deductible</p>
+            <p className="text-[9px] text-cloudy mt-1">{insuranceIntel.pctUsed}% used · {insuranceIntel.daysToReset} days to reset</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sand/40 flex items-center justify-center shrink-0">
-              <Clock size={16} className="text-warm-600" />
-            </div>
-            <div>
-              <p className="text-lg font-bold text-warm-800">{insuranceIntel.daysToReset}</p>
-              <p className="text-[10px] text-cloudy leading-tight">days until benefit<br />year resets (Jan 1)</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold text-warm-700 mb-1">Use before reset</p>
-            {[
-              { label: "Annual wellness visit", done: upcomingApts.some((a) => a.reason?.toLowerCase().includes("wellness") || a.reason?.toLowerCase().includes("annual")) },
-              { label: "Preventive screenings", done: false },
-              { label: "Lab panels", done: resultedLabs.length > 0 },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center gap-1.5 mb-0.5">
-                <div className={cn("w-3 h-3 rounded-full flex items-center justify-center shrink-0", item.done ? "bg-accent/20" : "bg-sand/60")}>
-                  {item.done ? <CheckCircle2 size={8} className="text-accent" /> : <Minus size={8} className="text-cloudy" />}
-                </div>
-                <span className={cn("text-[10px]", item.done ? "text-accent font-medium" : "text-warm-600")}>{item.label}</span>
+
+          {/* Health Engagement Score */}
+          <div className="pt-5 sm:pt-0 sm:pl-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Activity size={14} className="text-terra" />
+                <span className="text-xs font-bold text-warm-800">Health Engagement</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Precision Care Tools */}
-      <PlatformReadiness />
-
-      {/* Precision Care Tools */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <Link
-          href="/screening"
-          className="surface-card p-4 hover:border-terra/30 transition"
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <Heart size={14} className="text-terra" />
-            <span className="text-xs font-bold text-warm-800">AI Screening</span>
-          </div>
-          <p className="text-xs text-warm-500">
-            Preventive risk scoring based on your labs, vitals, and conditions.
-          </p>
-        </Link>
-        <Link
-          href="/second-opinion"
-          className="surface-card p-4 hover:border-terra/30 transition"
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <ShieldCheck size={14} className="text-terra" />
-            <span className="text-xs font-bold text-warm-800">Second Opinion</span>
-          </div>
-          <p className="text-xs text-warm-500">
-            Structured plan review with key clinician questions and safety flags.
-          </p>
-        </Link>
-        <Link
-          href="/clinical-trials"
-          className="surface-card p-4 hover:border-terra/30 transition"
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <FlaskConical size={14} className="text-soft-blue" />
-            <span className="text-xs font-bold text-warm-800">Clinical Trials</span>
-          </div>
-          <p className="text-xs text-warm-500">
-            Discover recruiting studies that align with your risk profile.
-          </p>
-        </Link>
-      </div>
-
-      {/* Health Engagement Score */}
-      <div className="surface-card p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Activity size={14} className="text-terra" />
-            <span className="text-xs font-bold text-warm-800">Health Engagement Score</span>
-          </div>
-          <span className={cn("text-xs font-bold", healthScoreColor)}>{healthScoreLabel}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <div className="w-full h-2 bg-sand/40 rounded-full overflow-hidden">
+              <span className={cn("text-xs font-bold", healthScoreColor)}>{healthScoreLabel}</span>
+            </div>
+            <div className="w-full h-1.5 bg-sand/40 rounded-full overflow-hidden mb-2">
               <div
                 className={cn("h-full rounded-full transition-all duration-700", healthScoreBg)}
                 style={{ width: `${healthScore}%` }}
               />
             </div>
-            <div className="flex justify-between mt-1">
-              <span className="text-[9px] text-cloudy">Based on adherence, labs & vaccines</span>
-              <span className={cn("text-sm font-bold", healthScoreColor)}>{healthScore}/100</span>
-            </div>
-          </div>
-          <div className="flex gap-3 shrink-0 text-center">
-            <div>
-              <p className={cn("text-base font-bold", avgAdherence >= 80 ? "text-accent" : "text-soft-red")}>{avgAdherence}%</p>
-              <p className="text-[9px] text-cloudy">Adherence</p>
-            </div>
-            {myVaccinations.length > 0 && (
-              <div>
-                <p className={cn("text-base font-bold", dueVaccines.length === 0 ? "text-accent" : "text-yellow-600")}>
-                  {myVaccinations.length - dueVaccines.length}/{myVaccinations.length}
-                </p>
-                <p className="text-[9px] text-cloudy">Vaccines</p>
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] text-cloudy">Adherence · labs · vaccines</span>
+              <div className="flex gap-3 text-center">
+                <div>
+                  <p className={cn("text-sm font-bold leading-none", avgAdherence >= 80 ? "text-accent" : "text-soft-red")}>{avgAdherence}%</p>
+                  <p className="text-[9px] text-cloudy">Adh.</p>
+                </div>
+                {myVaccinations.length > 0 && (
+                  <div>
+                    <p className={cn("text-sm font-bold leading-none", dueVaccines.length === 0 ? "text-accent" : "text-yellow-600")}>
+                      {myVaccinations.length - dueVaccines.length}/{myVaccinations.length}
+                    </p>
+                    <p className="text-[9px] text-cloudy">Vax</p>
+                  </div>
+                )}
+                <div>
+                  <p className={cn("text-sm font-bold leading-none", healthScoreColor)}>{healthScore}</p>
+                  <p className="text-[9px] text-cloudy">/100</p>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Urgent Alerts Row */}
-      {(abnormalLabCount > 0 || dueVaccines.length > 0 || pendingReferrals.length > 0) && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          {abnormalLabCount > 0 && (
-            <Link href="/lab-results" className="bg-soft-red/5 rounded-2xl border border-soft-red/10 p-4 hover:border-soft-red/20 transition">
-              <div className="flex items-center gap-2 mb-1">
-                <AlertTriangle size={14} className="text-soft-red" />
-                <span className="text-xs font-bold text-soft-red">Lab Alert</span>
-              </div>
-              <p className="text-xs text-warm-600">{abnormalLabCount} abnormal lab value{abnormalLabCount !== 1 ? "s" : ""} found</p>
-            </Link>
-          )}
-          {dueVaccines.length > 0 && (
-            <Link href="/vaccinations" className="bg-yellow-50 rounded-2xl border border-yellow-200/50 p-4 hover:border-yellow-300/50 transition">
-              <div className="flex items-center gap-2 mb-1">
-                <Syringe size={14} className="text-yellow-600" />
-                <span className="text-xs font-bold text-yellow-700">Vaccines Due</span>
-              </div>
-              <p className="text-xs text-warm-600">{dueVaccines.map((v) => v.vaccine_name).join(", ")}</p>
-            </Link>
-          )}
-          {pendingReferrals.length > 0 && (
-            <Link href="/referrals" className="bg-soft-blue/5 rounded-2xl border border-soft-blue/10 p-4 hover:border-soft-blue/20 transition">
-              <div className="flex items-center gap-2 mb-1">
-                <ArrowRightCircle size={14} className="text-soft-blue" />
-                <span className="text-xs font-bold text-soft-blue">Referrals</span>
-              </div>
-              <p className="text-xs text-warm-600">{pendingReferrals.length} specialist visit{pendingReferrals.length !== 1 ? "s" : ""} to schedule or attend</p>
-            </Link>
-          )}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* My Upcoming Appointments */}
         <div className="lg:col-span-2 surface-card">
           <div className="flex items-center justify-between p-5 border-b border-sand">
@@ -700,33 +599,25 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Emergency Card */}
-          <Link
-            href="/emergency-card"
-            className="block bg-soft-red/5 rounded-2xl border border-soft-red/10 p-4 hover:bg-soft-red/10 transition"
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <AlertCircle size={14} className="text-soft-red" />
-              <span className="text-xs font-bold text-warm-800">Emergency Card</span>
-            </div>
-            <p className="text-[10px] text-warm-500">
-              Quick-access card with your allergies, meds, and emergency contacts.
-            </p>
-          </Link>
-
-          {/* Ask AI */}
-          <Link
-            href="/chat"
-            className="block bg-terra/5 rounded-2xl border border-terra/10 p-4 hover:bg-terra/10 transition"
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <Bot size={16} className="text-terra" />
-              <span className="text-sm font-bold text-warm-800">Need help?</span>
-            </div>
-            <p className="text-xs text-warm-500">
-              Ask your AI care team about appointments, medications, bills, or anything health-related.
-            </p>
-          </Link>
+          {/* Emergency Card + Ask AI */}
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              href="/emergency-card"
+              className="bg-soft-red/5 rounded-xl border border-soft-red/10 p-3 hover:bg-soft-red/10 transition"
+            >
+              <AlertCircle size={13} className="text-soft-red mb-1" />
+              <p className="text-xs font-bold text-warm-800">Emergency</p>
+              <p className="text-[10px] text-warm-500 mt-0.5">Allergies & contacts</p>
+            </Link>
+            <Link
+              href="/chat"
+              className="bg-terra/5 rounded-xl border border-terra/10 p-3 hover:bg-terra/10 transition"
+            >
+              <Bot size={13} className="text-terra mb-1" />
+              <p className="text-xs font-bold text-warm-800">Ask AI</p>
+              <p className="text-[10px] text-warm-500 mt-0.5">Your care team</p>
+            </Link>
+          </div>
         </div>
       </div>
 

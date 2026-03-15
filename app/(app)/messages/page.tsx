@@ -10,6 +10,7 @@ import {
   Circle,
   Send,
   Loader2,
+  Cpu,
 } from "lucide-react"
 import { useState, useMemo, useRef, useEffect } from "react"
 import AIAction from "@/components/ai-action"
@@ -32,6 +33,7 @@ export default function MessagesPage() {
   const [isSending, setIsSending] = useState(false)
   const [sendError, setSendError] = useState("")
   const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([])
+  const [streamingId, setStreamingId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const { snapshot, getPhysician } = useLiveSnapshot()
   const patient = snapshot.patient
@@ -82,37 +84,68 @@ export default function MessagesPage() {
     }
     setOptimisticMessages((prev) => [...prev, userMsg])
 
+    // Add a placeholder for streaming
+    const agentMsgId = `local-agent-${Date.now()}`
+    const agentMsg: OptimisticMessage = {
+      id: agentMsgId,
+      patient_id: patient?.id ?? "",
+      physician_id: null,
+      sender_type: "agent",
+      content: "",
+      channel: "portal",
+      read: true,
+      created_at: new Date().toISOString(),
+    }
+    setOptimisticMessages((prev) => [...prev, agentMsg])
+    setStreamingId(agentMsgId)
+
     try {
-      const res = await fetch("/api/openclaw/chat", {
+      const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: text,
-          agentId: "coordinator",
-          patientId: patient?.id,
-          channel: "portal",
+          messages: [{ role: "user", content: text }],
+          agentType: "coordinator",
+          stream: true,
         }),
       })
-      const data = await res.json()
-      const reply = data.response || data.error
-      if (reply) {
-        const agentMsg: OptimisticMessage = {
-          id: `local-agent-${Date.now()}`,
-          patient_id: patient?.id ?? "",
-          physician_id: null,
-          sender_type: "agent",
-          content: reply,
-          channel: "portal",
-          read: true,
-          created_at: new Date().toISOString(),
+
+      if (res.headers.get("Content-Type")?.includes("text/event-stream")) {
+        const reader = res.body?.getReader()
+        const decoder = new TextDecoder()
+        let accumulated = ""
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            const lines = decoder.decode(value).split("\n")
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue
+              try {
+                const data = JSON.parse(line.slice(6)) as { type: string; delta?: string }
+                if (data.type === "text_delta" && data.delta) {
+                  accumulated += data.delta
+                  setOptimisticMessages((prev) =>
+                    prev.map((m) => m.id === agentMsgId ? { ...m, content: accumulated } : m)
+                  )
+                }
+              } catch { /* skip */ }
+            }
+          }
         }
-        setOptimisticMessages((prev) => [...prev, agentMsg])
+      } else {
+        const data = await res.json() as { message?: string; error?: string }
+        const reply = data.message || data.error || "No response."
+        setOptimisticMessages((prev) =>
+          prev.map((m) => m.id === agentMsgId ? { ...m, content: reply } : m)
+        )
       }
     } catch {
       setSendError("Failed to send — please try again.")
-      setOptimisticMessages((prev) => prev.filter((m) => m.id !== userMsg.id))
+      setOptimisticMessages((prev) => prev.filter((m) => m.id !== userMsg.id && m.id !== agentMsgId))
     } finally {
       setIsSending(false)
+      setStreamingId(null)
     }
   }
 
@@ -156,9 +189,9 @@ export default function MessagesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-terra/5 border border-terra/10">
-          <Bot size={12} className="text-terra" />
+          <Cpu size={12} className="text-terra" />
           <span className="text-[10px] font-bold text-terra">
-            OpenClaw Multi-Channel
+            Claude Multi-Channel
           </span>
           <span className="text-[9px] text-warm-500">
             WhatsApp &middot; SMS &middot; Telegram &middot; Portal
@@ -234,7 +267,7 @@ export default function MessagesPage() {
                     {msg.sender_type === "physician" && physician
                       ? physician.full_name
                       : msg.sender_type === "agent"
-                      ? "OpenRx AI"
+                      ? "Atlas (Claude)"
                       : msg.sender_type === "system"
                       ? "System"
                       : "Me"}
@@ -251,15 +284,18 @@ export default function MessagesPage() {
                 </div>
                 <p className="text-xs text-warm-700 leading-relaxed whitespace-pre-line">
                   {msg.content}
+                  {streamingId === msg.id && (
+                    <span className="inline-block w-0.5 h-3 bg-terra ml-0.5 animate-pulse align-middle" />
+                  )}
                 </p>
               </div>
             )
           })}
 
-          {isSending && (
+          {isSending && !streamingId && (
             <div className="flex items-center gap-2 text-xs text-warm-500 pl-1">
               <Loader2 size={12} className="animate-spin text-terra" />
-              AI is responding...
+              Atlas is thinking...
             </div>
           )}
           <div ref={bottomRef} />
@@ -298,14 +334,14 @@ export default function MessagesPage() {
               agentId="coordinator"
               label="AI Draft Reply"
               prompt="Help me draft a reply to the most recent message in my conversation."
-              context={`Last message: "${snapshot.messages[snapshot.messages.length - 1]?.content.slice(0, 200)}"`}
+              context={`Last message: "${allMessages[allMessages.length - 1]?.content.slice(0, 200)}"`}
               variant="compact"
             />
             <AIAction
               agentId="triage"
               label="Triage Summary"
               prompt="Summarize the key medical topics discussed in my messages and flag anything urgent."
-              context={`Messages: ${snapshot.messages.slice(-5).map((m) => m.content).join(" | ")}`}
+              context={`Recent messages: ${allMessages.slice(-3).map(m => m.content.slice(0, 100)).join(" | ")}`}
               variant="compact"
             />
           </div>

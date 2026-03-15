@@ -1,8 +1,14 @@
+import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import { OPENCLAW_CONFIG } from "./openclaw/config"
 import { getLiveSnapshotByWallet } from "./live-data.server"
 
-// ── OpenAI Client ────────────────────────────────────────
+// ── AI Clients ────────────────────────────────────────────
+const getClaudeClient = () =>
+  process.env.ANTHROPIC_API_KEY
+    ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    : null
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
 })
@@ -156,9 +162,11 @@ export async function runAgent(params: {
     return { response: "Unknown agent.", agentId }
   }
 
+  const claude = getClaudeClient()
+
   // Fail closed when no live model key is configured.
-  if (!process.env.OPENAI_API_KEY) {
-    return { response: "AI service is unavailable because OPENAI_API_KEY is not configured.", agentId }
+  if (!claude && !process.env.OPENAI_API_KEY) {
+    return { response: "AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.", agentId }
   }
 
   const sessionKey = sessionId || `${agentId}-default`
@@ -180,18 +188,39 @@ IMPORTANT RULES:
   const conv = getConversation(sessionKey)
 
   try {
-    const completion = await createCompletionWithRetry({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...conv,
-        { role: "user", content: message },
-      ],
-      max_tokens: 500,
-      temperature: 0.7,
-    })
+    let response: string
 
-    let response = completion.choices[0]?.message?.content || "I couldn't process that. Could you try again?"
+    if (claude) {
+      const anthropicMessages: Anthropic.MessageParam[] = [
+        ...conv.filter((m) => m.role !== "system").map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+        { role: "user", content: message },
+      ]
+      const completion = await claude.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 600,
+        system: systemPrompt,
+        messages: anthropicMessages,
+      })
+      response = completion.content
+        .filter((b) => b.type === "text")
+        .map((b) => (b as { type: "text"; text: string }).text)
+        .join("") || "I couldn't process that. Could you try again?"
+    } else {
+      const completion = await createCompletionWithRetry({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...conv,
+          { role: "user", content: message },
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      })
+      response = completion.choices[0]?.message?.content || "I couldn't process that. Could you try again?"
+    }
 
     // Check for handoff
     let handoff: string | undefined

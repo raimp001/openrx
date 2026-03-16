@@ -23,7 +23,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         )}
-        <main className="px-4 pb-10 pt-5 sm:px-5 lg:px-8 lg:pt-6">
+        <main className="px-5 pb-12 pt-6 sm:px-6 lg:px-10 lg:pt-8">
           <div className="mx-auto w-full max-w-[1200px]">{children}</div>
         </main>
       </div>

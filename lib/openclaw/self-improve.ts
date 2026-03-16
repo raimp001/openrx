@@ -3,6 +3,8 @@
 // track improvement history, and report on their status.
 // Bolt (DevOps) coordinates the improvement pipeline.
 
+import fs from "fs"
+import path from "path"
 import type { AgentId } from "./config"
 
 export interface Improvement {
@@ -28,22 +30,34 @@ export interface ImprovementMetrics {
   recentImprovements: Improvement[]
 }
 
-// ── In-memory store (persists to localStorage in browser) ──
+// ── Persistent store ────────────────────────────────────────
+// Server-side: JSON file at OPENRX_IMPROVEMENTS_PATH or a default path.
+// Falls back gracefully when the filesystem is read-only.
 
-const STORAGE_KEY = "openrx:improvements" as const
+const STORE_PATH = process.env.OPENRX_IMPROVEMENTS_PATH
+  || path.join(process.cwd(), "data", "openrx-improvements.json")
 
 function loadImprovements(): Improvement[] {
-  if (typeof window === "undefined") return getDefaultImprovements()
+  // Browser — should not happen for server components, but guard anyway
+  if (typeof window !== "undefined") return getDefaultImprovements()
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as Improvement[]
-  } catch { /* ignore */ }
+    if (fs.existsSync(STORE_PATH)) {
+      const raw = fs.readFileSync(STORE_PATH, "utf8")
+      return JSON.parse(raw) as Improvement[]
+    }
+  } catch { /* first run or read error */ }
   return getDefaultImprovements()
 }
 
 function persistImprovements(items: Improvement[]): void {
-  if (typeof window === "undefined") return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+  if (typeof window !== "undefined") return
+  try {
+    const dir = path.dirname(STORE_PATH)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(STORE_PATH, JSON.stringify(items, null, 2), "utf8")
+  } catch (err) {
+    console.warn("Could not persist improvements to disk:", err)
+  }
 }
 
 const improvements: Improvement[] = loadImprovements()

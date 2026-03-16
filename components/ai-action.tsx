@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { Bot, Loader2, X, Zap } from "lucide-react"
+import { Bot, Loader2, X, Zap, Cpu, Copy, Check } from "lucide-react"
 import { useState, useCallback } from "react"
 import type { AgentId } from "@/lib/openclaw/config"
 
@@ -9,9 +9,22 @@ interface AIActionProps {
   agentId: AgentId
   label: string
   prompt: string
-  context?: string // additional context to pass to the agent
+  context?: string
   variant?: "button" | "inline" | "compact"
   className?: string
+}
+
+const AGENT_NAMES: Record<string, string> = {
+  coordinator: "Atlas",
+  triage: "Nova",
+  scheduling: "Cal",
+  billing: "Vera",
+  rx: "Maya",
+  "prior-auth": "Rex",
+  wellness: "Ivy",
+  onboarding: "Sage",
+  devops: "Bolt",
+  general: "Atlas",
 }
 
 export default function AIAction({
@@ -24,30 +37,86 @@ export default function AIAction({
 }: AIActionProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [response, setResponse] = useState<string | null>(null)
+  const [response, setResponse] = useState("")
+  const [model, setModel] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const runAction = useCallback(async () => {
     setIsLoading(true)
     setError(null)
-    setResponse(null)
+    setResponse("")
+    setModel(null)
     setIsOpen(true)
 
+    const fullPrompt = context ? `${prompt}\n\nContext: ${context}` : prompt
+
     try {
-      const fullPrompt = context ? `${prompt}\n\nContext: ${context}` : prompt
-      const res = await fetch("/api/openclaw/chat", {
+      const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: fullPrompt, agentId }),
+        body: JSON.stringify({
+          messages: [{ role: "user", content: fullPrompt }],
+          agentType: agentId,
+          stream: true,
+        }),
       })
-      const data = await res.json()
-      setResponse(data.response || "No response received.")
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Request failed" })) as { error?: string }
+        setError(err.error ?? "Request failed")
+        return
+      }
+
+      // SSE streaming response
+      if (res.headers.get("Content-Type")?.includes("text/event-stream")) {
+        const reader = res.body?.getReader()
+        const decoder = new TextDecoder()
+        let accumulated = ""
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            const chunk = decoder.decode(value)
+            const lines = chunk.split("\n")
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue
+              try {
+                const data = JSON.parse(line.slice(6)) as { type: string; delta?: string; model?: string }
+                if (data.type === "text_delta" && data.delta) {
+                  accumulated += data.delta
+                  setResponse(accumulated)
+                } else if (data.type === "done") {
+                  if (data.model) setModel(data.model)
+                }
+              } catch { /* malformed SSE line */ }
+            }
+          }
+        }
+      } else {
+        // JSON fallback
+        const data = await res.json() as { message?: string; model?: string; error?: string }
+        if (data.error) {
+          setError(data.error)
+        } else {
+          setResponse(data.message ?? "No response.")
+          if (data.model) setModel(data.model)
+        }
+      }
     } catch {
-      setError("Failed to connect to AI agent. Please try again.")
+      setError("Connection error. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }, [agentId, prompt, context])
+
+  const handleCopy = useCallback(async () => {
+    if (!response) return
+    await navigator.clipboard.writeText(response)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }, [response])
 
   if (variant === "compact") {
     return (
@@ -61,19 +130,19 @@ export default function AIAction({
             className
           )}
         >
-          {isLoading ? (
-            <Loader2 size={10} className="animate-spin" />
-          ) : (
-            <Zap size={10} />
-          )}
+          {isLoading ? <Loader2 size={10} className="animate-spin" /> : <Zap size={10} />}
           {label}
         </button>
 
         {isOpen && (
           <AIResponsePanel
+            agentId={agentId}
             response={response}
             error={error}
             isLoading={isLoading}
+            model={model}
+            copied={copied}
+            onCopy={handleCopy}
             onClose={() => setIsOpen(false)}
           />
         )}
@@ -90,36 +159,27 @@ export default function AIAction({
           aria-label={label}
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-terra/5 border border-terra/10 text-[10px] font-bold text-terra hover:bg-terra/10 transition disabled:opacity-50"
         >
-          {isLoading ? (
-            <Loader2 size={10} className="animate-spin" />
-          ) : (
-            <Bot size={10} />
-          )}
+          {isLoading ? <Loader2 size={10} className="animate-spin" /> : <Bot size={10} />}
           {label}
         </button>
 
-        {isOpen && response && (
+        {isOpen && (response || error) && (
           <div className="mt-2 p-3 rounded-lg bg-terra/5 border border-terra/10 animate-fade-in">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[9px] font-bold text-terra uppercase tracking-wider">
-                AI Response
+                {AGENT_NAMES[agentId] ?? "AI"} · {model?.includes("claude") ? "Claude" : "AI"}
               </span>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-cloudy hover:text-warm-600 transition"
-              >
+              <button onClick={() => setIsOpen(false)} className="text-cloudy hover:text-warm-600 transition">
                 <X size={10} />
               </button>
             </div>
-            <p className="text-xs text-warm-700 leading-relaxed whitespace-pre-line">
-              {response}
-            </p>
-          </div>
-        )}
-
-        {isOpen && error && (
-          <div className="mt-2 p-2 rounded-lg bg-soft-red/5 border border-soft-red/10">
-            <p className="text-[10px] text-soft-red">{error}</p>
+            {response && (
+              <p className="text-xs text-warm-700 leading-relaxed whitespace-pre-line">
+                {response}
+                {isLoading && <span className="inline-block w-0.5 h-3 bg-terra ml-0.5 animate-pulse align-middle" />}
+              </p>
+            )}
+            {error && <p className="text-[10px] text-soft-red">{error}</p>}
           </div>
         )}
       </div>
@@ -138,19 +198,19 @@ export default function AIAction({
           className
         )}
       >
-        {isLoading ? (
-          <Loader2 size={14} className="animate-spin" />
-        ) : (
-          <Bot size={14} />
-        )}
+        {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Bot size={14} />}
         {label}
       </button>
 
       {isOpen && (
         <AIResponsePanel
+          agentId={agentId}
           response={response}
           error={error}
           isLoading={isLoading}
+          model={model}
+          copied={copied}
+          onCopy={handleCopy}
           onClose={() => setIsOpen(false)}
         />
       )}
@@ -159,51 +219,109 @@ export default function AIAction({
 }
 
 function AIResponsePanel({
+  agentId,
   response,
   error,
   isLoading,
+  model,
+  copied,
+  onCopy,
   onClose,
 }: {
-  response: string | null
+  agentId: string
+  response: string
   error: string | null
   isLoading: boolean
+  model: string | null
+  copied: boolean
+  onCopy: () => void
   onClose: () => void
 }) {
+  const agentName = AGENT_NAMES[agentId] ?? "AI"
+  const modelLabel = model
+    ? model.includes("claude-opus") ? "Claude Opus 4.6"
+    : model.includes("claude-sonnet") ? "Claude Sonnet 4.6"
+    : model.includes("gpt") ? "GPT-4o"
+    : model
+    : null
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
-      <div className="bg-pampas rounded-2xl border border-sand shadow-xl max-w-lg w-full max-h-[60vh] overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-sand">
+      <div className="bg-pampas rounded-2xl border border-sand shadow-xl max-w-lg w-full max-h-[70vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-sand shrink-0">
           <div className="flex items-center gap-2">
             <Bot size={16} className="text-terra" />
-            <span className="text-sm font-bold text-warm-800">AI Agent Response</span>
-            <span className="text-[9px] font-bold text-terra bg-terra/10 px-1.5 py-0.5 rounded">
-              OPENCLAW
-            </span>
+            <span className="text-sm font-bold text-warm-800">{agentName}</span>
+            {modelLabel ? (
+              <span className="flex items-center gap-0.5 text-[9px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                <Cpu size={7} /> {modelLabel}
+              </span>
+            ) : (
+              <span className="text-[9px] font-bold text-terra bg-terra/10 px-1.5 py-0.5 rounded">
+                AI AGENT
+              </span>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close AI response"
-            className="p-1 hover:bg-sand/30 rounded-lg transition"
-          >
-            <X size={16} className="text-warm-500" />
-          </button>
+          <div className="flex items-center gap-2">
+            {response && !isLoading && (
+              <button
+                onClick={onCopy}
+                className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-warm-500 hover:text-warm-700 bg-sand/30 hover:bg-sand rounded-lg transition"
+              >
+                {copied ? <Check size={10} className="text-accent" /> : <Copy size={10} />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              aria-label="Close AI response"
+              className="p-1 hover:bg-sand/30 rounded-lg transition"
+            >
+              <X size={16} className="text-warm-500" />
+            </button>
+          </div>
         </div>
-        <div className="p-5 overflow-y-auto max-h-[50vh]">
-          {isLoading && (
+
+        {/* Body */}
+        <div className="p-5 overflow-y-auto flex-1">
+          {isLoading && !response && (
             <div className="flex items-center gap-3 py-8 justify-center">
               <Loader2 size={20} className="text-terra animate-spin" />
-              <span className="text-sm text-warm-500">Agent is analyzing...</span>
+              <span className="text-sm text-warm-500">
+                {agentName} is thinking...
+              </span>
             </div>
           )}
           {response && (
             <p className="text-sm text-warm-700 leading-relaxed whitespace-pre-line">
               {response}
+              {isLoading && (
+                <span className="inline-block w-1 h-3.5 bg-terra ml-0.5 animate-pulse align-middle" />
+              )}
             </p>
           )}
           {error && (
-            <p className="text-sm text-soft-red">{error}</p>
+            <div className="p-3 bg-soft-red/5 rounded-xl border border-soft-red/10">
+              <p className="text-sm text-soft-red">{error}</p>
+            </div>
           )}
         </div>
+
+        {/* Footer */}
+        {!isLoading && (response || error) && (
+          <div className="px-5 py-3 border-t border-sand/50 shrink-0 flex items-center justify-between">
+            <p className="text-[10px] text-cloudy">
+              {modelLabel ? `Powered by ${modelLabel}` : "Powered by OpenRx AI"}
+            </p>
+            <button
+              onClick={onClose}
+              className="text-xs font-semibold text-warm-600 hover:text-warm-800 px-3 py-1.5 rounded-lg bg-sand/40 hover:bg-sand transition"
+            >
+              Close
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

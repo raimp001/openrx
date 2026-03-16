@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
+import { routeUserMessageLLM } from "@/lib/openclaw/orchestrator"
 
 // GET: Get orchestrator state and agent collaboration info
 export async function GET() {
@@ -58,75 +59,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Simple keyword-based routing (mirrors client-side orchestrator)
-    const lower = message.toLowerCase()
-    let primaryAgent = "coordinator"
-    let collaborators: string[] = []
-    let reasoning = "General query — coordinator will assess."
-
-    if (lower.includes("appointment") || lower.includes("schedule") || lower.includes("book")) {
-      primaryAgent = "scheduling"
-      collaborators = ["billing"]
-      reasoning = "Scheduling request with billing for copay estimates."
-    } else if (lower.includes("bill") || lower.includes("claim") || lower.includes("charge")) {
-      primaryAgent = "billing"
-      collaborators = ["prior-auth"]
-      reasoning = "Billing inquiry with PA agent on standby."
-    } else if (lower.includes("prescription") || lower.includes("refill") || lower.includes("medication")) {
-      primaryAgent = "rx"
-      collaborators = ["scheduling"]
-      reasoning = "Medication request with scheduler for lab follow-ups."
-    } else if (lower.includes("prior auth") || lower.includes("authorization")) {
-      primaryAgent = "prior-auth"
-      collaborators = ["billing", "coordinator"]
-      reasoning = "PA-related query."
-    } else if (lower.includes("pain") || lower.includes("fever") || lower.includes("symptom") || lower.includes("sick")) {
-      primaryAgent = "triage"
-      collaborators = ["scheduling", "rx"]
-      reasoning = "Symptom report with scheduling and Rx support."
-    } else if (lower.includes("new patient") || lower.includes("onboard") || lower.includes("register")) {
-      primaryAgent = "onboarding"
-      collaborators = ["rx", "scheduling", "wellness"]
-      reasoning = "New patient flow with full team."
-    } else if (
-      lower.includes("screening") ||
-      lower.includes("risk score") ||
-      lower.includes("risk assessment")
-    ) {
-      primaryAgent = "screening"
-      collaborators = ["wellness", "scheduling"]
-      reasoning = "Preventive screening flow."
-    } else if (
-      lower.includes("second opinion") ||
-      lower.includes("another opinion") ||
-      lower.includes("review my diagnosis")
-    ) {
-      primaryAgent = "second-opinion"
-      collaborators = ["triage", "coordinator"]
-      reasoning = "Second-opinion clinical review."
-    } else if (
-      lower.includes("clinical trial") ||
-      lower.includes("clinical trials") ||
-      lower.includes("trial match") ||
-      lower.includes("research study")
-    ) {
-      primaryAgent = "trials"
-      collaborators = ["screening", "billing"]
-      reasoning = "Clinical trial matching with fit and logistics support."
-    } else if (lower.includes("wellness") || lower.includes("preventive")) {
-      primaryAgent = "wellness"
-      collaborators = ["screening", "scheduling"]
-      reasoning = "Wellness inquiry with screening and scheduler."
-    }
+    const route = await routeUserMessageLLM(message)
 
     return NextResponse.json({
-      route: {
-        primaryAgent,
-        collaborators,
-        reasoning,
-      },
+      route,
       walletLinked: !!walletAddress,
       agentCount: OPENCLAW_CONFIG.agents.length,
+      routedByLLM: !!process.env.ANTHROPIC_API_KEY,
     })
   } catch {
     return NextResponse.json(

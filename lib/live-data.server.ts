@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db"
-import { createEmptyLiveSnapshot, type LiveClaim, type LiveLabResult, type LiveSnapshot, type LiveVital } from "@/lib/live-data-types"
+import { createDemoSnapshot, createEmptyLiveSnapshot, type LiveClaim, type LiveLabResult, type LiveSnapshot, type LiveVital } from "@/lib/live-data-types"
 
 let hasWarnedMissingDatabaseUrl = false
 
@@ -117,9 +117,9 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
   if (!process.env.DATABASE_URL) {
     if (!hasWarnedMissingDatabaseUrl) {
       hasWarnedMissingDatabaseUrl = true
-      console.warn("DATABASE_URL is not configured. Returning empty live snapshot fallback.")
+      console.warn("DATABASE_URL is not configured. Returning demo patient snapshot.")
     }
-    return createEmptyLiveSnapshot(normalizedWallet)
+    return createDemoSnapshot(normalizedWallet)
   }
 
   try {
@@ -385,7 +385,13 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
     referrals,
     }
   } catch (error) {
-    console.error("Failed to load live snapshot from database. Returning empty fallback.", error)
-    return createEmptyLiveSnapshot(normalizedWallet)
+    const isDemoMode = !process.env.DATABASE_URL
+    console.error(
+      isDemoMode
+        ? "No DATABASE_URL — returning demo patient snapshot."
+        : "Failed to load live snapshot from database. Returning demo fallback.",
+      isDemoMode ? "" : error
+    )
+    return isDemoMode ? createDemoSnapshot(normalizedWallet) : createEmptyLiveSnapshot(normalizedWallet)
   }
 }

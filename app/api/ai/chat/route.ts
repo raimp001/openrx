@@ -1,11 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
-import { prisma } from '@/lib/db'
+/**
+ * AI Chat API — OpenRx
+ *
+ * Upgraded to Claude Sonnet 4.6 with Server-Sent Events streaming.
+ * Falls back to OpenAI gpt-4o-mini if ANTHROPIC_API_KEY is not set.
+ *
+ * Endpoints:
+ *   POST /api/ai/chat          — streaming chat response (text/event-stream)
+ *   GET  /api/ai/chat          — session history
+ */
 
-// Healthcare AI system prompts for different agent types
+import { NextRequest, NextResponse } from "next/server"
+import Anthropic from "@anthropic-ai/sdk"
+import OpenAI from "openai"
+
+export const maxDuration = 60
+
+// ── System prompts ────────────────────────────────────────────────────
+
 const SYSTEM_PROMPTS: Record<string, string> = {
-  triage: `You are a compassionate and knowledgeable medical triage AI assistant for OpenRx, a healthcare platform.
-Your role is to:
+  triage: `You are Rex, a compassionate and knowledgeable medical triage AI at OpenRx Health.
+Your role:
 1. Help patients understand their symptoms and assess urgency
 2. Provide general health guidance (not medical advice)
 3. Recommend appropriate next steps (ER, urgent care, schedule appointment, home care)
@@ -13,11 +27,11 @@ Your role is to:
 5. Be empathetic, clear, and professional
 6. Ask clarifying questions about symptoms, duration, severity, and medical history
 
-IMPORTANT: Always remind users that you are an AI and cannot replace professional medical advice.
+CRITICAL: Always remind users you are an AI and cannot replace professional medical advice.
 For emergencies (chest pain, difficulty breathing, stroke symptoms), always advise calling 911 immediately.`,
 
-  'care-coordinator': `You are a helpful care coordinator AI for OpenRx healthcare platform.
-Your role is to:
+  "care-coordinator": `You are Rex, a helpful care coordinator AI at OpenRx Health.
+Your role:
 1. Help patients navigate their healthcare journey
 2. Assist with appointment scheduling questions and preparation
 3. Explain what to expect from different types of medical visits
@@ -27,209 +41,246 @@ Your role is to:
 
 Be friendly, organized, and proactive in anticipating patient needs.`,
 
-  billing: `You are a knowledgeable healthcare billing assistant for OpenRx.
-Your role is to:
+  billing: `You are Rex, a knowledgeable healthcare billing assistant at OpenRx Health.
+Your role:
 1. Explain healthcare costs and payment options
 2. Help understand insurance coverage concepts
-3. Guide patients through the Web3/crypto payment process on Base chain
-4. Explain USDC payment options and transaction processes
+3. Guide patients through payment and billing processes
+4. Explain prior authorization status and next steps
 5. Help with billing inquiries and payment history questions
-6. Explain price transparency for telehealth consultations
 
 Always be transparent about costs and never make commitments about specific coverage amounts.`,
 
-  wellness: `You are a supportive wellness coach AI for OpenRx healthcare platform.
-Your role is to:
+  "prior-auth": `You are Rex, an AI prior authorization specialist at OpenRx Health.
+You help clinicians and staff:
+1. Understand prior authorization requirements by drug and payer
+2. Submit FHIR Da Vinci PAS-compliant PA requests
+3. Evaluate PA approval likelihood using clinical criteria
+4. Generate appeal letters for denied authorizations with trial citations
+5. Track PA status and escalate urgent cases
+
+You have access to payer rules for: teclistamab, CAR-T therapies, gilteritinib, pembrolizumab,
+dupilumab, adalimumab/biosimilars, and semaglutide. Always cite NCCN guidelines and key trials.
+For REMS drugs: always flag the enrollment requirement before submission.`,
+
+  wellness: `You are Rex, a supportive wellness coach AI at OpenRx Health.
+Your role:
 1. Provide evidence-based wellness tips and lifestyle recommendations
 2. Help patients set and track health goals
 3. Offer guidance on nutrition, exercise, sleep, and stress management
-4. Provide mental health support and resources
-5. Help interpret health metrics and vital signs trends
-6. Encourage preventive healthcare practices
+4. Help interpret health metrics and vital signs trends
+5. Encourage preventive healthcare practices
 
 Always remind users to consult their doctor before making significant lifestyle changes.`,
 
-  general: `You are a helpful healthcare assistant for OpenRx, an AI-powered healthcare platform on the Base blockchain.
-You help patients with:
-- General health questions and information
-- Understanding medical terminology
-- Navigating the OpenRx platform
-- Connecting with appropriate healthcare providers
-- Understanding their health records and data
+  general: `You are Rex, the AI health assistant at OpenRx Health — the most advanced prior authorization and care coordination platform in healthcare.
 
-Always be helpful, accurate, and encourage professional medical consultation for specific health concerns.`,
+You help with:
+- Prior authorization strategy, submissions, and appeals (your specialty)
+- General health questions and platform navigation
+- Understanding lab results, medications, and vitals
+- Insurance and billing questions
+- Clinical trial matching
+
+OpenRx capabilities you can reference: FHIR R4 Da Vinci PAS submissions, real-time payer rules engine (LCD/NCD + NCCN), Hermes autonomous research agent, 12 specialized AI agents.
+
+Always be helpful, accurate, and encourage professional consultation for clinical decisions.`,
 }
+
+// ── Streaming response builder ────────────────────────────────────────
+
+function buildContextBlock(patientContext: Record<string, unknown> | null): string {
+  if (!patientContext) return ""
+  return `\n\nPatient Context (personalize responses with this):
+- Name: ${String(patientContext.name ?? "Unknown")}
+- Age: ${String(patientContext.age ?? "Unknown")}
+- Allergies: ${Array.isArray(patientContext.allergies) ? patientContext.allergies.join(", ") || "None" : "None"}
+- Medications: ${Array.isArray(patientContext.currentMedications) ? patientContext.currentMedications.join(", ") || "None" : "None"}
+- Insurance: ${String(patientContext.insurance ?? "Unknown")}
+- Recent vitals: ${patientContext.recentVitals ? JSON.stringify(patientContext.recentVitals) : "None"}`
+}
+
+// ── POST — streaming chat ─────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body = await request.json() as {
+      messages: Array<{ role: string; content: string }>
+      agentType?: string
+      sessionId?: string
+      patientContext?: Record<string, unknown> | null
+      stream?: boolean
+    }
+
     const {
       messages,
-      agentType = 'general',
-      userId,
+      agentType = "general",
       sessionId,
-      patientContext,
+      patientContext = null,
+      stream: wantsStream = true,
     } = body
 
     if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: 'messages array is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "messages array is required" }, { status: 400 })
     }
 
-    const systemPrompt = SYSTEM_PROMPTS[agentType] || SYSTEM_PROMPTS.general
+    const systemPrompt = (SYSTEM_PROMPTS[agentType] ?? SYSTEM_PROMPTS.general) + buildContextBlock(patientContext)
 
-    // Build context from patient data if available
-    let contextMessage = ''
-    if (patientContext) {
-      contextMessage = `\n\nPatient Context (use this to personalize responses):
-- Name: ${patientContext.name || 'Unknown'}
-- Age: ${patientContext.age || 'Unknown'}
-- Blood Type: ${patientContext.bloodType || 'Unknown'}
-- Known Allergies: ${patientContext.allergies?.join(', ') || 'None recorded'}
-- Current Medications: ${patientContext.currentMedications?.join(', ') || 'None recorded'}
-- Recent Vitals: ${patientContext.recentVitals ? JSON.stringify(patientContext.recentVitals) : 'No recent data'}`
-    }
+    const claudeKey = process.env.ANTHROPIC_API_KEY
+    const openaiKey = process.env.OPENAI_API_KEY
 
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) {
+    if (!claudeKey && !openaiKey) {
       return NextResponse.json(
-        { error: "AI service is unavailable. Set OPENAI_API_KEY to enable live responses." },
+        { error: "AI service unavailable. Set ANTHROPIC_API_KEY (recommended) or OPENAI_API_KEY." },
         { status: 503 }
       )
     }
 
-    const openai = new OpenAI({ apiKey })
+    // ── Claude path (preferred) ──
+    if (claudeKey) {
+      const claude = new Anthropic({ apiKey: claudeKey })
+
+      const anthropicMessages = messages.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }))
+
+      if (wantsStream) {
+        // Server-Sent Events streaming
+        const encoder = new TextEncoder()
+        const readable = new ReadableStream({
+          async start(controller) {
+            try {
+              const stream = claude.messages.stream({
+                model: "claude-sonnet-4-6",
+                max_tokens: 2048,
+                system: systemPrompt,
+                messages: anthropicMessages,
+              })
+
+              let fullText = ""
+
+              stream.on("text", (delta) => {
+                fullText += delta
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ delta, type: "text_delta" })}\n\n`)
+                )
+              })
+
+              const finalMessage = await stream.finalMessage()
+              const usage = finalMessage.usage
+
+              // Send final event with usage
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({
+                  type: "done",
+                  message: fullText,
+                  usage: { input: usage.input_tokens, output: usage.output_tokens },
+                  model: "claude-sonnet-4-6",
+                })}\n\n`)
+              )
+
+              controller.close()
+            } catch (err) {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: "error", message: String(err) })}\n\n`)
+              )
+              controller.close()
+            }
+          },
+        })
+
+        return new Response(readable, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-AI-Model": "claude-sonnet-4-6",
+          },
+        })
+      }
+
+      // Non-streaming Claude response
+      const response = await claude.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2048,
+        system: systemPrompt,
+        messages: anthropicMessages,
+      })
+
+      const assistantMessage = response.content
+        .filter((b) => b.type === "text")
+        .map((b) => (b as { type: "text"; text: string }).text)
+        .join("") || "I apologize, I could not generate a response."
+
+      return NextResponse.json({
+        message: assistantMessage,
+        sessionId,
+        model: "claude-sonnet-4-6",
+        usage: { input: response.usage.input_tokens, output: response.usage.output_tokens },
+      })
+    }
+
+    // ── OpenAI fallback ──
+    const openai = new OpenAI({ apiKey: openaiKey! })
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: "gpt-4o-mini",
       messages: [
-        {
-          role: 'system',
-          content: systemPrompt + contextMessage,
-        },
-        ...messages.map((msg: { role: string; content: string }) => ({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-        })),
+        { role: "system", content: systemPrompt },
+        ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
       ],
       max_tokens: 1024,
       temperature: 0.7,
+      stream: wantsStream,
     })
 
-    const assistantMessage = response.choices[0]?.message?.content || 'I apologize, I could not generate a response. Please try again.'
-
-    // Save agent session to database if userId provided
-    if (userId) {
-      try {
-        if (sessionId) {
-          // Update existing session
-          await prisma.agentSession.update({
-            where: { id: sessionId },
-            data: {
-              messages: {
-                push: [
-                  messages[messages.length - 1], // last user message
-                  { role: 'assistant', content: assistantMessage },
-                ],
-              },
-            },
-          })
-        } else {
-          // Create new session - return the session ID in response
-          const session = await prisma.agentSession.create({
-            data: {
-              userId,
-              agentType,
-              sessionData: { patientContext: patientContext || null },
-              messages: [
-                ...messages,
-                { role: 'assistant', content: assistantMessage },
-              ],
-            },
-          })
-
-          return NextResponse.json({
-            message: assistantMessage,
-            sessionId: session.id,
-            usage: response.usage,
-          })
-        }
-      } catch (dbError) {
-        console.error('Failed to save agent session:', dbError)
-        // Don't fail the request if DB save fails
-      }
-    }
-
-    return NextResponse.json({
-      message: assistantMessage,
-      sessionId,
-      usage: response.usage,
-    })
-  } catch (error) {
-    console.error('Error in AI chat:', error)
-
-    if (error instanceof OpenAI.APIError) {
-      return NextResponse.json(
-        { error: `AI service error: ${error.message}` },
-        { status: error.status || 500 }
-      )
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to process AI request' },
-      { status: 500 }
-    )
-  }
-}
-
-// GET /api/ai/chat - Get chat session history
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const sessionId = searchParams.get('sessionId')
-    const userId = searchParams.get('userId')
-    const limit = parseInt(searchParams.get('limit') || '10')
-
-    if (sessionId) {
-      const session = await prisma.agentSession.findUnique({
-        where: { id: sessionId },
-      })
-
-      if (!session) {
-        return NextResponse.json({ error: 'Session not found' }, { status: 404 })
-      }
-
-      return NextResponse.json(session)
-    }
-
-    if (userId) {
-      const sessions = await prisma.agentSession.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        select: {
-          id: true,
-          agentType: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true,
+    if (wantsStream) {
+      const encoder = new TextEncoder()
+      const readable = new ReadableStream({
+        async start(controller) {
+          try {
+            let fullText = ""
+            const streamResponse = response as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
+            for await (const chunk of streamResponse) {
+              const delta = chunk.choices[0]?.delta?.content ?? ""
+              if (delta) {
+                fullText += delta
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta, type: "text_delta" })}\n\n`))
+              }
+            }
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: "done", message: fullText, model: "gpt-4o-mini" })}\n\n`)
+            )
+            controller.close()
+          } catch (err) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message: String(err) })}\n\n`))
+            controller.close()
+          }
         },
       })
 
-      return NextResponse.json({ sessions })
+      return new Response(readable, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "X-AI-Model": "gpt-4o-mini (fallback)",
+        },
+      })
     }
 
-    return NextResponse.json(
-      { error: 'sessionId or userId is required' },
-      { status: 400 }
-    )
+    const completionResponse = response as OpenAI.Chat.Completions.ChatCompletion
+    const assistantMessage = completionResponse.choices[0]?.message?.content ?? "No response"
+    return NextResponse.json({ message: assistantMessage, sessionId, model: "gpt-4o-mini" })
+
   } catch (error) {
-    console.error('Error fetching AI session:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch session' },
-      { status: 500 }
-    )
+    console.error("[AI chat]", error)
+    if (error instanceof Anthropic.APIError) {
+      return NextResponse.json({ error: `Claude error: ${error.message}` }, { status: error.status ?? 500 })
+    }
+    if (error instanceof OpenAI.APIError) {
+      return NextResponse.json({ error: `AI error: ${error.message}` }, { status: error.status ?? 500 })
+    }
+    return NextResponse.json({ error: "Failed to process AI request" }, { status: 500 })
   }
 }

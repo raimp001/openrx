@@ -4,14 +4,7 @@ import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 import { cn } from "@/lib/utils"
 import {
   executeWorkflow,
-  getRecentMessages as getOrchestratorMessages,
-  getActiveTasks,
 } from "@/lib/openclaw/orchestrator"
-import {
-  getImprovements,
-  getImprovementMetrics,
-  runImprovementCycle,
-} from "@/lib/openclaw/self-improve"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import {
   Bot,
@@ -99,6 +92,10 @@ export default function ChatPage() {
   const [gatewayStatus, setGatewayStatus] = useState<"checking" | "online" | "offline">("checking")
   const [activeAgent, setActiveAgent] = useState<AgentId>("coordinator")
   const [showImprovements, setShowImprovements] = useState(false)
+  const [improvementData, setImprovementData] = useState<{
+    metrics: { totalSuggested: number; totalDeployed: number; totalInProgress: number; totalApproved: number }
+    improvements: Array<{ id: string; title: string; status: string; category: string; suggestedBy: string; votes: number }>
+  } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -126,9 +123,12 @@ export default function ChatPage() {
     inputRef.current?.focus()
   }, [])
 
-  // Run improvement cycle on mount
+  // Fetch improvement pipeline data
   useEffect(() => {
-    runImprovementCycle()
+    fetch("/api/openclaw/improvements?refresh=1")
+      .then((r) => r.json())
+      .then((d) => setImprovementData(d))
+      .catch(() => {})
   }, [])
 
   // Check gateway status
@@ -226,10 +226,8 @@ export default function ChatPage() {
     }
   }, [input, isLoading, activeAgent, walletAddress])
 
-  const improvementMetrics = getImprovementMetrics()
-  const recentImprovements = getImprovements().slice(0, 5)
-  const orchestratorMessages = getOrchestratorMessages(10)
-  const activeTasks = getActiveTasks()
+  const improvementMetrics = improvementData?.metrics ?? { totalSuggested: 0, totalDeployed: 0, totalInProgress: 0, totalApproved: 0 }
+  const recentImprovements = improvementData?.improvements.slice(0, 5) ?? []
 
   return (
     <div className="animate-slide-up space-y-4">
@@ -303,13 +301,13 @@ export default function ChatPage() {
             </div>
             <div className="bg-cream/50 rounded-lg p-2.5 text-center">
               <div className="text-lg font-bold text-yellow-600">
-                {getImprovements({ status: "in_progress" }).length}
+                {improvementMetrics.totalInProgress}
               </div>
               <div className="text-[9px] text-warm-500">In Progress</div>
             </div>
             <div className="bg-cream/50 rounded-lg p-2.5 text-center">
               <div className="text-lg font-bold text-soft-blue">
-                {getImprovements({ status: "approved" }).length}
+                {improvementMetrics.totalApproved}
               </div>
               <div className="text-[9px] text-warm-500">Approved</div>
             </div>
@@ -334,7 +332,7 @@ export default function ChatPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-semibold text-warm-800 truncate">{imp.title}</p>
                     <p className="text-[9px] text-cloudy">
-                      {agent?.name} &middot; {imp.category} &middot; {imp.votes.length} votes
+                      {agent?.name} &middot; {imp.category} &middot; {imp.votes} votes
                     </p>
                   </div>
                   <span
@@ -572,55 +570,10 @@ export default function ChatPage() {
             <GitBranch size={14} className="text-terra" />
             <span className="text-xs font-bold text-warm-800">Agent Collaboration Log</span>
           </div>
-          {orchestratorMessages.length > 0 ? (
-            <div className="space-y-1.5">
-              {orchestratorMessages.slice(0, 6).map((msg) => {
-                const fromAgent = OPENCLAW_CONFIG.agents.find((a) => a.id === msg.fromAgent)
-                const toAgent = msg.toAgent === "*" ? "All" : OPENCLAW_CONFIG.agents.find((a) => a.id === msg.toAgent)?.name || msg.toAgent
-                return (
-                  <div
-                    key={msg.id}
-                    className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-cream/50 border border-sand/50"
-                  >
-                    <ArrowRight size={10} className="text-terra shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] text-warm-800 truncate">
-                        <span className="font-semibold">{fromAgent?.name}</span>
-                        {" → "}
-                        <span className="font-semibold">{toAgent}</span>
-                      </p>
-                      <p className="text-[9px] text-cloudy truncate">{msg.content}</p>
-                    </div>
-                    <span className={cn(
-                      "text-[8px] font-bold px-1 py-0.5 rounded",
-                      msg.status === "delivered" ? "bg-accent/10 text-accent" : "bg-warm-100 text-warm-500"
-                    )}>
-                      {msg.status}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-6">
+          <div className="text-center py-6">
               <Users size={20} className="text-sand mx-auto mb-2" />
               <p className="text-[11px] text-warm-500">Send a message to see agents collaborate</p>
             </div>
-          )}
-          {activeTasks.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-sand/50">
-              <p className="text-[9px] font-bold text-warm-500 uppercase tracking-wider mb-1">Active Tasks</p>
-              {activeTasks.slice(0, 3).map((task) => {
-                const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === task.assignedTo)
-                return (
-                  <div key={task.id} className="flex items-center gap-2 text-[10px] text-warm-600 py-0.5">
-                    <Loader2 size={8} className="text-terra animate-spin" />
-                    <span className="font-semibold">{agent?.name}</span>: {task.description.slice(0, 60)}...
-                  </div>
-                )
-              })}
-            </div>
-          )}
         </div>
       </div>
     </div>

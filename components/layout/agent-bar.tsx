@@ -4,39 +4,41 @@ import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 import { Bot, Wifi, WifiOff, Zap, ChevronDown, ChevronUp, TrendingUp, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { getImprovementMetrics, getImprovements, runImprovementCycle } from "@/lib/openclaw/self-improve"
-import { getRecentMessages, getActiveTasks } from "@/lib/openclaw/orchestrator"
+
+interface ImprovementMetrics {
+  totalSuggested: number
+  totalDeployed: number
+  totalInProgress: number
+  totalApproved: number
+}
 
 export default function AgentBar() {
   const [status, setStatus] = useState<"checking" | "online" | "offline">("checking")
   const [expanded, setExpanded] = useState(false)
-  const [metrics, setMetrics] = useState<ReturnType<typeof getImprovementMetrics> | null>(null)
-  const [activeTasks, setActiveTasks] = useState(0)
-  const [interAgentMessages, setInterAgentMessages] = useState(0)
+  const [metrics, setMetrics] = useState<ImprovementMetrics | null>(null)
+  const [inProgressCount, setInProgressCount] = useState(0)
+  const [approvedCount, setApprovedCount] = useState(0)
+  const [inProgressTitle, setInProgressTitle] = useState<string | null>(null)
 
   useEffect(() => {
     fetch("/api/openclaw/status")
       .then((r) => r.json())
-      .then((d) => {
-        setStatus(d.connected ? "online" : "offline")
-      })
+      .then((d) => setStatus(d.connected ? "online" : "offline"))
       .catch(() => setStatus("offline"))
   }, [])
 
   useEffect(() => {
-    runImprovementCycle()
-    setMetrics(getImprovementMetrics())
-    setActiveTasks(getActiveTasks().length)
-    setInterAgentMessages(getRecentMessages(100).length)
+    fetch("/api/openclaw/improvements?refresh=1")
+      .then((r) => r.json())
+      .then((d) => {
+        setMetrics(d.metrics)
+        setInProgressCount(d.metrics?.totalInProgress ?? 0)
+        setApprovedCount(d.metrics?.totalApproved ?? 0)
+        const inProg = (d.improvements ?? []).find((i: { status: string; title: string }) => i.status === "in_progress")
+        setInProgressTitle(inProg?.title ?? null)
+      })
+      .catch(() => {})
   }, [])
-
-  useEffect(() => {
-    if (status !== "online") return
-    return undefined
-  }, [status])
-
-  const inProgressImprovements = getImprovements({ status: "in_progress" })
-  const approvedImprovements = getImprovements({ status: "approved" })
 
   return (
     <div className="border-b border-sand/70 bg-gradient-to-r from-pampas via-pampas to-cream/80 text-warm-700">
@@ -62,9 +64,9 @@ export default function AgentBar() {
 
           <div className="hidden items-center gap-2 text-[11px] text-cloudy lg:flex">
             <Zap size={10} className="text-yellow-600" />
-            <span>{interAgentMessages} messages</span>
+            <span>{OPENCLAW_CONFIG.agents.length} agents active</span>
             <span>·</span>
-            <span>{activeTasks} active tasks</span>
+            <span>{OPENCLAW_CONFIG.cronJobs.length} automations</span>
           </div>
 
         </div>
@@ -121,16 +123,16 @@ export default function AgentBar() {
             <div className="rounded-xl border border-sand/70 bg-pampas p-3">
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cloudy">Self-Improvement Pipeline</p>
               <div className="mt-1.5 flex flex-wrap items-center gap-3">
-                {inProgressImprovements.length > 0 && (
+                {inProgressCount > 0 && (
                   <div className="flex items-center gap-1 text-[11px] text-yellow-600">
                     <Zap size={9} />
-                    <span>{inProgressImprovements.length} in progress</span>
+                    <span>{inProgressCount} in progress</span>
                   </div>
                 )}
-                {approvedImprovements.length > 0 && (
+                {approvedCount > 0 && (
                   <div className="flex items-center gap-1 text-[11px] text-accent">
                     <CheckCircle2 size={9} />
-                    <span>{approvedImprovements.length} approved</span>
+                    <span>{approvedCount} approved</span>
                   </div>
                 )}
                 {metrics && (
@@ -140,8 +142,8 @@ export default function AgentBar() {
                   </div>
                 )}
               </div>
-              {inProgressImprovements.length > 0 && (
-                <p className="mt-1.5 truncate text-[10px] text-cloudy">Working on: {inProgressImprovements[0].title}</p>
+              {inProgressTitle && (
+                <p className="mt-1.5 truncate text-[10px] text-cloudy">Working on: {inProgressTitle}</p>
               )}
             </div>
           </div>

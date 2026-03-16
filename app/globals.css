@@ -14,6 +14,10 @@
   --focus-ring: 0 0 0 2px rgba(240, 90, 61, 0.5);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   min-height: 100%;
@@ -167,6 +171,24 @@ a {
     background: #F05A3D;
     border-radius: 0 2px 2px 0;
     box-shadow: 0 0 8px rgba(240, 90, 61, 0.6);
+  }
+
+  /* Gradient text utility for headings */
+  .text-gradient-warm {
+    background: linear-gradient(135deg, #14231F 0%, #3E524A 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Chip / badge utility */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-sand bg-pampas px-3 py-1.5 text-xs font-semibold text-warm-600;
+  }
+
+  /* Stat card accent top bar helper */
+  .stat-card-accent {
+    @apply absolute inset-x-0 top-0 h-0.5 rounded-t-2xl;
   }
 
   .care-team-needs-input {

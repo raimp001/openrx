@@ -218,7 +218,7 @@ export default function DashboardPage() {
             : new Date().getHours() < 17
               ? "afternoon"
               : "evening"}
-            , {patientName.split(" ")[0]}
+            , <span className="text-gradient-terra">{patientName.split(" ")[0]}</span>
           </h1>
           <p className="mt-1 text-sm text-warm-500">
             Your daily plan is ready. Complete today&rsquo;s preventive steps to stay on schedule for age- and history-based screening.
@@ -292,37 +292,55 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Link
           href="/scheduling"
-          className="surface-card p-4 transition-all hover:-translate-y-0.5 hover:border-terra/30"
+          className="surface-card relative overflow-hidden p-4 transition-all hover:-translate-y-0.5 hover:border-terra/30"
         >
-          <Calendar size={20} className="text-terra mb-2" />
-          <div className="text-lg font-bold text-warm-800">{upcomingApts.length}</div>
-          <div className="text-xs text-warm-500">Upcoming Visits</div>
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-terra rounded-t-2xl" />
+          <div className="flex items-center justify-between mb-2">
+            <Calendar size={18} className="text-terra" />
+            <span className="text-[9px] font-bold uppercase tracking-wider text-terra bg-terra/8 px-1.5 py-0.5 rounded-md">Visits</span>
+          </div>
+          <div className="text-2xl font-bold text-warm-800">{upcomingApts.length}</div>
+          <div className="text-xs text-warm-500 mt-0.5">Upcoming Visits</div>
         </Link>
         <Link
           href="/prescriptions"
-          className="surface-card p-4 transition-all hover:-translate-y-0.5 hover:border-terra/30"
+          className="surface-card relative overflow-hidden p-4 transition-all hover:-translate-y-0.5 hover:border-accent/30"
         >
-          <Pill size={20} className="text-accent mb-2" />
-          <div className="text-lg font-bold text-warm-800">{myRx.length}</div>
-          <div className="text-xs text-warm-500">Active Medications</div>
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-accent rounded-t-2xl" />
+          <div className="flex items-center justify-between mb-2">
+            <Pill size={18} className="text-accent" />
+            <span className="text-[9px] font-bold uppercase tracking-wider text-accent bg-accent/8 px-1.5 py-0.5 rounded-md">Rx</span>
+          </div>
+          <div className="text-2xl font-bold text-warm-800">{myRx.length}</div>
+          <div className="text-xs text-warm-500 mt-0.5">Active Medications</div>
         </Link>
         <Link
           href="/lab-results"
-          className="surface-card p-4 transition-all hover:-translate-y-0.5 hover:border-terra/30"
+          className="surface-card relative overflow-hidden p-4 transition-all hover:-translate-y-0.5 hover:border-soft-blue/30"
         >
-          <FlaskConical size={20} className="text-soft-blue mb-2" />
-          <div className="text-lg font-bold text-warm-800">{myLabs.length}</div>
-          <div className="text-xs text-warm-500">
-            Lab Tests{pendingLabs.length > 0 ? ` (${pendingLabs.length} pending)` : ""}
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-soft-blue rounded-t-2xl" />
+          <div className="flex items-center justify-between mb-2">
+            <FlaskConical size={18} className="text-soft-blue" />
+            <span className="text-[9px] font-bold uppercase tracking-wider text-soft-blue bg-soft-blue/8 px-1.5 py-0.5 rounded-md">Labs</span>
+          </div>
+          <div className="text-2xl font-bold text-warm-800">{myLabs.length}</div>
+          <div className="text-xs text-warm-500 mt-0.5">
+            Lab Tests{pendingLabs.length > 0 ? ` · ${pendingLabs.length} pending` : ""}
           </div>
         </Link>
         <Link
           href="/messages"
-          className="surface-card p-4 transition-all hover:-translate-y-0.5 hover:border-terra/30"
+          className="surface-card relative overflow-hidden p-4 transition-all hover:-translate-y-0.5 hover:border-yellow-300/50"
         >
-          <MessageSquare size={20} className="text-yellow-600 mb-2" />
-          <div className="text-lg font-bold text-warm-800">{unreadCount}</div>
-          <div className="text-xs text-warm-500">Unread Messages</div>
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-yellow-400 rounded-t-2xl" />
+          <div className="flex items-center justify-between mb-2">
+            <MessageSquare size={18} className="text-yellow-600" />
+            {unreadCount > 0 && (
+              <span className="text-[9px] font-bold uppercase tracking-wider text-yellow-700 bg-yellow-50 px-1.5 py-0.5 rounded-md">{unreadCount} new</span>
+            )}
+          </div>
+          <div className="text-2xl font-bold text-warm-800">{unreadCount}</div>
+          <div className="text-xs text-warm-500 mt-0.5">Unread Messages</div>
         </Link>
       </div>
 
@@ -627,6 +645,10 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <Bot size={14} className="text-terra" />
             <h3 className="text-sm font-bold text-warm-800">Your AI Care Team</h3>
+            <span className="flex items-center gap-1 rounded-full border border-accent/20 bg-accent/8 px-2 py-0.5 text-[9px] font-bold text-accent">
+              <span className="h-1 w-1 rounded-full bg-accent animate-pulse" />
+              LIVE
+            </span>
           </div>
           <Link href="/chat" className="text-xs font-semibold text-terra flex items-center gap-1 hover:gap-2 transition-all">
             Talk to them <ArrowRight size={12} />

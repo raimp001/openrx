@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
-import { routeUserMessageLLM } from "@/lib/openclaw/orchestrator"
+import { routeUserMessageLLM } from "@/lib/openclaw/router"
 
 // GET: Get orchestrator state and agent collaboration info
 export async function GET() {

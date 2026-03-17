@@ -8,10 +8,45 @@ import {
   CheckCircle2,
   Clock,
   Filter,
+  FileSearch,
 } from "lucide-react"
 import { useState, useMemo } from "react"
 import AIAction from "@/components/ai-action"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+
+const CLAIM_STATUS_LABELS: Record<string, string> = {
+  "submitted": "Submitted",
+  "processing": "Processing",
+  "paid": "Paid",
+  "approved": "Approved",
+  "denied": "Denied",
+  "pending": "Pending",
+}
+
+const CPT_DESCRIPTIONS: Record<string, string> = {
+  "99395": "Preventive Visit",
+  "99396": "Preventive Visit",
+  "99213": "Office Visit",
+  "99214": "Office Visit",
+  "99215": "Office Visit",
+  "80053": "Comprehensive Metabolic Panel",
+  "80061": "Lipid Panel",
+  "85025": "Complete Blood Count",
+  "93000": "EKG / Electrocardiogram",
+  "71046": "Chest X-Ray",
+  "36415": "Blood Draw",
+  "99232": "Hospital Follow-up",
+}
+
+function claimStatusLabel(s: string) {
+  return CLAIM_STATUS_LABELS[s] ?? s.replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function describeCPT(codes: string[]) {
+  const names = codes.map((c) => CPT_DESCRIPTIONS[c] ?? `CPT ${c}`)
+  const unique = [...new Set(names)]
+  return unique.join(", ")
+}
 
 export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState("")
@@ -145,13 +180,13 @@ export default function BillingPage() {
               key={s}
               onClick={() => setStatusFilter(s)}
               className={cn(
-                "px-3 py-1.5 text-xs font-semibold transition-all capitalize",
+                "px-3 py-1.5 text-xs font-semibold transition-all",
                 statusFilter === s
                   ? "bg-terra text-white"
                   : "text-warm-600 hover:bg-sand/30"
               )}
             >
-              {s}
+              {claimStatusLabel(s)}
             </button>
           ))}
         </div>
@@ -168,6 +203,15 @@ export default function BillingPage() {
           <span className="w-24 text-right">Date</span>
         </div>
         <div className="divide-y divide-sand/50">
+          {filtered.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+              <FileSearch size={32} className="text-cloudy" />
+              <p className="text-sm font-semibold text-warm-600">No claims found</p>
+              <p className="text-xs text-cloudy">
+                {statusFilter ? `No ${claimStatusLabel(statusFilter).toLowerCase()} claims` : "No billing claims on file"}
+              </p>
+            </div>
+          )}
           {filtered.map((claim) => {
             return (
               <div
@@ -177,7 +221,7 @@ export default function BillingPage() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-warm-800 truncate">
-                      {claim.claim_number}
+                      {describeCPT(claim.cpt_codes) || claim.claim_number}
                     </span>
                     {claim.errors_detected.length > 0 && (
                       <span className="flex items-center gap-0.5 text-[10px] font-bold text-soft-red">
@@ -187,7 +231,7 @@ export default function BillingPage() {
                     )}
                   </div>
                   <div className="text-[10px] text-cloudy mt-0.5 truncate">
-                    CPT: {claim.cpt_codes.join(", ")} &middot; ICD:{" "}
+                    Claim {claim.claim_number} &middot; ICD:{" "}
                     {claim.icd_codes.join(", ")}
                   </div>
                   {claim.denial_reason && (
@@ -225,7 +269,7 @@ export default function BillingPage() {
                         getStatusColor(claim.status)
                       )}
                     >
-                      {claim.status}
+                      {claimStatusLabel(claim.status)}
                     </span>
                   </span>
                   <span className="lg:w-24 text-right text-xs text-warm-500">

@@ -54,11 +54,23 @@ export default function VitalsPage() {
   const glucoseTrend = trend(glucoseReadings.map((v) => v.blood_glucose || 0))
 
   const TrendIcon = ({ t, goodDirection }: { t: "up" | "down" | "stable"; goodDirection: "down" | "up" }) => {
-    if (t === "stable") return <Minus size={12} className="text-warm-400" />
+    if (t === "stable") return (
+      <div className="flex items-center gap-0.5">
+        <Minus size={12} className="text-warm-400" />
+        <span className="text-[9px] text-warm-400">stable</span>
+      </div>
+    )
     const isGood = t === goodDirection
-    return t === "up"
-      ? <TrendingUp size={12} className={isGood ? "text-accent" : "text-soft-red"} />
-      : <TrendingDown size={12} className={isGood ? "text-accent" : "text-soft-red"} />
+    const label = isGood ? "improving" : "worsening"
+    return (
+      <div className="flex items-center gap-0.5">
+        {t === "up"
+          ? <TrendingUp size={12} className={isGood ? "text-accent" : "text-soft-red"} />
+          : <TrendingDown size={12} className={isGood ? "text-accent" : "text-soft-red"} />
+        }
+        <span className={cn("text-[9px]", isGood ? "text-accent" : "text-soft-red")}>{label}</span>
+      </div>
+    )
   }
 
   // Simple sparkline using CSS bars
@@ -201,6 +213,13 @@ export default function VitalsPage() {
               </tr>
             </thead>
             <tbody>
+              {filteredVitals.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="text-center py-12 text-warm-500 text-sm">
+                    No readings in the last {range}
+                  </td>
+                </tr>
+              )}
               {filteredVitals.map((v) => (
                 <tr key={v.id} className="border-t border-sand/50 hover:bg-cream/30 transition">
                   <td className="px-4 py-2.5 text-warm-800 font-medium">

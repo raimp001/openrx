@@ -1,11 +1,23 @@
 "use client"
 
 import { cn, formatDate, getStatusColor } from "@/lib/utils"
-import { Pill, Search, AlertTriangle, RefreshCw } from "lucide-react"
+import { Pill, Search, AlertTriangle, RefreshCw, PackageSearch } from "lucide-react"
 import { useState, useMemo } from "react"
 import Link from "next/link"
 import AIAction from "@/components/ai-action"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+
+const STATUS_LABELS: Record<string, string> = {
+  "active": "Taking",
+  "pending-refill": "Ready to Refill",
+  "completed": "Completed",
+  "on-hold": "On Hold",
+  "discontinued": "Discontinued",
+}
+
+function statusLabel(s: string) {
+  return STATUS_LABELS[s] ?? s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
 export default function PrescriptionsPage() {
   const [search, setSearch] = useState("")
@@ -54,10 +66,10 @@ export default function PrescriptionsPage() {
         </div>
         <div className="flex gap-2">
           <Link
-            href="/pharmacy"
+            href="/drug-prices"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-warm-600 border border-sand hover:border-terra/30 hover:text-terra transition"
           >
-            Find Pharmacy
+            Compare Prices
           </Link>
           <AIAction
             agentId="rx"
@@ -106,13 +118,13 @@ export default function PrescriptionsPage() {
               key={s}
               onClick={() => setStatusFilter(s)}
               className={cn(
-                "px-3 py-2 text-xs font-semibold transition-all capitalize",
+                "px-3 py-2 text-xs font-semibold transition-all",
                 statusFilter === s
                   ? "bg-terra text-white"
                   : "text-warm-600 hover:bg-sand/30"
               )}
             >
-              {s}
+              {statusLabel(s)}
             </button>
           ))}
         </div>
@@ -120,6 +132,15 @@ export default function PrescriptionsPage() {
 
       {/* Prescriptions List */}
       <div className="bg-pampas rounded-2xl border border-sand divide-y divide-sand/50">
+        {filtered.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+            <PackageSearch size={32} className="text-cloudy" />
+            <p className="text-sm font-semibold text-warm-600">No medications found</p>
+            <p className="text-xs text-cloudy max-w-xs">
+              {search ? `No results for "${search}"` : `No ${statusFilter ? statusLabel(statusFilter).toLowerCase() : ""} medications`}
+            </p>
+          </div>
+        )}
         {filtered.map((rx) => {
           const physician = getPhysician(rx.physician_id)
           const isLowAdherence = rx.status === "active" && rx.adherence_pct < 80
@@ -172,7 +193,7 @@ export default function PrescriptionsPage() {
                       getStatusColor(rx.status)
                     )}
                   >
-                    {rx.status}
+                    {statusLabel(rx.status)}
                   </span>
                 </div>
                 <p className="text-xs text-warm-500 mt-0.5">

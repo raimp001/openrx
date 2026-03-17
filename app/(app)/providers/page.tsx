@@ -392,10 +392,10 @@ function ResultGroup({
                         : "bg-yellow-100/20 text-yellow-500"
                     )}
                   >
-                    {item.confidence}
+                    {item.confidence === "high" ? "Verified" : "Unverified"}
                   </span>
                   <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-terra/10 text-terra uppercase">
-                    {item.status}
+                    {item.status === "A" ? "Active" : item.status}
                   </span>
                 </div>
 
@@ -406,10 +406,13 @@ function ResultGroup({
                     {item.fullAddress}
                   </span>
                   {item.phone && (
-                    <span className="flex items-center gap-1">
+                    <a
+                      href={`tel:${item.phone.replace(/[^\d+]/g, "")}`}
+                      className="flex items-center gap-1 hover:text-terra transition"
+                    >
                       <Phone size={12} />
                       {item.phone}
-                    </span>
+                    </a>
                   )}
                 </div>
 

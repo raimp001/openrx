@@ -18,8 +18,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Topbar />
         {!isDatabaseConfigured && (
           <div className="mx-auto mt-3 w-full max-w-[1200px] px-4 sm:px-5 lg:px-8">
-            <div className="rounded-xl border border-yellow-300/40 bg-yellow-100/20 px-3 py-2 text-xs text-warm-700">
-              Live DB is not configured (`DATABASE_URL` missing). OpenRx is running in fallback mode with limited persisted data.
+            <div className="flex items-center gap-2.5 rounded-xl border border-amber-200/60 bg-amber-50/70 px-3.5 py-2.5 text-xs text-amber-800">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+              <span>
+                <strong>No database connected</strong> — set <code className="font-mono bg-amber-100 px-1 rounded">DATABASE_URL</code> to activate live patient records. Currently showing empty states.
+              </span>
             </div>
           </div>
         )}

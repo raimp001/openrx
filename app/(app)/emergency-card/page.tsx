@@ -36,7 +36,7 @@ export default function EmergencyCardPage() {
     `EMERGENCY MEDICAL INFO`,
     `Name: ${currentUser.full_name}`,
     `DOB: ${new Date(currentUser.date_of_birth).toLocaleDateString()}`,
-    `Blood Type: O+ (self-reported)`,
+    `Blood Type: Not on file (verify at hospital)`,
     `Allergies: ${currentUser.allergies.length > 0 ? currentUser.allergies.join(", ") : "None known"}`,
     `Conditions: ${currentUser.medical_history.map((h) => h.condition).join(", ")}`,
     `Medications: ${meds.map((m) => `${m.medication_name} ${m.dosage}`).join(", ")}`,
@@ -84,7 +84,7 @@ export default function EmergencyCardPage() {
               <p className="text-lg font-bold text-warm-800">{currentUser.full_name}</p>
               <p className="text-xs text-warm-500 mt-0.5">
                 DOB: {new Date(currentUser.date_of_birth).toLocaleDateString()} &middot;{" "}
-                {currentUser.gender} &middot; Blood Type: O+ (self-reported)
+                {currentUser.gender} &middot; Blood Type: Not on file
               </p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-warm-100 flex items-center justify-center">
@@ -177,9 +177,12 @@ export default function EmergencyCardPage() {
               <p className="text-sm font-semibold text-warm-800">
                 {currentUser.emergency_contact_name}
               </p>
-              <p className="text-xs text-warm-600 mt-0.5">
+              <a
+                href={`tel:${currentUser.emergency_contact_phone}`}
+                className="text-xs text-soft-blue mt-0.5 block hover:underline"
+              >
                 {currentUser.emergency_contact_phone}
-              </p>
+              </a>
             </div>
             <div className="rounded-xl border border-sand p-3">
               <div className="flex items-center gap-2 mb-2">
@@ -189,7 +192,14 @@ export default function EmergencyCardPage() {
               <p className="text-sm font-semibold text-warm-800">
                 {physician?.full_name || "Not assigned"}
               </p>
-              <p className="text-xs text-warm-600 mt-0.5">{physician?.phone || ""}</p>
+              {physician?.phone && (
+                <a
+                  href={`tel:${physician.phone}`}
+                  className="text-xs text-soft-blue mt-0.5 block hover:underline"
+                >
+                  {physician.phone}
+                </a>
+              )}
             </div>
           </div>
 

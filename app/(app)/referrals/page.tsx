@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import {
   ArrowRightCircle, Clock, CheckCircle2, Calendar, Phone,
-  AlertTriangle, ArrowRight, MapPin,
+  AlertTriangle, MapPin, ArrowUpRight,
 } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
@@ -19,11 +19,19 @@ export default function ReferralsPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif text-warm-800">Referrals</h1>
-        <p className="text-sm text-warm-500 mt-1">
-          Track your specialist referrals and appointments.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-serif text-warm-800">Referrals</h1>
+          <p className="text-sm text-warm-500 mt-1">
+            Track your specialist referrals and appointments.
+          </p>
+        </div>
+        <AIAction
+          agentId="coordinator"
+          label="Track My Referrals"
+          prompt="Give me a status update on all my specialist referrals, what's pending insurance auth, and what I need to do next to get these appointments scheduled."
+          context={`Pending: ${pending.length}, Scheduled: ${scheduled.length}, Completed: ${completed.length}`}
+        />
       </div>
 
       {/* Summary */}
@@ -67,6 +75,13 @@ export default function ReferralsPage() {
 
       {/* Referral Cards */}
       <div className="space-y-3">
+        {referrals.length === 0 && (
+          <div className="bg-pampas rounded-2xl border border-sand flex flex-col items-center justify-center py-16 text-center gap-3">
+            <ArrowRightCircle size={32} className="text-cloudy" />
+            <p className="text-sm font-semibold text-warm-600">No referrals on file</p>
+            <p className="text-xs text-cloudy max-w-xs">When your doctor refers you to a specialist, it will appear here.</p>
+          </div>
+        )}
         {referrals.map((ref) => {
           const referringDoc = getPhysician(ref.referring_physician_id)
 
@@ -107,16 +122,19 @@ export default function ReferralsPage() {
                     ref.status === "scheduled" ? "bg-soft-blue/10 text-soft-blue" :
                     "bg-yellow-100 text-yellow-700"
                   )}>
-                    {ref.status}
+                    {ref.status === "scheduled" ? "Scheduled" : ref.status === "completed" ? "Completed" : "Pending"}
                   </span>
-                  {ref.appointment_date && ref.status !== "completed" && (
-                    <p className="text-[10px] text-warm-600 mt-1 font-semibold">
-                      {new Date(ref.appointment_date).toLocaleDateString(undefined, {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
+                  {ref.appointment_date && ref.status === "scheduled" && (
+                    <div className="mt-1.5 bg-soft-blue/8 rounded-lg px-2 py-1 text-right">
+                      <p className="text-[9px] font-bold text-soft-blue uppercase tracking-wide">Appt</p>
+                      <p className="text-xs text-warm-700 font-semibold">
+                        {new Date(ref.appointment_date).toLocaleDateString(undefined, {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -127,9 +145,12 @@ export default function ReferralsPage() {
 
                 {/* Details */}
                 <div className="flex items-center gap-4 mt-2 text-[10px] text-cloudy">
-                  <span className="flex items-center gap-1">
+                  <a
+                    href={`tel:${ref.specialist_phone}`}
+                    className="flex items-center gap-1 hover:text-terra transition"
+                  >
                     <Phone size={8} /> {ref.specialist_phone}
-                  </span>
+                  </a>
                   <span className={cn(
                     "flex items-center gap-1 font-semibold",
                     ref.insurance_authorized ? "text-accent" : "text-yellow-600"

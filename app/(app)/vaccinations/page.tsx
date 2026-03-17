@@ -2,10 +2,11 @@
 
 import {
   Syringe, CheckCircle2, AlertTriangle, Calendar,
-  Bot, Shield, ArrowRight,
+  Shield, ArrowRight,
 } from "lucide-react"
 import Link from "next/link"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import AIAction from "@/components/ai-action"
 
 export default function VaccinationsPage() {
   const { snapshot } = useLiveSnapshot()
@@ -16,11 +17,19 @@ export default function VaccinationsPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif text-warm-800">Vaccination Records</h1>
-        <p className="text-sm text-warm-500 mt-1">
-          Your immunization history and upcoming vaccinations.
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-serif text-warm-800">Vaccination Records</h1>
+          <p className="text-sm text-warm-500 mt-1">
+            Your immunization history and upcoming vaccinations.
+          </p>
+        </div>
+        <AIAction
+          agentId="wellness"
+          label="Vaccine Review"
+          prompt={`Review my vaccination record. I have ${completed.length} completed vaccines and ${due.length} due. ${due.map(v => v.vaccine_name).join(", ")} are recommended. Based on my age, conditions (Type 2 Diabetes, Hypertension), and insurance (Moda Medical), which vaccines should I prioritize, what are they covered at, and can you help me book them?`}
+          context={`Completed: ${completed.map(v => v.vaccine_name).join(", ")}. Due: ${due.map(v => v.vaccine_name).join(", ")}`}
+        />
       </div>
 
       {/* Summary */}
@@ -130,19 +139,15 @@ export default function VaccinationsPage() {
         </div>
       </div>
 
-      {/* AI Insight */}
-      <div className="bg-terra/5 rounded-2xl border border-terra/10 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Bot size={14} className="text-terra" />
-          <span className="text-xs font-bold text-warm-800">Ivy&apos;s Vaccination Review</span>
-        </div>
-        <p className="text-xs text-warm-600 leading-relaxed">
-          You&apos;re up to date on your flu shot and COVID booster. As a patient over 50 with diabetes,
-          the CDC recommends both the Shingrix (shingles) and PCV20 (pneumococcal) vaccines.
-          Both are covered by most insurance plans with no copay. Want me to check your coverage
-          and schedule these at your next visit?
-        </p>
-      </div>
+      {/* AI Vaccination Guidance */}
+      <AIAction
+        agentId="wellness"
+        label="Get Ivy's Personalized Vaccine Guidance"
+        prompt={`Based on my age (50), conditions (Type 2 Diabetes, Hypertension), and completed vaccines (${completed.map(v => v.vaccine_name).join(", ")}), give me a complete vaccine plan: which vaccines I still need, why they're recommended for my risk profile, which are covered by Moda Medical, and which to schedule first.`}
+        context={`Due vaccines: ${due.map(v => `${v.vaccine_name} (${v.status})`).join(", ")}`}
+        variant="inline"
+        className="bg-terra/5 rounded-2xl border border-terra/10 p-4"
+      />
     </div>
   )
 }

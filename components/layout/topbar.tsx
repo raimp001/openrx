@@ -64,6 +64,7 @@ export default function Topbar() {
 
   const QUICK_NAV = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, keywords: ["home", "dashboard", "overview"] },
+    { label: "My Profile", href: "/profile", icon: UserCircle, keywords: ["profile", "account", "personal", "info", "insurance", "allergies", "history"] },
     { label: "Timeline", href: "/timeline", icon: Clock, keywords: ["timeline", "history", "events", "log"] },
     { label: "Appointments", href: "/scheduling", icon: Calendar, keywords: ["appointments", "schedule", "book", "visit"] },
     { label: "Medications", href: "/prescriptions", icon: Pill, keywords: ["meds", "medications", "prescriptions", "drugs", "pills"] },

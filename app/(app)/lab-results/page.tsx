@@ -3,10 +3,11 @@
 import { cn } from "@/lib/utils"
 import {
   FlaskConical, AlertTriangle, CheckCircle2, Clock,
-  ChevronDown, ChevronUp, Bot, FileText,
+  ChevronDown, ChevronUp, FileText,
 } from "lucide-react"
 import { useState } from "react"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import AIAction from "@/components/ai-action"
 
 export default function LabResultsPage() {
   const { snapshot, getPhysician } = useLiveSnapshot()
@@ -19,20 +20,21 @@ export default function LabResultsPage() {
     (count, lab) => count + lab.results.filter((r) => r.flag !== "normal").length,
     0
   )
-  const insightText =
-    resultedLabs.length === 0
-      ? "No finalized lab results are available yet. Once results post, this panel summarizes key trends and follow-up needs."
-      : abnormalCount === 0
-      ? "Current finalized labs do not show abnormal flags. Keep regular follow-up testing on schedule and review any new symptoms with your care team."
-      : `${abnormalCount} abnormal value${abnormalCount === 1 ? "" : "s"} detected across recent labs. Prioritize clinician review for flagged markers and schedule follow-up testing when recommended.`
-
   return (
     <div className="animate-slide-up space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif text-warm-800">Lab Results</h1>
-        <p className="text-sm text-warm-500 mt-1">
-          View and track your laboratory test results.
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-serif text-warm-800">Lab Results</h1>
+          <p className="text-sm text-warm-500 mt-1">
+            View and track your laboratory test results.
+          </p>
+        </div>
+        <AIAction
+          agentId="coordinator"
+          label="Interpret My Labs"
+          prompt={`I have ${labs.length} lab tests. ${abnormalCount} values are abnormal. Please explain what each abnormal result means in plain language, how it relates to my conditions (Type 2 Diabetes, Hypertension, Hyperlipidemia), and what I should discuss with my doctor at my next visit.`}
+          context={`Abnormal values: ${resultedLabs.flatMap(l => l.results.filter(r => r.flag !== "normal")).map(r => `${r.name}: ${r.value}`).join(", ")}`}
+        />
       </div>
 
       {/* Summary Cards */}
@@ -200,16 +202,15 @@ export default function LabResultsPage() {
         })}
       </div>
 
-      {/* AI Insight */}
-      <div className="bg-terra/5 rounded-2xl border border-terra/10 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Bot size={14} className="text-terra" />
-          <span className="text-xs font-bold text-warm-800">Maya&apos;s Lab Analysis</span>
-        </div>
-        <p className="text-xs text-warm-600 leading-relaxed">
-          {insightText}
-        </p>
-      </div>
+      {/* AI Lab Interpretation */}
+      <AIAction
+        agentId="coordinator"
+        label="Get Plain-Language Lab Summary from Atlas"
+        prompt={`Summarize all my recent lab results in plain language. For each abnormal value, explain: 1) what it measures, 2) why mine is flagged, 3) what it means for my health conditions, and 4) what I should ask my doctor. Focus on the actionable items.`}
+        context={`Lab summary: ${labs.map(l => `${l.test_name}: ${l.results.map(r => `${r.name}=${r.value}${r.unit || ""} (${r.flag})`).join(", ")}`).join(" | ")}`}
+        variant="inline"
+        className="bg-terra/5 rounded-2xl border border-terra/10 p-4"
+      />
     </div>
   )
 }

@@ -369,14 +369,14 @@ export default function Topbar() {
 
         <div className="flex items-center gap-2">
           {isConnected && profile && (
-            <div className="hidden items-center gap-1.5 rounded-xl border border-accent/20 bg-accent/8 px-2.5 py-1.5 lg:flex">
+            <Link href="/profile" className="hidden items-center gap-1.5 rounded-xl border border-accent/20 bg-accent/8 px-2.5 py-1.5 lg:flex transition hover:bg-accent/14 hover:border-accent/30">
               <div className="h-4 w-4 rounded-full bg-accent/20 flex items-center justify-center">
                 <UserCircle size={11} className="text-accent" />
               </div>
               <span className="text-[11px] font-semibold text-accent">
                 {profile.onboardingComplete ? profile.fullName?.split(" ")[0] || "Active" : "Linked"}
               </span>
-            </div>
+            </Link>
           )}
 
           {isConnected && isNewUser && (

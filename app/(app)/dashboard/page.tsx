@@ -5,7 +5,7 @@ import {
   ArrowRight, Bot, Send, CheckCircle2, Heart, ShieldCheck,
   FlaskConical, Activity, Syringe,
   AlertCircle, Search, Workflow, TrendingUp, TrendingDown,
-  Minus, Zap, ChevronRight,
+  Minus, Zap, ChevronRight, UserCircle,
 } from "lucide-react"
 import Link from "next/link"
 import { cn, formatTime, formatDate, getStatusColor } from "@/lib/utils"
@@ -211,18 +211,28 @@ export default function DashboardPage() {
     <div className="animate-slide-up space-y-5">
       <section className="surface-card overflow-hidden">
         <div className="px-5 py-5 lg:px-6 lg:py-6">
-          <h1 className="text-3xl text-warm-800">
-            Good{" "}
-            {new Date().getHours() < 12
-            ? "morning"
-            : new Date().getHours() < 17
-              ? "afternoon"
-              : "evening"}
-            , <span className="text-gradient-terra">{patientName.split(" ")[0]}</span>
-          </h1>
-          <p className="mt-1 text-sm text-warm-500">
-            Your daily plan is ready. Complete today&rsquo;s preventive steps to stay on schedule for age- and history-based screening.
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl text-warm-800">
+                Good{" "}
+                {new Date().getHours() < 12
+                ? "morning"
+                : new Date().getHours() < 17
+                  ? "afternoon"
+                  : "evening"}
+                , <span className="text-gradient-terra">{patientName.split(" ")[0]}</span>
+              </h1>
+              <p className="mt-1 text-sm text-warm-500">
+                Your daily plan is ready. Complete today&rsquo;s preventive steps to stay on schedule for age- and history-based screening.
+              </p>
+            </div>
+            <Link
+              href="/profile"
+              className="hidden sm:flex items-center gap-1.5 rounded-xl border border-sand/80 bg-cream/40 px-3 py-2 text-[11px] font-semibold text-warm-600 transition hover:border-terra/30 hover:text-terra shrink-0"
+            >
+              <UserCircle size={13} /> My Profile
+            </Link>
+          </div>
 
           {actionItems.length > 0 ? (
             <div className="mt-4 space-y-1.5">

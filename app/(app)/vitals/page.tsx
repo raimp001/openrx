@@ -3,10 +3,11 @@
 import { cn } from "@/lib/utils"
 import {
   Activity, Heart, Weight, Droplets,
-  TrendingDown, TrendingUp, Minus, Bot, Clock,
+  TrendingDown, TrendingUp, Minus, Clock,
 } from "lucide-react"
 import { useState } from "react"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import AIAction from "@/components/ai-action"
 
 type TimeRange = "7d" | "14d" | "30d"
 
@@ -36,6 +37,7 @@ export default function VitalsPage() {
     : null
   const latestWeight = weightReadings.length ? weightReadings[0].weight_lbs : null
   const latestHR = filteredVitals.find((v) => v.heart_rate)?.heart_rate || null
+  const latestVital = filteredVitals[0] || null
 
   function trend(values: number[]): "up" | "down" | "stable" {
     if (values.length < 2) return "stable"
@@ -82,7 +84,14 @@ export default function VitalsPage() {
           <h1 className="text-2xl font-serif text-warm-800">Vital Signs</h1>
           <p className="text-sm text-warm-500 mt-1">Track your health metrics over time.</p>
         </div>
-        <div className="flex gap-1 bg-pampas rounded-lg border border-sand p-1">
+        <div className="flex items-center gap-2">
+          <AIAction
+            agentId="wellness"
+            label="Analyze My Vitals"
+            prompt={`Review my recent vital signs and give me a wellness analysis with specific recommendations. My recent averages: BP ${avgSystolic ?? "--"}/${avgDiastolic ?? "--"} mmHg, fasting glucose ${avgGlucose ?? "--"} mg/dL, heart rate ${latestHR ?? "--"} bpm, weight ${latestVital?.weight_lbs ?? "--"} lbs. Flag anything outside healthy ranges and suggest next steps.`}
+            context={`Vitals over last ${range}: ${filteredVitals.length} readings. BP trend: ${bpTrend}, glucose trend: ${glucoseTrend}`}
+          />
+          <div className="flex gap-1 bg-pampas rounded-lg border border-sand p-1">
           {(["7d", "14d", "30d"] as TimeRange[]).map((r) => (
             <button
               key={r}
@@ -95,6 +104,7 @@ export default function VitalsPage() {
               {r}
             </button>
           ))}
+          </div>
         </div>
       </div>
 
@@ -236,23 +246,15 @@ export default function VitalsPage() {
         </div>
       </div>
 
-      {/* AI Insight */}
-      <div className="bg-terra/5 rounded-2xl border border-terra/10 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Bot size={14} className="text-terra" />
-          <span className="text-xs font-bold text-warm-800">Ivy&apos;s Wellness Analysis</span>
-        </div>
-        <p className="text-xs text-warm-600 leading-relaxed">
-          Your blood pressure is averaging {avgSystolic}/{avgDiastolic} mmHg — slightly above the
-          130/80 target for diabetic patients.{" "}
-          {glucoseTrend === "down"
-            ? "Good news: your fasting glucose is trending downward, which aligns with your improving A1C."
-            : "Your fasting glucose has been variable — consistent timing of readings and medication can help."}
-          {latestWeight && latestWeight > 195
-            ? " Your weight has decreased by 2 lbs this month — keep up the great work with Dr. Nguyen's dietitian referral."
-            : ""}
-        </p>
-      </div>
+      {/* AI Wellness Action */}
+      <AIAction
+        agentId="wellness"
+        label="Get Full Wellness Analysis from Ivy"
+        prompt={`Analyze all my vital signs in detail. Recent averages over the last ${range}: BP ${avgSystolic ?? "--"}/${avgDiastolic ?? "--"} mmHg (trend: ${bpTrend}), fasting glucose ${avgGlucose ?? "--"} mg/dL (trend: ${glucoseTrend}), heart rate ${latestHR ?? "--"} bpm, weight ${latestVital?.weight_lbs ?? "--"} lbs. Based on my conditions (Type 2 Diabetes, Hypertension), what do these readings mean, what's improving, and what needs attention? Give me 3 specific action steps.`}
+        context={`${filteredVitals.length} readings in last ${range}. Sources: home, clinic, device.`}
+        variant="inline"
+        className="bg-terra/5 rounded-2xl border border-terra/10 p-4"
+      />
     </div>
   )
 }

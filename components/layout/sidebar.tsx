@@ -25,6 +25,7 @@ import {
   UserPlus,
   Workflow,
   Clock,
+  UserCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, useMemo } from "react"
@@ -36,6 +37,7 @@ const baseNavSections = [
     label: null,
     items: [
       { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+      { href: "/profile", label: "My Profile", icon: UserCircle },
       { href: "/timeline", label: "Health Timeline", icon: Clock },
       { href: "/onboarding", label: "Get Started", icon: Heart },
     ],

@@ -9,10 +9,15 @@ import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
 type ViewMode = "today" | "upcoming" | "past"
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+}
+
 export default function SchedulingPage() {
   const [view, setView] = useState<ViewMode>("today")
-  const { snapshot, getPhysician } = useLiveSnapshot()
+  const { snapshot, getPhysician, loading } = useLiveSnapshot()
 
+  const hasData = !!snapshot.patient
   const myAppointments = snapshot.appointments
   const today = new Date().toDateString()
 
@@ -42,6 +47,46 @@ export default function SchedulingPage() {
     })
     return counts
   }, [todayApts])
+
+  if (loading) {
+    return (
+      <div className="animate-slide-up space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2"><Skeleton className="h-8 w-44" /><Skeleton className="h-4 w-56" /></div>
+          <div className="flex gap-2"><Skeleton className="h-9 w-32" /><Skeleton className="h-9 w-36" /></div>
+        </div>
+        <div className="flex gap-2"><Skeleton className="h-7 w-20 rounded-full" /><Skeleton className="h-7 w-20 rounded-full" /></div>
+        <Skeleton className="h-10 w-60 rounded-xl" />
+        <div className="bg-pampas rounded-2xl border border-sand divide-y divide-sand/50">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-5 py-4">
+              <Skeleton className="h-10 w-16" />
+              <Skeleton className="w-1.5 h-10 rounded-full" />
+              <div className="flex-1 space-y-1.5"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-40" /></div>
+              <Skeleton className="h-8 w-24" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (!loading && !hasData) {
+    return (
+      <div className="animate-slide-up flex flex-col items-center justify-center min-h-[50vh] text-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-terra/5 flex items-center justify-center">
+          <Calendar size={28} className="text-terra" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-serif text-warm-800">My Appointments</h1>
+          <p className="text-warm-500 mt-1 max-w-sm">Connect your health record to view and manage your appointments.</p>
+        </div>
+        <Link href="/onboarding" className="px-5 py-2.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition">
+          Get Started
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="animate-slide-up space-y-6">

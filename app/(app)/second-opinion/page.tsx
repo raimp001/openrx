@@ -1,15 +1,18 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { AlertTriangle, FileSearch, Loader2, ShieldCheck, Stethoscope } from "lucide-react"
+import { AlertTriangle, FileSearch, Loader2, ShieldCheck, Stethoscope, Sparkles } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import type { SecondOpinionResult } from "@/lib/basehealth"
+import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
 export default function SecondOpinionPage() {
-  const [diagnosis, setDiagnosis] = useState("Type 2 diabetes with elevated A1C")
-  const [currentPlan, setCurrentPlan] = useState(
-    "Continue metformin 1000 mg twice daily, repeat A1C in 3 months, improve medication adherence, and schedule nutrition follow-up."
-  )
+  const { snapshot } = useLiveSnapshot()
+  const activeConditions = snapshot.patient?.medical_history?.filter((h) => h.status !== "resolved") ?? []
+  const activeMeds = snapshot.prescriptions?.filter((p) => p.status === "active") ?? []
+
+  const [diagnosis, setDiagnosis] = useState("")
+  const [currentPlan, setCurrentPlan] = useState("")
   const [symptoms, setSymptoms] = useState("")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<SecondOpinionResult | null>(null)
@@ -50,15 +53,40 @@ export default function SecondOpinionPage() {
         <div>
           <h1 className="text-2xl font-serif text-warm-800">AI Second Opinion</h1>
           <p className="text-sm text-warm-500 mt-1">
-            Structured treatment-plan review inspired by BaseHealth second-opinion workflows.
+            Structured treatment-plan review — identify gaps and questions to bring to your clinician.
           </p>
         </div>
         <AIAction
           agentId="second-opinion"
-          label="Ask Specialist Agent"
+          label="Ask Orion"
           prompt="Review my current diagnosis and treatment plan and identify gaps to discuss with my clinician."
         />
       </div>
+
+      {/* Quick-fill from patient data */}
+      {activeConditions.length > 0 && !diagnosis && (
+        <div className="bg-terra/5 rounded-2xl border border-terra/10 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={13} className="text-terra" />
+            <span className="text-xs font-bold text-warm-800">Quick-fill from your health record</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {activeConditions.map((condition) => (
+              <button
+                key={condition.condition}
+                onClick={() => {
+                  setDiagnosis(condition.condition)
+                  const meds = activeMeds.map((m) => `${m.medication_name} ${m.dosage} ${m.frequency}`).join("; ")
+                  setCurrentPlan(meds ? `Current medications: ${meds}` : "")
+                }}
+                className="text-xs px-3 py-1.5 rounded-xl border border-terra/20 bg-white text-terra hover:bg-terra/5 transition"
+              >
+                {condition.condition}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-pampas rounded-2xl border border-sand p-5 space-y-4">
         <label className="block text-xs text-warm-600">
@@ -66,6 +94,7 @@ export default function SecondOpinionPage() {
           <input
             value={diagnosis}
             onChange={(event) => setDiagnosis(event.target.value)}
+            placeholder="e.g. Type 2 diabetes with elevated A1C"
             className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40"
           />
         </label>
@@ -74,7 +103,8 @@ export default function SecondOpinionPage() {
           <textarea
             value={currentPlan}
             onChange={(event) => setCurrentPlan(event.target.value)}
-            rows={5}
+            rows={4}
+            placeholder="e.g. Continue metformin 1000 mg twice daily, repeat A1C in 3 months, schedule nutrition follow-up."
             className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40"
           />
         </label>
@@ -87,14 +117,17 @@ export default function SecondOpinionPage() {
             className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40"
           />
         </label>
-        <button
-          onClick={submitReview}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-terra text-white text-sm font-semibold hover:bg-terra-dark disabled:opacity-60 transition"
-        >
-          {loading ? <Loader2 size={14} className="animate-spin" /> : <FileSearch size={14} />}
-          Generate Second Opinion
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={submitReview}
+            disabled={loading || !diagnosis.trim() || !currentPlan.trim()}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-terra text-white text-sm font-semibold hover:bg-terra-dark disabled:opacity-60 transition"
+          >
+            {loading ? <Loader2 size={14} className="animate-spin" /> : <FileSearch size={14} />}
+            Generate Second Opinion
+          </button>
+          {!diagnosis.trim() && <p className="text-xs text-cloudy">Enter a diagnosis and treatment plan to begin.</p>}
+        </div>
       </div>
 
       {result && (

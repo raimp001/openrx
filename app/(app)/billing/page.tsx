@@ -48,9 +48,13 @@ function describeCPT(codes: string[]) {
   return unique.join(", ")
 }
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+}
+
 export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState("")
-  const { snapshot } = useLiveSnapshot()
+  const { snapshot, loading } = useLiveSnapshot()
 
   const myClaims = snapshot.claims
 
@@ -109,6 +113,23 @@ export default function BillingPage() {
     () => Array.from(new Set(myClaims.map((c) => c.status))),
     [myClaims]
   )
+
+  if (loading) {
+    return (
+      <div className="animate-slide-up space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2"><Skeleton className="h-8 w-28" /><Skeleton className="h-4 w-56" /></div>
+          <div className="flex gap-2"><Skeleton className="h-9 w-32" /><Skeleton className="h-9 w-28" /></div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => <div key={i} className="bg-pampas rounded-2xl border border-sand p-4"><Skeleton className="h-16 w-full" /></div>)}
+        </div>
+        <div className="bg-pampas rounded-2xl border border-sand divide-y divide-sand/50">
+          {[...Array(4)].map((_, i) => <div key={i} className="px-5 py-4"><Skeleton className="h-16 w-full" /></div>)}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="animate-slide-up space-y-6">

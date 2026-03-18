@@ -372,14 +372,14 @@ export default function ComplianceLedgerPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <SummaryCard label="Verified Volume" value={`$${snapshot.summary.verifiedVolume}`} icon={CreditCard} />
-            <SummaryCard label="Refunded Volume" value={`$${snapshot.summary.refundedVolume}`} icon={Undo2} />
             <SummaryCard label="Net Settled" value={`$${snapshot.summary.netSettledVolume}`} icon={CheckCircle2} />
-            <SummaryCard label="Receipts" value={`${snapshot.summary.receiptCount}`} icon={FileText} />
-            <SummaryCard label="Attestations" value={`${snapshot.summary.attestationCount}`} icon={ShieldCheck} />
             <SummaryCard label="Pending Verify" value={`${snapshot.summary.pendingVerificationCount}`} icon={RefreshCcw} />
             <SummaryCard label="Open Refunds" value={`${snapshot.summary.openRefundCount}`} icon={Undo2} />
+            <SummaryCard label="Refunded Volume" value={`$${snapshot.summary.refundedVolume}`} icon={Undo2} />
+            <SummaryCard label="Receipts" value={`${snapshot.summary.receiptCount}`} icon={FileText} />
+            <SummaryCard label="Attestations" value={`${snapshot.summary.attestationCount}`} icon={ShieldCheck} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

@@ -10,16 +10,64 @@ import {
 } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import Link from "next/link"
+
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+}
 
 export default function PriorAuthPage() {
-  const { snapshot, getPhysician } = useLiveSnapshot()
+  const { snapshot, getPhysician, loading } = useLiveSnapshot()
   const myAuths = snapshot.priorAuths
 
+  const hasData = !!snapshot.patient
   const pending = myAuths.filter(
     (p) => p.status === "pending" || p.status === "submitted"
   )
   const approved = myAuths.filter((p) => p.status === "approved")
   const denied = myAuths.filter((p) => p.status === "denied")
+
+  if (loading) {
+    return (
+      <div className="animate-slide-up space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2"><Skeleton className="h-8 w-44" /><Skeleton className="h-4 w-72" /></div>
+          <Skeleton className="h-9 w-36" />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => <div key={i} className="bg-pampas rounded-2xl border border-sand p-5"><Skeleton className="h-20 w-full" /></div>)}
+        </div>
+        <div className="bg-pampas rounded-2xl border border-sand divide-y divide-sand/50">
+          <div className="px-5 py-3 bg-sand/20 border-b border-sand"><Skeleton className="h-4 w-40" /></div>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="px-5 py-4">
+              <div className="flex items-start gap-4">
+                <Skeleton className="h-5 w-5 rounded-full mt-0.5" />
+                <div className="flex-1 space-y-2"><Skeleton className="h-4 w-48" /><Skeleton className="h-3 w-64" /><Skeleton className="h-3 w-40" /></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (!loading && !hasData) {
+    return (
+      <div className="animate-slide-up flex flex-col items-center justify-center min-h-[50vh] text-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-yellow-50 flex items-center justify-center">
+          <Clock size={28} className="text-yellow-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-serif text-warm-800">My Authorizations</h1>
+          <p className="text-warm-500 mt-1 max-w-sm">Connect your health record to track prior authorizations and appeals.</p>
+        </div>
+        <Link href="/onboarding" className="px-5 py-2.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition">
+          Get Started
+        </Link>
+      </div>
+    )
+  }
 
   const getIcon = (status: string) => {
     switch (status) {

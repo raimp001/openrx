@@ -8,8 +8,12 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+}
+
 export default function EmergencyCardPage() {
-  const { snapshot, getPhysician } = useLiveSnapshot()
+  const { snapshot, getPhysician, loading } = useLiveSnapshot()
   const currentUser = snapshot.patient || {
     id: "",
     full_name: "Patient",
@@ -50,6 +54,32 @@ export default function EmergencyCardPage() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
+  }
+
+  if (loading) {
+    return (
+      <div className="animate-slide-up space-y-6 max-w-2xl mx-auto">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <Skeleton className="w-14 h-14 rounded-2xl" />
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="bg-white rounded-2xl border-2 border-soft-red/30 shadow-lg overflow-hidden">
+          <div className="bg-soft-red/20 px-6 py-3"><Skeleton className="h-5 w-56" /></div>
+          <div className="p-6 space-y-5">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <div className="grid grid-cols-2 gap-3">
+              <Skeleton className="h-20 rounded-xl" />
+              <Skeleton className="h-20 rounded-xl" />
+            </div>
+            <Skeleton className="h-16 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -10,6 +10,10 @@ import {
   Clock, ChevronRight,
 } from "lucide-react"
 
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+}
+
 type EventCategory = "all" | "appointments" | "medications" | "labs" | "vitals" | "messages" | "vaccinations" | "referrals" | "billing"
 
 interface TimelineEvent {
@@ -48,7 +52,7 @@ const FILTER_TABS: { key: EventCategory; label: string }[] = [
 ]
 
 export default function TimelinePage() {
-  const { snapshot, getPhysician } = useLiveSnapshot()
+  const { snapshot, getPhysician, loading } = useLiveSnapshot()
   const [activeFilter, setActiveFilter] = useState<EventCategory>("all")
 
   const events = useMemo<TimelineEvent[]>(() => {
@@ -215,6 +219,26 @@ export default function TimelinePage() {
     for (const ev of events) counts[ev.category] = (counts[ev.category] || 0) + 1
     return counts
   }, [events])
+
+  if (loading) {
+    return (
+      <div className="animate-slide-up space-y-6">
+        <div className="space-y-2"><Skeleton className="h-8 w-44" /><Skeleton className="h-4 w-80" /></div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[...Array(5)].map((_, i) => <Skeleton key={i} className="shrink-0 h-8 w-24 rounded-full" />)}
+        </div>
+        <div className="space-y-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex items-start gap-4 rounded-2xl border border-sand/70 bg-white/60 p-4">
+              <Skeleton className="h-9 w-9 rounded-xl" />
+              <div className="flex-1 space-y-1.5"><Skeleton className="h-4 w-48" /><Skeleton className="h-3 w-64" /></div>
+              <Skeleton className="h-8 w-16" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="animate-slide-up space-y-6">

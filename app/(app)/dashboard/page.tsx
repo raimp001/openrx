@@ -581,7 +581,7 @@ export default function DashboardPage() {
               <Link href="/billing" className="text-[10px] font-semibold text-terra hover:text-terra-dark transition">Claims</Link>
             </div>
             <div className="flex items-end justify-between mb-1.5">
-              <span className="text-[10px] text-cloudy">Annual Deductible</span>
+              <span className="text-[10px] text-cloudy">Annual Deductible (Est.)</span>
               <span className="text-[10px] font-bold text-warm-700">
                 ${insuranceIntel.totalPatientPaid.toFixed(0)} / ${insuranceIntel.assumedDeductible.toLocaleString()}
               </span>

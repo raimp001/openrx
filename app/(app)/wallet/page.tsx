@@ -329,7 +329,7 @@ export default function WalletPage() {
                   >
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-warm-800 truncate">
-                        {payment.category} · ${payment.settledAmount || payment.expectedAmount} USDC
+                        {payment.category} · ${payment.settledAmount ?? payment.expectedAmount ?? "—"} USDC
                       </p>
                       <p className="text-[10px] text-cloudy truncate mt-0.5">
                         {payment.description}

@@ -23,6 +23,9 @@ const AGENT_NAMES: Record<string, string> = {
   "prior-auth": "Rex",
   wellness: "Ivy",
   onboarding: "Sage",
+  screening: "Quinn",
+  "second-opinion": "Orion",
+  trials: "Lyra",
   devops: "Bolt",
   general: "Atlas",
 }
@@ -52,6 +55,8 @@ export default function AIAction({
     const fullPrompt = context ? `${prompt}\n\nContext: ${context}` : prompt
 
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30_000)
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -60,7 +65,8 @@ export default function AIAction({
           agentType: agentId,
           stream: true,
         }),
-      })
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId))
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Request failed" })) as { error?: string }
@@ -104,8 +110,12 @@ export default function AIAction({
           if (data.model) setModel(data.model)
         }
       }
-    } catch {
-      setError("Connection error. Please try again.")
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        setError("Request timed out. Please try again.")
+      } else {
+        setError("Connection error. Please try again.")
+      }
     } finally {
       setIsLoading(false)
     }

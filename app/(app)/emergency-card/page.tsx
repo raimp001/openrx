@@ -2,9 +2,10 @@
 
 import {
   AlertCircle, Heart, Pill, Phone, User, Shield,
-  Droplets, Copy, CheckCircle2,
+  Droplets, Copy, CheckCircle2, AlertTriangle,
 } from "lucide-react"
 import { useState } from "react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
@@ -40,7 +41,7 @@ export default function EmergencyCardPage() {
     `EMERGENCY MEDICAL INFO`,
     `Name: ${currentUser.full_name}`,
     `DOB: ${new Date(currentUser.date_of_birth).toLocaleDateString()}`,
-    `Blood Type: Not on file (verify at hospital)`,
+    `Blood Type: Unknown — verify at hospital`,
     `Allergies: ${currentUser.allergies.length > 0 ? currentUser.allergies.join(", ") : "None known"}`,
     `Conditions: ${currentUser.medical_history.map((h) => h.condition).join(", ")}`,
     `Medications: ${meds.map((m) => `${m.medication_name} ${m.dosage}`).join(", ")}`,
@@ -113,13 +114,23 @@ export default function EmergencyCardPage() {
             <div>
               <p className="text-lg font-bold text-warm-800">{currentUser.full_name}</p>
               <p className="text-xs text-warm-500 mt-0.5">
-                DOB: {new Date(currentUser.date_of_birth).toLocaleDateString()} &middot;{" "}
-                {currentUser.gender} &middot; Blood Type: Not on file
+                DOB: {new Date(currentUser.date_of_birth).toLocaleDateString()} &middot; {currentUser.gender}
               </p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-warm-100 flex items-center justify-center">
               <User size={24} className="text-warm-400" />
             </div>
+          </div>
+
+          {/* Blood Type Notice */}
+          <div className="flex items-center justify-between bg-yellow-50/60 border border-yellow-200/60 rounded-xl px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={13} className="text-yellow-600 shrink-0" />
+              <span className="text-xs text-warm-700">Blood type not on file — verify at hospital</span>
+            </div>
+            <Link href="/lab-results" className="text-[11px] font-semibold text-terra hover:text-terra-dark transition shrink-0">
+              Check labs →
+            </Link>
           </div>
 
           {/* Allergies — Most Critical */}

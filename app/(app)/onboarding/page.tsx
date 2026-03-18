@@ -306,8 +306,8 @@ export default function OnboardingPage() {
             setStep("devices")
           }, 800)
         } else {
-          const parts = val.split(/\s+/)
-          const med = { name: parts.slice(0, -2).join(" ") || val, dose: parts[parts.length - 2] || "", frequency: parts[parts.length - 1] || "" }
+          // Store the full free-text as the medication name; dose/frequency parsed server-side
+          const med = { name: val, dose: "", frequency: "" }
           setPatient(p => ({ ...p, medications: [...(p.medications || []), med] }))
           addAgent(`Got it — **${val}** added to your list.\n\nI'll check for interactions once we have everything.\n\nAny other medications? (Say 'done' when you're finished)`, "maya")
           setStep("med-more")

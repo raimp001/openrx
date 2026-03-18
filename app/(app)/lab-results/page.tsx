@@ -14,12 +14,57 @@ import Link from "next/link"
 function RangeBar({ value, referenceRange, flag }: {
   value: string; referenceRange?: string; flag: string
 }) {
-  const match = referenceRange?.match(/^(\d+\.?\d*)\s*[-–]\s*(\d+\.?\d*)/)
+  const numVal = parseFloat(value)
+  if (isNaN(numVal) || !referenceRange) return null
+
+  // Handle "<N" format (e.g. "<5.7", "< 200")
+  const ltMatch = referenceRange.match(/^<\s*(\d+\.?\d*)/)
+  if (ltMatch) {
+    const hi = parseFloat(ltMatch[1])
+    const lo = 0
+    const pad = hi * 0.6
+    const minS = lo
+    const maxS = hi + pad
+    const scale = maxS - minS
+    const valPct = Math.max(2, Math.min(98, ((numVal - minS) / scale) * 100))
+    const normStart = 0
+    const normWidth = (hi / scale) * 100
+    const dotColor = flag === "normal" ? "#1FA971" : flag === "critical" ? "#DC2626" : "#D1495B"
+    return (
+      <div className="relative h-1.5 bg-sand/30 rounded-full w-full max-w-[80px] mt-1.5" role="img" aria-label={`Value ${value}, range ${referenceRange}`}>
+        <div className="absolute h-full bg-accent/20 rounded-full" style={{ left: `${normStart}%`, width: `${normWidth}%` }} />
+        <div className="absolute top-1/2 w-2.5 h-2.5 rounded-full border-2 border-white shadow" style={{ left: `${valPct}%`, transform: "translate(-50%, -50%)", background: dotColor }} />
+      </div>
+    )
+  }
+
+  // Handle ">N" format (e.g. ">40")
+  const gtMatch = referenceRange.match(/^>\s*(\d+\.?\d*)/)
+  if (gtMatch) {
+    const lo = parseFloat(gtMatch[1])
+    const hi = lo + lo * 1.6
+    const pad = lo * 0.4
+    const minS = lo - pad
+    const maxS = hi
+    const scale = maxS - minS
+    const valPct = Math.max(2, Math.min(98, ((numVal - minS) / scale) * 100))
+    const normStart = ((lo - minS) / scale) * 100
+    const normWidth = ((hi - lo) / scale) * 100
+    const dotColor = flag === "normal" ? "#1FA971" : flag === "critical" ? "#DC2626" : "#D1495B"
+    return (
+      <div className="relative h-1.5 bg-sand/30 rounded-full w-full max-w-[80px] mt-1.5" role="img" aria-label={`Value ${value}, range ${referenceRange}`}>
+        <div className="absolute h-full bg-accent/20 rounded-full" style={{ left: `${normStart}%`, width: `${normWidth}%` }} />
+        <div className="absolute top-1/2 w-2.5 h-2.5 rounded-full border-2 border-white shadow" style={{ left: `${valPct}%`, transform: "translate(-50%, -50%)", background: dotColor }} />
+      </div>
+    )
+  }
+
+  // Handle "N-N" or "N–N" format (standard range)
+  const match = referenceRange.match(/(\d+\.?\d*)\s*[-–]\s*(\d+\.?\d*)/)
   if (!match) return null
   const lo = parseFloat(match[1])
   const hi = parseFloat(match[2])
-  const numVal = parseFloat(value)
-  if (isNaN(numVal) || isNaN(lo) || isNaN(hi)) return null
+  if (isNaN(lo) || isNaN(hi)) return null
 
   const pad = (hi - lo) * 0.6
   const minS = lo - pad

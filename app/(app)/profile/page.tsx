@@ -141,7 +141,7 @@ export default function ProfilePage() {
               href="/onboarding"
               className="hidden sm:flex items-center gap-1.5 rounded-xl border border-sand/80 bg-cream/40 px-3 py-2 text-[11px] font-semibold text-warm-600 transition hover:border-terra/30 hover:text-terra"
             >
-              <Edit3 size={11} /> Update
+              <Edit3 size={11} /> Edit Profile
             </Link>
           </div>
         </div>

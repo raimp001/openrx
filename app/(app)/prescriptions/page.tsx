@@ -314,7 +314,7 @@ export default function PrescriptionsPage() {
                       variant="compact"
                     />
                   ) : (
-                    <span className="flex-1 text-[10px] text-cloudy">{rx.pharmacy || "Pharmacy on file"}</span>
+                    <span className="flex-1 text-[10px] text-cloudy">{rx.pharmacy || "No pharmacy on file"}</span>
                   )}
                   <Link href="/drug-prices" className="ml-auto text-[10px] font-semibold text-terra hover:text-terra-dark transition flex items-center gap-0.5">
                     Price <ChevronRight size={10} />

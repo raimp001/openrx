@@ -107,13 +107,12 @@ export default function PharmacyPage() {
   )
 
   function useProfileLocation() {
-    if (!query.trim()) {
-      setQuery(`Find pharmacy near ${profileLocation}`)
-      return
-    }
-    if (!query.toLowerCase().includes("near ")) {
-      setQuery(`${query.trim()} near ${profileLocation}`)
-    }
+    const newQuery = !query.trim()
+      ? `Find pharmacy near ${profileLocation}`
+      : query.toLowerCase().includes("near ")
+        ? query
+        : `${query.trim()} near ${profileLocation}`
+    void searchPharmacies(newQuery)
   }
 
   return (

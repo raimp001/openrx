@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "openclaw": {
+      "command": "npx",
+      "args": ["tsx", "scripts/mcp-openclaw.ts"],
+      "env": {
+        "OPENCLAW_BASE_URL": "http://localhost:3000"
+      }
+    }
+  }
+}

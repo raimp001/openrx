@@ -44,7 +44,7 @@ function claimStatusLabel(s: string) {
 
 function describeCPT(codes: string[]) {
   const names = codes.map((c) => CPT_DESCRIPTIONS[c] ?? `CPT ${c}`)
-  const unique = [...new Set(names)]
+  const unique = Array.from(new Set(names))
   return unique.join(", ")
 }
 

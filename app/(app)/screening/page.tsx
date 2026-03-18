@@ -487,7 +487,7 @@ export default function ScreeningPage() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <CreditCard size={14} className="text-terra" />
-              <h2 className="text-sm font-bold text-warm-800">Base Pay Required Before Deep Recommendation</h2>
+              <h2 className="text-sm font-bold text-warm-800">Complete Base Pay Before Deep Recommendation</h2>
             </div>
             <button
               onClick={() => setShowPaymentGate(false)}
@@ -568,7 +568,7 @@ export default function ScreeningPage() {
           <h2 className="text-sm font-bold text-warm-800 mb-3">Tell Us Your History</h2>
           <div className="rounded-xl border border-sand/70 bg-cream/30 p-3 mb-3 space-y-3">
             <label className="text-xs text-warm-600 block">
-              Write one short sentence (age + family/genetic history if known)
+              Tell us your history in plain English
               <textarea
                 value={narrative}
                 onChange={(event) => setNarrative(event.target.value)}
@@ -684,7 +684,7 @@ export default function ScreeningPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-terra px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-terra-dark disabled:opacity-60"
             >
               {running ? <Loader2 size={14} className="animate-spin" /> : <Activity size={14} />}
-              Get USPSTF Preview (Free)
+              Get My Free Recommendations
             </button>
             {(assessment?.accessLevel === "preview" || paymentIntent || paymentReady) && (
               <button
@@ -693,7 +693,7 @@ export default function ScreeningPage() {
                 className="inline-flex items-center gap-2 rounded-xl border border-sand px-4 py-2.5 text-sm font-semibold text-warm-700 transition hover:border-terra/30 disabled:opacity-60"
               >
                 {running ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-                Unlock Deep Genetics ({fee} USDC)
+                Generate Deep Dive (Paid)
               </button>
             )}
           </div>

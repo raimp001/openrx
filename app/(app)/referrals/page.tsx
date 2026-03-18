@@ -7,15 +7,55 @@ import {
 } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import Link from "next/link"
+
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+}
 
 export default function ReferralsPage() {
-  const { snapshot, getPhysician } = useLiveSnapshot()
+  const { snapshot, getPhysician, loading } = useLiveSnapshot()
   const referrals = snapshot.referrals
   const insuranceProvider = snapshot.patient?.insurance_provider || "your insurer"
 
+  const hasData = !!snapshot.patient
   const pending = referrals.filter((r) => r.status === "pending")
   const scheduled = referrals.filter((r) => r.status === "scheduled")
   const completed = referrals.filter((r) => r.status === "completed")
+
+  if (loading) {
+    return (
+      <div className="animate-slide-up space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2"><Skeleton className="h-8 w-32" /><Skeleton className="h-4 w-64" /></div>
+          <Skeleton className="h-9 w-36" />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[...Array(3)].map((_, i) => <div key={i} className="bg-pampas rounded-2xl border border-sand p-4"><Skeleton className="h-14 w-full" /></div>)}
+        </div>
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => <div key={i} className="bg-pampas rounded-2xl border border-sand p-5"><Skeleton className="h-20 w-full" /></div>)}
+        </div>
+      </div>
+    )
+  }
+
+  if (!loading && !hasData) {
+    return (
+      <div className="animate-slide-up flex flex-col items-center justify-center min-h-[50vh] text-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-soft-blue/8 flex items-center justify-center">
+          <ArrowRightCircle size={28} className="text-soft-blue" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-serif text-warm-800">Referrals</h1>
+          <p className="text-warm-500 mt-1 max-w-sm">Connect your health record to track specialist referrals and appointments.</p>
+        </div>
+        <Link href="/onboarding" className="px-5 py-2.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition">
+          Get Started
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="animate-slide-up space-y-6">

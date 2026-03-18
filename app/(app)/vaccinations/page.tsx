@@ -7,13 +7,62 @@ import {
 import Link from "next/link"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import AIAction from "@/components/ai-action"
+import { cn } from "@/lib/utils"
+
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+}
 
 export default function VaccinationsPage() {
-  const { snapshot } = useLiveSnapshot()
+  const { snapshot, loading } = useLiveSnapshot()
   const vaccinations = snapshot.vaccinations
 
+  const hasData = !!snapshot.patient
   const completed = vaccinations.filter((v) => v.status === "completed")
   const due = vaccinations.filter((v) => v.status === "due" || v.status === "overdue")
+
+  if (loading) {
+    return (
+      <div className="animate-slide-up space-y-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="space-y-2"><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-64" /></div>
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[...Array(3)].map((_, i) => <div key={i} className="bg-pampas rounded-2xl border border-sand p-4"><Skeleton className="h-14 w-full" /></div>)}
+        </div>
+        <div className="bg-pampas rounded-2xl border border-sand">
+          <div className="p-4 border-b border-sand"><Skeleton className="h-4 w-40" /></div>
+          <div className="divide-y divide-sand/50">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="p-4 flex items-start gap-3">
+                <Skeleton className="w-8 h-8 rounded-lg" />
+                <div className="flex-1 space-y-1.5"><Skeleton className="h-4 w-40" /><Skeleton className="h-3 w-56" /></div>
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!loading && !hasData) {
+    return (
+      <div className="animate-slide-up flex flex-col items-center justify-center min-h-[50vh] text-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-accent/8 flex items-center justify-center">
+          <Syringe size={28} className="text-accent" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-serif text-warm-800">Vaccination Records</h1>
+          <p className="text-warm-500 mt-1 max-w-sm">Connect your health record to view your immunization history and upcoming vaccines.</p>
+        </div>
+        <Link href="/onboarding" className="px-5 py-2.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition">
+          Get Started
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="animate-slide-up space-y-6">

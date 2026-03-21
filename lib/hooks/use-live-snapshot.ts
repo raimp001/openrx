@@ -48,6 +48,15 @@ export function useLiveSnapshot(): UseLiveSnapshotResult {
     void load()
   }, [load])
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      void load()
+    }
+
+    window.addEventListener("openrx:live-refresh", handleRefresh)
+    return () => window.removeEventListener("openrx:live-refresh", handleRefresh)
+  }, [load])
+
   const physicianMap = useMemo(() => {
     const map = new Map<string, LivePhysician>()
     snapshot.physicians.forEach((physician) => map.set(physician.id, physician))

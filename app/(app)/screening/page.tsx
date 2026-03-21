@@ -467,8 +467,8 @@ export default function ScreeningPage() {
           <span className="font-semibold text-warm-700">Simple flow: free preview first, then optional deep genetics.</span>
         </div>
         <p>
-          `Get USPSTF Preview (Free)` gives immediate baseline guidance. `Unlock Deep Genetics` adds mutation-aware and
-          inherited-risk personalization after Base Pay verification ({fee} USDC).
+          `Get My Free Recommendations` gives immediate baseline guidance. `Generate Deep Dive (Paid)` adds mutation-aware
+          and inherited-risk personalization after Base Pay verification ({fee} USDC).
         </p>
       </div>
 
@@ -570,6 +570,7 @@ export default function ScreeningPage() {
             <label className="text-xs text-warm-600 block">
               Tell us your history in plain English
               <textarea
+                aria-label="Tell us your history in plain English"
                 value={narrative}
                 onChange={(event) => setNarrative(event.target.value)}
                 rows={4}

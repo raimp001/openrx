@@ -5,7 +5,7 @@
 // with the OpenRx identity system. Automatically loads/saves
 // user profiles when wallet connects/disconnects.
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from "react"
 import { useAccount } from "wagmi"
 import {
   type WalletProfile,
@@ -43,6 +43,8 @@ interface WalletIdentityState {
   profile: WalletProfile | null
   isNewUser: boolean
   isLoading: boolean
+  databaseSyncStatus: "idle" | "syncing" | "synced" | "database_missing" | "error"
+  databaseSyncMessage: string
   // Patient-compatible data for existing components
   currentPatient: LivePatient
   // Actions
@@ -58,6 +60,8 @@ const WalletIdentityContext = createContext<WalletIdentityState>({
   profile: null,
   isNewUser: false,
   isLoading: true,
+  databaseSyncStatus: "idle",
+  databaseSyncMessage: "",
   currentPatient: EMPTY_PATIENT,
   updateProfile: () => {},
   completeOnboarding: () => {},
@@ -70,6 +74,9 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<WalletProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isNewUser, setIsNewUser] = useState(false)
+  const [databaseSyncStatus, setDatabaseSyncStatus] = useState<WalletIdentityState["databaseSyncStatus"]>("idle")
+  const [databaseSyncMessage, setDatabaseSyncMessage] = useState("")
+  const lastSyncedFingerprintRef = useRef("")
 
   // Load profile when wallet connects
   useEffect(() => {
@@ -87,6 +94,9 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
     } else {
       setProfile(null)
       setIsNewUser(false)
+      setDatabaseSyncStatus("idle")
+      setDatabaseSyncMessage("")
+      lastSyncedFingerprintRef.current = ""
     }
     setIsLoading(false)
   }, [isConnected, address])
@@ -135,6 +145,65 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
       ? profileToPatient(profile)
       : EMPTY_PATIENT
 
+  useEffect(() => {
+    if (!isConnected || !address || !profile?.onboardingComplete) {
+      return
+    }
+
+    const payload = {
+      walletAddress: address,
+      profile,
+    }
+    const fingerprint = JSON.stringify(payload)
+
+    if (lastSyncedFingerprintRef.current === fingerprint) {
+      return
+    }
+
+    let active = true
+    setDatabaseSyncStatus("syncing")
+    setDatabaseSyncMessage("Syncing live records...")
+
+    fetch("/api/profile/sync", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(async (response) => {
+        const result = (await response.json().catch(() => null)) as { error?: string; message?: string } | null
+
+        if (!active) return
+
+        if (!response.ok) {
+          if (response.status === 503) {
+            setDatabaseSyncStatus("database_missing")
+            setDatabaseSyncMessage("Set DATABASE_URL to activate live patient records.")
+            return
+          }
+
+          setDatabaseSyncStatus("error")
+          setDatabaseSyncMessage(result?.error || "Failed to sync live records.")
+          return
+        }
+
+        lastSyncedFingerprintRef.current = fingerprint
+        setDatabaseSyncStatus("synced")
+        setDatabaseSyncMessage(result?.message || "Live records synced.")
+        window.dispatchEvent(new CustomEvent("openrx:live-refresh"))
+      })
+      .catch(() => {
+        if (!active) return
+        setDatabaseSyncStatus("error")
+        setDatabaseSyncMessage("Failed to sync live records.")
+      })
+
+    return () => {
+      active = false
+    }
+  }, [address, isConnected, profile])
+
   return (
     <WalletIdentityContext.Provider
       value={{
@@ -143,6 +212,8 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
         profile,
         isNewUser,
         isLoading,
+        databaseSyncStatus,
+        databaseSyncMessage,
         currentPatient,
         updateProfile,
         completeOnboarding,

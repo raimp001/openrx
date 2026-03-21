@@ -58,6 +58,8 @@ export default function WalletPage() {
     isConnected,
     walletAddress,
     profile,
+    databaseSyncStatus,
+    databaseSyncMessage,
     setAgentAutoPay,
     setAgentRxAutoPay,
   } = useWalletIdentity()
@@ -195,6 +197,20 @@ export default function WalletPage() {
                     </p>
                     <p className="text-[10px] text-cloudy">
                       Last seen: {new Date(profile.lastSeen).toLocaleDateString()}
+                    </p>
+                    <p
+                      className={cn(
+                        "mt-1 text-[10px] font-semibold",
+                        databaseSyncStatus === "synced" && "text-accent",
+                        databaseSyncStatus === "syncing" && "text-soft-blue",
+                        databaseSyncStatus === "database_missing" && "text-yellow-700",
+                        databaseSyncStatus === "error" && "text-soft-red"
+                      )}
+                    >
+                      {databaseSyncMessage ||
+                        (databaseSyncStatus === "synced"
+                          ? "Live records connected."
+                          : "Live records will sync after setup.")}
                     </p>
                   </div>
                 ) : (

@@ -21,7 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2.5 rounded-xl border border-amber-200/60 bg-amber-50/70 px-3.5 py-2.5 text-xs text-amber-800">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
               <span>
-                <strong>No database connected</strong> — set <code className="font-mono bg-amber-100 px-1 rounded">DATABASE_URL</code> to activate live patient records. Currently showing empty states.
+                <strong>No database connected</strong> — set <code className="font-mono bg-amber-100 px-1 rounded">DATABASE_URL</code> in <code className="font-mono bg-amber-100 px-1 rounded">.env.local</code> for local use, or run <code className="font-mono bg-amber-100 px-1 rounded">npx vercel env add DATABASE_URL production</code> and then <code className="font-mono bg-amber-100 px-1 rounded">npm run db:push</code> for the deployed app. Currently showing empty states.
               </span>
             </div>
           </div>

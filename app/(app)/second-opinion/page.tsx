@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { AlertTriangle, FileSearch, Loader2, ShieldCheck, Stethoscope, Sparkles } from "lucide-react"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import type { SecondOpinionResult } from "@/lib/basehealth"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
@@ -49,19 +50,17 @@ export default function SecondOpinionPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">AI Second Opinion</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            Structured treatment-plan review — identify gaps and questions to bring to your clinician.
-          </p>
-        </div>
-        <AIAction
-          agentId="second-opinion"
-          label="Ask Orion"
-          prompt="Review my current diagnosis and treatment plan and identify gaps to discuss with my clinician."
-        />
-      </div>
+      <AppPageHeader
+        title="AI Second Opinion"
+        description="Structured treatment-plan review — identify gaps and questions to bring to your clinician."
+        actions={
+          <AIAction
+            agentId="second-opinion"
+            label="Ask Orion"
+            prompt="Review my current diagnosis and treatment plan and identify gaps to discuss with my clinician."
+          />
+        }
+      />
 
       {/* Quick-fill from patient data */}
       {activeConditions.length > 0 && !diagnosis && (

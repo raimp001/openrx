@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { evaluatePACriteria, getPayerOverride, isOnFormulary, DRUG_RULES } from "@/lib/payer-rules/engine"
+import { evaluatePACriteria, getPayerOverride, DRUG_RULES } from "@/lib/payer-rules/engine"
 
 export async function POST(request: NextRequest) {
   try {

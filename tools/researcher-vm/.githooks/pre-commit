@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+
+if git diff --cached --quiet --exit-code; then
+  exit 0
+fi
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  printf '%s\n' "gitleaks is required before committing. Install it and re-run the commit." >&2
+  printf '%s\n' "macOS: brew install gitleaks" >&2
+  exit 1
+fi
+
+gitleaks protect --staged

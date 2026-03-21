@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "founder-researcher"
+version = "0.1.0"
+description = "Local founder and company research workflow inspired by karpathy/autoresearch."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "OpenAI Codex" }]
+dependencies = []
+
+[project.scripts]
+researcher = "researcher.cli:main"
+tao-trader = "tao_trader:main"
+
+[tool.setuptools.packages.find]
+include = ["researcher*", "tao_trader*"]

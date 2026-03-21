@@ -1,0 +1,22 @@
+[Unit]
+Description=TAO Trader executor autopilot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=taobot
+Group=taobot
+WorkingDirectory=/opt/tao-trader/current
+EnvironmentFile=/etc/tao-trader/executor.env
+ExecStart=/opt/tao-trader/current/scripts/run-autopilot.sh
+Restart=always
+RestartSec=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/tao-trader /etc/tao-trader
+
+[Install]
+WantedBy=multi-user.target

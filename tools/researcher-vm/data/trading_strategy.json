@@ -1,0 +1,13 @@
+{
+  "exchange": "coinbase",
+  "product_id": "BTC-USD",
+  "max_quote_trade": "100.00",
+  "max_base_trade": "0.00100000",
+  "min_quote_buffer": "250.00",
+  "min_base_trade": "0.00010000",
+  "buy_signal_bps": "20.00",
+  "sell_signal_bps": "-20.00",
+  "max_spread_bps": "18.00",
+  "short_window": 5,
+  "long_window": 20
+}

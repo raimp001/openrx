@@ -4,6 +4,7 @@ import { cn, formatTime, formatDate, getStatusColor } from "@/lib/utils"
 import { Video, AlertTriangle, Stethoscope, Bot, Calendar } from "lucide-react"
 import { useState, useMemo } from "react"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import Link from "next/link"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
@@ -90,29 +91,26 @@ export default function SchedulingPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">My Appointments</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            {todayApts.length} appointments today &middot; {upcomingApts.length}{" "}
-            upcoming
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <AIAction
-            agentId="scheduling"
-            label="Find Open Slots"
-            prompt="Check physician availability for the next 7 days and suggest appointment slots that work for me. Consider my insurance network and copay estimates."
-            context={`Today's appointments: ${todayApts.length}, Upcoming: ${upcomingApts.length}`}
-          />
-          <AIAction
-            agentId="scheduling"
-            label="Send Me Reminders"
-            prompt="Send me reminders for my upcoming appointments. Include time, physician name, location, and copay estimate."
-            variant="inline"
-          />
-        </div>
-      </div>
+      <AppPageHeader
+        title="My Appointments"
+        description={`${todayApts.length} appointments today · ${upcomingApts.length} upcoming`}
+        actions={
+          <>
+            <AIAction
+              agentId="scheduling"
+              label="Find Open Slots"
+              prompt="Check physician availability for the next 7 days and suggest appointment slots that work for me. Consider my insurance network and copay estimates."
+              context={`Today's appointments: ${todayApts.length}, Upcoming: ${upcomingApts.length}`}
+            />
+            <AIAction
+              agentId="scheduling"
+              label="Send Me Reminders"
+              prompt="Send me reminders for my upcoming appointments. Include time, physician name, location, and copay estimate."
+              variant="inline"
+            />
+          </>
+        }
+      />
 
       {/* Today Status Summary */}
       <div className="flex gap-3 flex-wrap">

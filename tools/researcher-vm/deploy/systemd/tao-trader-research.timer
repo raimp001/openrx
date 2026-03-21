@@ -1,0 +1,10 @@
+[Unit]
+Description=Run TAO autoresearch every 6 hours
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=6h
+Unit=tao-trader-research.service
+
+[Install]
+WantedBy=timers.target

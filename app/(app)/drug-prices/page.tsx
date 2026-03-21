@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { useState, useCallback } from "react"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 
 interface DirectPrice {
   source: string
@@ -87,19 +88,17 @@ export default function DrugPricesPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">Drug Price Finder</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            Live medication lookup with optional real-time pricing integrations.
-          </p>
-        </div>
-        <AIAction
-          agentId="rx"
-          label="Compare My Meds"
-          prompt="Compare active medications and suggest the lowest total monthly cost based on live pricing sources and pharmacy options."
-        />
-      </div>
+      <AppPageHeader
+        title="Drug Price Finder"
+        description="Live medication lookup with optional real-time pricing integrations."
+        actions={
+          <AIAction
+            agentId="rx"
+            label="Compare My Meds"
+            prompt="Compare active medications and suggest the lowest total monthly cost based on live pricing sources and pharmacy options."
+          />
+        }
+      />
 
       <div className="bg-terra/10 rounded-2xl border border-terra/20 p-5">
         <div className="flex items-start gap-3">

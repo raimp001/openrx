@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 import { routeUserMessageLLM } from "@/lib/openclaw/router"
+import {
+  getActiveSessions,
+  getActiveTasks,
+  getOrchestratorState,
+} from "@/lib/openclaw/orchestrator"
 
 // GET: Get orchestrator state and agent collaboration info
 export async function GET() {
+  const orch = getOrchestratorState()
   const agents = OPENCLAW_CONFIG.agents.map((a) => ({
     id: a.id,
     name: a.name,
     role: a.role,
     description: a.description,
     canMessage: a.canMessage,
-    status: "active",
+    status: orch.agentStatuses[a.id] ?? "idle",
   }))
 
   const collaborationMap = OPENCLAW_CONFIG.agents.map((agent) => ({
@@ -25,6 +31,8 @@ export async function GET() {
       .map((other) => other.id),
   }))
 
+  const activeTasks = getActiveTasks()
+
   return NextResponse.json({
     agents,
     collaborationMap,
@@ -33,6 +41,12 @@ export async function GET() {
     channels: Object.entries(OPENCLAW_CONFIG.channels)
       .filter(([, v]) => v.enabled)
       .map(([k]) => k),
+    orchestrator: {
+      activeSessionCount: getActiveSessions().length,
+      activeTaskCount: activeTasks.length,
+      messageLogSize: orch.messageLog.length,
+      agentStatuses: orch.agentStatuses,
+    },
   })
 }
 

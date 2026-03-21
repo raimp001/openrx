@@ -6,6 +6,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { AppPageHeader } from "@/components/layout/app-page"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
 function Skeleton({ className }: { className?: string }) {
@@ -84,15 +85,16 @@ export default function EmergencyCardPage() {
 
   return (
     <div className="animate-slide-up space-y-6 max-w-2xl mx-auto">
-      <div className="text-center">
-        <div className="w-14 h-14 rounded-2xl bg-soft-red/10 flex items-center justify-center mx-auto mb-3">
-          <AlertCircle size={28} className="text-soft-red" />
-        </div>
-        <h1 className="text-2xl font-serif text-warm-800">Emergency Card</h1>
-        <p className="text-sm text-warm-500 mt-1">
-          Critical medical information for emergency responders.
-        </p>
-      </div>
+      <AppPageHeader
+        align="center"
+        leading={
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-soft-red/10">
+            <AlertCircle size={28} className="text-soft-red" />
+          </div>
+        }
+        title="Emergency Card"
+        description="Critical medical information for emergency responders."
+      />
 
       {/* Emergency Card */}
       <div className="bg-white rounded-2xl border-2 border-soft-red/30 shadow-lg overflow-hidden">

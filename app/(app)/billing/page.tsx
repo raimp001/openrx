@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { useState, useMemo } from "react"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
 const CLAIM_STATUS_LABELS: Record<string, string> = {
@@ -133,30 +134,31 @@ export default function BillingPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">My Bills</h1>
-          <p className="text-sm text-warm-500 mt-1">
+      <AppPageHeader
+        title="My Bills"
+        description={
+          <>
             {myClaims.length} total claims &middot;{" "}
-            {myClaims.filter((c) => c.errors_detected.length > 0).length} with
-            issues
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <AIAction
-            agentId="billing"
-            label="Analyze My Claims"
-            prompt="Review all my claims for billing errors, incorrect charges, and denial risks. Help me understand what I owe and flag anything that looks wrong."
-            context={`Total claims: ${myClaims.length}, Denied: ${myClaims.filter(c => c.status === "denied").length}, With issues: ${myClaims.filter(c => c.errors_detected.length > 0).length}`}
-          />
-          <AIAction
-            agentId="billing"
-            label="Help With Appeals"
-            prompt="For any denied claims, help me understand why they were denied and draft appeal letters on my behalf."
-            variant="inline"
-          />
-        </div>
-      </div>
+            {myClaims.filter((c) => c.errors_detected.length > 0).length} with issues
+          </>
+        }
+        actions={
+          <>
+            <AIAction
+              agentId="billing"
+              label="Analyze My Claims"
+              prompt="Review all my claims for billing errors, incorrect charges, and denial risks. Help me understand what I owe and flag anything that looks wrong."
+              context={`Total claims: ${myClaims.length}, Denied: ${myClaims.filter((c) => c.status === "denied").length}, With issues: ${myClaims.filter((c) => c.errors_detected.length > 0).length}`}
+            />
+            <AIAction
+              agentId="billing"
+              label="Help With Appeals"
+              prompt="For any denied claims, help me understand why they were denied and draft appeal letters on my behalf."
+              variant="inline"
+            />
+          </>
+        }
+      />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

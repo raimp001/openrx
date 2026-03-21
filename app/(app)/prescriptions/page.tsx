@@ -5,6 +5,7 @@ import { Pill, Search, RefreshCw, PackageSearch, AlertTriangle, ChevronRight, Cl
 import { useState, useMemo } from "react"
 import Link from "next/link"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
 // ── Status labels ───────────────────────────────────────────
@@ -128,38 +129,40 @@ export default function PrescriptionsPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">My Medications</h1>
-          <div className="flex items-center gap-3 mt-1 text-sm text-warm-500">
+      <AppPageHeader
+        title="My Medications"
+        meta={
+          <div className="flex flex-wrap items-center gap-3 text-sm text-warm-500">
             <span>{myPrescriptions.length} prescriptions</span>
-            {lowAdherenceCount > 0 && (
-              <span className="flex items-center gap-1 text-soft-red font-medium">
+            {lowAdherenceCount > 0 ? (
+              <span className="flex items-center gap-1 font-medium text-soft-red">
                 <AlertTriangle size={12} /> {lowAdherenceCount} low adherence
               </span>
-            )}
-            {pendingRefills > 0 && (
-              <span className="flex items-center gap-1 text-yellow-600 font-medium">
+            ) : null}
+            {pendingRefills > 0 ? (
+              <span className="flex items-center gap-1 font-medium text-yellow-600">
                 <RefreshCw size={12} /> {pendingRefills} to refill
               </span>
-            )}
+            ) : null}
           </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Link href="/drug-prices"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-warm-600 border border-sand hover:border-terra/30 hover:text-terra transition">
-            Compare Prices
-          </Link>
-          <AIAction
-            agentId="rx"
-            label="Maya: Review Meds"
-            prompt="Review my medications for adherence issues, refill timing, and any potential interactions. Prioritize the most important actions I should take."
-            context={`${activeRx.length} active Rx. Avg adherence: ${avgAdherence}%. Low adherence: ${lowAdherenceCount}. Pending refills: ${pendingRefills}.`}
-          />
-        </div>
-      </div>
+        }
+        actions={
+          <>
+            <Link
+              href="/drug-prices"
+              className="hidden shrink-0 items-center gap-1.5 rounded-xl border border-sand px-3 py-2 text-xs font-semibold text-warm-600 transition hover:border-terra/30 hover:text-terra sm:flex"
+            >
+              Compare Prices
+            </Link>
+            <AIAction
+              agentId="rx"
+              label="Maya: Review Meds"
+              prompt="Review my medications for adherence issues, refill timing, and any potential interactions. Prioritize the most important actions I should take."
+              context={`${activeRx.length} active Rx. Avg adherence: ${avgAdherence}%. Low adherence: ${lowAdherenceCount}. Pending refills: ${pendingRefills}.`}
+            />
+          </>
+        }
+      />
 
       {/* Summary stats */}
       {activeRx.length > 0 && (

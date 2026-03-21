@@ -3,9 +3,10 @@
 import { cn } from "@/lib/utils"
 import {
   ArrowRightCircle, Clock, CheckCircle2, Calendar, Phone,
-  AlertTriangle, MapPin, ArrowUpRight,
+  AlertTriangle,
 } from "lucide-react"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import Link from "next/link"
 
@@ -59,20 +60,18 @@ export default function ReferralsPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">Referrals</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            Track your specialist referrals and appointments.
-          </p>
-        </div>
-        <AIAction
-          agentId="coordinator"
-          label="Track My Referrals"
-          prompt="Give me a status update on all my specialist referrals, what's pending insurance auth, and what I need to do next to get these appointments scheduled."
-          context={`Pending: ${pending.length}, Scheduled: ${scheduled.length}, Completed: ${completed.length}`}
-        />
-      </div>
+      <AppPageHeader
+        title="Referrals"
+        description="Track your specialist referrals and appointments."
+        actions={
+          <AIAction
+            agentId="coordinator"
+            label="Track My Referrals"
+            prompt="Give me a status update on all my specialist referrals, what's pending insurance auth, and what I need to do next to get these appointments scheduled."
+            context={`Pending: ${pending.length}, Scheduled: ${scheduled.length}, Completed: ${completed.length}`}
+          />
+        }
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">

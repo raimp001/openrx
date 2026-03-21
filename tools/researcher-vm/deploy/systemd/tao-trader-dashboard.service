@@ -1,0 +1,16 @@
+[Unit]
+Description=Render TAO Trader dashboard
+After=tao-trader-executor.service
+
+[Service]
+Type=oneshot
+User=taobot
+Group=taobot
+WorkingDirectory=/opt/tao-trader/current
+EnvironmentFile=/etc/tao-trader/executor.env
+ExecStart=/opt/tao-trader/current/scripts/render-dashboard.sh
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/tao-trader /etc/tao-trader

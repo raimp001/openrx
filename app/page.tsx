@@ -16,9 +16,7 @@ import {
   Lock,
   Globe,
   Star,
-  ChevronRight,
   Activity,
-  FlaskConical,
 } from "lucide-react"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 

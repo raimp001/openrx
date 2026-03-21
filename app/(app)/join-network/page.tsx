@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { CheckCircle2, Loader2, UserPlus } from "lucide-react"
+import { AppPageHeader } from "@/components/layout/app-page"
 
 type RoleOption = "provider" | "caregiver"
 
@@ -98,12 +99,10 @@ export default function JoinNetworkPage() {
 
   return (
     <div className="animate-slide-up space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-serif text-warm-800">Join OpenRx Network</h1>
-        <p className="text-sm text-warm-500 mt-1">
-          Providers and caregivers can apply here. Review happens through signed admin email actions.
-        </p>
-      </div>
+      <AppPageHeader
+        title="Join OpenRx Network"
+        description="Providers and caregivers can apply here. Review happens through signed admin email actions."
+      />
 
       <div className="bg-pampas rounded-2xl border border-sand p-5 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

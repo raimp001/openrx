@@ -9,6 +9,7 @@ import {
   Send,
 } from "lucide-react"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import Link from "next/link"
 
@@ -84,33 +85,25 @@ export default function PriorAuthPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">
-            My Authorizations
-          </h1>
-          <p className="text-sm text-warm-500 mt-1">
+      <AppPageHeader
+        title="My Authorizations"
+        description={
+          <>
             {myAuths.length} total &middot;{" "}
-            <span className="text-yellow-400 font-medium">
-              {pending.length} pending
-            </span>{" "}
-            &middot;{" "}
-            <span className="text-accent font-medium">
-              {approved.length} approved
-            </span>{" "}
-            &middot;{" "}
-            <span className="text-soft-red font-medium">
-              {denied.length} denied
-            </span>
-          </p>
-        </div>
-        <AIAction
-          agentId="prior-auth"
-          label="Check My PA Status"
-          prompt="Check the status of all my pending and submitted prior authorizations. Let me know if any are overdue or need attention."
-          context={`Pending: ${pending.length}, Denied: ${denied.length}`}
-        />
-      </div>
+            <span className="font-medium text-yellow-400">{pending.length} pending</span> &middot;{" "}
+            <span className="font-medium text-accent">{approved.length} approved</span> &middot;{" "}
+            <span className="font-medium text-soft-red">{denied.length} denied</span>
+          </>
+        }
+        actions={
+          <AIAction
+            agentId="prior-auth"
+            label="Check My PA Status"
+            prompt="Check the status of all my pending and submitted prior authorizations. Let me know if any are overdue or need attention."
+            context={`Pending: ${pending.length}, Denied: ${denied.length}`}
+          />
+        }
+      />
 
       {/* Summary Stats */}
       <div className="grid grid-cols-3 gap-4">

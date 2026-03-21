@@ -18,6 +18,7 @@ import {
   getBaseBuilderNetwork,
   toBaseBuilderTxUrl,
 } from "@/lib/basebuilder/config"
+import { AppPageHeader } from "@/components/layout/app-page"
 import {
   Wallet as WalletIcon,
   Shield,
@@ -118,13 +119,10 @@ export default function WalletPage() {
 
   return (
     <div className="animate-slide-up space-y-6 max-w-3xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-serif text-warm-800">Wallet & Identity</h1>
-        <p className="text-sm text-warm-500 mt-1">
-          Your Coinbase Smart Wallet is your identity on OpenRx.
-        </p>
-      </div>
+      <AppPageHeader
+        title="Wallet & Identity"
+        description="Your Coinbase Smart Wallet is your identity on OpenRx."
+      />
 
       {/* Connect / Status */}
       <div className="bg-pampas rounded-2xl border border-sand p-6">

@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react"
 import { ExternalLink, FlaskConical, Loader2, Search, Sparkles } from "lucide-react"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import type { TrialMatch } from "@/lib/basehealth"
 
 export default function ClinicalTrialsPage() {
@@ -44,19 +45,17 @@ export default function ClinicalTrialsPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">Clinical Trial Matching</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            BaseHealth-style trial discovery connected to OpenRx patient context.
-          </p>
-        </div>
-        <AIAction
-          agentId="trials"
-          label="Trial Strategy"
-          prompt="Find clinical trial opportunities that match my conditions and explain what to ask before enrolling."
-        />
-      </div>
+      <AppPageHeader
+        title="Clinical Trial Matching"
+        description="BaseHealth-style trial discovery connected to OpenRx patient context."
+        actions={
+          <AIAction
+            agentId="trials"
+            label="Trial Strategy"
+            prompt="Find clinical trial opportunities that match my conditions and explain what to ask before enrolling."
+          />
+        }
+      />
 
       <div className="bg-pampas rounded-2xl border border-sand p-5">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

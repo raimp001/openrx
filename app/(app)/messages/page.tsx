@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { useState, useMemo, useRef, useEffect } from "react"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
 type OptimisticMessage = {
@@ -181,23 +182,17 @@ export default function MessagesPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">My Messages</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            {unreadCount} unread &middot; {allMessages.length} total messages
-          </p>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-terra/5 border border-terra/10">
-          <Cpu size={12} className="text-terra" />
-          <span className="text-[10px] font-bold text-terra">
-            Claude Multi-Channel
-          </span>
-          <span className="text-[9px] text-warm-500">
-            WhatsApp &middot; SMS &middot; Telegram &middot; Portal
-          </span>
-        </div>
-      </div>
+      <AppPageHeader
+        title="My Messages"
+        description={`${unreadCount} unread · ${allMessages.length} total messages`}
+        actions={
+          <div className="flex items-center gap-2 rounded-lg border border-terra/10 bg-terra/5 px-3 py-1.5">
+            <Cpu size={12} className="text-terra" />
+            <span className="text-[10px] font-bold text-terra">Claude multi-channel</span>
+            <span className="text-[9px] text-warm-500">WhatsApp · SMS · Telegram · Portal</span>
+          </div>
+        }
+      />
 
       {/* Message Thread */}
       <div className="bg-pampas rounded-2xl border border-sand overflow-hidden flex flex-col h-[calc(100vh-220px)]">

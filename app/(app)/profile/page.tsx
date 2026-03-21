@@ -45,7 +45,7 @@ function InitialAvatar({ name, size = "lg" }: { name: string; size?: "sm" | "lg"
 
 export default function ProfilePage() {
   const { snapshot, getPhysician } = useLiveSnapshot()
-  const { isConnected, profile } = useWalletIdentity()
+  const { isConnected } = useWalletIdentity()
   const patient = snapshot.patient
   const physician = getPhysician(patient?.primary_physician_id)
 

@@ -1,0 +1,436 @@
+[
+  {
+    "slug": "bitcoin",
+    "name": "Bitcoin",
+    "ticker": "BTC",
+    "founders": ["Satoshi Nakamoto"],
+    "tags": ["crypto", "store-of-value", "monetary-network"],
+    "one_line_thesis": "The base monetary asset for the crypto stack keeps compounding as trust in the network, liquidity, and institutional plumbing deepen.",
+    "why_now": "Bitcoin is now close enough to institutions to matter, but still early enough that second-order businesses and infrastructure around it can re-rate fast.",
+    "catalysts": [
+      "Institutional adoption and treasury accumulation broaden the buyer base.",
+      "Settlement demand increases as more financial infrastructure is built on top of Bitcoin rails.",
+      "Macro stress can reinforce the demand for an apolitical reserve asset."
+    ],
+    "red_flags": [
+      "Narrative can outrun real transactional utility in some cycles.",
+      "Custody concentration and regulatory bottlenecks can slow adoption.",
+      "Mining economics remain sensitive to energy and policy shifts."
+    ],
+    "diligence_questions": [
+      "Is the security budget still durable through the next halving cycle?",
+      "Where is non-speculative transaction demand actually growing?",
+      "Which public companies are creating the best Bitcoin-adjacent picks-and-shovels exposure?"
+    ],
+    "scorecard": {
+      "leadership_resilience": {
+        "score": 10,
+        "evidence": "Founder absence turned the asset into a durable social and technical coordination layer."
+      },
+      "mission_clarity": {
+        "score": 10,
+        "evidence": "Simple monetary positioning remains legible even after multiple market cycles."
+      },
+      "moat": {
+        "score": 10,
+        "evidence": "The liquidity, brand, security, and Lindy effect remain difficult to replicate."
+      },
+      "distribution": {
+        "score": 9,
+        "evidence": "Exchange access, custody, ETFs, and treasury adoption expand global reach."
+      },
+      "market_tailwind": {
+        "score": 8,
+        "evidence": "Demand for non-sovereign assets can grow if fiat distrust and digital-native wealth continue to compound."
+      },
+      "financial_strength": {
+        "score": 9,
+        "evidence": "The network has deep liquidity and no corporate balance sheet dependency."
+      },
+      "regulatory_resilience": {
+        "score": 7,
+        "evidence": "The asset is more accepted than most crypto assets, but mining, custody, and tax rules can still shift."
+      },
+      "strategic_optionality": {
+        "score": 7,
+        "evidence": "The asset benefits from financialization even if application layers remain elsewhere."
+      },
+      "timing": {
+        "score": 7,
+        "evidence": "Adoption is more mature than earlier cycles, so upside depends on institutional depth rather than novelty alone."
+      }
+    }
+  },
+  {
+    "slug": "coinbase",
+    "name": "Coinbase",
+    "ticker": "COIN",
+    "founders": ["Brian Armstrong", "Fred Ehrsam"],
+    "tags": ["crypto", "exchange", "custody", "infrastructure"],
+    "one_line_thesis": "Coinbase can win as the regulated distribution and custody layer for the U.S. crypto economy if it keeps converting policy clarity into product breadth.",
+    "why_now": "It sits at the intersection of regulation, custody, consumer access, and developer rails, which can create multiple monetization surfaces as the asset class matures.",
+    "catalysts": [
+      "More assets, wallets, and onchain services can increase revenue mix beyond spot trading.",
+      "Policy clarity in the United States could lift product velocity and margins.",
+      "Institutional custody and stablecoin economics can compound alongside retail activity."
+    ],
+    "red_flags": [
+      "Revenue still moves with trading activity and market sentiment.",
+      "Regulatory outcomes can sharply change product availability.",
+      "Fee compression is a persistent long-term threat."
+    ],
+    "diligence_questions": [
+      "How diversified is gross profit away from transaction revenue?",
+      "Which products have the best odds of becoming indispensable infrastructure?",
+      "Does policy progress actually expand moat or simply commoditize access?"
+    ],
+    "scorecard": {
+      "leadership_resilience": {
+        "score": 8,
+        "evidence": "Armstrong has shown cycle endurance and willingness to build through hostile regulatory periods."
+      },
+      "mission_clarity": {
+        "score": 9,
+        "evidence": "The company has remained focused on making crypto easier to access and integrate."
+      },
+      "moat": {
+        "score": 8,
+        "evidence": "Brand trust, compliance, and institutional rails form a meaningful moat in the United States."
+      },
+      "distribution": {
+        "score": 9,
+        "evidence": "The platform is a default entry point for retail, institutions, and many developers."
+      },
+      "market_tailwind": {
+        "score": 8,
+        "evidence": "Crypto market maturation expands custody, staking, payments, and onchain utility."
+      },
+      "financial_strength": {
+        "score": 8,
+        "evidence": "Scale and balance sheet flexibility are stronger than most crypto-native peers."
+      },
+      "regulatory_resilience": {
+        "score": 6,
+        "evidence": "Regulation can help Coinbase, but the path is still adversarial and uneven."
+      },
+      "strategic_optionality": {
+        "score": 8,
+        "evidence": "The business has multiple expansion paths across custody, wallets, payments, and developer platforms."
+      },
+      "timing": {
+        "score": 7,
+        "evidence": "The market already recognizes the franchise, but structural policy wins could still move the narrative."
+      }
+    }
+  },
+  {
+    "slug": "bittensor",
+    "name": "Bittensor",
+    "ticker": "TAO",
+    "founders": ["Jacob Robert Steeves", "Ala Shaabana"],
+    "tags": ["crypto", "ai", "decentralized-networks"],
+    "one_line_thesis": "Bittensor is a higher-volatility bet on decentralized AI infrastructure where ecosystem quality and validator economics matter more than headline hype.",
+    "why_now": "It sits in the overlap of AI, crypto incentives, and open networks, which can attract outsized attention when usage catches the story.",
+    "catalysts": [
+      "More useful subnets can create real demand for the network rather than purely reflexive token demand.",
+      "Institutional validators and infrastructure partners can legitimize the ecosystem.",
+      "AI cost pressure may increase interest in open, incentive-driven compute and model networks."
+    ],
+    "red_flags": [
+      "AI narratives attract speculative capital faster than durable usage.",
+      "Network complexity can make it hard to separate signal from noise.",
+      "Token economics and governance quality need ongoing scrutiny."
+    ],
+    "diligence_questions": [
+      "Which subnets are producing measurable user value today?",
+      "What part of the ecosystem is durable without token incentives?",
+      "How concentrated are validator power and token ownership?"
+    ],
+    "scorecard": {
+      "leadership_resilience": {
+        "score": 8,
+        "evidence": "Founders stayed committed to a difficult thesis before the AI market paid attention."
+      },
+      "mission_clarity": {
+        "score": 8,
+        "evidence": "The goal of an open market for machine intelligence is clear, even if execution is complex."
+      },
+      "moat": {
+        "score": 7,
+        "evidence": "Network design and early ecosystem mindshare matter, but the moat is still forming."
+      },
+      "distribution": {
+        "score": 6,
+        "evidence": "The ecosystem is still niche compared with mainstream AI platforms."
+      },
+      "market_tailwind": {
+        "score": 8,
+        "evidence": "AI demand and dissatisfaction with centralized control both create interest."
+      },
+      "financial_strength": {
+        "score": 6,
+        "evidence": "Economic durability depends on sustained subnet value rather than traditional cash flow."
+      },
+      "regulatory_resilience": {
+        "score": 5,
+        "evidence": "AI and token regulation can both create friction."
+      },
+      "strategic_optionality": {
+        "score": 9,
+        "evidence": "The protocol can expand through new subnets, infrastructure, and AI-native applications."
+      },
+      "timing": {
+        "score": 8,
+        "evidence": "It still feels early enough for a real edge if usage, not just price, keeps improving."
+      }
+    }
+  },
+  {
+    "slug": "zcash",
+    "name": "Zcash",
+    "ticker": "ZEC",
+    "founders": ["Zooko Wilcox-O'Hearn"],
+    "tags": ["crypto", "privacy", "payments"],
+    "one_line_thesis": "Zcash is a mission-heavy privacy bet where technical credibility remains high but adoption and regulation are the gating variables.",
+    "why_now": "If digital privacy becomes more valuable again, the protocol has real technical history; if not, it risks remaining intellectually strong but economically weak.",
+    "catalysts": [
+      "Privacy-preserving payment demand could strengthen if surveillance concerns intensify.",
+      "Wallet and usability improvements can narrow the gap between technology and adoption.",
+      "Clearer compliance patterns could reopen exchange and institutional support."
+    ],
+    "red_flags": [
+      "Regulatory hostility toward privacy tools can suppress distribution.",
+      "The network risks strong technology with weak commercial pull.",
+      "Competing privacy approaches may absorb demand before Zcash does."
+    ],
+    "diligence_questions": [
+      "Is shielded usage actually growing in a durable way?",
+      "Can Zcash become easy enough for mainstream use without losing its edge?",
+      "How do governance and funding keep development sustainable?"
+    ],
+    "scorecard": {
+      "leadership_resilience": {
+        "score": 8,
+        "evidence": "The founding mission has been unusually consistent through long periods of low market enthusiasm."
+      },
+      "mission_clarity": {
+        "score": 9,
+        "evidence": "Private digital cash is a clear and coherent mission."
+      },
+      "moat": {
+        "score": 7,
+        "evidence": "The protocol has deep technical roots in privacy-preserving cryptography."
+      },
+      "distribution": {
+        "score": 4,
+        "evidence": "Exchange support and mainstream wallet support remain constrained."
+      },
+      "market_tailwind": {
+        "score": 6,
+        "evidence": "Privacy demand is real, but often politically and commercially constrained."
+      },
+      "financial_strength": {
+        "score": 5,
+        "evidence": "Sustainable development depends on governance and continuing ecosystem funding."
+      },
+      "regulatory_resilience": {
+        "score": 3,
+        "evidence": "Privacy-focused assets carry heavier compliance and listing risk."
+      },
+      "strategic_optionality": {
+        "score": 6,
+        "evidence": "The core technology can matter in broader privacy infrastructure, but monetization paths are narrow."
+      },
+      "timing": {
+        "score": 5,
+        "evidence": "The narrative can return, but there is no guarantee the market rewards it soon."
+      }
+    }
+  },
+  {
+    "slug": "near",
+    "name": "NEAR Protocol",
+    "ticker": "NEAR",
+    "founders": ["Illia Polosukhin", "Alexander Skidanov"],
+    "tags": ["crypto", "smart-contracts", "ai"],
+    "one_line_thesis": "NEAR is a platform bet on usable developer infrastructure, distribution, and AI-adjacent positioning rather than pure chain tribalism.",
+    "why_now": "The chain competes in a crowded field, but founder quality and product emphasis give it optionality if developer and user experience wins matter more.",
+    "catalysts": [
+      "Developer growth and chain abstraction tooling can make the platform easier to adopt.",
+      "AI-linked narratives can pull attention if they translate into actual product usage.",
+      "Consumer-grade applications could matter more if onboarding friction keeps falling."
+    ],
+    "red_flags": [
+      "Layer-1 competition is saturated and capital-intensive.",
+      "Narrative pivots can dilute strategic focus.",
+      "Token-holder incentives do not guarantee durable app traction."
+    ],
+    "diligence_questions": [
+      "Which apps on NEAR have real retention rather than temporary incentives?",
+      "How differentiated is the technology versus other general-purpose chains?",
+      "Do developer tools create a compounding advantage or just parity?"
+    ],
+    "scorecard": {
+      "leadership_resilience": {
+        "score": 8,
+        "evidence": "The founders combine serious technical depth with a long-term product-building posture."
+      },
+      "mission_clarity": {
+        "score": 8,
+        "evidence": "The pitch around usability and developer experience remains coherent."
+      },
+      "moat": {
+        "score": 7,
+        "evidence": "Technology and tooling are solid, though differentiation is hard in a crowded market."
+      },
+      "distribution": {
+        "score": 6,
+        "evidence": "Awareness exists, but user capture and developer mindshare are still uneven."
+      },
+      "market_tailwind": {
+        "score": 7,
+        "evidence": "If consumer crypto usage expands, clean onboarding matters."
+      },
+      "financial_strength": {
+        "score": 6,
+        "evidence": "Ecosystem durability depends on continued app growth rather than just treasury runway."
+      },
+      "regulatory_resilience": {
+        "score": 6,
+        "evidence": "General crypto platform risk remains meaningful but not uniquely severe."
+      },
+      "strategic_optionality": {
+        "score": 8,
+        "evidence": "Cross-chain tooling, AI alignment, and consumer apps create several shots on goal."
+      },
+      "timing": {
+        "score": 7,
+        "evidence": "The platform still has room to surprise if execution keeps improving before the market fully cares."
+      }
+    }
+  },
+  {
+    "slug": "robinhood",
+    "name": "Robinhood",
+    "ticker": "HOOD",
+    "founders": ["Vlad Tenev", "Baiju Bhatt"],
+    "tags": ["fintech", "brokerage", "crypto-distribution"],
+    "one_line_thesis": "Robinhood can become a consumer financial super-app if it keeps turning low-friction distribution into higher-value products without breaking trust.",
+    "why_now": "The company already owns consumer attention in investing, and product expansion can move it beyond trading into a wider financial relationship.",
+    "catalysts": [
+      "Higher wallet share per user through retirement, cash management, and advisory layers.",
+      "International and crypto product expansion can widen the monetization envelope.",
+      "A stronger market environment tends to amplify user engagement and asset gathering."
+    ],
+    "red_flags": [
+      "Regulatory pressure can quickly constrain growth tactics.",
+      "Retail engagement is cyclical and mood-driven.",
+      "Trust can be damaged fast if product complexity outpaces communication."
+    ],
+    "diligence_questions": [
+      "Is average revenue per funded account rising for the right reasons?",
+      "Which products can endure a cold market with lower trading activity?",
+      "How defensible is the consumer relationship versus larger incumbents?"
+    ],
+    "scorecard": {
+      "leadership_resilience": {
+        "score": 8,
+        "evidence": "Management survived severe public scrutiny and kept shipping into a tougher environment."
+      },
+      "mission_clarity": {
+        "score": 8,
+        "evidence": "The democratization-of-finance framing remains consistent and product-relevant."
+      },
+      "moat": {
+        "score": 7,
+        "evidence": "Brand, onboarding, and user behavior data matter, though they are not impossible to copy."
+      },
+      "distribution": {
+        "score": 9,
+        "evidence": "Robinhood's consumer reach is one of its clearest strengths."
+      },
+      "market_tailwind": {
+        "score": 8,
+        "evidence": "Retail participation and product expansion both create growth paths."
+      },
+      "financial_strength": {
+        "score": 8,
+        "evidence": "The platform is large enough to invest through weaker periods."
+      },
+      "regulatory_resilience": {
+        "score": 6,
+        "evidence": "The company operates under constant regulatory attention."
+      },
+      "strategic_optionality": {
+        "score": 8,
+        "evidence": "Banking, advisory, prediction markets, and crypto can all extend the model."
+      },
+      "timing": {
+        "score": 7,
+        "evidence": "The business benefits when engagement returns, but optimism can get priced quickly."
+      }
+    }
+  },
+  {
+    "slug": "tesla",
+    "name": "Tesla",
+    "ticker": "TSLA",
+    "founders": ["Elon Musk", "Martin Eberhard", "Marc Tarpenning", "JB Straubel", "Ian Wright"],
+    "tags": ["ev", "autonomy", "energy", "manufacturing"],
+    "one_line_thesis": "Tesla is a founder-driven industrial platform bet where manufacturing scale, software, and energy optionality can matter more than near-term auto sentiment.",
+    "why_now": "The company already has global scale, but the next leg depends on whether autonomy, robotics, and energy become real earnings pillars rather than narrative support.",
+    "catalysts": [
+      "Vehicle software and autonomy improvements can shift the margin story.",
+      "Energy generation and storage can become a larger share of the business mix.",
+      "Manufacturing efficiency can amplify upside if demand and product refresh align."
+    ],
+    "red_flags": [
+      "Execution and communication are heavily tied to one polarizing leader.",
+      "The stock often prices in future businesses before economics are proven.",
+      "Regulatory and competitive pressure remain persistent."
+    ],
+    "diligence_questions": [
+      "How much of the autonomy thesis is measurable rather than aspirational?",
+      "Can energy and software become material enough to diversify the auto cyclicality?",
+      "What indicators show durable demand strength without relying on price cuts?"
+    ],
+    "scorecard": {
+      "leadership_resilience": {
+        "score": 9,
+        "evidence": "The company has repeatedly navigated manufacturing, capital, and demand crises."
+      },
+      "mission_clarity": {
+        "score": 9,
+        "evidence": "The mission around sustainable energy still anchors the broader platform story."
+      },
+      "moat": {
+        "score": 9,
+        "evidence": "Brand, manufacturing know-how, vertical integration, and data advantages remain substantial."
+      },
+      "distribution": {
+        "score": 10,
+        "evidence": "Global consumer awareness and direct distribution are already world-class."
+      },
+      "market_tailwind": {
+        "score": 9,
+        "evidence": "Electrification, grid buildout, and autonomy all create long-duration demand vectors."
+      },
+      "financial_strength": {
+        "score": 8,
+        "evidence": "Scale and cash generation give the company room to keep investing."
+      },
+      "regulatory_resilience": {
+        "score": 7,
+        "evidence": "The company is exposed to subsidy shifts, trade policy, and autonomy scrutiny."
+      },
+      "strategic_optionality": {
+        "score": 9,
+        "evidence": "Energy, autonomy, robotics, and software all offer credible expansion paths."
+      },
+      "timing": {
+        "score": 7,
+        "evidence": "The company is not early, but inflection points in autonomy or energy could still change the earnings profile."
+      }
+    }
+  }
+]

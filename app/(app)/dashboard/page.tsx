@@ -1,11 +1,10 @@
 "use client"
 
 import {
-  Calendar, Pill, MessageSquare, AlertTriangle, Receipt,
+  Calendar, Pill, MessageSquare, Receipt,
   ArrowRight, Bot, CheckCircle2, Heart, ShieldCheck,
   FlaskConical, Activity, Syringe, AlertCircle, Search,
-  TrendingUp, TrendingDown, Minus, Zap, ChevronRight,
-  UserCircle, Clock, Stethoscope,
+  Zap, ChevronRight, Clock, Stethoscope,
 } from "lucide-react"
 import Link from "next/link"
 import { cn, formatTime, formatDate, getStatusColor } from "@/lib/utils"

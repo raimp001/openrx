@@ -22,7 +22,6 @@ import {
   WifiOff,
   Zap,
   Clock,
-  ArrowRight,
   Users,
   TrendingUp,
   CheckCircle2,
@@ -31,6 +30,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { useState, useEffect, useRef, useCallback } from "react"
+import { AppPageHeader } from "@/components/layout/app-page"
 
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
@@ -231,52 +231,51 @@ export default function ChatPage() {
 
   return (
     <div className="animate-slide-up space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-terra to-terra-dark flex items-center justify-center">
+      <AppPageHeader
+        leading={
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-terra to-terra-dark">
             <Bot size={20} className="text-white" />
           </div>
-          <div>
-            <h1 className="text-2xl font-serif text-warm-800">AI Agent</h1>
-            <div className="flex items-center gap-2 mt-0.5">
-              {gatewayStatus === "checking" ? (
-                <span className="flex items-center gap-1 text-[10px] text-cloudy">
-                  <Loader2 size={10} className="animate-spin" /> Connecting...
-                </span>
-              ) : gatewayStatus === "online" ? (
-                <span className="flex items-center gap-1 text-[10px] text-accent font-semibold">
-                  <Wifi size={10} /> OpenClaw Gateway Connected
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-[10px] text-terra font-semibold">
-                  <WifiOff size={10} /> Gateway Offline
-                </span>
-              )}
-              {isConnected && (
-                <span className="flex items-center gap-1 text-[10px] text-accent">
-                  <CheckCircle2 size={8} /> Wallet Identity Active
-                </span>
-              )}
-            </div>
+        }
+        title="AI Concierge"
+        meta={
+          <div className="flex flex-wrap items-center gap-2">
+            {gatewayStatus === "checking" ? (
+              <span className="flex items-center gap-1 text-[10px] text-cloudy">
+                <Loader2 size={10} className="animate-spin" /> Connecting...
+              </span>
+            ) : gatewayStatus === "online" ? (
+              <span className="flex items-center gap-1 text-[10px] font-semibold text-accent">
+                <Wifi size={10} /> OpenClaw gateway connected
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[10px] font-semibold text-terra">
+                <WifiOff size={10} /> Gateway offline
+              </span>
+            )}
+            {isConnected ? (
+              <span className="flex items-center gap-1 text-[10px] text-accent">
+                <CheckCircle2 size={8} /> Wallet identity active
+              </span>
+            ) : null}
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
+        }
+        actions={
           <button
+            type="button"
             onClick={() => setShowImprovements(!showImprovements)}
             className={cn(
-              "px-3 py-1.5 text-xs font-semibold rounded-lg border transition",
+              "rounded-lg border px-3 py-1.5 text-xs font-semibold transition",
               showImprovements
-                ? "bg-accent text-white border-accent"
-                : "text-warm-600 border-sand hover:border-accent/30"
+                ? "border-accent bg-accent text-white"
+                : "border-sand text-warm-600 hover:border-accent/30"
             )}
           >
-            <TrendingUp size={12} className="inline mr-1" />
+            <TrendingUp size={12} className="mr-1 inline" />
             Improvements ({improvementMetrics.totalSuggested})
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Self-Improvement Panel */}
       {showImprovements && (

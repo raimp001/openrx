@@ -26,7 +26,6 @@ import {
   User,
   Building2,
   AlertTriangle,
-  ChevronRight,
   Search,
 } from "lucide-react"
 
@@ -308,7 +307,7 @@ export default function PAauditPage() {
                 { label: "§164.312(c)(1) Integrity", ok: true },
                 { label: "6-Year Retention", ok: true },
                 { label: "OCR Export Ready", ok: true },
-              ].map(({ label, ok }) => (
+              ].map(({ label }) => (
                 <span key={label} className="flex items-center gap-1 text-[10px] text-accent">
                   <CheckCircle2 size={9} /> {label}
                 </span>

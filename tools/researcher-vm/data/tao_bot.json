@@ -1,0 +1,61 @@
+{
+  "name": "TAO Spot Swing Bot",
+  "product_id": "TAO-USD",
+  "quote_currency": "USD",
+  "base_currency": "TAO",
+  "entry_style": "hybrid",
+  "exchanges": [
+    "coinbase",
+    "kraken"
+  ],
+  "starting_capital": 100,
+  "reserve_cash": 5,
+  "risk_per_trade_min_pct": 0.5,
+  "risk_per_trade_max_pct": 1.0,
+  "max_position_notional": 35,
+  "max_position_notional_pct": 35,
+  "min_stop_loss_pct": 2.5,
+  "max_stop_loss_pct": 4.0,
+  "stop_atr_multiplier": 1.35,
+  "take_profit_1_r": 1.5,
+  "take_profit_2_r": 2.0,
+  "trail_after_tp1": true,
+  "trail_stop_buffer_r": 0.5,
+  "max_spread_bps_by_exchange": {
+    "coinbase": 70,
+    "kraken": 55
+  },
+  "estimated_fee_bps_by_exchange": {
+    "coinbase": 60,
+    "kraken": 40
+  },
+  "min_quote_order_by_exchange": {
+    "coinbase": 10,
+    "kraken": 5
+  },
+  "min_volume_ratio": 0.65,
+  "low_volume_factor": 0.55,
+  "min_quote_volume_24h": 0,
+  "sharp_volume_drop_24h_pct": -20,
+  "max_single_candle_move_pct": 6,
+  "min_net_reward_to_risk": 1.15,
+  "max_losses_per_day": 2,
+  "max_daily_drawdown_pct": 3,
+  "cooldown_after_loss_minutes": 180,
+  "trend_ema_period": 50,
+  "signal_ema_period": 20,
+  "rsi_period": 14,
+  "macd_fast": 12,
+  "macd_slow": 26,
+  "macd_signal": 9,
+  "atr_period": 14,
+  "support_lookback_15m": 12,
+  "resistance_lookback_15m": 20,
+  "recent_breakout_lookback": 4,
+  "retest_tolerance_pct": 0.7,
+  "candles_15m": 120,
+  "candles_1h": 160,
+  "entry_limit_buffer_bps": 10,
+  "emergency_exit_slippage_bps": 15,
+  "post_only_entries": false
+}

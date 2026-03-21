@@ -1,14 +1,13 @@
 import { MailCheck, ShieldCheck } from "lucide-react"
+import { AppPageHeader } from "@/components/layout/app-page"
 
 export default function AdminReviewPage() {
   return (
     <div className="animate-slide-up max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif text-warm-800">Admin Review</h1>
-        <p className="text-sm text-warm-500 mt-1">
-          In-app admin queue is disabled. Application approvals are handled by signed email actions.
-        </p>
-      </div>
+      <AppPageHeader
+        title="Admin Review"
+        description="In-app admin queue is disabled. Application approvals are handled by signed email actions."
+      />
 
       <div className="bg-pampas rounded-2xl border border-sand p-5">
         <div className="flex items-start gap-3">

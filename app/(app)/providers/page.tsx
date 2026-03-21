@@ -14,6 +14,7 @@ import {
 import { useCallback, useMemo, useState } from "react"
 import Image from "next/image"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import type { ParsedCareQuery, CareDirectoryMatch } from "@/lib/npi-care-search"
 import { cn } from "@/lib/utils"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
@@ -153,19 +154,19 @@ export default function ProvidersPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">Find Care Network</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            Natural-language search for providers, caregivers, labs, and radiology centers using NPI data.
-          </p>
-        </div>
-        <AIAction
-          agentId="scheduling"
-          label="AI Match"
-          prompt="Based on patient history and location, recommend a coordinated care network including provider, caregiver, lab, and radiology options."
-        />
-      </div>
+      <AppPageHeader
+        eyebrow="Care Directory"
+        title="Find Care Network"
+        description="Natural-language search for providers, caregivers, labs, and radiology centers using NPI data."
+        className="surface-card p-4 sm:p-5"
+        actions={
+          <AIAction
+            agentId="scheduling"
+            label="AI Match"
+            prompt="Based on patient history and location, recommend a coordinated care network including provider, caregiver, lab, and radiology options."
+          />
+        }
+      />
 
       <div className="bg-pampas rounded-2xl border border-sand p-5">
         <div className="flex flex-col sm:flex-row gap-3">

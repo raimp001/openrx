@@ -4,6 +4,7 @@ import Image from "next/image"
 import { useCallback, useMemo, useState } from "react"
 import { BadgeCheck, Building2, Loader2, MapPin, Phone, Pill, Search, ShieldCheck } from "lucide-react"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import { cn } from "@/lib/utils"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
@@ -118,19 +119,19 @@ export default function PharmacyPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">Pharmacy Finder</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            Natural-language pharmacy search with NPI registry gating and clarification.
-          </p>
-        </div>
-        <AIAction
-          agentId="rx"
-          label="Compare Prices"
-          prompt="Compare nearby pharmacy options for active medications and suggest the most cost-effective refill plan."
-        />
-      </div>
+      <AppPageHeader
+        eyebrow="Medication Access"
+        title="Pharmacy Finder"
+        description="Natural-language pharmacy search with NPI registry gating and clarification."
+        className="surface-card p-4 sm:p-5"
+        actions={
+          <AIAction
+            agentId="rx"
+            label="Compare Prices"
+            prompt="Compare nearby pharmacy options for active medications and suggest the most cost-effective refill plan."
+          />
+        }
+      />
 
       <div className="bg-pampas rounded-2xl border border-sand p-5">
         <div className="flex flex-col sm:flex-row gap-3">

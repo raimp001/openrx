@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { useWalletIdentity } from "@/lib/wallet-context"
+import { AppPageHeader } from "@/components/layout/app-page"
 import {
   Bot, User, Heart, Pill, Stethoscope,
   CheckCircle2,
@@ -416,20 +417,26 @@ export default function OnboardingPage() {
 
   return (
     <div className="animate-slide-up max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-terra to-terra-dark flex items-center justify-center mx-auto mb-3">
-          <Sparkles size={24} className="text-white" />
-        </div>
-        <h1 className="text-2xl font-serif text-warm-800">Welcome to OpenRx</h1>
-        <p className="text-sm text-warm-500 mt-1">Your AI care team is ready. No forms — just a conversation.</p>
-        {isConnected && (
-          <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-accent/10 text-[10px] font-semibold text-accent">
-            <WalletIcon size={10} />
-            Wallet connected — profile will be saved automatically
+      <AppPageHeader
+        align="center"
+        variant="hero"
+        title="Welcome to OpenRx"
+        description="Your AI care team is ready. No forms — just a conversation."
+        className="mb-6 surface-card p-5"
+        leading={
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-terra to-terra-dark">
+            <Sparkles size={24} className="text-white" />
           </div>
-        )}
-      </div>
+        }
+        meta={
+          isConnected ? (
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-[10px] font-semibold text-accent">
+              <WalletIcon size={10} />
+              Wallet connected — profile will be saved automatically
+            </div>
+          ) : null
+        }
+      />
 
       {/* Chat */}
       <div className="bg-pampas rounded-2xl border border-sand overflow-hidden flex flex-col h-[calc(100vh-280px)] min-h-[500px]">

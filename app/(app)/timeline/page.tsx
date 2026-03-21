@@ -2,6 +2,7 @@
 
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { cn, formatTime } from "@/lib/utils"
+import { AppPageHeader } from "@/components/layout/app-page"
 import Link from "next/link"
 import { useState, useMemo } from "react"
 import {
@@ -242,16 +243,16 @@ export default function TimelinePage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <Clock size={18} className="text-terra" />
-          <h1 className="text-2xl font-serif text-warm-800">Health Timeline</h1>
-        </div>
-        <p className="text-sm text-warm-500">
-          Every health event, chronologically — appointments, labs, medications, vitals, and more.
-        </p>
-      </div>
+      <AppPageHeader
+        title="Health Timeline"
+        description="Every health event, chronologically — appointments, labs, medications, vitals, and more."
+        className="surface-card p-4 sm:p-5"
+        leading={
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-terra/10">
+            <Clock size={18} className="text-terra" />
+          </div>
+        }
+      />
 
       {/* Filter tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">

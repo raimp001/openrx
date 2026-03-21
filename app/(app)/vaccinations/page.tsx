@@ -7,6 +7,7 @@ import {
 import Link from "next/link"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import { cn } from "@/lib/utils"
 
 function Skeleton({ className }: { className?: string }) {
@@ -66,20 +67,19 @@ export default function VaccinationsPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">Vaccination Records</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            Your immunization history and upcoming vaccinations.
-          </p>
-        </div>
-        <AIAction
-          agentId="wellness"
-          label="Vaccine Review"
-          prompt={`Review my vaccination record. I have ${completed.length} completed vaccines and ${due.length} due. ${due.map(v => v.vaccine_name).join(", ")} are recommended. Based on my age, conditions (Type 2 Diabetes, Hypertension), and insurance (Moda Medical), which vaccines should I prioritize, what are they covered at, and can you help me book them?`}
-          context={`Completed: ${completed.map(v => v.vaccine_name).join(", ")}. Due: ${due.map(v => v.vaccine_name).join(", ")}`}
-        />
-      </div>
+      <AppPageHeader
+        title="Vaccination Records"
+        description="Your immunization history and upcoming vaccinations."
+        className="surface-card p-4 sm:p-5"
+        actions={
+          <AIAction
+            agentId="wellness"
+            label="Vaccine Review"
+            prompt={`Review my vaccination record. I have ${completed.length} completed vaccines and ${due.length} due. ${due.map(v => v.vaccine_name).join(", ")} are recommended. Based on my age, conditions (Type 2 Diabetes, Hypertension), and insurance (Moda Medical), which vaccines should I prioritize, what are they covered at, and can you help me book them?`}
+            context={`Completed: ${completed.map(v => v.vaccine_name).join(", ")}. Due: ${due.map(v => v.vaccine_name).join(", ")}`}
+          />
+        }
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">

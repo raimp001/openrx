@@ -9,6 +9,7 @@ import {
 import { useState } from "react"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import Link from "next/link"
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -143,34 +144,35 @@ export default function VitalsPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">Vital Signs</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            {filteredVitals.length} readings in the last {range}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <AIAction
-            agentId="wellness"
-            label="Ivy: Analyze Vitals"
-            prompt={`Analyze my vital signs over the last ${range}. BP avg: ${avgSystolic ?? "--"}/${avgDiastolic ?? "--"} mmHg (trend: ${bpTrend}), glucose avg: ${avgGlucose ?? "--"} mg/dL (trend: ${glucoseTrend}), HR: ${latestHR ?? "--"} bpm, weight: ${latestVital?.weight_lbs ?? "--"} lbs. What's improving, what needs attention, and what are 3 specific actions I should take?`}
-            context={`${filteredVitals.length} readings, ${range} window`}
-          />
-          <div className="flex gap-0.5 bg-white border border-sand rounded-xl p-1">
-            {(["7d", "14d", "30d"] as TimeRange[]).map((r) => (
-              <button key={r} onClick={() => setRange(r)}
-                className={cn("px-3 py-1.5 text-xs font-semibold rounded-lg transition",
-                  range === r ? "bg-terra text-white" : "text-warm-500 hover:text-warm-700"
-                )}>
-                {r}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <AppPageHeader
+        title="Vital Signs"
+        description={`${filteredVitals.length} readings in the last ${range}`}
+        className="surface-card p-4 sm:p-5"
+        actions={
+          <>
+            <AIAction
+              agentId="wellness"
+              label="Ivy: Analyze Vitals"
+              prompt={`Analyze my vital signs over the last ${range}. BP avg: ${avgSystolic ?? "--"}/${avgDiastolic ?? "--"} mmHg (trend: ${bpTrend}), glucose avg: ${avgGlucose ?? "--"} mg/dL (trend: ${glucoseTrend}), HR: ${latestHR ?? "--"} bpm, weight: ${latestVital?.weight_lbs ?? "--"} lbs. What's improving, what needs attention, and what are 3 specific actions I should take?`}
+              context={`${filteredVitals.length} readings, ${range} window`}
+            />
+            <div className="flex gap-0.5 rounded-xl border border-sand bg-white p-1">
+              {(["7d", "14d", "30d"] as TimeRange[]).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRange(r)}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
+                    range === r ? "bg-terra text-white" : "text-warm-500 hover:text-warm-700"
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </>
+        }
+      />
 
       {/* Alerts */}
       {(highBP || highGlucose) && (

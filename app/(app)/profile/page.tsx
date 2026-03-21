@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 
 function age(dob: string): string {
   if (!dob) return "—"
@@ -98,18 +99,18 @@ export default function ProfilePage() {
 
   return (
     <div className="animate-slide-up space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">My Health Profile</h1>
-          <p className="text-sm text-warm-500 mt-1">Your complete health record and account details.</p>
-        </div>
-        <AIAction
-          agentId="coordinator"
-          label="Summarize My Health"
-          prompt="Give me a comprehensive health summary: active conditions, medications, upcoming appointments, and any items needing immediate attention."
-        />
-      </div>
+      <AppPageHeader
+        title="My Health Profile"
+        description="Your complete health record and account details."
+        className="surface-card p-4 sm:p-5"
+        actions={
+          <AIAction
+            agentId="coordinator"
+            label="Summarize My Health"
+            prompt="Give me a comprehensive health summary: active conditions, medications, upcoming appointments, and any items needing immediate attention."
+          />
+        }
+      />
 
       {/* Profile card */}
       <div className="surface-card overflow-hidden">

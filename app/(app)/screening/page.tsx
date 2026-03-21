@@ -16,6 +16,7 @@ import {
   Wallet,
 } from "lucide-react"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import { cn } from "@/lib/utils"
 import type { ScreeningAssessment } from "@/lib/basehealth"
 import type { CareDirectoryMatch, CareSearchType } from "@/lib/npi-care-search"
@@ -447,19 +448,19 @@ export default function ScreeningPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">Personalized Screening</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            One short message in natural language. We handle the medical parsing and build an age- and history-aware plan.
-          </p>
-        </div>
-        <AIAction
-          agentId="screening"
-          label="Explain My Risk"
-          prompt="Summarize my screening risk score, key drivers, evidence links, and what I should do first."
-        />
-      </div>
+      <AppPageHeader
+        eyebrow="Prevention"
+        title="Personalized Screening"
+        description="One short message in natural language. We handle the medical parsing and build an age- and history-aware plan."
+        className="surface-card p-4 sm:p-5"
+        actions={
+          <AIAction
+            agentId="screening"
+            label="Explain My Risk"
+            prompt="Summarize my screening risk score, key drivers, evidence links, and what I should do first."
+          />
+        }
+      />
 
       <div className="rounded-2xl border border-terra/20 bg-terra/8 p-4 flex flex-col gap-2 text-xs text-warm-600">
         <div className="flex items-center gap-2">

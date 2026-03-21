@@ -13,6 +13,7 @@ import {
 } from "@/lib/pa-audit"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { cn } from "@/lib/utils"
+import { AppPageHeader } from "@/components/layout/app-page"
 import {
   ShieldCheck,
   ArrowLeft,
@@ -67,33 +68,31 @@ export default function PAauditPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <AppPageHeader
+        eyebrow="Prior Authorization"
+        title="PA Audit Trail"
+        description={`Immutable event log · HIPAA-compliant · ${events.length} events`}
+        className="surface-card p-4 sm:p-5"
+        meta={
           <Link
             href="/prior-auth"
-            className="flex items-center gap-1 text-xs text-warm-500 hover:text-warm-700 transition"
+            className="inline-flex items-center gap-1 text-xs text-warm-500 transition hover:text-warm-700"
           >
             <ArrowLeft size={12} /> Back to PAs
           </Link>
-          <div className="w-px h-4 bg-sand" />
-          <div>
-            <h1 className="text-2xl font-serif text-warm-800">PA Audit Trail</h1>
-            <p className="text-sm text-warm-500 mt-0.5">
-              Immutable event log &middot; HIPAA-compliant &middot; {events.length} events
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-warm-500 bg-accent/5 px-3 py-1.5 rounded-full border border-accent/10">
-            <Lock size={10} className="text-accent" />
-            <span className="text-accent font-semibold">Immutable Log</span>
-          </div>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-warm-600 bg-sand/40 hover:bg-sand border border-sand rounded-lg transition">
-            <Download size={12} /> Export CSV
-          </button>
-        </div>
-      </div>
+        }
+        actions={
+          <>
+            <div className="flex items-center gap-1.5 rounded-full border border-accent/10 bg-accent/5 px-3 py-1.5 text-xs text-warm-500">
+              <Lock size={10} className="text-accent" />
+              <span className="font-semibold text-accent">Immutable Log</span>
+            </div>
+            <button className="flex items-center gap-1.5 rounded-lg border border-sand bg-sand/40 px-3 py-1.5 text-xs font-semibold text-warm-600 transition hover:bg-sand">
+              <Download size={12} /> Export CSV
+            </button>
+          </>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">

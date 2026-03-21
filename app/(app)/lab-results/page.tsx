@@ -8,6 +8,7 @@ import {
 import { useState } from "react"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import AIAction from "@/components/ai-action"
+import { AppPageHeader } from "@/components/layout/app-page"
 import Link from "next/link"
 
 // ── Reference Range Bar ─────────────────────────────────────
@@ -126,23 +127,26 @@ export default function LabResultsPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">Lab Results</h1>
-          <p className="text-sm text-warm-500 mt-1">
+      <AppPageHeader
+        title="Lab Results"
+        description={
+          <>
             {labs.length} tests &middot; {abnormalCount} abnormal values
-            {criticalCount > 0 && <span className="text-red-600 font-bold"> &middot; {criticalCount} critical</span>}
-          </p>
-        </div>
-        <AIAction
-          agentId="coordinator"
-          label="Interpret My Labs"
-          prompt={`Explain my lab results in plain language. I have ${abnormalCount} abnormal values out of ${labs.length} tests. For each abnormal result, tell me what it means, why it matters, and what to discuss with my doctor.`}
-          context={`Results: ${resultedLabs.flatMap(l => l.results.filter(r => r.flag !== "normal")).map(r => `${r.name}: ${r.value}${r.unit || ""} (${r.flag})`).join(", ")}`}
-        />
-      </div>
+            {criticalCount > 0 ? (
+              <span className="font-bold text-red-600"> &middot; {criticalCount} critical</span>
+            ) : null}
+          </>
+        }
+        className="surface-card p-4 sm:p-5"
+        actions={
+          <AIAction
+            agentId="coordinator"
+            label="Interpret My Labs"
+            prompt={`Explain my lab results in plain language. I have ${abnormalCount} abnormal values out of ${labs.length} tests. For each abnormal result, tell me what it means, why it matters, and what to discuss with my doctor.`}
+            context={`Results: ${resultedLabs.flatMap(l => l.results.filter(r => r.flag !== "normal")).map(r => `${r.name}: ${r.value}${r.unit || ""} (${r.flag})`).join(", ")}`}
+          />
+        }
+      />
 
       {/* Critical alert */}
       {criticalCount > 0 && (

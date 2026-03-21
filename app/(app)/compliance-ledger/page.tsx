@@ -17,6 +17,7 @@ import { useWalletIdentity } from "@/lib/wallet-context"
 import { cn } from "@/lib/utils"
 import { toBaseBuilderTxUrl } from "@/lib/basebuilder/config"
 import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
+import { AppPageHeader } from "@/components/layout/app-page"
 import type {
   AttestationRecord,
   LedgerEntry,
@@ -326,32 +327,32 @@ export default function ComplianceLedgerPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">Payments Compliance Ledger</h1>
-          <p className="text-sm text-warm-500 mt-1">
-            Base Pay-aligned payment verification, receipts, attestations, refunds, and ledger controls.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={exportSnapshot}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-sand text-xs font-semibold text-warm-700 hover:border-terra/30 transition disabled:opacity-60"
-          >
-            <Download size={12} />
-            Export JSON
-          </button>
-          <button
-            onClick={() => void loadSnapshot()}
-            disabled={busy || loading}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-sand text-xs font-semibold text-warm-700 hover:border-terra/30 transition disabled:opacity-60"
-          >
-            <RefreshCcw size={12} />
-            Refresh
-          </button>
-        </div>
-      </div>
+      <AppPageHeader
+        eyebrow="Payments"
+        title="Compliance Ledger"
+        description="Base Pay-aligned payment verification, receipts, attestations, refunds, and ledger controls."
+        className="surface-card p-4 sm:p-5"
+        actions={
+          <>
+            <button
+              onClick={exportSnapshot}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-xl border border-sand px-3 py-2 text-xs font-semibold text-warm-700 transition hover:border-terra/30 disabled:opacity-60"
+            >
+              <Download size={12} />
+              Export JSON
+            </button>
+            <button
+              onClick={() => void loadSnapshot()}
+              disabled={busy || loading}
+              className="inline-flex items-center gap-2 rounded-xl border border-sand px-3 py-2 text-xs font-semibold text-warm-700 transition hover:border-terra/30 disabled:opacity-60"
+            >
+              <RefreshCcw size={12} />
+              Refresh
+            </button>
+          </>
+        }
+      />
 
       {!isConnected && (
         <div className="bg-yellow-100/20 border border-yellow-300/30 rounded-xl p-3 text-xs text-warm-600">

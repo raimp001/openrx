@@ -17,9 +17,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         Skip to main content
       </a>
       <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute left-0 top-0 h-[34rem] w-full bg-[radial-gradient(ellipse_900px_420px_at_72%_-14%,rgba(224,91,67,0.09),transparent_62%)]" />
-        <div className="absolute right-0 top-0 h-[26rem] w-[34rem] bg-[radial-gradient(ellipse_420px_300px_at_100%_0%,rgba(22,142,104,0.11),transparent_66%)]" />
-        <div className="absolute bottom-0 left-[18rem] right-0 h-[30rem] bg-[radial-gradient(ellipse_820px_360px_at_50%_100%,rgba(42,124,167,0.05),transparent_60%)]" />
+        <div className="absolute left-0 top-0 h-[34rem] w-full bg-[radial-gradient(ellipse_860px_360px_at_70%_-10%,rgba(224,91,67,0.06),transparent_64%)]" />
+        <div className="absolute left-0 top-0 h-full w-[272px] bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(248,241,231,0.34))]" />
+        <div className="absolute left-[272px] top-0 hidden h-full w-px bg-[linear-gradient(180deg,rgba(216,208,194,0.1),rgba(216,208,194,0.7),rgba(216,208,194,0.1))] lg:block" />
       </div>
       <Sidebar />
       <div className="relative lg:ml-[272px]">

@@ -88,7 +88,7 @@ export default function AgentBar() {
 
             <Link
               href="/chat"
-              className="inline-flex items-center gap-2 rounded-full border border-terra/20 bg-terra/10 px-3 py-2 text-[11px] font-semibold text-terra transition hover:bg-terra/16"
+              className="inline-flex items-center gap-2 rounded-full border border-terra/18 bg-[linear-gradient(180deg,rgba(224,91,67,0.08),rgba(255,255,255,0.94))] px-3 py-2 text-[11px] font-semibold text-terra-dark transition hover:bg-[linear-gradient(180deg,rgba(224,91,67,0.12),rgba(255,255,255,0.96))]"
             >
               Open agent
             </Link>
@@ -96,7 +96,7 @@ export default function AgentBar() {
             <button
               onClick={() => setExpanded((value) => !value)}
               aria-label={expanded ? "Collapse agent status" : "Expand agent status"}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/70 bg-white/70 text-warm-600 transition hover:text-warm-900"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(247,240,229,0.9))] text-warm-600 transition hover:text-warm-900"
             >
               {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
@@ -115,7 +115,7 @@ export default function AgentBar() {
                   {OPENCLAW_CONFIG.agents.map((agent) => (
                     <div
                       key={agent.id}
-                      className="rounded-[20px] border border-white/80 bg-white/70 px-3 py-3 shadow-sm"
+                      className="rounded-[20px] border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,229,0.84))] px-3 py-3 shadow-sm"
                     >
                       <div className="flex items-center gap-2">
                         <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-terra/10 text-terra">
@@ -141,7 +141,7 @@ export default function AgentBar() {
                     <MetricTile label="Deployed" value={metrics?.totalDeployed ?? 0} tone="text-terra" />
                   </div>
 
-                  <div className="rounded-[20px] border border-white/80 bg-white/70 px-3 py-3 text-sm text-warm-600">
+                  <div className="rounded-[20px] border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,229,0.84))] px-3 py-3 text-sm text-warm-600">
                     <p className="font-semibold text-warm-800">Current focus</p>
                     <p className="mt-1 leading-6">
                       {inProgressTitle || "No active self-improvement task is being tracked right now."}
@@ -167,7 +167,7 @@ function MetricTile({
   tone: string
 }) {
   return (
-    <div className="rounded-[20px] border border-white/80 bg-white/70 px-3 py-3 shadow-sm">
+    <div className="rounded-[20px] border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,229,0.84))] px-3 py-3 shadow-sm">
       <p className={`text-xl font-semibold leading-none ${tone}`}>{value}</p>
       <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-warm-500">{label}</p>
     </div>

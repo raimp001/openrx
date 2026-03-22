@@ -27,10 +27,9 @@ body {
   position: relative;
   font-family: var(--font-sans), system-ui, sans-serif;
   background:
-    radial-gradient(ellipse 920px 520px at 2% -10%, rgba(224, 91, 67, 0.11), transparent 56%),
-    radial-gradient(ellipse 780px 540px at 100% 6%, rgba(22, 142, 104, 0.08), transparent 54%),
-    radial-gradient(ellipse 760px 460px at 50% 100%, rgba(42, 124, 167, 0.06), transparent 62%),
-    linear-gradient(160deg, #fbf7ef 0%, #f5f0e7 44%, #efe8dc 100%);
+    radial-gradient(ellipse 980px 560px at 0% -8%, rgba(224, 91, 67, 0.08), transparent 58%),
+    radial-gradient(ellipse 760px 420px at 100% 4%, rgba(185, 149, 88, 0.08), transparent 56%),
+    linear-gradient(180deg, #fffdf9 0%, #f8f3ea 48%, #f2eadf 100%);
   color: #11221e;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -44,12 +43,11 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
-  opacity: 0.35;
-  background-image:
-    linear-gradient(rgba(17, 34, 30, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(17, 34, 30, 0.03) 1px, transparent 1px);
-  background-size: 120px 120px;
-  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.8), transparent 78%);
+  opacity: 0.16;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0)),
+    radial-gradient(circle at 20% 20%, rgba(17,34,30,0.05) 0.6px, transparent 0.8px);
+  background-size: auto, 14px 14px;
 }
 
 a {
@@ -157,7 +155,7 @@ a {
   }
 
   .surface-muted {
-    @apply rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,250,245,0.8),rgba(242,235,224,0.62))];
+    @apply rounded-[24px] border border-sand/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.84),rgba(246,239,228,0.72))];
   }
 
   .section-title {
@@ -165,7 +163,7 @@ a {
   }
 
   .eyebrow-pill {
-    @apply inline-flex items-center gap-2 rounded-full border border-terra/20 bg-terra/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-terra;
+    @apply inline-flex items-center gap-2 rounded-full border border-[#d8c9ae] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,240,227,0.92))] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-warm-700;
   }
 
   .metric-chip {
@@ -173,7 +171,7 @@ a {
   }
 
   .app-shell-panel {
-    @apply rounded-[30px] border border-sand/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(249,242,232,0.86))] shadow-premium backdrop-blur-xl;
+    @apply rounded-[30px] border border-sand/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,242,232,0.9))] shadow-premium backdrop-blur-xl;
   }
 
   .app-shell-divider {

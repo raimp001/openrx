@@ -237,7 +237,7 @@ export default function Topbar() {
                   }}
                   onFocus={() => query.length >= 2 && setIsOpen(true)}
                   placeholder="Search meds, labs, visits, claims, referrals, or jump anywhere"
-                  className="w-full rounded-[22px] border border-white/80 bg-white/72 py-3 pl-11 pr-16 text-[13px] text-warm-800 placeholder:text-cloudy/60 shadow-sm transition focus:border-terra/35 focus:bg-white focus:shadow-[0_0_0_4px_rgba(224,91,67,0.08)]"
+                  className="w-full rounded-[22px] border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(248,243,235,0.92))] py-3 pl-11 pr-16 text-[13px] text-warm-800 placeholder:text-cloudy/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_10px_24px_rgba(17,34,30,0.05)] transition focus:border-terra/30 focus:bg-white focus:shadow-[0_0_0_4px_rgba(224,91,67,0.08)]"
                 />
                 {query ? (
                   <button
@@ -257,7 +257,7 @@ export default function Topbar() {
                 )}
 
                 {isOpen && results ? (
-                  <div className="absolute left-0 right-0 top-full z-50 mt-3 overflow-hidden rounded-[24px] border border-white/80 bg-pampas shadow-premium">
+                  <div className="absolute left-0 right-0 top-full z-50 mt-3 overflow-hidden rounded-[24px] border border-sand/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,244,235,0.96))] shadow-premium">
                     {results.total === 0 ? (
                       <div className="px-5 py-4 text-sm text-warm-500">No results for “{query}”.</div>
                     ) : (
@@ -272,7 +272,7 @@ export default function Topbar() {
                                     key={item.href}
                                     href={item.href}
                                     onClick={closeSearch}
-                                    className="inline-flex items-center gap-2 rounded-full border border-sand/80 bg-white px-3 py-1.5 text-[11px] font-semibold text-warm-700 transition hover:border-terra/30 hover:text-terra"
+                                    className="inline-flex items-center gap-2 rounded-full border border-sand/75 bg-white px-3 py-1.5 text-[11px] font-semibold text-warm-700 transition hover:border-terra/24 hover:bg-terra/5 hover:text-terra-dark"
                                   >
                                     <Icon size={11} className="text-terra" />
                                     {item.label}
@@ -384,7 +384,7 @@ export default function Topbar() {
               {isConnected && isNewUser ? (
                 <Link
                   href="/onboarding"
-                  className="inline-flex items-center gap-2 rounded-full border border-terra/25 bg-terra/10 px-3 py-2 text-[11px] font-semibold text-terra transition hover:bg-terra/16"
+                  className="inline-flex items-center gap-2 rounded-full border border-terra/20 bg-[linear-gradient(180deg,rgba(224,91,67,0.08),rgba(255,255,255,0.94))] px-3 py-2 text-[11px] font-semibold text-terra-dark transition hover:bg-[linear-gradient(180deg,rgba(224,91,67,0.12),rgba(255,255,255,0.96))]"
                 >
                   <Sparkles size={11} />
                   Finish setup
@@ -394,7 +394,7 @@ export default function Topbar() {
               <Link
                 href="/messages"
                 aria-label="Messages"
-                className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/70 bg-white/70 text-warm-600 transition hover:border-sand hover:text-warm-800"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,240,229,0.9))] text-warm-600 transition hover:border-sand hover:text-warm-800"
               >
                 <Bell size={17} />
                 {unread > 0 ? (
@@ -408,7 +408,7 @@ export default function Topbar() {
                 <Link
                   href="/dashboard/care-team"
                   aria-label="AI Care Team Command Center"
-                  className="relative inline-flex h-11 items-center gap-2 rounded-2xl border border-white/70 bg-white/70 px-3 text-[11px] font-semibold text-warm-700 transition hover:border-sand hover:text-warm-900"
+                  className="relative inline-flex h-11 items-center gap-2 rounded-2xl border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,240,229,0.9))] px-3 text-[11px] font-semibold text-warm-700 transition hover:border-sand hover:text-warm-900"
                 >
                   <Bot size={16} className="text-soft-blue" />
                   <span className="hidden sm:inline">Care Team</span>
@@ -421,11 +421,11 @@ export default function Topbar() {
               ) : null}
 
               <Wallet>
-                <ConnectWallet className="!h-11 !rounded-2xl !bg-midnight !px-3.5 !text-xs !font-semibold !text-white !transition hover:!bg-[#12211d]">
+                <ConnectWallet className="!h-11 !rounded-2xl !border !border-warm-800/10 !bg-warm-800 !px-3.5 !text-xs !font-semibold !text-white !shadow-[0_12px_28px_rgba(17,34,30,0.18)] !transition hover:!bg-warm-700">
                   <Avatar className="h-5 w-5" />
                   <Name className="text-xs" />
                 </ConnectWallet>
-                <WalletDropdown className="!rounded-[22px] !border-white/80 !bg-pampas !shadow-premium">
+                  <WalletDropdown className="!rounded-[22px] !border-sand/70 !bg-pampas !shadow-premium">
                   <Identity className="px-4 pb-2 pt-3" hasCopyAddressOnClick>
                     <Avatar />
                     <Name className="font-semibold text-warm-800" />
@@ -443,7 +443,7 @@ export default function Topbar() {
 
         <div className="flex flex-wrap items-center gap-2 px-4 py-3 lg:px-5">
           {statusPills.map((pill) => (
-            <span key={pill.label} className={cn("metric-chip border-white/60 bg-white/55", pill.tone)}>
+            <span key={pill.label} className={cn("metric-chip border-sand/70 bg-white/78", pill.tone)}>
               {pill.label}
             </span>
           ))}
@@ -465,7 +465,7 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/70 bg-white/70 px-3.5 text-[11px] font-semibold text-warm-700 transition hover:border-sand hover:text-warm-900"
+      className="inline-flex h-11 items-center gap-2 rounded-2xl border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,240,229,0.9))] px-3.5 text-[11px] font-semibold text-warm-700 transition hover:border-sand hover:text-warm-900"
     >
       <Icon size={13} className="text-terra" />
       <span className="hidden sm:inline">{label}</span>
@@ -484,7 +484,7 @@ function SearchSection({
 }) {
   return (
     <section className="py-1">
-      <div className="flex items-center gap-2 border-y border-sand/60 bg-cream/55 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">
+      <div className="flex items-center gap-2 border-y border-sand/60 bg-[linear-gradient(180deg,rgba(248,242,232,0.9),rgba(255,255,255,0.6))] px-5 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">
         <Icon size={11} className="text-terra" />
         {title}
       </div>

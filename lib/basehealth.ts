@@ -728,6 +728,18 @@ async function fetchCtGovStudies(opts: {
   return payload.studies || []
 }
 
+function dedupeCtGovStudies(studies: CtGovStudy[]): CtGovStudy[] {
+  const seen = new Set<string>()
+  const deduped: CtGovStudy[] = []
+  studies.forEach((study) => {
+    const id = study.protocolSection?.identificationModule?.nctId
+    if (!id || seen.has(id)) return
+    seen.add(id)
+    deduped.push(study)
+  })
+  return deduped
+}
+
 function scoreTrialStudies(
   studies: CtGovStudy[],
   opts: {
@@ -838,12 +850,24 @@ export async function matchClinicalTrials(input: TrialMatchInput = {}): Promise<
   if (!queryTerm && !locationQuery) return []
 
   try {
-    const studies = await fetchCtGovStudies({
-      queryTerm,
-      location: input.location?.trim(),
-      pageSize: locationQuery ? 60 : 20,
-    })
-    let matches = scoreTrialStudies(studies, {
+    const studies = locationQuery
+      ? dedupeCtGovStudies([
+          ...(await fetchCtGovStudies({
+            queryTerm,
+            location: input.location?.trim(),
+            pageSize: 60,
+          })),
+          ...(await fetchCtGovStudies({
+            queryTerm,
+            pageSize: 250,
+          })),
+        ])
+      : await fetchCtGovStudies({
+          queryTerm,
+          pageSize: 20,
+        })
+
+    const matches = scoreTrialStudies(studies, {
       age,
       locationQuery,
       parsedLocation,
@@ -852,22 +876,6 @@ export async function matchClinicalTrials(input: TrialMatchInput = {}): Promise<
       conditionText,
       inputCondition: input.condition,
     })
-
-    if (locationQuery && matches.length === 0) {
-      const fallbackStudies = await fetchCtGovStudies({
-        queryTerm,
-        pageSize: 120,
-      })
-      matches = scoreTrialStudies(fallbackStudies, {
-        age,
-        locationQuery,
-        parsedLocation,
-        conditionQuery,
-        conditionHistory,
-        conditionText,
-        inputCondition: input.condition,
-      })
-    }
 
     return matches.sort((a, b) => b.matchScore - a.matchScore).slice(0, 10)
   } catch {

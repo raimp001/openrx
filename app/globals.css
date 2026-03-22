@@ -149,11 +149,11 @@ a {
 @layer utilities {
   /* Core surface styles */
   .surface-card {
-    @apply rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,253,249,0.96),rgba(252,247,238,0.9))] shadow-soft-card backdrop-blur-sm;
+    @apply rounded-[28px] border border-sand/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(250,245,237,0.92))] shadow-soft-card backdrop-blur-sm;
     transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease, background 0.25s ease;
   }
   .surface-card:hover {
-    @apply shadow-card-hover border-white;
+    @apply shadow-card-hover border-sand/80;
   }
 
   .surface-muted {
@@ -169,11 +169,11 @@ a {
   }
 
   .metric-chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/70 px-3 py-1.5 text-[11px] font-semibold text-warm-700 shadow-sm;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-sand/70 bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-warm-700 shadow-sm;
   }
 
   .app-shell-panel {
-    @apply rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,253,249,0.88),rgba(249,242,232,0.82))] shadow-premium backdrop-blur-xl;
+    @apply rounded-[30px] border border-sand/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(249,242,232,0.86))] shadow-premium backdrop-blur-xl;
   }
 
   .app-shell-divider {

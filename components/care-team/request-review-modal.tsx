@@ -46,79 +46,79 @@ export default function RequestReviewModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#05090f]/70 backdrop-blur-sm px-4">
-      <div className="w-full max-w-3xl rounded-2xl border border-soft-blue/30 bg-[#081321] shadow-2xl shadow-soft-blue/20">
-        <div className="flex items-start justify-between border-b border-soft-blue/20 px-5 py-4">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-warm-900/20 backdrop-blur-sm px-4">
+      <div className="w-full max-w-3xl overflow-hidden rounded-[30px] border border-sand/80 bg-[linear-gradient(180deg,rgba(255,251,244,0.98),rgba(246,238,226,0.96))] shadow-[0_28px_60px_rgba(17,34,30,0.16)]">
+        <div className="flex items-start justify-between border-b border-sand/70 px-5 py-4">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.14em] text-soft-blue">Human Review Required</p>
-            <h3 className="mt-1 text-xl text-white">{request.agentName} needs decision support</h3>
-            <p className="mt-1 text-xs text-blue-100/80">Patient Ref: {request.context.patientIdHash.slice(0, 14)}…</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-soft-blue">Human Review Required</p>
+            <h3 className="mt-1 text-xl text-warm-800">{request.agentName} needs decision support</h3>
+            <p className="mt-1 text-xs text-warm-500">Patient Ref: {request.context.patientIdHash.slice(0, 14)}…</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-soft-blue/20 px-2 py-1 text-xs text-blue-100 hover:bg-soft-blue/10"
+            className="rounded-xl border border-sand/80 bg-white/70 px-3 py-1.5 text-xs font-semibold text-warm-700 hover:border-soft-blue/30 hover:text-warm-800"
           >
             Close
           </button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 px-5 py-4 lg:grid-cols-2">
-          <div className="space-y-3 rounded-xl border border-soft-blue/20 bg-[#0b1a2b] p-4">
-            <div className="flex items-center gap-2 text-xs text-blue-100/80">
+          <div className="space-y-3 rounded-[24px] border border-sand/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,237,227,0.9))] p-4">
+            <div className="flex items-center gap-2 text-xs text-warm-600">
               <AlertTriangle size={14} className="text-soft-blue" />
-              Workflow: <span className="font-semibold uppercase text-white">{request.context.workflow}</span>
+              Workflow: <span className="font-semibold uppercase text-warm-800">{request.context.workflow}</span>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-blue-200/70">Reason</p>
-              <p className="mt-1 text-sm text-blue-50">{request.context.reason}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Reason</p>
+              <p className="mt-1 text-sm text-warm-800">{request.context.reason}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-blue-200/70">Suggested Action</p>
-              <p className="mt-1 text-sm text-blue-50">{request.context.suggestedAction}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Suggested Action</p>
+              <p className="mt-1 text-sm text-warm-800">{request.context.suggestedAction}</p>
             </div>
           </div>
 
-          <div className="space-y-3 rounded-xl border border-soft-blue/20 bg-[#0b1a2b] p-4">
-            <label className="text-xs text-blue-100/80">
+          <div className="space-y-3 rounded-[24px] border border-sand/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,237,227,0.9))] p-4">
+            <label className="text-xs font-semibold text-warm-600">
               Reviewer note
               <textarea
                 rows={3}
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 placeholder="Add approval rationale, rejection notes, or edits..."
-                className="mt-1 w-full rounded-lg border border-soft-blue/25 bg-[#07101b] px-3 py-2 text-sm text-blue-50 focus:border-soft-blue focus:outline-none"
+                className="mt-1 w-full rounded-2xl border border-sand/80 bg-white/88 px-3 py-2 text-sm text-warm-800 placeholder:text-cloudy focus:border-soft-blue/35 focus:outline-none"
               />
             </label>
 
-            <label className="text-xs text-blue-100/80">
+            <label className="text-xs font-semibold text-warm-600">
               Edit action (only used for Edit)
               <textarea
                 rows={3}
                 value={editedAction}
                 onChange={(event) => setEditedAction(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-soft-blue/25 bg-[#07101b] px-3 py-2 text-sm text-blue-50 focus:border-soft-blue focus:outline-none"
+                className="mt-1 w-full rounded-2xl border border-sand/80 bg-white/88 px-3 py-2 text-sm text-warm-800 focus:border-soft-blue/35 focus:outline-none"
               />
             </label>
 
-            <label className="text-xs text-blue-100/80">
+            <label className="text-xs font-semibold text-warm-600">
               Browser URL override (optional)
               <input
                 value={editedBrowserUrl}
                 onChange={(event) => setEditedBrowserUrl(event.target.value)}
                 placeholder="https://"
-                className="mt-1 w-full rounded-lg border border-soft-blue/25 bg-[#07101b] px-3 py-2 text-sm text-blue-50 focus:border-soft-blue focus:outline-none"
+                className="mt-1 w-full rounded-2xl border border-sand/80 bg-white/88 px-3 py-2 text-sm text-warm-800 placeholder:text-cloudy focus:border-soft-blue/35 focus:outline-none"
               />
             </label>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-soft-blue/20 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-sand/70 px-5 py-4">
           <button
             type="button"
             disabled={submitting}
             onClick={() => void handleDecision("reject")}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/20 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-red-300/60 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
           >
             <XCircle size={13} /> Reject
           </button>
@@ -126,7 +126,7 @@ export default function RequestReviewModal({
             type="button"
             disabled={submitting}
             onClick={() => void handleDecision("edit")}
-            className="inline-flex items-center gap-2 rounded-lg border border-yellow-400/35 bg-yellow-500/10 px-3 py-2 text-xs font-semibold text-yellow-200 hover:bg-yellow-500/20 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
           >
             <Edit3 size={13} /> Edit
           </button>
@@ -134,7 +134,7 @@ export default function RequestReviewModal({
             type="button"
             disabled={submitting}
             onClick={() => void handleDecision("approve")}
-            className="inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/20 px-3 py-2 text-xs font-semibold text-emerald-100 hover:bg-accent/30 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-accent/35 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent hover:bg-accent/15 disabled:opacity-50"
           >
             <CheckCircle2 size={13} /> Approve
           </button>

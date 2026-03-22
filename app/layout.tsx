@@ -1,22 +1,22 @@
 import type { Metadata, Viewport } from "next"
-import { Instrument_Serif, Sora } from "next/font/google"
+import { Public_Sans, Source_Serif_4 } from "next/font/google"
 // OnchainKit styles omitted — v1.x uses Tailwind v4 which conflicts with our v3
 // Components use internal styling instead
 import "./globals.css"
 import { Providers } from "./providers"
 
-const sora = Sora({
+const publicSans = Public_Sans({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
   weight: ["300", "400", "500", "600", "700", "800"],
 })
 
-const instrumentSerif = Instrument_Serif({
+const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-serif",
-  weight: ["400"],
+  weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
 })
 
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0b1914",
+  themeColor: "#f6efe4",
 }
 
 export default function RootLayout({
@@ -45,7 +45,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${sora.variable} ${instrumentSerif.variable} min-h-screen bg-cream text-warm-800 antialiased`}>
+      <body className={`${publicSans.variable} ${sourceSerif.variable} min-h-screen bg-cream text-warm-800 antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

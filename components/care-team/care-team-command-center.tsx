@@ -305,7 +305,7 @@ export default function CareTeamCommandCenter() {
   return (
     <div className="space-y-3">
       {showGuide && (
-        <div className="rounded-xl border border-soft-blue/35 bg-soft-blue/10 px-3 py-2 text-xs text-blue-100">
+        <div className="rounded-[22px] border border-soft-blue/25 bg-soft-blue/10 px-3 py-2 text-xs text-warm-700">
           <div className="flex items-start justify-between gap-3">
             <p>
               Supervise your AI care team like a terminal. <span className="font-semibold">Blue glow = your attention needed.</span>
@@ -313,7 +313,7 @@ export default function CareTeamCommandCenter() {
             <button
               type="button"
               onClick={() => setShowGuide(false)}
-              className="shrink-0 rounded-md border border-soft-blue/35 px-2 py-0.5 text-[11px] hover:bg-soft-blue/15"
+              className="shrink-0 rounded-xl border border-soft-blue/30 bg-white/75 px-2.5 py-1 text-[11px] font-semibold hover:bg-soft-blue/10"
             >
               Dismiss
             </button>
@@ -321,11 +321,11 @@ export default function CareTeamCommandCenter() {
         </div>
       )}
 
-      <div className="surface-card overflow-hidden border-[#1a3857] bg-[#071222] text-blue-50">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#244463] px-4 py-3">
+      <div className="surface-card overflow-hidden border-soft-blue/20 bg-[linear-gradient(180deg,rgba(255,250,244,0.98),rgba(243,236,225,0.95))] text-warm-800">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sand/70 px-4 py-4">
           <div>
-            <h2 className="text-lg text-blue-50">AI Care Team Command Center</h2>
-            <p className="text-xs text-blue-200/80">
+            <h2 className="text-lg text-warm-800">AI Care Team Command Center</h2>
+            <p className="text-xs text-warm-600">
               Supervise OpenClaw agents in real time. Blue glow means a human decision is required.
             </p>
           </div>
@@ -333,14 +333,14 @@ export default function CareTeamCommandCenter() {
             <button
               type="button"
               onClick={() => setSoundEnabled((value) => !value)}
-              className="inline-flex items-center gap-2 rounded-lg border border-[#295176] bg-[#0b1b31] px-3 py-1.5 text-xs font-semibold text-blue-100 hover:border-soft-blue"
+              className="inline-flex items-center gap-2 rounded-xl border border-sand/80 bg-white/75 px-3 py-1.5 text-xs font-semibold text-warm-700 hover:border-soft-blue/30"
             >
               {soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />} Chime
             </button>
             <button
               type="button"
               onClick={() => void refresh()}
-              className="inline-flex items-center gap-2 rounded-lg border border-[#295176] bg-[#0b1b31] px-3 py-1.5 text-xs font-semibold text-blue-100 hover:border-soft-blue"
+              className="inline-flex items-center gap-2 rounded-xl border border-sand/80 bg-white/75 px-3 py-1.5 text-xs font-semibold text-warm-700 hover:border-soft-blue/30"
             >
               <Workflow size={13} /> Refresh
             </button>
@@ -348,7 +348,7 @@ export default function CareTeamCommandCenter() {
               type="button"
               onClick={() => void handleDemoRun()}
               disabled={demoRunning}
-              className="inline-flex items-center gap-2 rounded-lg border border-soft-blue/40 bg-soft-blue/15 px-3 py-1.5 text-xs font-semibold text-blue-100 hover:bg-soft-blue/25 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-soft-blue/35 bg-soft-blue/10 px-3 py-1.5 text-xs font-semibold text-soft-blue hover:bg-soft-blue/15 disabled:opacity-50"
             >
               <Siren size={13} /> {demoRunning ? "Demo running" : "Run 60s demo"}
             </button>
@@ -357,14 +357,14 @@ export default function CareTeamCommandCenter() {
 
         <div className="h-[74vh] min-h-[680px]">
           <div className="grid h-full min-h-0 grid-cols-[280px_1fr]">
-            <aside className="flex min-h-0 flex-col border-r border-[#244463] bg-[#06101d]">
+            <aside className="flex min-h-0 flex-col border-r border-sand/70 bg-[linear-gradient(180deg,rgba(255,253,248,0.9),rgba(245,238,227,0.94))]">
               <div className="flex items-center justify-between px-3 py-2">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-blue-200/70">AI Specialists</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">AI Specialists</p>
                 <button
                   type="button"
                   onClick={() => void handleCreateCustomAgent()}
                   disabled={creatingAgent}
-                  className="rounded-md border border-[#2a5579] p-1 text-blue-100 hover:border-soft-blue disabled:opacity-50"
+                  className="rounded-lg border border-sand/80 bg-white/70 p-1 text-warm-700 hover:border-soft-blue/30 disabled:opacity-50"
                   aria-label="Add custom agent"
                 >
                   {creatingAgent ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
@@ -395,21 +395,21 @@ export default function CareTeamCommandCenter() {
                       className={cn(
                         "relative w-full rounded-xl border px-2.5 py-2 text-left transition",
                         isActive
-                          ? "border-soft-blue/55 bg-[#0c1f35]"
-                          : "border-[#1f3e5b] bg-[#081626] hover:border-[#35668f]",
+                          ? "border-soft-blue/35 bg-soft-blue/10 shadow-[0_10px_18px_rgba(42,124,167,0.08)]"
+                          : "border-sand/80 bg-white/76 hover:border-soft-blue/25 hover:bg-white/90",
                         needsInput && "care-team-needs-input"
                       )}
                     >
                       <div className="flex items-center gap-2">
-                        <div className="grid h-8 w-8 place-items-center rounded-full border border-soft-blue/40 bg-[#0f2740] text-[10px] font-bold text-soft-blue">
+                        <div className="grid h-8 w-8 place-items-center rounded-full border border-soft-blue/30 bg-soft-blue/10 text-[10px] font-bold text-soft-blue">
                           {agentInitials(agent.name)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-semibold text-blue-50">{agent.name}</p>
-                          <p className="truncate text-[10px] text-blue-200/70">{agent.role}</p>
+                          <p className="truncate text-xs font-semibold text-warm-800">{agent.name}</p>
+                          <p className="truncate text-[10px] text-warm-500">{agent.role}</p>
                         </div>
                         {agent.unreadCount > 0 && (
-                          <span className="rounded-full bg-soft-blue px-1.5 py-0.5 text-[9px] font-bold text-[#06101d]">
+                          <span className="rounded-full bg-soft-blue px-1.5 py-0.5 text-[9px] font-bold text-white">
                             {agent.unreadCount}
                           </span>
                         )}
@@ -420,13 +420,13 @@ export default function CareTeamCommandCenter() {
                           className={cn(
                             "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase",
                             agent.status === "running" && "bg-accent/20 text-accent",
-                            agent.status === "paused" && "bg-yellow-500/20 text-yellow-300",
+                            agent.status === "paused" && "bg-amber-100 text-amber-700",
                             agent.status === "needs_input" && "bg-soft-blue/20 text-soft-blue"
                           )}
                         >
                           {agent.status === "running" ? "running" : agent.status === "paused" ? "paused" : "needs input"}
                         </span>
-                        <ChevronRight size={12} className="text-blue-200/60" />
+                        <ChevronRight size={12} className="text-warm-400" />
                       </div>
                     </button>
                   )
@@ -441,22 +441,22 @@ export default function CareTeamCommandCenter() {
                 minPercent={30}
                 maxPercent={70}
                 first={
-                  <div className="flex h-full min-h-0 flex-col bg-[#081626]">
-                    <div className="flex items-center justify-between border-b border-[#224261] px-4 py-3">
+                  <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,252,248,0.92),rgba(244,237,226,0.94))]">
+                    <div className="flex items-center justify-between border-b border-sand/70 px-4 py-3">
                       <div>
-                        <p className="text-[11px] uppercase tracking-[0.14em] text-blue-200/70">Agent Log / Chat</p>
-                        <p className="mt-1 text-sm font-semibold text-blue-50">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Agent Log / Chat</p>
+                        <p className="mt-1 text-sm font-semibold text-warm-800">
                           {selectedAgent ? `${selectedAgent.name} · ${selectedAgent.role}` : "Select an agent"}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] text-blue-200/70">
-                        {connected ? <PlayCircle size={13} className="text-accent" /> : <PauseCircle size={13} className="text-yellow-300" />}
+                      <div className="flex items-center gap-2 text-[11px] text-warm-500">
+                        {connected ? <PlayCircle size={13} className="text-accent" /> : <PauseCircle size={13} className="text-amber-600" />}
                         {connected ? "Realtime" : "Polling fallback"}
                       </div>
                     </div>
 
                     {activeRequest && (
-                      <div className="border-b border-red-400/30 bg-red-500/15 px-4 py-3 text-red-100 care-team-banner-pulse">
+                      <div className="border-b border-red-300/50 bg-red-50 px-4 py-3 text-red-700 care-team-banner-pulse">
                         <p className="text-xs font-bold uppercase tracking-[0.14em]">AI Agent Needs Your Input</p>
                         <p className="mt-1 text-sm">
                           Review for Patient {shortHash(activeRequest.context.patientIdHash)} · {activeRequest.context.workflow.toUpperCase()} · {activeRequest.agentName}
@@ -465,21 +465,21 @@ export default function CareTeamCommandCenter() {
                           <button
                             type="button"
                             onClick={() => void quickDecision(activeRequest, "approve")}
-                            className="rounded-md border border-emerald-300/40 bg-emerald-500/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-100"
+                            className="rounded-lg border border-emerald-300/70 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700"
                           >
                             Approve
                           </button>
                           <button
                             type="button"
                             onClick={() => void quickDecision(activeRequest, "reject")}
-                            className="rounded-md border border-red-300/40 bg-red-500/20 px-2.5 py-1 text-[11px] font-semibold text-red-100"
+                            className="rounded-lg border border-red-300/70 bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700"
                           >
                             Reject
                           </button>
                           <button
                             type="button"
                             onClick={() => setReviewTarget(activeRequest)}
-                            className="rounded-md border border-soft-blue/50 bg-soft-blue/20 px-2.5 py-1 text-[11px] font-semibold text-blue-100"
+                            className="rounded-lg border border-soft-blue/30 bg-soft-blue/10 px-2.5 py-1 text-[11px] font-semibold text-soft-blue"
                           >
                             Open Full Context
                           </button>
@@ -489,7 +489,7 @@ export default function CareTeamCommandCenter() {
 
                     <div className={cn("min-h-0 flex-1 overflow-y-auto p-3", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}>
                       {activityFeed.length === 0 ? (
-                        <div className="flex h-full items-center justify-center text-xs text-blue-200/70">
+                        <div className="flex h-full items-center justify-center text-xs text-warm-500">
                           Waiting for agent activity...
                         </div>
                       ) : (
@@ -501,12 +501,12 @@ export default function CareTeamCommandCenter() {
                                 "rounded-xl border px-3 py-2",
                                 entry.type === "needs_input"
                                   ? "border-soft-blue/50 bg-soft-blue/10"
-                                  : "border-[#224261] bg-[#0a1c30]"
+                                  : "border-sand/75 bg-white/76"
                               )}
                             >
-                              <p className="text-xs font-semibold text-blue-50">{entry.title}</p>
-                              <p className="mt-1 text-[11px] text-blue-200/80">{entry.detail}</p>
-                              <p className="mt-1 text-[10px] text-blue-200/60">{new Date(entry.timestamp).toLocaleTimeString()}</p>
+                              <p className="text-xs font-semibold text-warm-800">{entry.title}</p>
+                              <p className="mt-1 text-[11px] text-warm-600">{entry.detail}</p>
+                              <p className="mt-1 text-[10px] text-warm-400">{new Date(entry.timestamp).toLocaleTimeString()}</p>
                             </article>
                           ))}
                         </div>
@@ -521,9 +521,9 @@ export default function CareTeamCommandCenter() {
                     minPercent={35}
                     maxPercent={80}
                     first={
-                      <div className={cn("flex h-full min-h-0 flex-col bg-[#071424]", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}
+                      <div className={cn("flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,252,248,0.94),rgba(242,235,224,0.96))]", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}
                       >
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#224261] px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sand/70 px-4 py-3">
                           <div className="flex items-center gap-2">
                             {["patient", "claim", "record"].map((tab) => (
                               <button
@@ -533,51 +533,51 @@ export default function CareTeamCommandCenter() {
                                 className={cn(
                                   "rounded-lg border px-2.5 py-1 text-[11px] font-semibold uppercase",
                                   viewerTab === tab
-                                    ? "border-soft-blue/50 bg-soft-blue/20 text-blue-100"
-                                    : "border-[#2a4d6d] bg-[#0a1d30] text-blue-200/70"
+                                    ? "border-soft-blue/35 bg-soft-blue/10 text-soft-blue"
+                                    : "border-sand/80 bg-white/74 text-warm-600"
                                 )}
                               >
                                 {tab}
                               </button>
                             ))}
                           </div>
-                          <p className="text-[11px] text-blue-200/70">No PHI shown. References are hashed.</p>
+                          <p className="text-[11px] text-warm-500">No PHI shown. References are hashed.</p>
                         </div>
 
                         <div className="min-h-0 flex-1 overflow-y-auto p-4">
                           {!activeRequest ? (
-                            <div className="flex h-full items-center justify-center text-sm text-blue-200/70">
+                            <div className="flex h-full items-center justify-center text-sm text-warm-500">
                               No active request for this agent.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                              <div className="rounded-xl border border-[#2a4f72] bg-[#0a1d30] p-3">
-                                <p className="text-[11px] uppercase tracking-[0.14em] text-blue-200/70">Patient Reference</p>
-                                <p className="mt-1 text-sm text-blue-50">{shortHash(activeRequest.context.patientIdHash)}</p>
+                              <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Patient Reference</p>
+                                <p className="mt-1 text-sm text-warm-800">{shortHash(activeRequest.context.patientIdHash)}</p>
                               </div>
-                              <div className="rounded-xl border border-[#2a4f72] bg-[#0a1d30] p-3">
-                                <p className="text-[11px] uppercase tracking-[0.14em] text-blue-200/70">Workflow</p>
-                                <p className="mt-1 text-sm text-blue-50">{activeRequest.context.workflow.toUpperCase()}</p>
+                              <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Workflow</p>
+                                <p className="mt-1 text-sm text-warm-800">{activeRequest.context.workflow.toUpperCase()}</p>
                               </div>
                               {activeRequest.context.claimIdHash && (
-                                <div className="rounded-xl border border-[#2a4f72] bg-[#0a1d30] p-3">
-                                  <p className="text-[11px] uppercase tracking-[0.14em] text-blue-200/70">Claim Ref</p>
-                                  <p className="mt-1 text-sm text-blue-50">{shortHash(activeRequest.context.claimIdHash)}</p>
+                                <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Claim Ref</p>
+                                  <p className="mt-1 text-sm text-warm-800">{shortHash(activeRequest.context.claimIdHash)}</p>
                                 </div>
                               )}
                               {activeRequest.context.recordIdHash && (
-                                <div className="rounded-xl border border-[#2a4f72] bg-[#0a1d30] p-3">
-                                  <p className="text-[11px] uppercase tracking-[0.14em] text-blue-200/70">Record Ref</p>
-                                  <p className="mt-1 text-sm text-blue-50">{shortHash(activeRequest.context.recordIdHash)}</p>
+                                <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Record Ref</p>
+                                  <p className="mt-1 text-sm text-warm-800">{shortHash(activeRequest.context.recordIdHash)}</p>
                                 </div>
                               )}
-                              <div className="rounded-xl border border-[#2a4f72] bg-[#0a1d30] p-3 md:col-span-2">
-                                <p className="text-[11px] uppercase tracking-[0.14em] text-blue-200/70">Reason</p>
-                                <p className="mt-1 text-sm text-blue-50">{activeRequest.context.reason}</p>
+                              <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3 md:col-span-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Reason</p>
+                                <p className="mt-1 text-sm text-warm-800">{activeRequest.context.reason}</p>
                               </div>
-                              <div className="rounded-xl border border-[#2a4f72] bg-[#0a1d30] p-3 md:col-span-2">
-                                <p className="text-[11px] uppercase tracking-[0.14em] text-blue-200/70">Suggested Resolution</p>
-                                <p className="mt-1 text-sm text-blue-50">{activeRequest.context.suggestedAction}</p>
+                              <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3 md:col-span-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Suggested Resolution</p>
+                                <p className="mt-1 text-sm text-warm-800">{activeRequest.context.suggestedAction}</p>
                               </div>
                             </div>
                           )}
@@ -585,16 +585,16 @@ export default function CareTeamCommandCenter() {
                       </div>
                     }
                     second={
-                      <div className={cn("flex h-full min-h-0 flex-col bg-[#06101d]", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}
+                      <div className={cn("flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,252,247,0.94),rgba(242,235,224,0.96))]", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}
                       >
-                        <div className="flex items-center justify-between border-b border-[#224261] px-4 py-2.5">
-                          <div className="flex items-center gap-2 text-xs text-blue-200/80">
+                        <div className="flex items-center justify-between border-b border-sand/70 px-4 py-2.5">
+                          <div className="flex items-center gap-2 text-xs text-warm-600">
                             <Globe size={13} /> Embedded Browser
                           </div>
                           <button
                             type="button"
                             onClick={() => setShowBrowser((value) => !value)}
-                            className="rounded-md border border-[#2a5579] px-2 py-1 text-[11px] text-blue-100 hover:border-soft-blue"
+                            className="rounded-lg border border-sand/80 bg-white/74 px-2.5 py-1 text-[11px] font-semibold text-warm-700 hover:border-soft-blue/30"
                           >
                             {showBrowser ? "Hide" : "Show"}
                           </button>
@@ -602,8 +602,8 @@ export default function CareTeamCommandCenter() {
 
                         <div className="min-h-0 flex-1 p-2">
                           {showBrowser && activeRequest?.context.browser?.url ? (
-                            <div className="h-full overflow-hidden rounded-lg border border-[#2a5579] bg-[#0a1d30]">
-                              <div className="flex items-center justify-between border-b border-[#2a5579] px-2 py-1.5 text-[10px] text-blue-200/70">
+                            <div className="h-full overflow-hidden rounded-[20px] border border-sand/75 bg-white/80">
+                              <div className="flex items-center justify-between border-b border-sand/70 px-2 py-1.5 text-[10px] text-warm-500">
                                 <span className="truncate">{activeRequest.context.browser.url}</span>
                                 <span className="inline-flex items-center gap-1">
                                   <Monitor size={11} /> sandboxed
@@ -618,7 +618,7 @@ export default function CareTeamCommandCenter() {
                               />
                             </div>
                           ) : (
-                            <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-[#2a5579] text-xs text-blue-200/70">
+                            <div className="flex h-full items-center justify-center rounded-[20px] border border-dashed border-sand/80 text-xs text-warm-500">
                               Browser pane is ready. Agents can attach portal URLs for rapid review.
                             </div>
                           )}
@@ -634,25 +634,25 @@ export default function CareTeamCommandCenter() {
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <div className="rounded-xl border border-[#2a5579] bg-[#071222] px-3 py-2 text-xs text-blue-200/80">
-          <p className="font-semibold text-blue-100">Connection</p>
+        <div className="rounded-[22px] border border-sand/75 bg-white/80 px-3 py-2 text-xs text-warm-600">
+          <p className="font-semibold text-warm-800">Connection</p>
           <p className="mt-1 inline-flex items-center gap-2">
-            {connected ? <Bot size={12} className="text-accent" /> : <AlertTriangle size={12} className="text-yellow-300" />}
+            {connected ? <Bot size={12} className="text-accent" /> : <AlertTriangle size={12} className="text-amber-600" />}
             {connected ? "Realtime feed active" : "Realtime unavailable, fallback polling active"}
           </p>
         </div>
-        <div className="rounded-xl border border-[#2a5579] bg-[#071222] px-3 py-2 text-xs text-blue-200/80">
-          <p className="font-semibold text-blue-100">Pending Human Reviews</p>
+        <div className="rounded-[22px] border border-sand/75 bg-white/80 px-3 py-2 text-xs text-warm-600">
+          <p className="font-semibold text-warm-800">Pending Human Reviews</p>
           <p className="mt-1 text-lg font-bold text-soft-blue">{needsInputCount}</p>
         </div>
-        <div className="rounded-xl border border-[#2a5579] bg-[#071222] px-3 py-2 text-xs text-blue-200/80">
-          <p className="font-semibold text-blue-100">Operator Guide</p>
+        <div className="rounded-[22px] border border-sand/75 bg-white/80 px-3 py-2 text-xs text-warm-600">
+          <p className="font-semibold text-warm-800">Operator Guide</p>
           <p className="mt-1">Blue glow = needs input. Use Approve / Reject / Edit to resume paused workflows.</p>
         </div>
       </div>
 
       {(error || actionError) && (
-        <div className="rounded-xl border border-soft-red/35 bg-soft-red/10 px-3 py-2 text-xs text-red-100">
+        <div className="rounded-[22px] border border-soft-red/35 bg-soft-red/10 px-3 py-2 text-xs text-red-700">
           {error || actionError}
         </div>
       )}

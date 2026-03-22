@@ -51,10 +51,10 @@ function InsightNode({ data }: NodeProps<{ label: string; insight: string }>) {
   return (
     <div
       title={data.insight}
-      className="rounded-xl border border-slate-500/40 bg-[#141b22] px-3 py-2 text-[11px] text-slate-100 shadow"
+      className="rounded-[18px] border border-sand/80 bg-[linear-gradient(180deg,rgba(255,250,242,0.98),rgba(243,235,224,0.96))] px-3 py-2 text-[11px] text-warm-800 shadow-[0_12px_24px_rgba(17,34,30,0.08)]"
     >
       <div className="font-semibold">{data.label}</div>
-      <div className="mt-1 line-clamp-2 text-[10px] text-slate-400">{data.insight}</div>
+      <div className="mt-1 line-clamp-2 text-[10px] text-warm-500">{data.insight}</div>
     </div>
   )
 }
@@ -344,11 +344,11 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
 
   return (
     <div className={cn("space-y-5", props.className)}>
-      <div className="rounded-2xl border border-slate-700 bg-[#0f141b] p-5 text-slate-100 shadow-2xl">
+      <div className="surface-card p-5 text-warm-800 shadow-[0_20px_48px_rgba(17,34,30,0.1)]">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">AI Agent Codebase Mapper & Visualizer</h1>
-            <p className="mt-1 text-sm text-slate-300">
+            <h1 className="text-2xl tracking-tight text-warm-800">AI Agent Codebase Mapper & Visualizer</h1>
+            <p className="mt-1 text-sm text-warm-600">
               One-click architecture mapping with interactive diagrams, AI insights, exports, and follow-up analysis.
             </p>
           </div>
@@ -363,28 +363,28 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
         </div>
 
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          <label className="text-xs text-slate-300">
+          <label className="text-xs font-semibold text-warm-600">
             GitHub repo URL
             <input
               value={repoUrl}
               onChange={(event) => setRepoUrl(event.target.value)}
               placeholder="https://github.com/org/repo"
-              className="mt-1 w-full rounded-xl border border-slate-600 bg-[#111923] px-3 py-2 text-sm text-slate-100 focus:border-terra/60 focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-sand/80 bg-white/82 px-3 py-2 text-sm text-warm-800 placeholder:text-cloudy focus:border-terra/40 focus:outline-none"
             />
           </label>
-          <label className="text-xs text-slate-300">
+          <label className="text-xs font-semibold text-warm-600">
             GitHub token (optional for private repo)
             <input
               value={githubToken}
               onChange={(event) => setGithubToken(event.target.value)}
               placeholder="ghp_xxx"
-              className="mt-1 w-full rounded-xl border border-slate-600 bg-[#111923] px-3 py-2 text-sm text-slate-100 focus:border-terra/60 focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-sand/80 bg-white/82 px-3 py-2 text-sm text-warm-800 placeholder:text-cloudy focus:border-terra/40 focus:outline-none"
             />
           </label>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-600 bg-[#111923] px-3 py-2 text-xs text-slate-300">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-sand/80 bg-white/80 px-3 py-2 text-xs font-semibold text-warm-700">
             <Upload size={13} />
             Upload .zip
             <input
@@ -397,11 +397,11 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
               }}
             />
           </label>
-          {archiveFile && <span className="text-xs text-slate-400">{archiveFile.name}</span>}
+          {archiveFile && <span className="text-xs text-warm-500">{archiveFile.name}</span>}
         </div>
 
         <div className="mt-3">
-          <p className="text-xs text-slate-300">Focus areas</p>
+          <p className="text-xs font-semibold text-warm-600">Focus areas</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {VISUALIZER_FOCUS_AREAS.map((area) => {
               const active = focusAreas.includes(area.id)
@@ -412,8 +412,8 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                   className={cn(
                     "rounded-full border px-3 py-1.5 text-[11px] font-semibold transition",
                     active
-                      ? "border-terra/50 bg-terra/15 text-terra-light"
-                      : "border-slate-600 bg-[#111923] text-slate-300 hover:border-slate-400"
+                      ? "border-terra/35 bg-terra/10 text-terra"
+                      : "border-sand/80 bg-white/78 text-warm-600 hover:border-terra/30"
                   )}
                   title={area.description}
                 >
@@ -424,18 +424,18 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl border border-slate-700 bg-[#0a1018] p-3">
-          <div className="flex items-center justify-between text-[11px] text-slate-400">
+        <div className="mt-4 rounded-[24px] border border-sand/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,236,224,0.9))] p-3">
+          <div className="flex items-center justify-between text-[11px] text-warm-500">
             <span>Agent progress</span>
             <span>{progress}%</span>
           </div>
-          <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-800">
+          <div className="mt-1 h-2 overflow-hidden rounded-full bg-sand/70">
             <div
               className="h-full rounded-full bg-gradient-to-r from-terra via-accent to-soft-blue transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div ref={logRef} className="mt-2 max-h-28 overflow-auto rounded-lg border border-slate-800 bg-[#050a10] p-2 text-[11px] text-slate-400">
+          <div ref={logRef} className="mt-2 max-h-28 overflow-auto rounded-2xl border border-sand/75 bg-white/80 p-2 text-[11px] text-warm-500">
             {logs.length === 0 ? (
               <p>Waiting for mapper execution...</p>
             ) : (
@@ -453,19 +453,19 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
 
       {mapping && activeDiagram && (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="rounded-2xl border border-slate-700 bg-[#0f141b] p-4 text-slate-100">
+          <div className="surface-card p-4 text-warm-800">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{mapping.summary.repoName}</p>
-                <h2 className="text-lg font-semibold">{activeDiagram.title}</h2>
-                <p className="text-xs text-slate-400">{activeDiagram.description}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cloudy">{mapping.summary.repoName}</p>
+                <h2 className="text-lg font-semibold text-warm-800">{activeDiagram.title}</h2>
+                <p className="text-xs text-warm-500">{activeDiagram.description}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setViewMode("graph")}
                   className={cn(
                     "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
-                    viewMode === "graph" ? "border-terra/40 bg-terra/10 text-terra-light" : "border-slate-600 text-slate-300"
+                    viewMode === "graph" ? "border-terra/35 bg-terra/10 text-terra" : "border-sand/80 bg-white/75 text-warm-600"
                   )}
                 >
                   Graph
@@ -474,7 +474,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                   onClick={() => setViewMode("mermaid")}
                   className={cn(
                     "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
-                    viewMode === "mermaid" ? "border-terra/40 bg-terra/10 text-terra-light" : "border-slate-600 text-slate-300"
+                    viewMode === "mermaid" ? "border-terra/35 bg-terra/10 text-terra" : "border-sand/80 bg-white/75 text-warm-600"
                   )}
                 >
                   Mermaid
@@ -494,8 +494,8 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                   className={cn(
                     "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
                     activeDiagramId === diagram.id
-                      ? "border-terra/40 bg-terra/10 text-terra-light"
-                      : "border-slate-600 text-slate-300"
+                      ? "border-terra/35 bg-terra/10 text-terra"
+                      : "border-sand/80 bg-white/75 text-warm-600"
                   )}
                 >
                   {diagram.title}
@@ -505,35 +505,35 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <div className="relative">
-                <Search size={13} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Search size={13} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-warm-400" />
                 <input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search nodes"
-                  className="rounded-lg border border-slate-600 bg-[#111923] py-1.5 pl-7 pr-2 text-xs text-slate-100"
+                  className="rounded-xl border border-sand/80 bg-white/80 py-1.5 pl-7 pr-2 text-xs text-warm-800"
                 />
               </div>
               <button
                 onClick={() => void improveCurrentDiagram()}
                 disabled={improveLoading}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-600 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 hover:border-terra/40"
+                className="inline-flex items-center gap-1 rounded-xl border border-sand/80 bg-white/80 px-2.5 py-1.5 text-[11px] font-semibold text-warm-700 hover:border-terra/30"
               >
                 {improveLoading ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
                 Improve this diagram
               </button>
-              <button onClick={() => exportRaw("mermaid")} className="inline-flex items-center gap-1 rounded-lg border border-slate-600 px-2.5 py-1.5 text-[11px]">
+              <button onClick={() => exportRaw("mermaid")} className="inline-flex items-center gap-1 rounded-xl border border-sand/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-warm-700">
                 <FileCode2 size={12} /> Mermaid
               </button>
-              <button onClick={() => exportRaw("json")} className="inline-flex items-center gap-1 rounded-lg border border-slate-600 px-2.5 py-1.5 text-[11px]">
+              <button onClick={() => exportRaw("json")} className="inline-flex items-center gap-1 rounded-xl border border-sand/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-warm-700">
                 <Download size={12} /> JSON
               </button>
-              <button onClick={() => void exportAs("png")} className="inline-flex items-center gap-1 rounded-lg border border-slate-600 px-2.5 py-1.5 text-[11px]">PNG</button>
-              <button onClick={() => void exportAs("svg")} className="inline-flex items-center gap-1 rounded-lg border border-slate-600 px-2.5 py-1.5 text-[11px]">SVG</button>
-              <button onClick={() => void exportAs("pdf")} className="inline-flex items-center gap-1 rounded-lg border border-slate-600 px-2.5 py-1.5 text-[11px]">PDF</button>
-              <button onClick={() => void copyEmbedLink()} className="inline-flex items-center gap-1 rounded-lg border border-slate-600 px-2.5 py-1.5 text-[11px]">Copy embed link</button>
+              <button onClick={() => void exportAs("png")} className="inline-flex items-center gap-1 rounded-xl border border-sand/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-warm-700">PNG</button>
+              <button onClick={() => void exportAs("svg")} className="inline-flex items-center gap-1 rounded-xl border border-sand/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-warm-700">SVG</button>
+              <button onClick={() => void exportAs("pdf")} className="inline-flex items-center gap-1 rounded-xl border border-sand/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-warm-700">PDF</button>
+              <button onClick={() => void copyEmbedLink()} className="inline-flex items-center gap-1 rounded-xl border border-sand/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-warm-700">Copy embed link</button>
             </div>
 
-            <div ref={diagramRef} className="mt-3 h-[620px] overflow-hidden rounded-xl border border-slate-700 bg-[#0a1018]">
+            <div ref={diagramRef} className="mt-3 h-[620px] overflow-hidden rounded-[24px] border border-sand/75 bg-[linear-gradient(180deg,rgba(255,250,242,0.98),rgba(243,235,224,0.96))]">
               {viewMode === "graph" ? (
                 <ReactFlow
                   nodes={visibleNodes}
@@ -542,11 +542,11 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                   fitView
                   proOptions={{ hideAttribution: true }}
                   nodeTypes={nodeTypes}
-                  className="!bg-[#0a1018]"
+                  className="!bg-[#fbf5ea]"
                 >
-                  <MiniMap className="!bg-[#0f1723]" />
-                  <Controls className="!bg-[#111923]" />
-                  <Background color="#2f3d4f" gap={24} />
+                  <MiniMap className="!bg-[#f2eadf]" />
+                  <Controls className="!bg-[#fffaf2]" />
+                  <Background color="#c7b595" gap={24} />
                 </ReactFlow>
               ) : (
                 <div className="h-full overflow-auto p-2">
@@ -557,7 +557,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
 
             <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {activeDiagram.insights.map((insight) => (
-                <div key={insight} className="rounded-lg border border-slate-700 bg-[#111923] p-2 text-[11px] text-slate-300">
+                <div key={insight} className="rounded-[18px] border border-sand/75 bg-white/80 p-2 text-[11px] text-warm-600">
                   {insight}
                 </div>
               ))}
@@ -565,21 +565,21 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-700 bg-[#0f141b] p-4 text-slate-100">
-              <h3 className="text-sm font-semibold">Node Inspector</h3>
+            <div className="surface-card p-4 text-warm-800">
+              <h3 className="text-sm font-semibold text-warm-800">Node Inspector</h3>
               {!selectedNode ? (
-                <p className="mt-2 text-xs text-slate-400">Click any node to inspect snippet + AI insight.</p>
+                <p className="mt-2 text-xs text-warm-500">Click any node to inspect snippet + AI insight.</p>
               ) : (
                 <div className="mt-2 space-y-2">
-                  <p className="text-sm font-semibold">{selectedNode.data.label}</p>
-                  <p className="text-xs text-slate-300">{selectedNode.data.insight}</p>
+                  <p className="text-sm font-semibold text-warm-800">{selectedNode.data.label}</p>
+                  <p className="text-xs text-warm-600">{selectedNode.data.insight}</p>
                   {selectedNode.data.filePath && (
-                    <p className="rounded bg-[#111923] px-2 py-1 text-[11px] text-terra-light">
+                    <p className="rounded-xl bg-cream px-2 py-1 text-[11px] text-terra">
                       {selectedNode.data.filePath}
                     </p>
                   )}
                   {selectedNode.data.snippet && (
-                    <pre className="max-h-52 overflow-auto rounded-lg border border-slate-700 bg-[#0a1018] p-2 text-[10px] text-slate-300">
+                    <pre className="max-h-52 overflow-auto rounded-2xl border border-sand/75 bg-[#f9f2e7] p-2 text-[10px] text-warm-700">
                       {selectedNode.data.snippet}
                     </pre>
                   )}
@@ -587,14 +587,14 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-700 bg-[#0f141b] p-4 text-slate-100">
+            <div className="surface-card p-4 text-warm-800">
               <div className="flex items-center gap-2">
-                <Bot size={14} className="text-terra-light" />
-                <h3 className="text-sm font-semibold">Ask the Mapper</h3>
+                <Bot size={14} className="text-terra" />
+                <h3 className="text-sm font-semibold text-warm-800">Ask the Mapper</h3>
               </div>
-              <div className="mt-3 max-h-64 space-y-2 overflow-auto rounded-lg border border-slate-700 bg-[#0a1018] p-2">
+              <div className="mt-3 max-h-64 space-y-2 overflow-auto rounded-2xl border border-sand/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,236,224,0.9))] p-2">
                 {chatMessages.length === 0 ? (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-warm-500">
                     Ask: &ldquo;focus on payment flow&rdquo;, &ldquo;show agent bottlenecks&rdquo;, or &ldquo;highlight security boundaries&rdquo;.
                   </p>
                 ) : (
@@ -604,11 +604,11 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                       className={cn(
                         "rounded-lg p-2 text-xs",
                         message.role === "user"
-                          ? "bg-terra/15 text-terra-light"
-                          : "bg-slate-800 text-slate-200"
+                          ? "bg-terra/10 text-terra"
+                          : "bg-white/82 text-warm-700"
                       )}
                     >
-                      <p className="mb-0.5 text-[10px] uppercase tracking-[0.12em] text-slate-400">
+                      <p className="mb-0.5 text-[10px] uppercase tracking-[0.12em] text-cloudy">
                         {message.role === "user" ? "You" : "Mapper"}
                       </p>
                       <p className="whitespace-pre-wrap">{message.text}</p>
@@ -622,7 +622,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                   onChange={(event) => setChatInput(event.target.value)}
                   onKeyDown={(event) => event.key === "Enter" && !chatLoading && void askMapper()}
                   placeholder="Ask the mapper"
-                  className="flex-1 rounded-lg border border-slate-600 bg-[#111923] px-3 py-2 text-xs text-slate-100"
+                  className="flex-1 rounded-2xl border border-sand/80 bg-white/80 px-3 py-2 text-xs text-warm-800"
                 />
                 <button
                   onClick={() => void askMapper()}
@@ -635,12 +635,12 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-700 bg-[#0f141b] p-4 text-[11px] text-slate-300">
-              <p className="font-semibold text-slate-100">Session metadata</p>
+            <div className="surface-card p-4 text-[11px] text-warm-600">
+              <p className="font-semibold text-warm-800">Session metadata</p>
               <p className="mt-1">Commit: {mapping.summary.commitSha}</p>
               <p>Files analyzed: {mapping.summary.fileCount}</p>
               <p>Cost estimate: ${mapping.cost.estimatedUsd.toFixed(4)}</p>
-              <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-slate-600 px-2 py-1 text-[10px]">
+              <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-sand/80 bg-white/80 px-2 py-1 text-[10px] text-warm-700">
                 <GitBranch size={10} />
                 Cache {mapping.cacheHit ? "hit" : "miss"}
               </div>

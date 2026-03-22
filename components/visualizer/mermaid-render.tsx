@@ -14,8 +14,24 @@ export default function MermaidRender({ code }: { code: string }) {
         const mermaid = (await import("mermaid")).default
         mermaid.initialize({
           startOnLoad: false,
-          theme: "dark",
+          theme: "base",
           securityLevel: "loose",
+          themeVariables: {
+            primaryColor: "#f7efe1",
+            primaryTextColor: "#11221e",
+            primaryBorderColor: "#d8c9ae",
+            lineColor: "#405650",
+            secondaryColor: "#f2eadf",
+            tertiaryColor: "#fffaf2",
+            background: "#fffaf2",
+            mainBkg: "#fffaf2",
+            secondBkg: "#f5ecde",
+            tertiaryBkg: "#fbf5ea",
+            clusterBkg: "#f5ecde",
+            clusterBorder: "#d8c9ae",
+            edgeLabelBackground: "#fffaf2",
+            fontFamily: "var(--font-sans)",
+          },
         })
 
         const id = `mermaid-${Math.random().toString(36).slice(2, 10)}`
@@ -52,5 +68,10 @@ export default function MermaidRender({ code }: { code: string }) {
     )
   }
 
-  return <div className="overflow-auto rounded-xl border border-sand bg-[#10151c] p-3" dangerouslySetInnerHTML={{ __html: svg }} />
+  return (
+    <div
+      className="overflow-auto rounded-[22px] border border-sand/80 bg-[linear-gradient(180deg,rgba(255,250,242,0.98),rgba(245,236,222,0.96))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  )
 }

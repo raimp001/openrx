@@ -9,8 +9,8 @@
 }
 
 :root {
-  --font-sans: "Sora", "Avenir Next", "Segoe UI", sans-serif;
-  --font-serif: "Instrument Serif", "Iowan Old Style", "Times New Roman", serif;
+  --font-sans: "Public Sans", "Avenir Next", "Segoe UI", sans-serif;
+  --font-serif: "Source Serif 4", "Iowan Old Style", "Times New Roman", serif;
   --focus-ring: 0 0 0 2px rgba(224, 91, 67, 0.42);
 }
 
@@ -34,7 +34,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.008em;
 }
 
 body::before {
@@ -134,13 +134,15 @@ a {
 @layer base {
   h1 {
     font-family: var(--font-serif), serif;
-    letter-spacing: -0.035em;
-    line-height: 1.1;
+    font-weight: 600;
+    letter-spacing: -0.038em;
+    line-height: 1.04;
   }
   h2, h3, h4 {
     font-family: var(--font-serif), serif;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: -0.026em;
+    line-height: 1.12;
   }
 }
 

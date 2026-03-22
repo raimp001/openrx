@@ -28,6 +28,22 @@ function hasDatabase(): boolean {
   return Boolean(process.env.DATABASE_URL?.trim())
 }
 
+let careTeamTablesAvailable: boolean | null = null
+const careTeamLoggedFallbacks = new Set<string>()
+
+function canUseCareTeamTables(): boolean {
+  return hasDatabase() && careTeamTablesAvailable !== false
+}
+
+function isMissingTableError(error: unknown): error is { code: string } {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2021"
+  )
+}
+
 function createId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`
 }
@@ -234,7 +250,21 @@ function fallbackSnapshot(limitAudit = 40): CareTeamStateSnapshot {
 }
 
 function logFallback(operation: string, error: unknown): void {
-  console.warn(`Care team DB persistence unavailable during ${operation}; falling back to file store.`, error)
+  if (isMissingTableError(error)) {
+    careTeamTablesAvailable = false
+    if (!careTeamLoggedFallbacks.has(operation)) {
+      careTeamLoggedFallbacks.add(operation)
+      console.warn(
+        `Care team DB persistence unavailable during ${operation}; required tables are missing, so OpenRx is using the file fallback until the DB schema is updated.`
+      )
+    }
+    return
+  }
+
+  if (!careTeamLoggedFallbacks.has(operation)) {
+    careTeamLoggedFallbacks.add(operation)
+    console.warn(`Care team DB persistence unavailable during ${operation}; falling back to file store.`, error)
+  }
 }
 
 export async function consumeCareTeamRateLimit(input: {
@@ -242,7 +272,7 @@ export async function consumeCareTeamRateLimit(input: {
   limit: number
   windowMs: number
 }): Promise<{ allowed: boolean; retryAfterMs?: number }> {
-  if (!hasDatabase()) {
+  if (!canUseCareTeamTables()) {
     return fileStore.consumeCareTeamRateLimit(input)
   }
 
@@ -285,7 +315,7 @@ export async function consumeCareTeamRateLimit(input: {
 }
 
 export async function getCareTeamSnapshot(limitAudit = 40): Promise<CareTeamStateSnapshot> {
-  if (!hasDatabase()) {
+  if (!canUseCareTeamTables()) {
     return fallbackSnapshot(limitAudit)
   }
   try {
@@ -299,7 +329,7 @@ export async function getCareTeamSnapshot(limitAudit = 40): Promise<CareTeamStat
 export async function findCareTeamRequest(requestId: string): Promise<CareTeamHumanInputRequest | null> {
   const trimmed = requestId.trim()
   if (!trimmed) return null
-  if (!hasDatabase()) {
+  if (!canUseCareTeamTables()) {
     return fileStore.findCareTeamRequest(trimmed)
   }
 
@@ -316,7 +346,7 @@ export async function submitHumanInputRequest(input: {
   payload: AgentNotifyPayload
   actor: CareTeamActor
 }): Promise<{ request: CareTeamHumanInputRequest; agent: CareTeamAgent; audit: CareTeamAuditEntry }> {
-  if (!hasDatabase()) {
+  if (!canUseCareTeamTables()) {
     return fileStore.submitHumanInputRequest(input)
   }
 
@@ -391,7 +421,7 @@ export async function updateAgentStatus(input: {
   status: "running" | "paused"
   actor: CareTeamActor
 }): Promise<{ agent: CareTeamAgent; audit: CareTeamAuditEntry }> {
-  if (!hasDatabase()) {
+  if (!canUseCareTeamTables()) {
     return fileStore.updateAgentStatus(input)
   }
 
@@ -439,7 +469,7 @@ export async function resolveHumanInputRequest(input: {
   actor: CareTeamActor
   payload: CareTeamResolveInput
 }): Promise<{ request: CareTeamHumanInputRequest; agent: CareTeamAgent; audit: CareTeamAuditEntry }> {
-  if (!hasDatabase()) {
+  if (!canUseCareTeamTables()) {
     return fileStore.resolveHumanInputRequest(input)
   }
 
@@ -527,7 +557,7 @@ export async function createCustomAgent(input: {
   payload: CareTeamCustomAgentInput
   actor: CareTeamActor
 }): Promise<{ agent: CareTeamAgent; audit: CareTeamAuditEntry }> {
-  if (!hasDatabase()) {
+  if (!canUseCareTeamTables()) {
     return fileStore.createCustomAgent(input)
   }
 

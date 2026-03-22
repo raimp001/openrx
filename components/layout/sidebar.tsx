@@ -153,7 +153,7 @@ export default function Sidebar() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(224,91,67,0.22),transparent_38%),radial-gradient(circle_at_100%_20%,rgba(22,142,104,0.14),transparent_32%)]" />
         <div className="relative flex items-center gap-3">
           <BrandMark className="shadow-terra-glow" size="sm" />
-          <BrandWordmark className="min-w-0" titleClassName="text-[17px] font-semibold" subtitleClassName="text-white/38" />
+          <BrandWordmark className="min-w-0" titleClassName="text-[17px] font-semibold" subtitleClassName="text-white/56" />
           <button
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
@@ -171,11 +171,11 @@ export default function Sidebar() {
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/34">Patient pulse</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/48">Patient pulse</p>
               <p className="truncate text-sm font-semibold text-white/92">
                 {snapshot.patient?.full_name || "Connect records to personalize"}
               </p>
-              <p className="mt-1 text-[11px] leading-5 text-white/48">
+              <p className="mt-1 text-[11px] leading-5 text-white/66">
                 {nextAppointment
                   ? `Next visit ${formatDate(nextAppointment.scheduled_at)} at ${formatTime(nextAppointment.scheduled_at)}`
                   : "Your care plan, screening, coverage, and messaging live here."}
@@ -190,7 +190,7 @@ export default function Sidebar() {
                 className="rounded-2xl border border-white/8 bg-black/10 px-2.5 py-2 text-center"
               >
                 <p className={cn("text-base font-semibold leading-none", card.tone)}>{card.value}</p>
-                <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/34">{card.label}</p>
+                <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/52">{card.label}</p>
               </div>
             ))}
           </div>
@@ -212,7 +212,7 @@ export default function Sidebar() {
           <section key={section.label} className="mb-5">
             <div className="mb-2 flex items-center gap-2 px-2">
               <span className="h-px flex-1 bg-white/8" />
-              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/24">{section.label}</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/44">{section.label}</p>
               <span className="h-px flex-1 bg-white/8" />
             </div>
 
@@ -239,7 +239,7 @@ export default function Sidebar() {
                       "group relative flex items-center gap-3 rounded-2xl border px-3.5 py-3 text-[12.5px] font-medium transition-all duration-200",
                       active
                         ? "border-white/14 bg-white/10 text-white shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
-                        : "border-transparent text-white/54 hover:border-white/10 hover:bg-white/6 hover:text-white/86"
+                        : "border-transparent text-white/76 hover:border-white/10 hover:bg-white/6 hover:text-white"
                     )}
                   >
                     {active ? (
@@ -249,7 +249,7 @@ export default function Sidebar() {
                       size={15}
                       className={cn(
                         "shrink-0 transition-colors",
-                        active ? "text-terra-light" : "text-white/36 group-hover:text-white/80"
+                        active ? "text-terra-light" : "text-white/58 group-hover:text-white"
                       )}
                     />
                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
@@ -257,7 +257,7 @@ export default function Sidebar() {
                       <span
                         className={cn(
                           "flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[9px] font-bold",
-                          active ? "bg-terra/22 text-terra-light" : "bg-white/12 text-white/62"
+                          active ? "bg-terra/22 text-terra-light" : "bg-white/16 text-white/86"
                         )}
                       >
                         {badgeCount}
@@ -286,14 +286,14 @@ export default function Sidebar() {
         <div className="mt-3 flex gap-2">
           <Link
             href="/"
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/8 px-3 py-2.5 text-[11px] font-semibold text-white/42 transition hover:bg-white/6 hover:text-white/76"
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/8 px-3 py-2.5 text-[11px] font-semibold text-white/72 transition hover:bg-white/6 hover:text-white"
           >
             <ExternalLink size={12} />
             Site
           </Link>
           <Link
             href="/privacy-explained"
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/8 px-3 py-2.5 text-[11px] font-semibold text-white/42 transition hover:bg-white/6 hover:text-white/76"
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/8 px-3 py-2.5 text-[11px] font-semibold text-white/72 transition hover:bg-white/6 hover:text-white"
           >
             <ShieldCheck size={12} />
             Privacy

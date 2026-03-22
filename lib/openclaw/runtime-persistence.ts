@@ -28,8 +28,40 @@ function hasDatabase(): boolean {
   return Boolean(process.env.DATABASE_URL?.trim())
 }
 
+let runtimeTablesAvailable: boolean | null = null
+const runtimeLoggedFallbacks = new Set<string>()
+
+function canUseRuntimeTables(): boolean {
+  return hasDatabase() && runtimeTablesAvailable !== false
+}
+
+function isMissingTableError(error: unknown): error is { code: string } {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2021"
+  )
+}
+
+function handlePersistenceError(scope: string, error: unknown): void {
+  if (isMissingTableError(error)) {
+    runtimeTablesAvailable = false
+    if (!runtimeLoggedFallbacks.has(scope)) {
+      runtimeLoggedFallbacks.add(scope)
+      console.warn(`${scope}: runtime persistence tables are unavailable; using in-memory responses until the DB schema is updated.`)
+    }
+    return
+  }
+
+  if (!runtimeLoggedFallbacks.has(scope)) {
+    runtimeLoggedFallbacks.add(scope)
+    console.warn(scope, error)
+  }
+}
+
 export async function recordCronRun(input: RecordCronRunInput): Promise<void> {
-  if (!hasDatabase()) return
+  if (!canUseRuntimeTables()) return
   try {
     await prisma.openClawCronRun.create({
       data: {
@@ -50,12 +82,12 @@ export async function recordCronRun(input: RecordCronRunInput): Promise<void> {
       },
     })
   } catch (error) {
-    console.warn("Failed to persist cron run", error)
+    handlePersistenceError("Failed to persist cron run", error)
   }
 }
 
 export async function upsertWorkerHeartbeat(input: UpsertWorkerHeartbeatInput): Promise<void> {
-  if (!hasDatabase()) return
+  if (!canUseRuntimeTables()) return
   try {
     await prisma.openClawWorkerHeartbeat.upsert({
       where: { workerId: input.workerId },
@@ -74,32 +106,32 @@ export async function upsertWorkerHeartbeat(input: UpsertWorkerHeartbeatInput): 
       },
     })
   } catch (error) {
-    console.warn("Failed to persist worker heartbeat", error)
+    handlePersistenceError("Failed to persist worker heartbeat", error)
   }
 }
 
 export async function listWorkerHeartbeats(limit = 20) {
-  if (!hasDatabase()) return []
+  if (!canUseRuntimeTables()) return []
   try {
     return await prisma.openClawWorkerHeartbeat.findMany({
       orderBy: { lastSeenAt: "desc" },
       take: Math.max(1, limit),
     })
   } catch (error) {
-    console.warn("Failed to load worker heartbeats", error)
+    handlePersistenceError("Failed to load worker heartbeats", error)
     return []
   }
 }
 
 export async function listRecentCronRuns(limit = 50) {
-  if (!hasDatabase()) return []
+  if (!canUseRuntimeTables()) return []
   try {
     return await prisma.openClawCronRun.findMany({
       orderBy: { createdAt: "desc" },
       take: Math.max(1, limit),
     })
   } catch (error) {
-    console.warn("Failed to load recent cron runs", error)
+    handlePersistenceError("Failed to load recent cron runs", error)
     return []
   }
 }

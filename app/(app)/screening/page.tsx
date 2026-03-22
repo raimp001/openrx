@@ -545,7 +545,7 @@ export default function ScreeningPage() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <CreditCard size={14} className="text-terra" />
-              <h2 className="text-sm font-bold text-warm-800">Complete Base Pay before releasing deep genetics</h2>
+              <h2 className="text-sm font-bold text-warm-800">Complete Base Pay Before Deep Recommendation</h2>
             </div>
             <button
               onClick={() => setShowPaymentGate(false)}
@@ -753,7 +753,7 @@ export default function ScreeningPage() {
               className="inline-flex items-center gap-2 rounded-2xl bg-midnight px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#12211d] disabled:opacity-60"
             >
               {running ? <Loader2 size={14} className="animate-spin" /> : <Activity size={14} />}
-              Get free recommendations
+              Get My Free Recommendations
             </button>
             {(assessment?.accessLevel === "preview" || paymentIntent || paymentReady) && (
               <button
@@ -762,7 +762,7 @@ export default function ScreeningPage() {
                 className="inline-flex items-center gap-2 rounded-2xl border border-sand bg-white/70 px-4 py-3 text-sm font-semibold text-warm-700 transition hover:border-terra/30 disabled:opacity-60"
               >
                 {running ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-                Unlock deep dive
+                Generate Deep Dive (Paid)
               </button>
             )}
           </div>

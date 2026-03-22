@@ -150,10 +150,17 @@ export default function VitalsPage() {
   if (loading) {
     return (
       <div className="animate-slide-up space-y-6">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-44" />
-          <Skeleton className="h-4 w-72" />
-        </div>
+        <AppPageHeader
+          eyebrow="Preventive monitoring"
+          title="Vitals cockpit"
+          description="Trend lines, out-of-range alerts, and source confidence in one view so the patient knows what changed and what to act on next."
+          meta={
+            <div className="flex flex-wrap items-center gap-2">
+              <OpsBadge tone="blue">Loading readings</OpsBadge>
+              <OpsBadge tone="terra">Syncing patient snapshot</OpsBadge>
+            </div>
+          }
+        />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[...Array(4)].map((_, index) => (
             <div key={index} className="surface-card p-5">

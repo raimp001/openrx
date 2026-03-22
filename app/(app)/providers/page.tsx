@@ -206,7 +206,7 @@ export default function ProvidersPage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && searchDirectory()}
-                placeholder="Examples: hillsboro, 97123, internal medicine near Seattle, radiology around Austin TX"
+                placeholder="Example: find caregiver + radiology center near Seattle WA 98101"
                 className="w-full rounded-[22px] border border-white/80 bg-white/80 py-4 pl-12 pr-4 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/35 focus:shadow-[0_0_0_4px_rgba(224,91,67,0.08)]"
               />
             </div>
@@ -218,7 +218,7 @@ export default function ProvidersPage() {
                 className="inline-flex items-center gap-2 rounded-2xl bg-midnight px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#12211d] disabled:opacity-50"
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                Search care network
+                Search
               </button>
               <button
                 onClick={useProfileLocation}
@@ -318,7 +318,7 @@ export default function ProvidersPage() {
           <div className="surface-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">Matched network</p>
-              <p className="mt-1 text-lg font-semibold text-warm-800">{matches.length} care option{matches.length === 1 ? "" : "s"} found</p>
+              <p className="mt-1 text-lg font-semibold text-warm-800">{matches.length} care options found</p>
             </div>
             <span className="text-[11px] text-cloudy flex items-center gap-1">
               <BadgeCheck size={10} /> Live CMS NPI data

@@ -704,6 +704,127 @@ function findBestTrialLocationMatch(
   return best
 }
 
+async function fetchCtGovStudies(opts: {
+  queryTerm: string
+  location?: string
+  pageSize: number
+}): Promise<CtGovStudy[]> {
+  const params = new URLSearchParams()
+  params.set("format", "json")
+  params.set("countTotal", "false")
+  params.set("pageSize", String(opts.pageSize))
+  params.set("filter.overallStatus", "RECRUITING")
+  if (opts.queryTerm) params.set("query.term", opts.queryTerm)
+  if (opts.location?.trim()) params.set("query.locn", opts.location.trim())
+
+  const response = await fetchWithTimeout(
+    `https://clinicaltrials.gov/api/v2/studies?${params.toString()}`,
+    { next: { revalidate: 900 } },
+    10000
+  )
+  if (!response.ok) return []
+
+  const payload = (await response.json()) as CtGovResponse
+  return payload.studies || []
+}
+
+function scoreTrialStudies(
+  studies: CtGovStudy[],
+  opts: {
+    age: number
+    locationQuery: string
+    parsedLocation: ParsedTrialLocationQuery
+    conditionQuery: string
+    conditionHistory: string[]
+    conditionText: string
+    inputCondition?: string
+  }
+): TrialMatch[] {
+  const matches: TrialMatch[] = []
+
+  for (const study of studies) {
+    const protocol = study.protocolSection
+    const id = protocol?.identificationModule?.nctId
+    const title = protocol?.identificationModule?.briefTitle
+    if (!id || !title) continue
+
+    const minAge = parseAgeYears(protocol?.eligibilityModule?.minimumAge)
+    const maxAge = parseAgeYears(protocol?.eligibilityModule?.maximumAge)
+    if (minAge !== null && opts.age < minAge) continue
+    if (maxAge !== null && opts.age > maxAge) continue
+
+    const conditions = protocol?.conditionsModule?.conditions || []
+    const summary = protocol?.descriptionModule?.briefSummary || "No study summary provided."
+    const sponsor = protocol?.sponsorCollaboratorsModule?.leadSponsor?.name || "Unknown sponsor"
+    const phase = protocol?.designModule?.phases?.[0] || "Not specified"
+    const status = (protocol?.statusModule?.overallStatus || "RECRUITING").toLowerCase()
+    const locations = protocol?.contactsLocationsModule?.locations || []
+    const remoteEligible = locations.length === 0
+    const locationMatch = opts.locationQuery
+      ? findBestTrialLocationMatch(locations, opts.parsedLocation)
+      : { entry: locations[0] || null, score: 0 }
+    const displayLocationEntry = locationMatch.entry || locations[0] || null
+    const location = remoteEligible ? "Remote / location pending" : buildTrialLocationLabel(displayLocationEntry)
+
+    let score = 30
+    const reasons: string[] = []
+
+    if (opts.conditionQuery) {
+      const conditionPool = `${conditions.join(" ")} ${summary}`.toLowerCase()
+      if (conditionPool.includes(opts.conditionQuery)) {
+        score += 35
+        reasons.push(`Study focus matches "${opts.inputCondition}".`)
+      } else {
+        score += 10
+        reasons.push("Matched on broader query terms.")
+      }
+    } else if (opts.conditionText) {
+      const conditionPool = `${conditions.join(" ")} ${summary}`.toLowerCase()
+      const overlap = opts.conditionHistory.find((item) => conditionPool.includes(item.toLowerCase()))
+      if (overlap) {
+        score += 24
+        reasons.push(`Aligned with patient history: ${overlap}.`)
+      }
+    }
+
+    if (opts.locationQuery) {
+      if (locationMatch.score >= 5) {
+        score += 22
+        reasons.push(`Location preference matched at ${location}.`)
+      } else if (locationMatch.score >= 3) {
+        score += 14
+        reasons.push(`Trial site aligned with the requested area: ${location}.`)
+      } else if (remoteEligible && opts.parsedLocation.wantsRemote) {
+        score += 8
+        reasons.push("No listed sites yet; may allow remote prescreening.")
+      } else {
+        continue
+      }
+    }
+
+    const finalScore = Math.max(0, Math.min(100, score))
+    if (finalScore < 35) continue
+
+    matches.push({
+      id,
+      title,
+      phase,
+      status,
+      sponsor,
+      location,
+      remoteEligible,
+      condition: conditions[0] || opts.inputCondition || "General",
+      matchScore: finalScore,
+      fit: finalScore >= 65 ? "strong" : "possible",
+      reasons,
+      url: `https://clinicaltrials.gov/study/${id}`,
+      summary,
+    })
+  }
+
+  return matches
+}
+
 export async function matchClinicalTrials(input: TrialMatchInput = {}): Promise<TrialMatch[]> {
   const patient = resolvePatient(input.patient)
   const age = calcAge(patient.date_of_birth)
@@ -716,101 +837,35 @@ export async function matchClinicalTrials(input: TrialMatchInput = {}): Promise<
 
   if (!queryTerm && !locationQuery) return []
 
-  const params = new URLSearchParams()
-  params.set("format", "json")
-  params.set("countTotal", "false")
-  params.set("pageSize", locationQuery ? "60" : "20")
-  params.set("filter.overallStatus", "RECRUITING")
-  if (queryTerm) params.set("query.term", queryTerm)
-  if (locationQuery) params.set("query.locn", input.location!.trim())
-
   try {
-    const response = await fetchWithTimeout(
-      `https://clinicaltrials.gov/api/v2/studies?${params.toString()}`,
-      { next: { revalidate: 900 } },
-      10000
-    )
-    if (!response.ok) return []
+    const studies = await fetchCtGovStudies({
+      queryTerm,
+      location: input.location?.trim(),
+      pageSize: locationQuery ? 60 : 20,
+    })
+    let matches = scoreTrialStudies(studies, {
+      age,
+      locationQuery,
+      parsedLocation,
+      conditionQuery,
+      conditionHistory,
+      conditionText,
+      inputCondition: input.condition,
+    })
 
-    const payload = (await response.json()) as CtGovResponse
-    const studies = payload.studies || []
-    const matches: TrialMatch[] = []
-
-    for (const study of studies) {
-      const protocol = study.protocolSection
-      const id = protocol?.identificationModule?.nctId
-      const title = protocol?.identificationModule?.briefTitle
-      if (!id || !title) continue
-
-      const minAge = parseAgeYears(protocol?.eligibilityModule?.minimumAge)
-      const maxAge = parseAgeYears(protocol?.eligibilityModule?.maximumAge)
-      if (minAge !== null && age < minAge) continue
-      if (maxAge !== null && age > maxAge) continue
-
-      const conditions = protocol?.conditionsModule?.conditions || []
-      const summary = protocol?.descriptionModule?.briefSummary || "No study summary provided."
-      const sponsor = protocol?.sponsorCollaboratorsModule?.leadSponsor?.name || "Unknown sponsor"
-      const phase = protocol?.designModule?.phases?.[0] || "Not specified"
-      const status = (protocol?.statusModule?.overallStatus || "RECRUITING").toLowerCase()
-      const locations = protocol?.contactsLocationsModule?.locations || []
-      const remoteEligible = locations.length === 0
-      const locationMatch = locationQuery ? findBestTrialLocationMatch(locations, parsedLocation) : { entry: locations[0] || null, score: 0 }
-      const displayLocationEntry = locationMatch.entry || locations[0] || null
-      const location = remoteEligible ? "Remote / location pending" : buildTrialLocationLabel(displayLocationEntry)
-
-      let score = 30
-      const reasons: string[] = []
-
-      if (conditionQuery) {
-        const conditionPool = `${conditions.join(" ")} ${summary}`.toLowerCase()
-        if (conditionPool.includes(conditionQuery)) {
-          score += 35
-          reasons.push(`Study focus matches "${input.condition}".`)
-        } else {
-          score += 10
-          reasons.push("Matched on broader query terms.")
-        }
-      } else if (conditionText) {
-        const conditionPool = `${conditions.join(" ")} ${summary}`.toLowerCase()
-        const overlap = conditionHistory.find((item) => conditionPool.includes(item.toLowerCase()))
-        if (overlap) {
-          score += 24
-          reasons.push(`Aligned with patient history: ${overlap}.`)
-        }
-      }
-
-      if (locationQuery) {
-        if (locationMatch.score >= 5) {
-          score += 22
-          reasons.push(`Location preference matched at ${location}.`)
-        } else if (locationMatch.score >= 3) {
-          score += 14
-          reasons.push(`Trial site aligned with the requested area: ${location}.`)
-        } else if (remoteEligible && parsedLocation.wantsRemote) {
-          score += 8
-          reasons.push("No listed sites yet; may allow remote prescreening.")
-        } else {
-          continue
-        }
-      }
-
-      const finalScore = Math.max(0, Math.min(100, score))
-      if (finalScore < 35) continue
-
-      matches.push({
-        id,
-        title,
-        phase,
-        status,
-        sponsor,
-        location,
-        remoteEligible,
-        condition: conditions[0] || input.condition || "General",
-        matchScore: finalScore,
-        fit: finalScore >= 65 ? "strong" : "possible",
-        reasons,
-        url: `https://clinicaltrials.gov/study/${id}`,
-        summary,
+    if (locationQuery && matches.length === 0) {
+      const fallbackStudies = await fetchCtGovStudies({
+        queryTerm,
+        pageSize: 120,
+      })
+      matches = scoreTrialStudies(fallbackStudies, {
+        age,
+        locationQuery,
+        parsedLocation,
+        conditionQuery,
+        conditionHistory,
+        conditionText,
+        inputCondition: input.condition,
       })
     }
 

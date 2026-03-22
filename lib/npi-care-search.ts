@@ -155,12 +155,14 @@ export interface CareDirectoryMatch {
 interface RankedCareDirectoryMatch extends CareDirectoryMatch {
   locationMatched: boolean
   locationScore: number
+  locationState: string
 }
 
 function toPublicCareDirectoryMatch(entry: RankedCareDirectoryMatch): CareDirectoryMatch {
-  const { locationMatched, locationScore, ...publicEntry } = entry
+  const { locationMatched, locationScore, locationState, ...publicEntry } = entry
   void locationMatched
   void locationScore
+  void locationState
   return publicEntry
 }
 
@@ -327,10 +329,26 @@ function buildClarification(missingInfo: string[], parsed: ParsedCareQuery): str
   if (missingInfo[0] === "service") {
     return "What should I search for: provider, caregiver, lab, or radiology center?"
   }
+  if (missingInfo.includes("location_detail") && parsed.state && !parsed.city && !parsed.zip) {
+    return `I found state "${parsed.state}". Add a city, ZIP, or specialty so I can search that state accurately.`
+  }
   if (!parsed.city && !parsed.zip && !parsed.state) {
     return "What city/state or ZIP should I search near?"
   }
   return "Please add the missing detail so I can run NPI search."
+}
+
+function requiresAdditionalStateDetail(parsed: {
+  state?: string
+  city?: string
+  zip?: string
+  specialty?: string
+  caregiverRole?: string
+  serviceTypes: CareSearchType[]
+}): boolean {
+  if (!parsed.state || parsed.city || parsed.zip) return false
+  if (parsed.specialty || parsed.caregiverRole) return false
+  return parsed.serviceTypes.length === 1 && parsed.serviceTypes[0] === "provider"
 }
 
 export function parseCareSearchQuery(query: string): ParsedCareQuery {
@@ -361,6 +379,15 @@ export function parseCareSearchQuery(query: string): ParsedCareQuery {
 
   const missingInfo: string[] = []
   if (!location.zip && !location.city && !location.state) missingInfo.push("location")
+  const stateOnlyNeedsMoreDetail = requiresAdditionalStateDetail({
+    state: location.state,
+    city: location.city,
+    zip: location.zip,
+    specialty,
+    caregiverRole,
+    serviceTypes: uniqueTypes,
+  })
+  if (stateOnlyNeedsMoreDetail) missingInfo.push("location_detail")
 
   const ready = missingInfo.length === 0
   const parsed: ParsedCareQuery = {
@@ -654,7 +681,30 @@ function mapResult(
     confidence: isHighConfidence ? "high" : "medium",
     locationMatched: addressChoice.matched,
     locationScore: addressChoice.score,
+    locationState: (locationAddress.state || "").toUpperCase(),
   }
+}
+
+function filterDominantStateForCityOnly(
+  matches: RankedCareDirectoryMatch[],
+  parsed: ParsedCareQuery
+): RankedCareDirectoryMatch[] {
+  if (!parsed.city || parsed.state || parsed.zip || matches.length === 0) return matches
+
+  const counts = new Map<string, number>()
+  matches.forEach((match) => {
+    if (!match.locationState) return
+    counts.set(match.locationState, (counts.get(match.locationState) || 0) + 1)
+  })
+
+  const rankedStates = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
+  if (rankedStates.length <= 1) return matches
+
+  const [dominantState, dominantCount] = rankedStates[0]
+  const secondCount = rankedStates[1]?.[1] || 0
+  if (!dominantState || dominantCount <= secondCount) return matches
+
+  return matches.filter((match) => match.locationState === dominantState)
 }
 
 export async function searchNpiCareDirectory(
@@ -735,7 +785,9 @@ export async function searchNpiCareDirectory(
     await runPlans(fallbackPlan)
   }
 
-  const sorted = results.sort((a, b) => {
+  const filteredResults = filterDominantStateForCityOnly(results, parsed)
+
+  const sorted = filteredResults.sort((a, b) => {
     if (a.locationScore !== b.locationScore) return b.locationScore - a.locationScore
     if (a.confidence !== b.confidence) return a.confidence === "high" ? -1 : 1
     if (a.status !== b.status) return a.status === "Active" ? -1 : 1

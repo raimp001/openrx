@@ -118,26 +118,51 @@ async function fetchWallet(config: PrivyConfig): Promise<{ id: string; address?:
 }
 
 async function fetchBalances(config: PrivyConfig): Promise<PrivyBalance[]> {
-  const response = await fetchPrivy(`/wallets/${config.walletId}/balance?chain=base&include_currency=usd`, { method: "GET" }, config)
-  if (!response.ok) {
-    const details = await response.text()
-    throw new Error(`Privy balance fetch failed (${response.status}): ${details || "unknown error"}`)
+  function normalizeBalances(payload: Record<string, unknown>, fallbackAsset: "eth" | "usdc"): PrivyBalance[] {
+    const balances = Array.isArray(payload.balances)
+      ? payload.balances
+      : payload.balance
+      ? [payload.balance]
+      : []
+
+    return balances.map((item) => {
+      const record = parseJsonObject(item)
+      const displayValues = parseJsonObject(record.display_values)
+      return {
+        chain: String(record.chain || "base"),
+        asset: String(record.asset || fallbackAsset).toUpperCase(),
+        rawValue: String(record.raw_value || "0"),
+        decimals: Number(record.raw_value_decimals || (fallbackAsset === "usdc" ? 6 : 18)),
+        display: String(displayValues.eth || displayValues.usdc || displayValues.value || "0"),
+        usd: typeof displayValues.usd === "string" ? displayValues.usd : undefined,
+      }
+    })
   }
 
-  const payload = parseJsonObject(await response.json())
-  const balances = Array.isArray(payload.balances) ? payload.balances : []
-  return balances.map((item) => {
-    const record = parseJsonObject(item)
-    const displayValues = parseJsonObject(record.display_values)
-    return {
-      chain: String(record.chain || "base"),
-      asset: String(record.asset || "eth").toUpperCase(),
-      rawValue: String(record.raw_value || "0"),
-      decimals: Number(record.raw_value_decimals || 18),
-      display: String(displayValues.eth || displayValues.usdc || displayValues.value || "0"),
-      usd: typeof displayValues.usd === "string" ? displayValues.usd : undefined,
+  async function fetchAssetBalance(asset: "eth" | "usdc"): Promise<PrivyBalance[]> {
+    const query = new URLSearchParams({ chain: "base", asset, include_currency: "usd" })
+    const response = await fetchPrivy(
+      `/wallets/${config.walletId}/balance?${query.toString()}`,
+      { method: "GET" },
+      config
+    )
+    if (!response.ok) {
+      const details = await response.text()
+      throw new Error(`Privy balance fetch failed for ${asset} (${response.status}): ${details || "unknown error"}`)
     }
-  })
+
+    return normalizeBalances(parseJsonObject(await response.json()), asset)
+  }
+
+  const settled = await Promise.allSettled([fetchAssetBalance("eth"), fetchAssetBalance("usdc")])
+  const combined = settled.flatMap((result) => (result.status === "fulfilled" ? result.value : []))
+
+  const deduped = new Map<string, PrivyBalance>()
+  for (const balance of combined) {
+    deduped.set(`${balance.chain}:${balance.asset}`, balance)
+  }
+
+  return Array.from(deduped.values())
 }
 
 async function fetchTransactions(config: PrivyConfig): Promise<PrivyTransaction[]> {

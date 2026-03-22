@@ -226,8 +226,15 @@ export default function DashboardPage() {
     return (
       <div className="animate-slide-up space-y-5">
         <div className="surface-card p-6 space-y-4">
-          <Skeleton className="h-8 w-56" />
-          <Skeleton className="h-4 w-96 max-w-full" />
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-warm-500">
+            Loading command center
+          </p>
+          <h1 className="text-4xl leading-[1.02] text-warm-800">
+            {greeting}
+          </h1>
+          <p className="max-w-xl text-sm leading-7 text-warm-500">
+            Pulling appointments, medications, labs, messages, and care-team priorities into one view.
+          </p>
           <div className="space-y-2 pt-1">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />

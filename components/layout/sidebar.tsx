@@ -127,6 +127,14 @@ export default function Sidebar() {
     badges.pendingPA +
     badges.pendingRefills +
     (careTeamSession?.needsInputCount ?? 0)
+  const showActivityPanel = Boolean(
+    nextAppointment ||
+      attentionCount > 0 ||
+      badges.unreadMessages > 0 ||
+      snapshot.appointments.length > 0 ||
+      snapshot.prescriptions.length > 0 ||
+      snapshot.labResults.length > 0
+  )
 
   const summaryCards = [
     { label: "Attention", value: attentionCount, tone: attentionCount > 0 ? "text-terra-dark" : "text-warm-700" },
@@ -167,47 +175,90 @@ export default function Sidebar() {
           </button>
         </div>
 
-        <div className="relative mt-5 rounded-[26px] border border-sand/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(249,243,234,0.9))] p-4 shadow-[0_18px_40px_rgba(17,34,30,0.08)]">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,rgba(224,91,67,0.12),rgba(242,132,103,0.18))] ring-1 ring-terra/12">
-              <span className="text-sm font-semibold text-warm-800">
-                {(snapshot.patient?.full_name || "OpenRx").charAt(0)}
-              </span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cloudy/90">Patient pulse</p>
-              <p className="truncate text-sm font-semibold text-warm-800">
-                {snapshot.patient?.full_name || "Connect records to personalize"}
-              </p>
-              <p className="mt-1 text-[11px] leading-5 text-warm-600">
-                {nextAppointment
-                  ? `Next visit ${formatDate(nextAppointment.scheduled_at)} at ${formatTime(nextAppointment.scheduled_at)}`
-                  : "Your care plan, screening, coverage, and messaging live here."}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            {summaryCards.map((card) => (
-              <div
-                key={card.label}
-                className="rounded-2xl border border-sand/70 bg-pampas/88 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
-              >
-                <p className={cn("text-base font-semibold leading-none", card.tone)}>{card.value}</p>
-                <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.14em] text-cloudy/85">{card.label}</p>
+        <div className="relative mt-5 rounded-[26px] border border-sand/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(249,243,234,0.92))] p-4 shadow-[0_18px_40px_rgba(17,34,30,0.08)]">
+          {showActivityPanel ? (
+            <>
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,rgba(224,91,67,0.12),rgba(242,132,103,0.18))] ring-1 ring-terra/12">
+                  <span className="text-sm font-semibold text-warm-800">
+                    {(snapshot.patient?.full_name || "OpenRx").charAt(0)}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cloudy/90">Care brief</p>
+                  <p className="truncate text-sm font-semibold text-warm-800">
+                    {snapshot.patient?.full_name || "OpenRx patient"}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-5 text-warm-600">
+                    {nextAppointment
+                      ? `Next visit ${formatDate(nextAppointment.scheduled_at)} at ${formatTime(nextAppointment.scheduled_at)}`
+                      : "Your care plan, screenings, and coordination activity are summarized here."}
+                  </p>
+                </div>
               </div>
-            ))}
-          </div>
 
-          {careTeamSession?.needsInputCount ? (
-            <Link
-              href="/dashboard/care-team"
-              className="mt-4 flex items-center gap-2 rounded-2xl border border-soft-blue/20 bg-soft-blue/8 px-3 py-2 text-[11px] font-semibold text-soft-blue transition hover:bg-soft-blue/12"
-            >
-              <span className="h-2 w-2 rounded-full bg-soft-blue shadow-[0_0_0_6px_rgba(42,124,167,0.15)]" />
-              {careTeamSession.needsInputCount} agent item{careTeamSession.needsInputCount > 1 ? "s" : ""} waiting
-            </Link>
-          ) : null}
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {summaryCards.map((card) => (
+                  <div
+                    key={card.label}
+                    className="rounded-2xl border border-sand/70 bg-pampas/88 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
+                  >
+                    <p className={cn("text-base font-semibold leading-none", card.tone)}>{card.value}</p>
+                    <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.14em] text-cloudy/85">{card.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {careTeamSession?.needsInputCount ? (
+                <Link
+                  href="/dashboard/care-team"
+                  className="mt-4 flex items-center gap-2 rounded-2xl border border-soft-blue/20 bg-soft-blue/8 px-3 py-2 text-[11px] font-semibold text-soft-blue transition hover:bg-soft-blue/12"
+                >
+                  <span className="h-2 w-2 rounded-full bg-soft-blue shadow-[0_0_0_6px_rgba(42,124,167,0.15)]" />
+                  {careTeamSession.needsInputCount} agent item{careTeamSession.needsInputCount > 1 ? "s" : ""} waiting
+                </Link>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,rgba(17,34,30,0.06),rgba(224,91,67,0.12))] ring-1 ring-black/5">
+                  <Heart size={16} className="text-terra-dark" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cloudy/90">Care workspace</p>
+                  <p className="text-sm font-semibold text-warm-800">Start with a simple brief</p>
+                  <p className="mt-1 text-[11px] leading-5 text-warm-600">
+                    Build your profile, run screening, or find care nearby. This rail becomes your live care summary once activity starts.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <Link
+                  href="/onboarding"
+                  className="flex items-center justify-between rounded-2xl border border-sand/70 bg-white/82 px-3 py-3 text-[11px] font-semibold text-warm-700 transition hover:border-terra/18 hover:bg-white hover:text-warm-800"
+                >
+                  <span>Complete profile</span>
+                  <span className="text-cloudy">Start</span>
+                </Link>
+                <Link
+                  href="/screening"
+                  className="flex items-center justify-between rounded-2xl border border-sand/70 bg-white/82 px-3 py-3 text-[11px] font-semibold text-warm-700 transition hover:border-terra/18 hover:bg-white hover:text-warm-800"
+                >
+                  <span>Run AI screening</span>
+                  <span className="text-cloudy">Review</span>
+                </Link>
+                <Link
+                  href="/providers"
+                  className="flex items-center justify-between rounded-2xl border border-sand/70 bg-white/82 px-3 py-3 text-[11px] font-semibold text-warm-700 transition hover:border-terra/18 hover:bg-white hover:text-warm-800"
+                >
+                  <span>Find care nearby</span>
+                  <span className="text-cloudy">Browse</span>
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

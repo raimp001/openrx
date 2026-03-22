@@ -146,6 +146,124 @@ interface CtGovResponse {
   studies?: CtGovStudy[]
 }
 
+const US_STATE_ALIASES: Record<string, string> = {
+  al: "alabama",
+  alaska: "alaska",
+  ak: "alaska",
+  arizona: "arizona",
+  az: "arizona",
+  arkansas: "arkansas",
+  ar: "arkansas",
+  california: "california",
+  ca: "california",
+  colorado: "colorado",
+  co: "colorado",
+  connecticut: "connecticut",
+  ct: "connecticut",
+  delaware: "delaware",
+  de: "delaware",
+  florida: "florida",
+  fl: "florida",
+  georgia: "georgia",
+  ga: "georgia",
+  hawaii: "hawaii",
+  hi: "hawaii",
+  idaho: "idaho",
+  id: "idaho",
+  illinois: "illinois",
+  il: "illinois",
+  indiana: "indiana",
+  in: "indiana",
+  iowa: "iowa",
+  ia: "iowa",
+  kansas: "kansas",
+  ks: "kansas",
+  kentucky: "kentucky",
+  ky: "kentucky",
+  louisiana: "louisiana",
+  la: "louisiana",
+  maine: "maine",
+  me: "maine",
+  maryland: "maryland",
+  md: "maryland",
+  massachusetts: "massachusetts",
+  ma: "massachusetts",
+  michigan: "michigan",
+  mi: "michigan",
+  minnesota: "minnesota",
+  mn: "minnesota",
+  mississippi: "mississippi",
+  ms: "mississippi",
+  missouri: "missouri",
+  mo: "missouri",
+  montana: "montana",
+  mt: "montana",
+  nebraska: "nebraska",
+  ne: "nebraska",
+  nevada: "nevada",
+  nv: "nevada",
+  "new hampshire": "new hampshire",
+  nh: "new hampshire",
+  "new jersey": "new jersey",
+  nj: "new jersey",
+  "new mexico": "new mexico",
+  nm: "new mexico",
+  "new york": "new york",
+  ny: "new york",
+  "north carolina": "north carolina",
+  nc: "north carolina",
+  "north dakota": "north dakota",
+  nd: "north dakota",
+  ohio: "ohio",
+  oh: "ohio",
+  oklahoma: "oklahoma",
+  ok: "oklahoma",
+  oregon: "oregon",
+  or: "oregon",
+  pennsylvania: "pennsylvania",
+  pa: "pennsylvania",
+  "rhode island": "rhode island",
+  ri: "rhode island",
+  "south carolina": "south carolina",
+  sc: "south carolina",
+  "south dakota": "south dakota",
+  sd: "south dakota",
+  tennessee: "tennessee",
+  tn: "tennessee",
+  texas: "texas",
+  tx: "texas",
+  utah: "utah",
+  ut: "utah",
+  vermont: "vermont",
+  vt: "vermont",
+  virginia: "virginia",
+  va: "virginia",
+  washington: "washington",
+  wa: "washington",
+  "west virginia": "west virginia",
+  wv: "west virginia",
+  wisconsin: "wisconsin",
+  wi: "wisconsin",
+  wyoming: "wyoming",
+  wy: "wyoming",
+  "district of columbia": "district of columbia",
+  dc: "district of columbia",
+}
+
+interface ParsedTrialLocationQuery {
+  raw: string
+  normalized: string
+  city?: string
+  state?: string
+  stateOnly: boolean
+  wantsRemote: boolean
+}
+
+interface TrialLocationMatch {
+  entry: CtGovLocation | null
+  score: number
+}
+
 const DEFAULT_PATIENT: BasePatientProfile = {
   id: "unknown-patient",
   date_of_birth: "1980-01-01",
@@ -461,10 +579,113 @@ function buildTrialSearchTerms(condition: string, history: string[]): string {
   return history.slice(0, 3).join(" ")
 }
 
+function normalizeTrialLocationText(value?: string): string {
+  return (value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function canonicalizeUsState(value?: string): string | null {
+  const normalized = normalizeTrialLocationText(value)
+  if (!normalized) return null
+  return US_STATE_ALIASES[normalized] || null
+}
+
+function parseTrialLocationQuery(value?: string): ParsedTrialLocationQuery {
+  const normalized = normalizeTrialLocationText(value)
+  const wantsRemote = /\b(remote|virtual|telehealth|telemedicine|online|nationwide)\b/.test(normalized)
+  if (!normalized) {
+    return { raw: value || "", normalized, stateOnly: false, wantsRemote }
+  }
+
+  const commaParts = normalized.split(",").map((part) => part.trim()).filter(Boolean)
+  if (commaParts.length >= 2) {
+    const state = canonicalizeUsState(commaParts.at(-1))
+    const city = commaParts.slice(0, -1).join(" ").trim() || undefined
+    return { raw: value || "", normalized, city, state: state || undefined, stateOnly: Boolean(state && !city), wantsRemote }
+  }
+
+  const directState = canonicalizeUsState(normalized)
+  if (directState) {
+    return { raw: value || "", normalized, state: directState, stateOnly: true, wantsRemote }
+  }
+
+  const tokens = normalized.split(" ")
+  const trailingTwo = tokens.length > 1 ? canonicalizeUsState(tokens.slice(-2).join(" ")) : null
+  if (trailingTwo) {
+    const city = tokens.slice(0, -2).join(" ").trim() || undefined
+    return { raw: value || "", normalized, city, state: trailingTwo, stateOnly: !city, wantsRemote }
+  }
+
+  const trailingOne = tokens.length > 1 ? canonicalizeUsState(tokens.at(-1)) : null
+  if (trailingOne) {
+    const city = tokens.slice(0, -1).join(" ").trim() || undefined
+    return { raw: value || "", normalized, city, state: trailingOne, stateOnly: !city, wantsRemote }
+  }
+
+  return { raw: value || "", normalized, city: normalized, stateOnly: false, wantsRemote }
+}
+
+function buildTrialLocationLabel(entry?: CtGovLocation | null): string {
+  if (!entry) return "Location pending"
+  const site = [entry.facility, entry.city, entry.state, entry.country].filter(Boolean)
+  if (site.length === 0) return "Location pending"
+  return site.join(", ")
+}
+
+function scoreTrialLocationEntry(entry: CtGovLocation, parsed: ParsedTrialLocationQuery): number {
+  const city = normalizeTrialLocationText(entry.city)
+  const facility = normalizeTrialLocationText(entry.facility)
+  const state = canonicalizeUsState(entry.state)
+
+  if (parsed.stateOnly) {
+    return parsed.state && state === parsed.state ? 5 : 0
+  }
+
+  let score = 0
+
+  if (parsed.city) {
+    if (city === parsed.city) {
+      score += 5
+    } else if (city.includes(parsed.city) || parsed.city.includes(city) || facility.includes(parsed.city)) {
+      score += 3
+    } else {
+      return 0
+    }
+  }
+
+  if (parsed.state) {
+    if (state === parsed.state) {
+      score += parsed.city ? 2 : 4
+    } else {
+      return 0
+    }
+  }
+
+  return score
+}
+
+function findBestTrialLocationMatch(
+  locations: CtGovLocation[],
+  parsed: ParsedTrialLocationQuery
+): TrialLocationMatch {
+  let best: TrialLocationMatch = { entry: null, score: 0 }
+  for (const entry of locations) {
+    const score = scoreTrialLocationEntry(entry, parsed)
+    if (score > best.score) {
+      best = { entry, score }
+    }
+  }
+  return best
+}
+
 export async function matchClinicalTrials(input: TrialMatchInput = {}): Promise<TrialMatch[]> {
   const patient = resolvePatient(input.patient)
   const age = calcAge(patient.date_of_birth)
   const locationQuery = (input.location || "").trim().toLowerCase()
+  const parsedLocation = parseTrialLocationQuery(input.location)
   const conditionQuery = (input.condition || "").trim().toLowerCase()
   const conditionHistory = patient.medical_history.map((item) => item.condition.trim()).filter(Boolean)
   const conditionText = conditionHistory.join(" ").toLowerCase()
@@ -475,7 +696,7 @@ export async function matchClinicalTrials(input: TrialMatchInput = {}): Promise<
   const params = new URLSearchParams()
   params.set("format", "json")
   params.set("countTotal", "false")
-  params.set("pageSize", "20")
+  params.set("pageSize", locationQuery ? "60" : "20")
   params.set("filter.overallStatus", "RECRUITING")
   if (queryTerm) params.set("query.term", queryTerm)
   if (locationQuery) params.set("query.locn", input.location!.trim())
@@ -509,11 +730,10 @@ export async function matchClinicalTrials(input: TrialMatchInput = {}): Promise<
       const phase = protocol?.designModule?.phases?.[0] || "Not specified"
       const status = (protocol?.statusModule?.overallStatus || "RECRUITING").toLowerCase()
       const locations = protocol?.contactsLocationsModule?.locations || []
-      const primaryLocation = locations[0]
-      const location = primaryLocation
-        ? [primaryLocation.city, primaryLocation.state, primaryLocation.country].filter(Boolean).join(", ")
-        : "Location pending"
       const remoteEligible = locations.length === 0
+      const locationMatch = locationQuery ? findBestTrialLocationMatch(locations, parsedLocation) : { entry: locations[0] || null, score: 0 }
+      const displayLocationEntry = locationMatch.entry || locations[0] || null
+      const location = remoteEligible ? "Remote / location pending" : buildTrialLocationLabel(displayLocationEntry)
 
       let score = 30
       const reasons: string[] = []
@@ -537,16 +757,17 @@ export async function matchClinicalTrials(input: TrialMatchInput = {}): Promise<
       }
 
       if (locationQuery) {
-        const locationPool = [location, ...locations.map((entry) => `${entry.city || ""} ${entry.state || ""}`)].join(" ").toLowerCase()
-        if (locationPool.includes(locationQuery)) {
-          score += 18
-          reasons.push("Location preference matched.")
-        } else if (remoteEligible) {
+        if (locationMatch.score >= 5) {
+          score += 22
+          reasons.push(`Location preference matched at ${location}.`)
+        } else if (locationMatch.score >= 3) {
+          score += 14
+          reasons.push(`Trial site aligned with the requested area: ${location}.`)
+        } else if (remoteEligible && parsedLocation.wantsRemote) {
           score += 8
           reasons.push("No listed sites yet; may allow remote prescreening.")
         } else {
-          score -= 6
-          reasons.push("Location is outside preferred area.")
+          continue
         }
       }
 

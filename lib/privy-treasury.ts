@@ -141,29 +141,52 @@ async function fetchBalances(config: PrivyConfig): Promise<PrivyBalance[]> {
 }
 
 async function fetchTransactions(config: PrivyConfig): Promise<PrivyTransaction[]> {
-  const response = await fetchPrivy(`/wallets/${config.walletId}/transactions`, { method: "GET" }, config)
-  if (!response.ok) {
-    const details = await response.text()
-    throw new Error(`Privy transaction fetch failed (${response.status}): ${details || "unknown error"}`)
+  async function fetchAssetTransactions(asset: "eth" | "usdc"): Promise<PrivyTransaction[]> {
+    const query = new URLSearchParams({ chain: "base", asset })
+    const response = await fetchPrivy(
+      `/wallets/${config.walletId}/transactions?${query.toString()}`,
+      { method: "GET" },
+      config
+    )
+
+    if (!response.ok) {
+      const details = await response.text()
+      throw new Error(`Privy transaction fetch failed for ${asset} (${response.status}): ${details || "unknown error"}`)
+    }
+
+    const payload = parseJsonObject(await response.json())
+    const transactions = Array.isArray(payload.transactions) ? payload.transactions : []
+    return transactions.map((item) => {
+      const record = parseJsonObject(item)
+      const details = parseJsonObject(record.details)
+      return {
+        hash: typeof record.transaction_hash === "string" ? record.transaction_hash : undefined,
+        status: String(record.status || "unknown"),
+        createdAt: new Date(Number(record.created_at || Date.now())).toISOString(),
+        type: typeof details.type === "string" ? details.type : undefined,
+        chain: typeof details.chain === "string" ? details.chain : "base",
+        asset: typeof details.asset === "string" ? details.asset.toUpperCase() : asset.toUpperCase(),
+        sender: typeof details.sender === "string" ? details.sender : undefined,
+        recipient: typeof details.recipient === "string" ? details.recipient : undefined,
+        amount: typeof details.amount === "string" ? details.amount : undefined,
+      }
+    })
   }
 
-  const payload = parseJsonObject(await response.json())
-  const transactions = Array.isArray(payload.transactions) ? payload.transactions : []
-  return transactions.slice(0, 12).map((item) => {
-    const record = parseJsonObject(item)
-    const details = parseJsonObject(record.details)
-    return {
-      hash: typeof record.transaction_hash === "string" ? record.transaction_hash : undefined,
-      status: String(record.status || "unknown"),
-      createdAt: new Date(Number(record.created_at || Date.now())).toISOString(),
-      type: typeof details.type === "string" ? details.type : undefined,
-      chain: typeof details.chain === "string" ? details.chain : undefined,
-      asset: typeof details.asset === "string" ? details.asset.toUpperCase() : undefined,
-      sender: typeof details.sender === "string" ? details.sender : undefined,
-      recipient: typeof details.recipient === "string" ? details.recipient : undefined,
-      amount: typeof details.amount === "string" ? details.amount : undefined,
+  const settled = await Promise.allSettled([fetchAssetTransactions("eth"), fetchAssetTransactions("usdc")])
+  const combined = settled.flatMap((result) => (result.status === "fulfilled" ? result.value : []))
+
+  const deduped = new Map<string, PrivyTransaction>()
+  for (const transaction of combined) {
+    const key = transaction.hash || `${transaction.createdAt}:${transaction.type}:${transaction.amount}:${transaction.asset}`
+    if (!deduped.has(key)) {
+      deduped.set(key, transaction)
     }
-  })
+  }
+
+  return Array.from(deduped.values())
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+    .slice(0, 12)
 }
 
 export async function getTreasurySnapshot(): Promise<TreasurySnapshot> {
@@ -180,10 +203,10 @@ export async function getTreasurySnapshot(): Promise<TreasurySnapshot> {
     }
   }
 
-  const [wallet, balances, recentTransactions] = await Promise.all([
+  const [wallet, balances, recentTransactionsResult] = await Promise.all([
     fetchWallet(config),
     fetchBalances(config),
-    fetchTransactions(config),
+    fetchTransactions(config).catch(() => [] as PrivyTransaction[]),
   ])
 
   return {
@@ -192,7 +215,7 @@ export async function getTreasurySnapshot(): Promise<TreasurySnapshot> {
     walletId: wallet.id,
     walletAddress: wallet.address,
     balances,
-    recentTransactions,
+    recentTransactions: recentTransactionsResult,
     recentActions,
   }
 }

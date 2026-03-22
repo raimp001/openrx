@@ -1,45 +1,57 @@
 "use client"
 
-import { cn } from "@/lib/utils"
+import Link from "next/link"
+import { useMemo, useState } from "react"
 import {
-  FlaskConical, AlertTriangle, CheckCircle2, Clock,
-  ChevronDown, ChevronUp, FileText, TrendingUp, TrendingDown,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  FileText,
+  FlaskConical,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react"
-import { useState } from "react"
-import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
-import Link from "next/link"
+import { OpsBadge, OpsEmptyState, OpsMetricCard, OpsPanel } from "@/components/ui/ops-primitives"
+import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import { cn, formatDate } from "@/lib/utils"
 
-// ── Reference Range Bar ─────────────────────────────────────
-function RangeBar({ value, referenceRange, flag }: {
-  value: string; referenceRange?: string; flag: string
+function RangeBar({
+  value,
+  referenceRange,
+  flag,
+}: {
+  value: string
+  referenceRange?: string
+  flag: string
 }) {
   const match = referenceRange?.match(/^(\d+\.?\d*)\s*[-–]\s*(\d+\.?\d*)/)
   if (!match) return null
-  const lo = parseFloat(match[1])
-  const hi = parseFloat(match[2])
-  const numVal = parseFloat(value)
-  if (isNaN(numVal) || isNaN(lo) || isNaN(hi)) return null
 
-  const pad = (hi - lo) * 0.6
-  const minS = lo - pad
-  const maxS = hi + pad
-  const scale = maxS - minS
-  const valPct = Math.max(2, Math.min(98, ((numVal - minS) / scale) * 100))
-  const normStart = ((lo - minS) / scale) * 100
-  const normWidth = ((hi - lo) / scale) * 100
+  const low = parseFloat(match[1])
+  const high = parseFloat(match[2])
+  const numericValue = parseFloat(value)
+  if (Number.isNaN(numericValue) || Number.isNaN(low) || Number.isNaN(high)) return null
 
+  const pad = (high - low) * 0.6
+  const minScale = low - pad
+  const maxScale = high + pad
+  const scale = maxScale - minScale
+  const valuePct = Math.max(2, Math.min(98, ((numericValue - minScale) / scale) * 100))
+  const normalStart = ((low - minScale) / scale) * 100
+  const normalWidth = ((high - low) / scale) * 100
   const dotColor = flag === "normal" ? "#1FA971" : flag === "critical" ? "#DC2626" : "#D1495B"
 
   return (
-    <div className="relative h-1.5 bg-sand/30 rounded-full w-full max-w-[80px] mt-1.5" role="img" aria-label={`Value ${value}, range ${referenceRange}`}>
-      <div className="absolute h-full bg-accent/20 rounded-full"
-        style={{ left: `${normStart}%`, width: `${normWidth}%` }} />
+    <div className="relative mt-2 h-1.5 w-full max-w-[9rem] rounded-full bg-sand/30" role="img" aria-label={`Value ${value}, range ${referenceRange}`}>
+      <div className="absolute h-full rounded-full bg-accent/20" style={{ left: `${normalStart}%`, width: `${normalWidth}%` }} />
       <div
-        className="absolute top-1/2 w-2.5 h-2.5 rounded-full border-2 border-white shadow"
+        className="absolute top-1/2 h-2.5 w-2.5 rounded-full border-2 border-white shadow"
         style={{
-          left: `${valPct}%`,
+          left: `${valuePct}%`,
           transform: "translate(-50%, -50%)",
           background: dotColor,
         }}
@@ -48,30 +60,32 @@ function RangeBar({ value, referenceRange, flag }: {
   )
 }
 
-// ── Flag Badge ──────────────────────────────────────────────
 function FlagBadge({ flag }: { flag: string }) {
   if (flag === "normal") {
     return <CheckCircle2 size={14} className="text-accent" />
   }
+
   if (flag === "critical") {
     return (
-      <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded bg-red-600 text-white uppercase tracking-wider">
-        !! {flag}
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white">
+        Critical
       </span>
     )
   }
+
   return (
-    <span className={cn(
-      "flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase",
-      flag === "high" ? "bg-soft-red/10 text-soft-red" : "bg-soft-blue/10 text-soft-blue"
-    )}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em]",
+        flag === "high" ? "bg-soft-red/10 text-soft-red" : "bg-soft-blue/10 text-soft-blue"
+      )}
+    >
       {flag === "high" ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
       {flag}
     </span>
   )
 }
 
-// ── Skeleton ────────────────────────────────────────────────
 function Skeleton({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
 }
@@ -79,16 +93,26 @@ function Skeleton({ className }: { className?: string }) {
 export default function LabResultsPage() {
   const { snapshot, getPhysician, loading } = useLiveSnapshot()
   const labs = snapshot.labResults
-  const hasData = !!snapshot.patient
+  const hasData = Boolean(snapshot.patient)
   const [expandedLab, setExpandedLab] = useState<string | null>(labs[0]?.id || null)
 
-  const pendingLabs = labs.filter((l) => l.status === "pending")
-  const resultedLabs = labs.filter((l) => l.status !== "pending")
-  const abnormalCount = resultedLabs.reduce(
-    (count, lab) => count + lab.results.filter((r) => r.flag !== "normal").length, 0
+  const pendingLabs = useMemo(() => labs.filter((lab) => lab.status === "pending"), [labs])
+  const resultedLabs = useMemo(() => labs.filter((lab) => lab.status !== "pending"), [labs])
+  const abnormalCount = useMemo(
+    () => resultedLabs.reduce((count, lab) => count + lab.results.filter((result) => result.flag !== "normal").length, 0),
+    [resultedLabs]
   )
-  const criticalCount = resultedLabs.reduce(
-    (count, lab) => count + lab.results.filter((r) => r.flag === "critical").length, 0
+  const criticalCount = useMemo(
+    () => resultedLabs.reduce((count, lab) => count + lab.results.filter((result) => result.flag === "critical").length, 0),
+    [resultedLabs]
+  )
+  const reviewedCount = useMemo(
+    () => resultedLabs.filter((lab) => lab.status === "reviewed").length,
+    [resultedLabs]
+  )
+  const abnormalLabs = useMemo(
+    () => resultedLabs.filter((lab) => lab.results.some((result) => result.flag !== "normal")),
+    [resultedLabs]
   )
 
   if (loading) {
@@ -98,29 +122,41 @@ export default function LabResultsPage() {
           <Skeleton className="h-8 w-40" />
           <Skeleton className="h-4 w-64" />
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[...Array(4)].map((_, i) => <div key={i} className="surface-card p-4"><Skeleton className="h-12 w-full" /></div>)}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="surface-card p-5">
+              <Skeleton className="h-24 w-full" />
+            </div>
+          ))}
         </div>
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => <div key={i} className="surface-card p-4"><Skeleton className="h-20 w-full" /></div>)}
+        <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
+          <div className="surface-card p-5"><Skeleton className="h-[34rem] w-full" /></div>
+          <div className="surface-card p-5"><Skeleton className="h-[34rem] w-full" /></div>
         </div>
       </div>
     )
   }
 
-  if (!loading && !hasData) {
+  if (!hasData) {
     return (
-      <div className="animate-slide-up flex flex-col items-center justify-center min-h-[50vh] text-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-soft-blue/8 flex items-center justify-center">
-          <FlaskConical size={28} className="text-soft-blue" />
+      <div className="animate-slide-up space-y-6">
+        <AppPageHeader
+          eyebrow="Diagnostics"
+          title="Lab results board"
+          description="Keep pending tests, abnormal values, and clinician notes in one place instead of forcing patients to decode isolated PDFs."
+        />
+        <div className="surface-card p-6">
+          <OpsEmptyState
+            icon={FlaskConical}
+            title="No lab data is connected yet"
+            description="Connect your health record first, then Atlas will organize pending tests, abnormal values, and clinician notes here."
+          />
+          <div className="mt-5 flex justify-center">
+            <Link href="/onboarding" className="control-button-primary">
+              Connect my record
+            </Link>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">Lab Results</h1>
-          <p className="text-warm-500 mt-1 max-w-sm">Connect your health record to view your lab tests and get AI-powered interpretations.</p>
-        </div>
-        <Link href="/onboarding" className="px-5 py-2.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition">
-          Get Started
-        </Link>
       </div>
     )
   }
@@ -128,237 +164,302 @@ export default function LabResultsPage() {
   return (
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
-        title="Lab Results"
-        description={
-          <>
-            {labs.length} tests &middot; {abnormalCount} abnormal values
-            {criticalCount > 0 ? (
-              <span className="font-bold text-red-600"> &middot; {criticalCount} critical</span>
-            ) : null}
-          </>
+        eyebrow="Diagnostics"
+        title="Lab results board"
+        description="Atlas turns the result feed into a readable clinical board: what is still processing, what is abnormal, and what deserves a focused discussion with a clinician."
+        meta={
+          <div className="flex flex-wrap items-center gap-2">
+            <OpsBadge tone="blue">{labs.length} total tests</OpsBadge>
+            <OpsBadge tone={pendingLabs.length ? "gold" : "accent"}>{pendingLabs.length} pending</OpsBadge>
+            <OpsBadge tone={abnormalCount ? "red" : "accent"}>{abnormalCount} abnormal values</OpsBadge>
+            {criticalCount ? <OpsBadge tone="red">{criticalCount} critical</OpsBadge> : null}
+          </div>
         }
-        className="surface-card p-4 sm:p-5"
         actions={
           <AIAction
             agentId="coordinator"
             label="Interpret My Labs"
-            prompt={`Explain my lab results in plain language. I have ${abnormalCount} abnormal values out of ${labs.length} tests. For each abnormal result, tell me what it means, why it matters, and what to discuss with my doctor.`}
-            context={`Results: ${resultedLabs.flatMap(l => l.results.filter(r => r.flag !== "normal")).map(r => `${r.name}: ${r.value}${r.unit || ""} (${r.flag})`).join(", ")}`}
+            prompt={`Explain my lab results in plain language. I have ${abnormalCount} abnormal values out of ${labs.length} tests. For each abnormal result, tell me what it means, why it matters, and what I should discuss with my doctor.`}
+            context={`Abnormal values: ${resultedLabs.flatMap((lab) => lab.results.filter((result) => result.flag !== "normal")).map((result) => `${result.name}: ${result.value}${result.unit || ""} (${result.flag})`).join(", ")}`}
           />
         }
       />
 
-      {/* Critical alert */}
-      {criticalCount > 0 && (
-        <div className="rounded-2xl border-2 border-red-500/30 bg-red-50 p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle size={16} className="text-red-600" />
-            <span className="text-sm font-bold text-red-700">Critical Values Detected</span>
-          </div>
-          <p className="text-sm text-red-600">
-            {criticalCount} critical lab value{criticalCount > 1 ? "s" : ""} require immediate attention. Please contact your doctor.
-          </p>
-        </div>
-      )}
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { icon: FlaskConical, color: "text-terra", bg: "bg-terra/8", value: labs.length, label: "Total Tests" },
-          { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50", value: pendingLabs.length, label: "Pending" },
-          {
-            icon: AlertTriangle,
-            color: abnormalCount > 0 ? "text-soft-red" : "text-accent",
-            bg: abnormalCount > 0 ? "bg-soft-red/8" : "bg-accent/8",
-            value: abnormalCount, label: "Abnormal Values"
-          },
-          {
-            icon: CheckCircle2,
-            color: "text-accent", bg: "bg-accent/8",
-            value: resultedLabs.filter((l) => l.status === "reviewed").length,
-            label: "Doctor Reviewed"
-          },
-        ].map((card) => (
-          <div key={card.label} className="surface-card p-4">
-            <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-3", card.bg)}>
-              <card.icon size={18} className={card.color} />
+      {criticalCount > 0 ? (
+        <div className="surface-card border-red-400/30 bg-[linear-gradient(180deg,rgba(255,247,246,0.96),rgba(255,239,237,0.92))] p-4 sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="eyebrow-pill border-red-300/30 bg-red-500/10 text-red-600">Critical values detected</div>
+              <p className="mt-3 text-sm leading-6 text-red-700">
+                {criticalCount} critical value{criticalCount === 1 ? " requires" : "s require"} immediate attention. This should not wait for a routine portal reply.
+              </p>
             </div>
-            <div className="text-2xl font-bold text-warm-800">{card.value}</div>
-            <div className="text-xs text-warm-500 mt-0.5">{card.label}</div>
+            <AlertTriangle className="shrink-0 text-red-600" size={18} />
           </div>
-        ))}
-      </div>
-
-      {/* Pending labs */}
-      {pendingLabs.length > 0 && (
-        <div className="rounded-2xl border border-yellow-200/60 bg-yellow-50/60 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock size={14} className="text-yellow-600" />
-            <span className="text-xs font-bold text-yellow-700 uppercase tracking-wide">Awaiting Results</span>
-          </div>
-          <div className="space-y-2">
-            {pendingLabs.map((lab) => (
-              <div key={lab.id} className="flex items-center justify-between">
-                <p className="text-xs text-warm-700 font-medium">{lab.test_name}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-warm-500">Ordered {new Date(lab.ordered_at).toLocaleDateString()}</span>
-                  <span className="text-[9px] font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full">Processing</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="text-[10px] text-warm-500 mt-2">Results typically available within 1–3 business days.</p>
         </div>
-      )}
+      ) : null}
 
-      {/* Empty state for labs */}
-      {resultedLabs.length === 0 && !pendingLabs.length && (
-        <div className="surface-card flex flex-col items-center justify-center py-20 text-center gap-3">
-          <FlaskConical size={32} className="text-cloudy" />
-          <p className="text-sm font-semibold text-warm-600">No lab results yet</p>
-          <p className="text-xs text-cloudy max-w-xs">Your lab results will appear here after tests are ordered and processed.</p>
-        </div>
-      )}
-
-      {/* Lab result cards */}
-      <div className="space-y-3">
-        {resultedLabs.map((lab) => {
-          const physician = getPhysician(lab.physician_id)
-          const isExpanded = expandedLab === lab.id
-          const abnormals = lab.results.filter((r) => r.flag !== "normal")
-          const criticals = lab.results.filter((r) => r.flag === "critical")
-          const hasAbnormal = abnormals.length > 0
-
-          return (
-            <div key={lab.id} className={cn(
-              "surface-card overflow-hidden",
-              criticals.length > 0 && "border-red-400/30",
-              hasAbnormal && !criticals.length && "border-soft-red/20",
-            )}>
-              <button
-                onClick={() => setExpandedLab(isExpanded ? null : lab.id)}
-                className="w-full flex items-center justify-between px-5 py-4 hover:bg-cream/30 transition text-left"
-                aria-expanded={isExpanded}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                    criticals.length > 0 ? "bg-red-100" : hasAbnormal ? "bg-soft-red/10" : "bg-accent/8"
-                  )}>
-                    <FlaskConical size={18} className={criticals.length > 0 ? "text-red-600" : hasAbnormal ? "text-soft-red" : "text-accent"} />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="text-sm font-bold text-warm-800">{lab.test_name}</h3>
-                    <p className="text-[10px] text-cloudy mt-0.5">
-                      {lab.lab_facility} &middot; {lab.category} &middot; {lab.resulted_at ? new Date(lab.resulted_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "Pending"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {criticals.length > 0 && (
-                    <span className="text-[9px] font-black text-white bg-red-600 px-2 py-0.5 rounded-full">CRITICAL</span>
-                  )}
-                  {hasAbnormal && !criticals.length && (
-                    <span className="text-[9px] font-bold text-soft-red bg-soft-red/10 px-2 py-0.5 rounded-full">
-                      {abnormals.length} abnormal
-                    </span>
-                  )}
-                  {!hasAbnormal && (
-                    <span className="text-[9px] font-bold text-accent bg-accent/8 px-2 py-0.5 rounded-full">All Normal</span>
-                  )}
-                  <span className={cn(
-                    "text-[9px] font-bold px-1.5 py-0.5 rounded-full",
-                    lab.status === "reviewed" ? "text-accent bg-accent/8" : "text-warm-500 bg-warm-100"
-                  )}>
-                    {lab.status === "reviewed" ? "Reviewed" : "Resulted"}
-                  </span>
-                  {isExpanded
-                    ? <ChevronUp size={14} className="text-cloudy" />
-                    : <ChevronDown size={14} className="text-cloudy" />
-                  }
-                </div>
-              </button>
-
-              {isExpanded && (
-                <div className="border-t border-sand/60">
-                  {/* Individual results */}
-                  <div className="divide-y divide-sand/40">
-                    {lab.results.map((result, idx) => (
-                      <div key={idx} className={cn(
-                        "flex items-start gap-4 px-5 py-3.5",
-                        result.flag === "critical" ? "bg-red-50" :
-                        result.flag !== "normal" ? "bg-soft-red/3" : ""
-                      )}>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-warm-800">{result.name}</p>
-                          {result.reference_range && (
-                            <p className="text-[10px] text-cloudy mt-0.5">Ref: {result.reference_range}</p>
-                          )}
-                          {result.reference_range && (
-                            <RangeBar value={result.value} referenceRange={result.reference_range} flag={result.flag} />
-                          )}
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className={cn(
-                            "text-base font-bold leading-none",
-                            result.flag === "critical" ? "text-red-600" :
-                            result.flag !== "normal" ? "text-soft-red" : "text-warm-800"
-                          )}>
-                            {result.value}
-                            {result.unit && <span className="text-xs font-normal text-warm-500 ml-1">{result.unit}</span>}
-                          </div>
-                          <div className="mt-1.5 flex justify-end">
-                            <FlagBadge flag={result.flag} />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Doctor notes + AI */}
-                  {lab.notes && (
-                    <div className="px-5 py-3 bg-cream/40 border-t border-sand/60">
-                      <div className="flex items-start gap-2">
-                        <FileText size={12} className="text-terra mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-[10px] font-bold text-warm-600 uppercase tracking-wide">
-                            {physician?.full_name || "Clinician"}&apos;s Notes
-                          </p>
-                          <p className="text-xs text-warm-700 mt-0.5 leading-relaxed">{lab.notes}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {hasAbnormal && (
-                    <div className="px-5 py-3 border-t border-sand/60">
-                      <AIAction
-                        agentId="coordinator"
-                        label="Explain These Results"
-                        prompt={`Explain the abnormal results from my ${lab.test_name} in plain language: ${abnormals.map(r => `${r.name}: ${r.value}${r.unit || ""} (reference: ${r.reference_range || "n/a"}, flag: ${r.flag})`).join(", ")}. What do they mean for my health and what should I discuss with my doctor?`}
-                        context={`Lab: ${lab.test_name} at ${lab.lab_facility}`}
-                        variant="compact"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-
-      {/* AI interpretation */}
-      {labs.length > 0 && (
-        <AIAction
-          agentId="coordinator"
-          label="Full Lab Summary from Atlas"
-          prompt={`Give me a comprehensive summary of all my lab results in plain English. Explain each abnormal value, how it relates to my health conditions, and give me 3 specific questions to ask my doctor.`}
-          context={`All labs: ${labs.map(l => `${l.test_name}: ${l.results.map(r => `${r.name}=${r.value}${r.unit || ""} (${r.flag})`).join(", ")}`).join(" | ")}`}
-          variant="inline"
-          className="bg-terra/5 rounded-2xl border border-terra/10 p-4"
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <OpsMetricCard
+          label="Total tests"
+          value={`${labs.length}`}
+          detail="Combined pending and resulted lab panels on file."
+          icon={FlaskConical}
+          tone="blue"
         />
-      )}
+        <OpsMetricCard
+          label="Pending"
+          value={`${pendingLabs.length}`}
+          detail="Tests that have been ordered but not fully resulted yet."
+          icon={Clock}
+          tone={pendingLabs.length ? "gold" : "accent"}
+        />
+        <OpsMetricCard
+          label="Abnormal"
+          value={`${abnormalCount}`}
+          detail="Results outside the reference range, including low, high, and critical."
+          icon={AlertTriangle}
+          tone={abnormalCount ? "red" : "accent"}
+        />
+        <OpsMetricCard
+          label="Reviewed"
+          value={`${reviewedCount}`}
+          detail="Result sets already marked as reviewed by a clinician."
+          icon={CheckCircle2}
+          tone="accent"
+        />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
+        <OpsPanel
+          eyebrow="Results lane"
+          title="Diagnostic feed"
+          description="Expand a panel to inspect each value, reference range, clinician note, and the AI explanation without leaving the page."
+        >
+          {resultedLabs.length === 0 ? (
+            <OpsEmptyState
+              icon={FlaskConical}
+              title="No resulted labs yet"
+              description={pendingLabs.length ? "Tests are still processing. As results arrive, they will appear here with abnormal flags and clinician notes." : "Your lab results will appear here after tests are ordered and processed."}
+            />
+          ) : (
+            <div className="space-y-3">
+              {resultedLabs.map((lab) => {
+                const physician = getPhysician(lab.physician_id)
+                const isExpanded = expandedLab === lab.id
+                const abnormalResults = lab.results.filter((result) => result.flag !== "normal")
+                const criticalResults = lab.results.filter((result) => result.flag === "critical")
+                const hasAbnormal = abnormalResults.length > 0
+
+                return (
+                  <article
+                    key={lab.id}
+                    className={cn(
+                      "surface-muted overflow-hidden",
+                      criticalResults.length > 0 && "border-red-400/30 bg-red-50/70",
+                      hasAbnormal && !criticalResults.length && "border-soft-red/20 bg-soft-red/5"
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpandedLab(isExpanded ? null : lab.id)}
+                      className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left sm:px-5"
+                      aria-expanded={isExpanded}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-serif text-warm-800">{lab.test_name}</h3>
+                          {criticalResults.length > 0 ? <OpsBadge tone="red">Critical</OpsBadge> : null}
+                          {hasAbnormal && !criticalResults.length ? <OpsBadge tone="gold">{abnormalResults.length} abnormal</OpsBadge> : null}
+                          {!hasAbnormal ? <OpsBadge tone="accent">All normal</OpsBadge> : null}
+                          <OpsBadge tone={lab.status === "reviewed" ? "accent" : "blue"}>{lab.status === "reviewed" ? "Reviewed" : "Resulted"}</OpsBadge>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium text-cloudy">
+                          <span className="chip">{lab.lab_facility}</span>
+                          <span className="chip">{lab.category}</span>
+                          <span className="chip">{lab.resulted_at ? formatDate(lab.resulted_at) : "Pending"}</span>
+                          {physician ? <span className="chip">{physician.full_name}</span> : null}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-cloudy">{isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
+                    </button>
+
+                    {isExpanded ? (
+                      <div className="border-t border-sand/60">
+                        <div className="divide-y divide-sand/40">
+                          {lab.results.map((result, index) => (
+                            <div
+                              key={`${lab.id}-${index}`}
+                              className={cn(
+                                "flex items-start gap-4 px-4 py-3.5 sm:px-5",
+                                result.flag === "critical" && "bg-red-50/80",
+                                result.flag !== "normal" && result.flag !== "critical" && "bg-soft-red/5"
+                              )}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-semibold text-warm-800">{result.name}</div>
+                                {result.reference_range ? <div className="mt-1 text-[11px] text-cloudy">Ref: {result.reference_range}</div> : null}
+                                {result.reference_range ? <RangeBar value={result.value} referenceRange={result.reference_range} flag={result.flag} /> : null}
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <div className={cn(
+                                  "text-base font-bold leading-none",
+                                  result.flag === "critical"
+                                    ? "text-red-600"
+                                    : result.flag !== "normal"
+                                    ? "text-soft-red"
+                                    : "text-warm-800"
+                                )}>
+                                  {result.value}
+                                  {result.unit ? <span className="ml-1 text-xs font-normal text-warm-500">{result.unit}</span> : null}
+                                </div>
+                                <div className="mt-2 flex justify-end">
+                                  <FlagBadge flag={result.flag} />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {lab.notes ? (
+                          <div className="border-t border-sand/60 bg-white/45 px-4 py-3 sm:px-5">
+                            <div className="flex items-start gap-2">
+                              <FileText size={13} className="mt-0.5 shrink-0 text-terra" />
+                              <div>
+                                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy/80">
+                                  {physician?.full_name || "Clinician"} note
+                                </div>
+                                <div className="mt-1 text-sm leading-6 text-warm-700">{lab.notes}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {hasAbnormal ? (
+                          <div className="border-t border-sand/60 px-4 py-3 sm:px-5">
+                            <AIAction
+                              agentId="coordinator"
+                              label="Explain These Results"
+                              prompt={`Explain the abnormal results from my ${lab.test_name} in plain language: ${abnormalResults.map((result) => `${result.name}: ${result.value}${result.unit || ""} (reference: ${result.reference_range || "n/a"}, flag: ${result.flag})`).join(", ")}. Tell me what they could mean and what I should discuss with my doctor.`}
+                              context={`Lab: ${lab.test_name} at ${lab.lab_facility}`}
+                              variant="compact"
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </article>
+                )
+              })}
+            </div>
+          )}
+        </OpsPanel>
+
+        <div className="space-y-4">
+          <OpsPanel
+            eyebrow="Pending"
+            title="Awaiting result feed"
+            description="Tests still in processing, so the patient knows what is not final yet."
+          >
+            {pendingLabs.length === 0 ? (
+              <OpsEmptyState
+                icon={Clock}
+                title="No labs are waiting right now"
+                description="Every test on file has either resulted or there is no active diagnostic work in progress."
+                className="py-8"
+              />
+            ) : (
+              <div className="space-y-3">
+                {pendingLabs.map((lab) => (
+                  <div key={lab.id} className="surface-muted px-4 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-warm-800">{lab.test_name}</div>
+                        <div className="mt-1 text-xs leading-5 text-cloudy">Ordered {formatDate(lab.ordered_at)} · {lab.lab_facility}</div>
+                      </div>
+                      <OpsBadge tone="gold">Processing</OpsBadge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </OpsPanel>
+
+          <OpsPanel
+            eyebrow="Signal summary"
+            title="What stands out"
+            description="A compact read of the result feed before opening each panel."
+          >
+            <div className="space-y-3">
+              <FocusItem
+                label="Abnormal panels"
+                value={`${abnormalLabs.length}`}
+                detail={
+                  abnormalLabs[0]?.test_name
+                    ? `${abnormalLabs[0].test_name} is the first result set that should be reviewed in detail.`
+                    : "No abnormal lab panels are visible right now."
+                }
+                tone={abnormalLabs.length ? "red" : "accent"}
+              />
+              <FocusItem
+                label="Critical values"
+                value={`${criticalCount}`}
+                detail={criticalCount ? "Critical values should trigger direct follow-up, not a passive portal wait." : "No critical values are currently present."}
+                tone={criticalCount ? "red" : "accent"}
+              />
+              <FocusItem
+                label="Clinician reviewed"
+                value={`${reviewedCount}`}
+                detail={reviewedCount ? "Some result sets already have a clinician review state attached." : "No result set is marked reviewed yet."}
+                tone={reviewedCount ? "accent" : "blue"}
+              />
+            </div>
+          </OpsPanel>
+
+          <OpsPanel
+            eyebrow="Patient framing"
+            title="How to read this board"
+            description="Keep the interpretation grounded and actionable rather than dumping raw values back onto the patient."
+          >
+            <div className="space-y-3 text-sm leading-6 text-warm-600">
+              <p>
+                {criticalCount
+                  ? `${criticalCount} value${criticalCount === 1 ? " is" : "s are"} critical. That should trigger direct clinical follow-up rather than a normal message thread.`
+                  : abnormalCount
+                  ? `${abnormalCount} value${abnormalCount === 1 ? " is" : "s are"} outside the reference range. Review those panels first, then use Atlas for a plain-language explanation.`
+                  : "The current lab feed is stable, with no out-of-range values visible in the resulted panels."}
+              </p>
+              <p>
+                {pendingLabs.length
+                  ? `${pendingLabs.length} test${pendingLabs.length === 1 ? " is" : "s are"} still processing, so the board is not yet complete. Keep that in mind before over-interpreting the current results.`
+                  : "There are no pending tests, so the current board reflects the full diagnostic set on file."}
+              </p>
+            </div>
+          </OpsPanel>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FocusItem({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string
+  value: string
+  detail: string
+  tone: "terra" | "accent" | "blue" | "gold" | "red"
+}) {
+  return (
+    <div className="surface-muted flex items-start justify-between gap-3 px-4 py-3">
+      <div>
+        <div className="text-sm font-semibold text-warm-800">{label}</div>
+        <div className="mt-1 text-xs leading-5 text-cloudy">{detail}</div>
+      </div>
+      <OpsBadge tone={tone} className="shrink-0">{value}</OpsBadge>
     </div>
   )
 }

@@ -1,8 +1,24 @@
 import type { Metadata, Viewport } from "next"
+import { Instrument_Serif, Sora } from "next/font/google"
 // OnchainKit styles omitted — v1.x uses Tailwind v4 which conflicts with our v3
 // Components use internal styling instead
 import "./globals.css"
 import { Providers } from "./providers"
+
+const sora = Sora({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+  weight: ["300", "400", "500", "600", "700", "800"],
+})
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-serif",
+  weight: ["400"],
+  style: ["normal", "italic"],
+})
 
 export const metadata: Metadata = {
   title: "OpenRx — AI Healthcare Agent | Powered by OpenClaw",
@@ -29,15 +45,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Sora:wght@300;400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="min-h-screen bg-cream text-warm-800 antialiased">
+      <body className={`${sora.variable} ${instrumentSerif.variable} min-h-screen bg-cream text-warm-800 antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

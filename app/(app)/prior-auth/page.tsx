@@ -1,256 +1,371 @@
 "use client"
 
-import { cn, formatDate, getStatusColor } from "@/lib/utils"
-import {
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Send,
-} from "lucide-react"
+import Link from "next/link"
+import { useMemo, useState } from "react"
+import { AlertTriangle, ClipboardList, Clock, ShieldAlert, ShieldCheck, XCircle } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
+import { OpsBadge, OpsEmptyState, OpsMetricCard, OpsPanel, OpsTabButton } from "@/components/ui/ops-primitives"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
-import Link from "next/link"
+import { cn, formatDate } from "@/lib/utils"
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  submitted: "Submitted",
+  approved: "Approved",
+  denied: "Denied",
+}
+
+function statusLabel(status: string) {
+  return STATUS_LABELS[status] ?? status.replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function statusTone(status: string): "terra" | "accent" | "blue" | "gold" | "red" {
+  switch (status) {
+    case "approved":
+      return "accent"
+    case "denied":
+      return "red"
+    case "submitted":
+      return "blue"
+    default:
+      return "gold"
+  }
+}
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
 }
 
 export default function PriorAuthPage() {
+  const [statusFilter, setStatusFilter] = useState("")
   const { snapshot, getPhysician, loading } = useLiveSnapshot()
   const myAuths = snapshot.priorAuths
+  const hasData = Boolean(snapshot.patient)
 
-  const hasData = !!snapshot.patient
-  const pending = myAuths.filter(
-    (p) => p.status === "pending" || p.status === "submitted"
+  const pending = useMemo(
+    () => myAuths.filter((auth) => auth.status === "pending" || auth.status === "submitted"),
+    [myAuths]
   )
-  const approved = myAuths.filter((p) => p.status === "approved")
-  const denied = myAuths.filter((p) => p.status === "denied")
+  const approved = useMemo(() => myAuths.filter((auth) => auth.status === "approved"), [myAuths])
+  const denied = useMemo(() => myAuths.filter((auth) => auth.status === "denied"), [myAuths])
+  const urgent = useMemo(
+    () => myAuths.filter((auth) => auth.urgency === "urgent" || auth.urgency === "stat"),
+    [myAuths]
+  )
+  const readyToAppeal = useMemo(
+    () => myAuths.filter((auth) => auth.status === "denied" || Boolean(auth.denial_reason)),
+    [myAuths]
+  )
+
+  const statuses = useMemo(() => Array.from(new Set(myAuths.map((auth) => auth.status))), [myAuths])
+  const filteredAuths = useMemo(() => {
+    if (!statusFilter) return myAuths
+    return myAuths.filter((auth) => auth.status === statusFilter)
+  }, [myAuths, statusFilter])
 
   if (loading) {
     return (
       <div className="animate-slide-up space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2"><Skeleton className="h-8 w-44" /><Skeleton className="h-4 w-72" /></div>
-          <Skeleton className="h-9 w-36" />
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-80" />
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => <div key={i} className="bg-pampas rounded-2xl border border-sand p-5"><Skeleton className="h-20 w-full" /></div>)}
-        </div>
-        <div className="bg-pampas rounded-2xl border border-sand divide-y divide-sand/50">
-          <div className="px-5 py-3 bg-sand/20 border-b border-sand"><Skeleton className="h-4 w-40" /></div>
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="px-5 py-4">
-              <div className="flex items-start gap-4">
-                <Skeleton className="h-5 w-5 rounded-full mt-0.5" />
-                <div className="flex-1 space-y-2"><Skeleton className="h-4 w-48" /><Skeleton className="h-3 w-64" /><Skeleton className="h-3 w-40" /></div>
-              </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="surface-card p-5">
+              <Skeleton className="h-24 w-full" />
             </div>
           ))}
         </div>
+        <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
+          <div className="surface-card p-5"><Skeleton className="h-[34rem] w-full" /></div>
+          <div className="surface-card p-5"><Skeleton className="h-[34rem] w-full" /></div>
+        </div>
       </div>
     )
   }
 
-  if (!loading && !hasData) {
+  if (!hasData) {
     return (
-      <div className="animate-slide-up flex flex-col items-center justify-center min-h-[50vh] text-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-yellow-50 flex items-center justify-center">
-          <Clock size={28} className="text-yellow-600" />
+      <div className="animate-slide-up space-y-6">
+        <AppPageHeader
+          eyebrow="Utilization review"
+          title="Prior authorization board"
+          description="Track insurer approvals, denials, and appeal-ready requests without waiting for a callback chain."
+        />
+        <div className="surface-card p-6">
+          <OpsEmptyState
+            icon={ShieldAlert}
+            title="No authorization data is connected yet"
+            description="Connect your record first, then this board will track pending authorizations, denials, and appeal opportunities automatically."
+          />
+          <div className="mt-5 flex justify-center">
+            <Link href="/onboarding" className="control-button-primary">
+              Connect my record
+            </Link>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">My Authorizations</h1>
-          <p className="text-warm-500 mt-1 max-w-sm">Connect your health record to track prior authorizations and appeals.</p>
-        </div>
-        <Link href="/onboarding" className="px-5 py-2.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition">
-          Get Started
-        </Link>
       </div>
     )
-  }
-
-  const getIcon = (status: string) => {
-    switch (status) {
-      case "approved":
-        return <CheckCircle2 size={16} className="text-accent" />
-      case "denied":
-        return <XCircle size={16} className="text-soft-red" />
-      case "submitted":
-        return <Send size={16} className="text-soft-blue" />
-      default:
-        return <Clock size={16} className="text-yellow-400" />
-    }
   }
 
   return (
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
-        title="My Authorizations"
-        description={
-          <>
-            {myAuths.length} total &middot;{" "}
-            <span className="font-medium text-yellow-400">{pending.length} pending</span> &middot;{" "}
-            <span className="font-medium text-accent">{approved.length} approved</span> &middot;{" "}
-            <span className="font-medium text-soft-red">{denied.length} denied</span>
-          </>
+        eyebrow="Utilization review"
+        title="Prior authorization board"
+        description="Rex keeps the queue readable: what is waiting on payer review, what is already cleared, and what is blocked by a denial that needs a real appeal."
+        meta={
+          <div className="flex flex-wrap items-center gap-2">
+            <OpsBadge tone={pending.length ? "gold" : "accent"}>{pending.length} in motion</OpsBadge>
+            <OpsBadge tone={denied.length ? "red" : "accent"}>{denied.length} denied</OpsBadge>
+            <OpsBadge tone={urgent.length ? "blue" : "terra"}>{urgent.length} urgent or stat</OpsBadge>
+          </div>
         }
         actions={
-          <AIAction
-            agentId="prior-auth"
-            label="Check My PA Status"
-            prompt="Check the status of all my pending and submitted prior authorizations. Let me know if any are overdue or need attention."
-            context={`Pending: ${pending.length}, Denied: ${denied.length}`}
-          />
+          <>
+            <AIAction
+              agentId="prior-auth"
+              label="Check My PA Status"
+              prompt="Review my prior authorization queue, tell me which cases are still pending, and point out anything overdue or likely to be denied."
+              context={`Total authorizations: ${myAuths.length}, pending or submitted: ${pending.length}, denied: ${denied.length}`}
+            />
+            <Link href="/prior-auth/audit" className="control-button-secondary">
+              View audit trail
+            </Link>
+          </>
         }
       />
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-yellow-900/20 rounded-2xl border border-yellow-700/30 p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock size={18} className="text-yellow-400" />
-            <span className="text-sm font-bold text-yellow-400">
-              Pending Review
-            </span>
-          </div>
-          <div className="text-3xl font-bold text-yellow-400">
-            {pending.length}
-          </div>
-          <div className="text-xs text-yellow-400 mt-1">
-            {pending.filter((p) => p.urgency === "urgent").length} urgent
-          </div>
-        </div>
-        <div className="bg-accent/5 rounded-2xl border border-accent/10 p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 size={18} className="text-accent" />
-            <span className="text-sm font-bold text-accent">Approved</span>
-          </div>
-          <div className="text-3xl font-bold text-accent">
-            {approved.length}
-          </div>
-          <div className="text-xs text-accent/70 mt-1">This period</div>
-        </div>
-        <div className="bg-soft-red/5 rounded-2xl border border-soft-red/10 p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <XCircle size={18} className="text-soft-red" />
-            <span className="text-sm font-bold text-soft-red">Denied</span>
-          </div>
-          <div className="text-3xl font-bold text-soft-red">
-            {denied.length}
-          </div>
-          <div className="text-xs text-soft-red/70 mt-1">May need appeal</div>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <OpsMetricCard
+          label="Pending review"
+          value={`${pending.length}`}
+          detail="Requests still waiting on payer action or initial submission."
+          icon={Clock}
+          tone={pending.length ? "gold" : "accent"}
+        />
+        <OpsMetricCard
+          label="Approved"
+          value={`${approved.length}`}
+          detail="Cases already cleared and ready to move forward."
+          icon={ShieldCheck}
+          tone="accent"
+        />
+        <OpsMetricCard
+          label="Denied"
+          value={`${denied.length}`}
+          detail="Cases that need a patient-friendly explanation or appeal package."
+          icon={XCircle}
+          tone={denied.length ? "red" : "accent"}
+        />
+        <OpsMetricCard
+          label="Urgent queue"
+          value={`${urgent.length}`}
+          detail="Urgent or stat requests that should be reviewed first."
+          icon={AlertTriangle}
+          tone={urgent.length ? "blue" : "terra"}
+        />
       </div>
 
-      {/* PA List */}
-      <div className="bg-pampas rounded-2xl border border-sand divide-y divide-sand/50">
-        <div className="px-5 py-3 bg-sand/20 border-b border-sand">
-          <h2 className="text-sm font-bold text-warm-700">
-            All My Authorizations
-          </h2>
-        </div>
-        {myAuths.map((pa) => {
-          const physician = getPhysician(pa.physician_id)
+      <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
+        <OpsPanel
+          eyebrow="Authorization lane"
+          title="Case review queue"
+          description="Use the status tabs to collapse the queue fast, then open the right AI action for each case instead of reading payer jargon line by line."
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <OpsTabButton active={!statusFilter} onClick={() => setStatusFilter("")}>All</OpsTabButton>
+              {statuses.map((status) => (
+                <OpsTabButton key={status} active={statusFilter === status} onClick={() => setStatusFilter(status)}>
+                  {statusLabel(status)}
+                </OpsTabButton>
+              ))}
+            </div>
+          }
+        >
+          {filteredAuths.length === 0 ? (
+            <OpsEmptyState
+              icon={ClipboardList}
+              title="No authorizations match this filter"
+              description={
+                statusFilter
+                  ? `There are no ${statusLabel(statusFilter).toLowerCase()} prior authorizations right now.`
+                  : "No prior authorization cases are on file yet."
+              }
+            />
+          ) : (
+            <div className="space-y-3">
+              {filteredAuths.map((auth) => {
+                const physician = getPhysician(auth.physician_id)
+                const urgentLabel = auth.urgency === "stat" ? "STAT" : auth.urgency === "urgent" ? "URGENT" : null
 
-          return (
-            <div
-              key={pa.id}
-              className={cn(
-                "px-5 py-4 hover:bg-sand/20 transition",
-                pa.urgency === "urgent" &&
-                  pa.status === "pending" &&
-                  "border-l-2 border-l-soft-red"
-              )}
-            >
-              <div className="flex items-start gap-4">
-                <div className="mt-0.5">{getIcon(pa.status)}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-bold text-warm-800">
-                      {pa.procedure_name}
-                    </span>
-                    <span className="text-xs text-warm-500 font-mono">
-                      CPT {pa.procedure_code}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide",
-                        getStatusColor(pa.status)
-                      )}
-                    >
-                      {pa.status}
-                    </span>
-                    {pa.urgency === "urgent" && (
-                      <span className="flex items-center gap-0.5 text-[10px] font-bold text-soft-red">
-                        <AlertTriangle size={10} />
-                        URGENT
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-warm-500 mt-1">
-                    {physician?.full_name} &middot;{" "}
-                    {pa.insurance_provider}
-                  </p>
-                  <p className="text-xs text-warm-500 mt-0.5">
-                    ICD: {pa.icd_codes.join(", ")}
-                  </p>
-                  <p className="text-[11px] text-warm-600 mt-2 leading-relaxed">
-                    {pa.clinical_notes}
-                  </p>
-                  {pa.denial_reason && (
-                    <div className="mt-2 p-2.5 bg-soft-red/5 rounded-lg border border-soft-red/10">
-                      <p className="text-[10px] font-bold text-soft-red uppercase tracking-wider mb-0.5">
-                        Denial Reason
-                      </p>
-                      <p className="text-xs text-soft-red">
-                        {pa.denial_reason}
-                      </p>
+                return (
+                  <article key={auth.id} className="surface-muted p-4 sm:p-5">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0 space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-serif text-warm-800">{auth.procedure_name}</h3>
+                          <OpsBadge tone={statusTone(auth.status)}>{statusLabel(auth.status)}</OpsBadge>
+                          {urgentLabel ? <OpsBadge tone="red">{urgentLabel}</OpsBadge> : null}
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 text-[11px] font-medium text-cloudy">
+                          <span className="chip">CPT {auth.procedure_code}</span>
+                          <span className="chip">{auth.insurance_provider}</span>
+                          <span className="chip">ICD {auth.icd_codes.join(", ")}</span>
+                          {physician ? <span className="chip">{physician.full_name}</span> : null}
+                        </div>
+
+                        <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-sm leading-6 text-warm-700">
+                          {auth.clinical_notes || "No clinical rationale has been captured for this authorization yet."}
+                        </div>
+
+                        {auth.denial_reason ? (
+                          <div className="rounded-2xl border border-soft-red/20 bg-soft-red/5 px-4 py-3 text-sm leading-6 text-soft-red">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-soft-red/80">Denial reason</div>
+                            <div className="mt-1">{auth.denial_reason}</div>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="grid min-w-full gap-3 sm:grid-cols-2 lg:min-w-[18rem] lg:max-w-[20rem] lg:grid-cols-1">
+                        <MetaCard label="Reference" value={auth.reference_number || "Not assigned"} />
+                        <MetaCard label="Submitted" value={auth.submitted_at ? formatDate(auth.submitted_at) : "Not submitted"} />
+                        <MetaCard label="Resolved" value={auth.resolved_at ? formatDate(auth.resolved_at) : "Still open"} />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {auth.status === "denied" ? (
+                        <AIAction
+                          agentId="prior-auth"
+                          label="Help Me Appeal"
+                          prompt={`Help me understand and appeal the denial for prior authorization ${auth.reference_number || auth.procedure_code}. Denial reason: "${auth.denial_reason || "Not supplied"}".`}
+                          context={`Procedure: ${auth.procedure_name} (${auth.procedure_code}), insurer: ${auth.insurance_provider}, ICD codes: ${auth.icd_codes.join(", ")}`}
+                          variant="compact"
+                        />
+                      ) : null}
+                      {auth.status === "pending" || auth.status === "submitted" ? (
+                        <AIAction
+                          agentId="prior-auth"
+                          label={auth.status === "pending" ? "Prepare Submission" : "Check Status"}
+                          prompt={
+                            auth.status === "pending"
+                              ? `Prepare the prior authorization submission for ${auth.procedure_name}. Summarize what documentation should be attached before sending it to ${auth.insurance_provider}.`
+                              : `Check the likely status posture for prior authorization ${auth.reference_number || auth.procedure_code} with ${auth.insurance_provider} and tell me what to do next.`
+                          }
+                          context={`Procedure: ${auth.procedure_name} (${auth.procedure_code}), urgency: ${auth.urgency}, insurer: ${auth.insurance_provider}`}
+                          variant="compact"
+                        />
+                      ) : null}
                       <AIAction
                         agentId="prior-auth"
-                        label="Help Me Appeal"
-                        prompt={`Help me understand and appeal the denial for my prior authorization ${pa.reference_number}. Denial reason: "${pa.denial_reason}". What are my options?`}
-                        context={`Procedure: ${pa.procedure_name} (${pa.procedure_code}), ICD: ${pa.icd_codes.join(",")}, Insurer: ${pa.insurance_provider}`}
+                        label="Plain-language summary"
+                        prompt={`Rewrite this prior authorization case into patient-friendly language: procedure ${auth.procedure_name}, status ${auth.status}, insurer ${auth.insurance_provider}, notes ${auth.clinical_notes}.`}
+                        context={`Reference: ${auth.reference_number || "none"}, denial: ${auth.denial_reason || "none"}`}
                         variant="compact"
-                        className="mt-2"
                       />
                     </div>
-                  )}
-                  {(pa.status === "pending" || pa.status === "submitted") && (
-                    <AIAction
-                      agentId="prior-auth"
-                      label={pa.status === "pending" ? "Submit for Me" : "Check Status"}
-                      prompt={pa.status === "pending"
-                        ? `Submit my prior authorization for ${pa.procedure_name} to ${pa.insurance_provider}. Make sure all required clinical documentation is included.`
-                        : `Check the current status of my PA ${pa.reference_number} with ${pa.insurance_provider}. Let me know if there are any updates.`}
-                      context={`CPT: ${pa.procedure_code}, Insurer: ${pa.insurance_provider}`}
-                      variant="compact"
-                      className="mt-2"
-                    />
-                  )}
-                </div>
-                <div className="text-right shrink-0">
-                  {pa.reference_number && (
-                    <div className="text-[10px] font-mono text-cloudy">
-                      {pa.reference_number}
-                    </div>
-                  )}
-                  {pa.submitted_at && (
-                    <div className="text-[10px] text-cloudy mt-0.5">
-                      Submitted {formatDate(pa.submitted_at)}
-                    </div>
-                  )}
-                  {pa.resolved_at && (
-                    <div className="text-[10px] text-cloudy mt-0.5">
-                      Resolved {formatDate(pa.resolved_at)}
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </article>
+                )
+              })}
             </div>
-          )
-        })}
+          )}
+        </OpsPanel>
+
+        <div className="space-y-4">
+          <OpsPanel
+            eyebrow="Rex focus"
+            title="What needs attention first"
+            description="A quick read on what should move next instead of forcing the patient to infer the workflow from insurer language."
+          >
+            <div className="space-y-3">
+              <FocusItem
+                label="Appeal-ready"
+                value={`${readyToAppeal.length}`}
+                detail={
+                  readyToAppeal[0]?.procedure_name
+                    ? `${readyToAppeal[0].procedure_name} is already blocked by a denial or explanation.`
+                    : "No appeal-ready cases right now."
+                }
+                tone={readyToAppeal.length ? "red" : "accent"}
+              />
+              <FocusItem
+                label="Waiting on payer"
+                value={`${pending.length}`}
+                detail={
+                  pending[0]?.procedure_name
+                    ? `${pending[0].procedure_name} is the next case to check for turnaround.`
+                    : "No payer review queue at the moment."
+                }
+                tone={pending.length ? "gold" : "accent"}
+              />
+              <FocusItem
+                label="Urgent requests"
+                value={`${urgent.length}`}
+                detail={
+                  urgent.length
+                    ? "Urgent and stat requests should be handled before routine utilization review."
+                    : "No urgent requests are open."
+                }
+                tone={urgent.length ? "blue" : "accent"}
+              />
+            </div>
+          </OpsPanel>
+
+          <OpsPanel
+            eyebrow="Patient framing"
+            title="What this means in plain language"
+            description="Translate the queue into immediate next steps the patient can actually act on."
+          >
+            <div className="space-y-3 text-sm leading-6 text-warm-600">
+              <p>
+                {denied.length
+                  ? `You have ${denied.length} denied authorization${denied.length === 1 ? "" : "s"}. Start there, because those are the cases most likely to delay care unless someone prepares an appeal.`
+                  : "No denials are currently blocking care, so the main job is keeping pending requests moving."}
+              </p>
+              <p>
+                {pending.length
+                  ? `${pending.length} request${pending.length === 1 ? " is" : "s are"} still in motion. Use Rex to decide whether the next step is submission cleanup, payer follow-up, or documentation support.`
+                  : "There is no live payer queue right now, which means the next priority is confirming already-approved care gets scheduled."}
+              </p>
+            </div>
+          </OpsPanel>
+        </div>
       </div>
+    </div>
+  )
+}
+
+function MetaCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 shadow-sm">
+      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy/80">{label}</div>
+      <div className="mt-2 text-sm font-semibold text-warm-800">{value}</div>
+    </div>
+  )
+}
+
+function FocusItem({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string
+  value: string
+  detail: string
+  tone: "terra" | "accent" | "blue" | "gold" | "red"
+}) {
+  return (
+    <div className="surface-muted flex items-start justify-between gap-3 px-4 py-3">
+      <div>
+        <div className="text-sm font-semibold text-warm-800">{label}</div>
+        <div className="mt-1 text-xs leading-5 text-cloudy">{detail}</div>
+      </div>
+      <OpsBadge tone={tone} className="shrink-0">{value}</OpsBadge>
     </div>
   )
 }

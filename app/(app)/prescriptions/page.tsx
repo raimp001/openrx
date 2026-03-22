@@ -1,65 +1,69 @@
 "use client"
 
-import { cn, formatDate, getStatusColor } from "@/lib/utils"
-import { Pill, Search, RefreshCw, PackageSearch, AlertTriangle, ChevronRight, Clock } from "lucide-react"
-import { useState, useMemo } from "react"
 import Link from "next/link"
+import { useMemo, useState } from "react"
+import { AlertTriangle, PackageSearch, Pill, RefreshCw, Search, ShieldPlus } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
+import { OpsBadge, OpsEmptyState, OpsMetricCard, OpsPanel, OpsTabButton } from "@/components/ui/ops-primitives"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import { cn, formatDate, getStatusColor } from "@/lib/utils"
 
-// ── Status labels ───────────────────────────────────────────
 const STATUS_LABELS: Record<string, string> = {
-  "active": "Taking",
+  active: "Taking",
   "pending-refill": "Ready to Refill",
-  "completed": "Completed",
+  completed: "Completed",
   "on-hold": "On Hold",
-  "discontinued": "Discontinued",
-}
-function statusLabel(s: string) {
-  return STATUS_LABELS[s] ?? s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  discontinued: "Discontinued",
 }
 
-// ── Adherence Ring ──────────────────────────────────────────
-function AdherenceRing({ pct, size = 56 }: { pct: number; size?: number }) {
-  const sw = 5
-  const r = (size - sw) / 2
-  const circ = 2 * Math.PI * r
-  const filled = (Math.min(100, Math.max(0, pct)) / 100) * circ
-  const color = pct >= 90 ? "#1FA971" : pct >= 80 ? "#D97706" : "#D1495B"
-  const label = pct >= 90 ? "Great" : pct >= 80 ? "Fair" : "Low"
+function statusLabel(status: string) {
+  return STATUS_LABELS[status] ?? status.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+}
+
+function AdherenceRing({ pct, size = 58 }: { pct: number; size?: number }) {
+  const strokeWidth = 5
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const safePct = Math.min(100, Math.max(0, pct))
+  const filled = (safePct / 100) * circumference
+  const color = safePct >= 90 ? "#1FA971" : safePct >= 80 ? "#D97706" : "#D1495B"
+  const label = safePct >= 90 ? "Great" : safePct >= 80 ? "Fair" : "Low"
+
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(20,35,31,0.07)" strokeWidth={sw} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(20,35,31,0.07)" strokeWidth={strokeWidth} />
         <circle
-          cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke={color} strokeWidth={sw} strokeLinecap="round"
-          strokeDasharray={`${filled} ${circ}`}
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={`${filled} ${circumference}`}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[9px] font-bold leading-none" style={{ color }}>{pct}%</span>
-        <span className="text-[7px] text-cloudy leading-none mt-0.5">{label}</span>
+        <span className="text-[10px] font-bold leading-none" style={{ color }}>{safePct}%</span>
+        <span className="mt-0.5 text-[7px] leading-none text-cloudy">{label}</span>
       </div>
     </div>
   )
 }
 
-// ── Skeleton ────────────────────────────────────────────────
-function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
-}
-
-// ── Days until refill needed ─────────────────────────────────
 function daysUntilRefill(lastFilled: string, frequency: string): number | null {
   if (!lastFilled) return null
   const supplyDays = /twice|2x/i.test(frequency) ? 15 : /three|3x/i.test(frequency) ? 10 : 30
   const filled = new Date(lastFilled).getTime()
   const nextRefill = filled + supplyDays * 86400000
-  const remaining = Math.ceil((nextRefill - Date.now()) / 86400000)
-  return remaining
+  return Math.ceil((nextRefill - Date.now()) / 86400000)
 }
 
 export default function PrescriptionsPage() {
@@ -68,26 +72,46 @@ export default function PrescriptionsPage() {
   const { snapshot, getPhysician, loading } = useLiveSnapshot()
 
   const myPrescriptions = snapshot.prescriptions
-  const hasData = !!snapshot.patient
+  const hasData = Boolean(snapshot.patient)
 
   const statuses = useMemo(
-    () => Array.from(new Set(myPrescriptions.map((p) => p.status))),
+    () => Array.from(new Set(myPrescriptions.map((prescription) => prescription.status))),
     [myPrescriptions]
   )
 
   const filtered = useMemo(() => {
-    return myPrescriptions.filter((rx) => {
-      const matchesSearch = !search || rx.medication_name.toLowerCase().includes(search.toLowerCase())
-      const matchesStatus = !statusFilter || rx.status === statusFilter
+    return myPrescriptions.filter((prescription) => {
+      const query = search.trim().toLowerCase()
+      const matchesSearch =
+        !query ||
+        prescription.medication_name.toLowerCase().includes(query) ||
+        prescription.pharmacy.toLowerCase().includes(query)
+      const matchesStatus = !statusFilter || prescription.status === statusFilter
       return matchesSearch && matchesStatus
     })
-  }, [search, statusFilter, myPrescriptions])
+  }, [myPrescriptions, search, statusFilter])
 
-  const activeRx = myPrescriptions.filter((p) => p.status === "active")
-  const lowAdherenceCount = activeRx.filter((p) => p.adherence_pct < 80).length
-  const pendingRefills = myPrescriptions.filter((p) => p.status === "pending-refill").length
-  const avgAdherence = activeRx.length > 0
-    ? Math.round(activeRx.reduce((s, p) => s + p.adherence_pct, 0) / activeRx.length)
+  const activeRx = useMemo(
+    () => myPrescriptions.filter((prescription) => prescription.status === "active"),
+    [myPrescriptions]
+  )
+  const lowAdherence = useMemo(
+    () => activeRx.filter((prescription) => prescription.adherence_pct < 80),
+    [activeRx]
+  )
+  const pendingRefills = useMemo(
+    () => myPrescriptions.filter((prescription) => prescription.status === "pending-refill"),
+    [myPrescriptions]
+  )
+  const refillSoon = useMemo(
+    () => activeRx.filter((prescription) => {
+      const daysLeft = daysUntilRefill(prescription.last_filled, prescription.frequency)
+      return daysLeft !== null && daysLeft <= 7
+    }),
+    [activeRx]
+  )
+  const avgAdherence = activeRx.length
+    ? Math.round(activeRx.reduce((sum, prescription) => sum + prescription.adherence_pct, 0) / activeRx.length)
     : null
 
   if (loading) {
@@ -97,32 +121,41 @@ export default function PrescriptionsPage() {
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-4 w-72" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="surface-card p-5 space-y-3">
-              <Skeleton className="h-6 w-32" />
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-2 w-full" />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="surface-card p-5">
+              <Skeleton className="h-24 w-full" />
             </div>
           ))}
+        </div>
+        <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
+          <div className="surface-card p-5"><Skeleton className="h-[34rem] w-full" /></div>
+          <div className="surface-card p-5"><Skeleton className="h-[34rem] w-full" /></div>
         </div>
       </div>
     )
   }
 
-  if (!loading && !hasData) {
+  if (!hasData) {
     return (
-      <div className="animate-slide-up flex flex-col items-center justify-center min-h-[50vh] text-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-accent/8 flex items-center justify-center">
-          <Pill size={28} className="text-accent" />
+      <div className="animate-slide-up space-y-6">
+        <AppPageHeader
+          eyebrow="Medication management"
+          title="Medication board"
+          description="Track fills, adherence, and refill pressure in one view instead of jumping between charts, pharmacies, and reminders."
+        />
+        <div className="surface-card p-6">
+          <OpsEmptyState
+            icon={Pill}
+            title="No medication data is connected yet"
+            description="Connect your health record first, then Maya will organize your medications, refill timing, and adherence signals here."
+          />
+          <div className="mt-5 flex justify-center">
+            <Link href="/onboarding" className="control-button-primary">
+              Connect my record
+            </Link>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-serif text-warm-800">My Medications</h1>
-          <p className="text-warm-500 mt-1 max-w-sm">Connect your health record to see your prescriptions and track medication adherence.</p>
-        </div>
-        <Link href="/onboarding" className="px-5 py-2.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition">
-          Get Started
-        </Link>
       </div>
     )
   }
@@ -130,204 +163,313 @@ export default function PrescriptionsPage() {
   return (
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
-        title="My Medications"
+        eyebrow="Medication management"
+        title="Medication board"
+        description="Maya turns the prescription list into a real operating view: what is active, what is slipping, and what needs a refill before it becomes a care gap."
         meta={
-          <div className="flex flex-wrap items-center gap-3 text-sm text-warm-500">
-            <span>{myPrescriptions.length} prescriptions</span>
-            {lowAdherenceCount > 0 ? (
-              <span className="flex items-center gap-1 font-medium text-soft-red">
-                <AlertTriangle size={12} /> {lowAdherenceCount} low adherence
-              </span>
-            ) : null}
-            {pendingRefills > 0 ? (
-              <span className="flex items-center gap-1 font-medium text-yellow-600">
-                <RefreshCw size={12} /> {pendingRefills} to refill
-              </span>
-            ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <OpsBadge tone="accent">{activeRx.length} active</OpsBadge>
+            <OpsBadge tone={pendingRefills.length ? "gold" : "accent"}>{pendingRefills.length} refill queue</OpsBadge>
+            <OpsBadge tone={lowAdherence.length ? "red" : "blue"}>{lowAdherence.length} low adherence</OpsBadge>
           </div>
         }
         actions={
           <>
-            <Link
-              href="/drug-prices"
-              className="hidden shrink-0 items-center gap-1.5 rounded-xl border border-sand px-3 py-2 text-xs font-semibold text-warm-600 transition hover:border-terra/30 hover:text-terra sm:flex"
-            >
-              Compare Prices
+            <Link href="/drug-prices" className="control-button-secondary">
+              Compare prices
             </Link>
             <AIAction
               agentId="rx"
               label="Maya: Review Meds"
-              prompt="Review my medications for adherence issues, refill timing, and any potential interactions. Prioritize the most important actions I should take."
-              context={`${activeRx.length} active Rx. Avg adherence: ${avgAdherence}%. Low adherence: ${lowAdherenceCount}. Pending refills: ${pendingRefills}.`}
+              prompt="Review my medications for refill timing, adherence risk, and possible interactions. Prioritize the most important next steps."
+              context={`${activeRx.length} active medications. Average adherence ${avgAdherence ?? 0}%. Low adherence medications: ${lowAdherence.length}. Pending refills: ${pendingRefills.length}.`}
             />
           </>
         }
       />
 
-      {/* Summary stats */}
-      {activeRx.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="surface-card p-4 text-center">
-            <div className="text-2xl font-bold text-warm-800">{activeRx.length}</div>
-            <div className="text-xs text-warm-500 mt-0.5">Active</div>
-          </div>
-          <div className="surface-card p-4 text-center">
-            <div className={cn("text-2xl font-bold", avgAdherence && avgAdherence >= 90 ? "text-accent" : avgAdherence && avgAdherence >= 80 ? "text-yellow-600" : "text-soft-red")}>
-              {avgAdherence ?? "--"}%
-            </div>
-            <div className="text-xs text-warm-500 mt-0.5">Avg Adherence</div>
-          </div>
-          <div className="surface-card p-4 text-center">
-            <div className={cn("text-2xl font-bold", pendingRefills > 0 ? "text-yellow-600" : "text-accent")}>
-              {pendingRefills}
-            </div>
-            <div className="text-xs text-warm-500 mt-0.5">Need Refill</div>
-          </div>
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="flex gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-cloudy" />
-          <input
-            type="text"
-            placeholder="Search medications..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-sand bg-white text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40 focus:ring-1 focus:ring-terra/10 transition"
-          />
-        </div>
-        <div className="flex bg-white border border-sand rounded-xl overflow-hidden">
-          <button
-            onClick={() => setStatusFilter("")}
-            className={cn("px-3 py-2 text-xs font-semibold transition-all", !statusFilter ? "bg-terra text-white" : "text-warm-600 hover:bg-sand/30")}
-          >
-            All
-          </button>
-          {statuses.map((s) => (
-            <button key={s} onClick={() => setStatusFilter(s)}
-              className={cn("px-3 py-2 text-xs font-semibold transition-all", statusFilter === s ? "bg-terra text-white" : "text-warm-600 hover:bg-sand/30")}>
-              {statusLabel(s)}
-            </button>
-          ))}
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <OpsMetricCard
+          label="Active meds"
+          value={`${activeRx.length}`}
+          detail="Medications currently in the daily regimen."
+          icon={Pill}
+          tone="accent"
+        />
+        <OpsMetricCard
+          label="Avg adherence"
+          value={avgAdherence === null ? "--" : `${avgAdherence}%`}
+          detail="A quick read on how consistently the active regimen is being followed."
+          icon={ShieldPlus}
+          tone={avgAdherence === null ? "blue" : avgAdherence >= 90 ? "accent" : avgAdherence >= 80 ? "gold" : "red"}
+        />
+        <OpsMetricCard
+          label="Refill soon"
+          value={`${refillSoon.length}`}
+          detail="Active medications likely to need action within the next week."
+          icon={RefreshCw}
+          tone={refillSoon.length ? "gold" : "accent"}
+        />
+        <OpsMetricCard
+          label="Low adherence"
+          value={`${lowAdherence.length}`}
+          detail="Active medications trending below an 80% adherence pattern."
+          icon={AlertTriangle}
+          tone={lowAdherence.length ? "red" : "accent"}
+        />
       </div>
 
-      {/* Prescriptions grid */}
-      {filtered.length === 0 ? (
-        <div className="surface-card flex flex-col items-center justify-center py-20 text-center gap-3">
-          <PackageSearch size={32} className="text-cloudy" />
-          <p className="text-sm font-semibold text-warm-600">No medications found</p>
-          <p className="text-xs text-cloudy max-w-xs">
-            {search ? `No results for "${search}"` : myPrescriptions.length === 0 ? "Your medications will appear here once prescribed." : "Try adjusting the filter."}
-          </p>
-          {myPrescriptions.length === 0 && (
-            <Link href="/providers" className="mt-2 px-4 py-2 bg-terra text-white text-xs font-semibold rounded-xl hover:bg-terra-dark transition">
-              Find a Doctor
-            </Link>
+      <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
+        <OpsPanel
+          eyebrow="Medication lane"
+          title="Daily regimen"
+          description="Search by medication or pharmacy, narrow by status, and keep the most actionable refill and adherence signals visible without opening another screen."
+          actions={
+            <div className="flex flex-1 flex-wrap items-center gap-2 xl:justify-end">
+              <label className="relative min-w-[16rem] flex-1 xl:max-w-[18rem]">
+                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-cloudy" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search medications or pharmacies"
+                  className="control-input mt-0 pl-9"
+                />
+              </label>
+              <OpsTabButton active={!statusFilter} onClick={() => setStatusFilter("")}>All</OpsTabButton>
+              {statuses.map((status) => (
+                <OpsTabButton key={status} active={statusFilter === status} onClick={() => setStatusFilter(status)}>
+                  {statusLabel(status)}
+                </OpsTabButton>
+              ))}
+            </div>
+          }
+        >
+          {filtered.length === 0 ? (
+            <OpsEmptyState
+              icon={PackageSearch}
+              title="No medications match this view"
+              description={
+                search
+                  ? `No medications matched “${search}”. Try a brand name, generic name, or pharmacy.`
+                  : "There are no medications in this status right now."
+              }
+            />
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {filtered.map((prescription) => {
+                const physician = getPhysician(prescription.physician_id)
+                const isLowAdherence = prescription.status === "active" && prescription.adherence_pct < 80
+                const daysLeft = daysUntilRefill(prescription.last_filled, prescription.frequency)
+                const needsRefillSoon = daysLeft !== null && daysLeft <= 7 && prescription.status === "active"
+
+                return (
+                  <article
+                    key={prescription.id}
+                    className={cn(
+                      "surface-muted flex h-full flex-col gap-4 p-4 sm:p-5",
+                      isLowAdherence && "border-soft-red/25 bg-soft-red/5",
+                      needsRefillSoon && !isLowAdherence && "border-amber-300/35 bg-amber-100/35"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-serif text-warm-800">{prescription.medication_name}</h3>
+                          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide", getStatusColor(prescription.status))}>
+                            {statusLabel(prescription.status)}
+                          </span>
+                        </div>
+                        <div className="text-sm font-medium text-warm-700">{prescription.dosage}</div>
+                        <div className="flex flex-wrap gap-2 text-[11px] font-medium text-cloudy">
+                          <span className="chip">{prescription.frequency}</span>
+                          <span className="chip">{prescription.pharmacy || "Pharmacy on file"}</span>
+                          {physician ? <span className="chip">{physician.full_name}</span> : null}
+                        </div>
+                      </div>
+                      <AdherenceRing pct={prescription.adherence_pct} />
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <MetaCard
+                        label="Refills remaining"
+                        value={prescription.refills_remaining === 0 ? "No refills" : `${prescription.refills_remaining} remaining`}
+                        tone={prescription.refills_remaining === 0 ? "text-soft-red" : "text-warm-800"}
+                      />
+                      <MetaCard label="Last filled" value={formatDate(prescription.last_filled)} />
+                    </div>
+
+                    {isLowAdherence ? (
+                      <SignalBanner tone="red" title="Adherence slipping">
+                        This medication is below the 80% threshold. Maya should help identify whether this is cost, side effects, or a routine issue.
+                      </SignalBanner>
+                    ) : null}
+                    {needsRefillSoon ? (
+                      <SignalBanner tone="gold" title={daysLeft !== null && daysLeft <= 0 ? "Refill overdue" : `Refill needed in ~${daysLeft} days`}>
+                        This medication is approaching the refill window and should be handled before it becomes a gap in treatment.
+                      </SignalBanner>
+                    ) : null}
+
+                    {prescription.notes ? (
+                      <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-xs leading-5 text-warm-600">
+                        {prescription.notes}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-auto flex flex-wrap gap-2 pt-1">
+                      {(isLowAdherence || prescription.status === "pending-refill" || prescription.refills_remaining === 0) ? (
+                        <AIAction
+                          agentId="rx"
+                          label={isLowAdherence ? "Get Adherence Plan" : "Request Refill"}
+                          prompt={
+                            isLowAdherence
+                              ? `My adherence for ${prescription.medication_name} ${prescription.dosage} is ${prescription.adherence_pct}%. Give me a practical adherence plan and tell me what to discuss with my care team.`
+                              : `Help me request a refill for ${prescription.medication_name} ${prescription.dosage}. Refills remaining: ${prescription.refills_remaining}. Pharmacy: ${prescription.pharmacy || "on file"}.`
+                          }
+                          context={`${prescription.medication_name} ${prescription.dosage} — ${prescription.frequency}`}
+                          variant="compact"
+                        />
+                      ) : null}
+                      <AIAction
+                        agentId="rx"
+                        label="Review safety"
+                        prompt={`Review ${prescription.medication_name} ${prescription.dosage} for adherence, refill timing, and practical counseling points.`}
+                        context={`Frequency: ${prescription.frequency}, last filled: ${prescription.last_filled}, adherence: ${prescription.adherence_pct}%`}
+                        variant="compact"
+                      />
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
           )}
+        </OpsPanel>
+
+        <div className="space-y-4">
+          <OpsPanel
+            eyebrow="Maya focus"
+            title="What to act on first"
+            description="A compact queue of the signals most likely to turn into missed doses, refill delays, or avoidable confusion."
+          >
+            <div className="space-y-3">
+              <FocusItem
+                label="Low adherence"
+                value={`${lowAdherence.length}`}
+                detail={
+                  lowAdherence[0]?.medication_name
+                    ? `${lowAdherence[0].medication_name} is the first medication to review for a behavior or cost barrier.`
+                    : "No medication is currently under the low-adherence threshold."
+                }
+                tone={lowAdherence.length ? "red" : "accent"}
+              />
+              <FocusItem
+                label="Needs refill"
+                value={`${pendingRefills.length || refillSoon.length}`}
+                detail={
+                  pendingRefills[0]?.medication_name || refillSoon[0]?.medication_name
+                    ? `${pendingRefills[0]?.medication_name || refillSoon[0]?.medication_name} is next in the refill queue.`
+                    : "No refill bottleneck is visible right now."
+                }
+                tone={pendingRefills.length || refillSoon.length ? "gold" : "accent"}
+              />
+              <FocusItem
+                label="Average adherence"
+                value={avgAdherence === null ? "--" : `${avgAdherence}%`}
+                detail={
+                  avgAdherence === null
+                    ? "There is no active medication regimen on file yet."
+                    : avgAdherence >= 90
+                    ? "The active regimen is in a stable range right now."
+                    : "The active regimen needs a closer look before it drifts into missed doses."
+                }
+                tone={avgAdherence === null ? "blue" : avgAdherence >= 90 ? "accent" : avgAdherence >= 80 ? "gold" : "red"}
+              />
+            </div>
+          </OpsPanel>
+
+          <OpsPanel
+            eyebrow="Patient framing"
+            title="How this reads day to day"
+            description="Explain the medication board in plain language, not pharmacy system language."
+          >
+            <div className="space-y-3 text-sm leading-6 text-warm-600">
+              <p>
+                {lowAdherence.length
+                  ? `${lowAdherence.length} medication${lowAdherence.length === 1 ? " is" : "s are"} slipping below the adherence target. Start there, because refill requests alone will not fix missed doses.`
+                  : "No medication is currently showing a clear adherence warning, so the next priority is refill timing and regimen clarity."}
+              </p>
+              <p>
+                {refillSoon.length || pendingRefills.length
+                  ? `${refillSoon.length + pendingRefills.length} medication${refillSoon.length + pendingRefills.length === 1 ? " is" : "s are"} approaching a refill issue. Handle those before they become treatment gaps.`
+                  : "There is no immediate refill pressure in the active regimen right now."}
+              </p>
+            </div>
+          </OpsPanel>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((rx) => {
-            const physician = getPhysician(rx.physician_id)
-            const isLowAdherence = rx.status === "active" && rx.adherence_pct < 80
-            const daysLeft = daysUntilRefill(rx.last_filled, rx.frequency)
-            const refillSoon = daysLeft !== null && daysLeft <= 7 && rx.status === "active"
+      </div>
+    </div>
+  )
+}
 
-            return (
-              <div key={rx.id} className={cn(
-                "surface-card p-5 flex flex-col gap-4 relative overflow-hidden",
-                isLowAdherence && "border-soft-red/20",
-                refillSoon && !isLowAdherence && "border-yellow-300/40",
-              )}>
-                {/* Left accent bar */}
-                {isLowAdherence && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-soft-red rounded-l-2xl" />
-                )}
-                {refillSoon && !isLowAdherence && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400 rounded-l-2xl" />
-                )}
+function MetaCard({
+  label,
+  value,
+  tone = "text-warm-800",
+}: {
+  label: string
+  value: string
+  tone?: string
+}) {
+  return (
+    <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 shadow-sm">
+      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy/80">{label}</div>
+      <div className={cn("mt-2 text-sm font-semibold", tone)}>{value}</div>
+    </div>
+  )
+}
 
-                <div className="flex items-start gap-4">
-                  {/* Adherence Ring */}
-                  <AdherenceRing pct={rx.adherence_pct} size={58} />
-
-                  {/* Name + dosage */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-base font-bold text-warm-800 leading-tight">{rx.medication_name}</h3>
-                      <span className={cn(
-                        "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0",
-                        getStatusColor(rx.status)
-                      )}>
-                        {statusLabel(rx.status)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-warm-600 font-medium mt-0.5">{rx.dosage}</p>
-                    <p className="text-xs text-warm-500 mt-0.5">{rx.frequency}</p>
-                  </div>
-                </div>
-
-                {/* Details */}
-                <div className="space-y-2 text-xs">
-                  {physician && (
-                    <div className="flex items-center gap-1.5 text-warm-500">
-                      <span className="text-[10px] font-semibold text-cloudy uppercase tracking-wide">Prescriber</span>
-                      <span className="text-warm-700 font-medium">{physician.full_name}</span>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                    <div>
-                      <p className="text-[9px] font-semibold text-cloudy uppercase tracking-wide">Refills</p>
-                      <p className={cn("text-xs font-bold mt-0.5", rx.refills_remaining === 0 ? "text-soft-red" : "text-warm-800")}>
-                        {rx.refills_remaining === 0 ? "No refills" : `${rx.refills_remaining} remaining`}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-semibold text-cloudy uppercase tracking-wide">Last Filled</p>
-                      <p className="text-xs font-medium text-warm-700 mt-0.5">{formatDate(rx.last_filled)}</p>
-                    </div>
-                  </div>
-                  {refillSoon && (
-                    <div className={cn(
-                      "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold",
-                      daysLeft !== null && daysLeft <= 0 ? "bg-soft-red/8 text-soft-red" : "bg-yellow-50 text-yellow-700"
-                    )}>
-                      <Clock size={11} />
-                      {daysLeft !== null && daysLeft <= 0 ? "Refill overdue" : `Refill needed in ~${daysLeft} days`}
-                    </div>
-                  )}
-                  {rx.notes && (
-                    <p className="text-[10px] text-cloudy italic border-t border-sand/60 pt-2">{rx.notes}</p>
-                  )}
-                </div>
-
-                {/* Footer actions */}
-                <div className="flex items-center gap-2 pt-1 border-t border-sand/60 mt-auto">
-                  {(isLowAdherence || rx.status === "pending-refill" || rx.refills_remaining === 0) ? (
-                    <AIAction
-                      agentId="rx"
-                      label={isLowAdherence ? "Get Adherence Tips" : "Request Refill"}
-                      prompt={isLowAdherence
-                        ? `My adherence for ${rx.medication_name} ${rx.dosage} is ${rx.adherence_pct}%. Give me practical strategies to improve it.`
-                        : `Request a refill for ${rx.medication_name} ${rx.dosage}. Refills remaining: ${rx.refills_remaining}. Pharmacy: ${rx.pharmacy || "on file"}.`}
-                      context={`${rx.medication_name} ${rx.dosage} — ${rx.frequency}`}
-                      variant="compact"
-                    />
-                  ) : (
-                    <span className="flex-1 text-[10px] text-cloudy">{rx.pharmacy || "Pharmacy on file"}</span>
-                  )}
-                  <Link href="/drug-prices" className="ml-auto text-[10px] font-semibold text-terra hover:text-terra-dark transition flex items-center gap-0.5">
-                    Price <ChevronRight size={10} />
-                  </Link>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+function SignalBanner({
+  tone,
+  title,
+  children,
+}: {
+  tone: "red" | "gold"
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border px-4 py-3 text-sm leading-6",
+        tone === "red"
+          ? "border-soft-red/20 bg-soft-red/5 text-soft-red"
+          : "border-amber-300/30 bg-amber-100/55 text-amber-700"
       )}
+    >
+      <div className="text-[10px] font-bold uppercase tracking-[0.18em]">{title}</div>
+      <div className="mt-1">{children}</div>
+    </div>
+  )
+}
+
+function FocusItem({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string
+  value: string
+  detail: string
+  tone: "terra" | "accent" | "blue" | "gold" | "red"
+}) {
+  return (
+    <div className="surface-muted flex items-start justify-between gap-3 px-4 py-3">
+      <div>
+        <div className="text-sm font-semibold text-warm-800">{label}</div>
+        <div className="mt-1 text-xs leading-5 text-cloudy">{detail}</div>
+      </div>
+      <OpsBadge tone={tone} className="shrink-0">{value}</OpsBadge>
     </div>
   )
 }

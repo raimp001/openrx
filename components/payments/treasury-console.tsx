@@ -137,7 +137,7 @@ export default function TreasuryConsole() {
   }
 
   return (
-    <div className="bg-pampas rounded-2xl border border-sand p-4 space-y-4">
+    <div className="surface-card space-y-4 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -152,14 +152,14 @@ export default function TreasuryConsole() {
           <button
             onClick={() => void load()}
             disabled={loading || !adminApiKey.trim()}
-            className="inline-flex items-center gap-1 rounded-lg border border-sand px-2.5 py-1.5 text-[11px] font-semibold text-warm-700 hover:border-terra/30 transition disabled:opacity-60"
+            className="control-button-secondary"
           >
             {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCcw size={11} />}
             Refresh
           </button>
           <button
             onClick={lockConsole}
-            className="inline-flex items-center gap-1 rounded-lg border border-sand px-2.5 py-1.5 text-[11px] font-semibold text-warm-700 hover:border-terra/30 transition"
+            className="control-button-secondary"
           >
             <LockKeyhole size={11} />
             Lock
@@ -168,21 +168,21 @@ export default function TreasuryConsole() {
       </div>
 
       {!payload && (
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 rounded-xl border border-sand/70 bg-cream/30 p-3">
-          <label className="block text-[11px] text-warm-500">
+        <div className="grid grid-cols-1 gap-3 rounded-[24px] border border-sand/70 bg-white/65 p-4 md:grid-cols-[1fr_auto]">
+          <label className="control-label">
             Admin API key
             <input
               type="password"
               value={adminApiKey}
               onChange={(event) => setAdminApiKey(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-sand bg-pampas px-3 py-2 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+              className="control-input"
               placeholder="OPENRX_ADMIN_API_KEY"
             />
           </label>
           <button
             onClick={() => void load()}
             disabled={!adminApiKey.trim() || loading}
-            className="self-end rounded-lg bg-terra px-4 py-2 text-xs font-semibold text-white hover:bg-terra-dark transition disabled:opacity-60"
+            className="control-button-primary self-end"
           >
             Unlock Treasury
           </button>
@@ -208,12 +208,12 @@ export default function TreasuryConsole() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-sand/70 bg-cream/30 p-3 space-y-3">
+            <div className="surface-muted space-y-3 p-4">
               <h3 className="text-xs font-bold text-warm-800">Balances</h3>
               <div className="space-y-2">
                 {payload.treasury.balances.length === 0 && <p className="text-[11px] text-cloudy">No balances returned by Privy.</p>}
                 {payload.treasury.balances.map((balance) => (
-                  <div key={`${balance.chain}-${balance.asset}`} className="flex items-center justify-between gap-2 rounded-lg border border-sand/60 bg-pampas px-3 py-2">
+                  <div key={`${balance.chain}-${balance.asset}`} className="flex items-center justify-between gap-2 rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm">
                     <div>
                       <p className="text-xs font-semibold text-warm-800">{balance.asset}</p>
                       <p className="text-[10px] text-cloudy">{balance.chain}</p>
@@ -227,40 +227,40 @@ export default function TreasuryConsole() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-sand/70 bg-cream/30 p-3 space-y-3">
+            <div className="surface-muted space-y-3 p-4">
               <h3 className="text-xs font-bold text-warm-800">Admin Transfer</h3>
               <div className="grid grid-cols-2 gap-2">
-                <label className="block text-[11px] text-warm-500">
+                <label className="control-label">
                   Kind
-                  <select value={kind} onChange={(event) => setKind(event.target.value as "transfer" | "refund")} className="mt-1 w-full rounded-lg border border-sand bg-pampas px-3 py-2 text-sm text-warm-800 focus:outline-none focus:border-terra/40">
+                  <select value={kind} onChange={(event) => setKind(event.target.value as "transfer" | "refund")} className="control-select">
                     <option value="transfer">Transfer</option>
                     <option value="refund">Refund</option>
                   </select>
                 </label>
-                <label className="block text-[11px] text-warm-500">
+                <label className="control-label">
                   Asset
-                  <select value={asset} onChange={(event) => setAsset(event.target.value as "ETH" | "USDC")} className="mt-1 w-full rounded-lg border border-sand bg-pampas px-3 py-2 text-sm text-warm-800 focus:outline-none focus:border-terra/40">
+                  <select value={asset} onChange={(event) => setAsset(event.target.value as "ETH" | "USDC")} className="control-select">
                     <option value="USDC">USDC</option>
                     <option value="ETH">ETH</option>
                   </select>
                 </label>
               </div>
-              <label className="block text-[11px] text-warm-500">
+              <label className="control-label">
                 Amount
-                <input value={amount} onChange={(event) => setAmount(event.target.value)} className="mt-1 w-full rounded-lg border border-sand bg-pampas px-3 py-2 text-sm text-warm-800 focus:outline-none focus:border-terra/40" />
+                <input value={amount} onChange={(event) => setAmount(event.target.value)} className="control-input" />
               </label>
-              <label className="block text-[11px] text-warm-500">
+              <label className="control-label">
                 Recipient address
-                <input value={toAddress} onChange={(event) => setToAddress(event.target.value)} className="mt-1 w-full rounded-lg border border-sand bg-pampas px-3 py-2 text-sm text-warm-800 focus:outline-none focus:border-terra/40" placeholder="0x..." />
+                <input value={toAddress} onChange={(event) => setToAddress(event.target.value)} className="control-input" placeholder="0x..." />
               </label>
-              <label className="block text-[11px] text-warm-500">
+              <label className="control-label">
                 Reason
-                <input value={reason} onChange={(event) => setReason(event.target.value)} className="mt-1 w-full rounded-lg border border-sand bg-pampas px-3 py-2 text-sm text-warm-800 focus:outline-none focus:border-terra/40" />
+                <input value={reason} onChange={(event) => setReason(event.target.value)} className="control-input" />
               </label>
               <button
                 onClick={() => void submitAction()}
                 disabled={submitting || !payload.config.configured}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terra px-3 py-2 text-xs font-semibold text-white hover:bg-terra-dark transition disabled:opacity-60"
+                className="control-button-primary w-full"
               >
                 {submitting ? <Loader2 size={12} className="animate-spin" /> : <SendHorizontal size={12} />}
                 Submit Treasury Action
@@ -269,7 +269,7 @@ export default function TreasuryConsole() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-sand/70 bg-cream/30 p-3 space-y-3">
+            <div className="surface-muted space-y-3 p-4">
               <div className="flex items-center gap-2">
                 <ShieldCheck size={13} className="text-accent" />
                 <h3 className="text-xs font-bold text-warm-800">Recorded Treasury Actions</h3>
@@ -277,7 +277,7 @@ export default function TreasuryConsole() {
               <div className="space-y-2">
                 {payload.treasury.recentActions.length === 0 && <p className="text-[11px] text-cloudy">No treasury actions recorded yet.</p>}
                 {payload.treasury.recentActions.map((action) => (
-                  <div key={action.id} className="rounded-lg border border-sand/60 bg-pampas px-3 py-2">
+                  <div key={action.id} className="rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-semibold text-warm-800">{action.kind} {action.asset} ${action.amount}</span>
                       <span className="text-[10px] uppercase text-cloudy">{action.status}</span>
@@ -293,12 +293,12 @@ export default function TreasuryConsole() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-sand/70 bg-cream/30 p-3 space-y-3">
+            <div className="surface-muted space-y-3 p-4">
               <h3 className="text-xs font-bold text-warm-800">Recent Privy Transactions</h3>
               <div className="space-y-2">
                 {payload.treasury.recentTransactions.length === 0 && <p className="text-[11px] text-cloudy">No recent transactions returned by Privy.</p>}
                 {payload.treasury.recentTransactions.map((transaction, index) => (
-                  <div key={`${transaction.hash || transaction.createdAt}-${index}`} className="rounded-lg border border-sand/60 bg-pampas px-3 py-2">
+                  <div key={`${transaction.hash || transaction.createdAt}-${index}`} className="rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-semibold text-warm-800">{transaction.asset || "Asset"} {transaction.type || "transaction"}</span>
                       <span className="text-[10px] uppercase text-cloudy">{transaction.status}</span>
@@ -322,7 +322,7 @@ export default function TreasuryConsole() {
 
 function TreasuryStat({ label, value, sublabel }: { label: string; value: string; sublabel: string }) {
   return (
-    <div className="rounded-xl border border-sand/70 bg-cream/30 p-3">
+    <div className="surface-muted p-3">
       <p className="text-[10px] text-cloudy">{label}</p>
       <p className="text-sm font-semibold text-warm-800 mt-1">{value}</p>
       <p className="text-[10px] text-cloudy mt-1">{sublabel}</p>

@@ -6,6 +6,8 @@ job_id="${1:-${OPENRX_CRON_JOB_ID:-}}"
 base_url="${OPENRX_BASE_URL:-}"
 admin_key="${OPENRX_ADMIN_API_KEY:-}"
 agent_token="${OPENRX_AGENT_NOTIFY_TOKEN:-}"
+worker_id="${OPENRX_WORKER_ID:-}"
+worker_type="${OPENRX_WORKER_TYPE:-researcher-vm}"
 message="${OPENRX_CRON_MESSAGE:-}"
 wallet_address="${OPENRX_WALLET_ADDRESS:-}"
 session_id="cron-${job_id:-job}-$(date +%s)"
@@ -52,3 +54,28 @@ curl -fsS -X POST \
   -H "Content-Type: application/json" \
   "${auth_header[@]}" \
   --data "$payload"
+
+if [[ -n "$worker_id" ]]; then
+  heartbeat_payload="$(
+    python3 - "$worker_id" "$worker_type" "$job_id" <<'PY'
+import json
+import sys
+
+worker_id, worker_type, job_id = sys.argv[1:4]
+print(json.dumps({
+    "workerId": worker_id,
+    "workerType": worker_type,
+    "status": "running",
+    "metadata": {
+        "lastJobId": job_id,
+    },
+}))
+PY
+)"
+
+  curl -fsS -X POST \
+    "${base_url%/}/api/openclaw/worker-heartbeat" \
+    -H "Content-Type: application/json" \
+    "${auth_header[@]}" \
+    --data "$heartbeat_payload" >/dev/null
+fi

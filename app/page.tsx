@@ -18,6 +18,7 @@ import {
   Star,
   Activity,
 } from "lucide-react"
+import { BrandMark } from "@/components/brand-logo"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 
 const AGENT_COLORS: Record<string, string> = {
@@ -48,11 +49,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-white/8 bg-night/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-terra to-terra-light shadow-lg shadow-terra/30">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                <path d="M12 4v16M4 12h16" stroke="white" strokeWidth="2.8" strokeLinecap="round" />
-              </svg>
-            </div>
+            <BrandMark />
             <span className="text-sm font-bold tracking-tight text-white">OpenRx</span>
           </div>
           <nav className="hidden items-center gap-1 md:flex">

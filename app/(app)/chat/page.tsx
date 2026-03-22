@@ -375,10 +375,16 @@ export default function ChatPage() {
         })}
       </div>
 
-      {/* Chat Window */}
-      <div className="bg-pampas rounded-2xl border border-sand overflow-hidden flex flex-col h-[calc(100vh-420px)] min-h-[400px]">
+      {/* Chat Window — input stays at bottom; messages scroll (mobile keyboard friendly) */}
+      <div className="surface-card flex min-h-[min(520px,calc(100vh-13rem))] max-h-[calc(100vh-12rem)] flex-col overflow-hidden">
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          aria-label="Chat messages"
+        >
           {messages.map((msg) => {
             const meta = msg.agentId ? agentMeta[msg.agentId] : null
             const Icon = meta?.icon || Bot
@@ -497,9 +503,9 @@ export default function ChatPage() {
           </div>
         )}
 
-        {/* Input */}
-        <div className="px-5 py-3.5 border-t border-sand bg-cream/30">
-          <div className="flex gap-2">
+        {/* Input — sticky within card; safe-area for notched phones */}
+        <div className="sticky bottom-0 z-10 border-t border-sand/80 bg-cream/95 px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] backdrop-blur-sm supports-[backdrop-filter]:bg-cream/85">
+          <div className="flex items-end gap-2">
             <input
               ref={inputRef}
               type="text"
@@ -508,24 +514,30 @@ export default function ChatPage() {
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
               placeholder={`Message ${agentMeta[activeAgent]?.label || "AI Agent"}...`}
               disabled={isLoading}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-sand bg-pampas text-sm placeholder:text-cloudy focus:outline-none focus:border-terra/40 focus:ring-1 focus:ring-terra/20 transition disabled:opacity-50"
+              aria-label="Message to AI concierge"
+              className="min-h-11 flex-1 rounded-xl border border-sand bg-pampas px-4 py-2.5 text-sm placeholder:text-cloudy transition focus:border-terra/40 focus:outline-none focus:ring-1 focus:ring-terra/20 disabled:opacity-50"
             />
             {messages.length > 1 && (
               <button
+                type="button"
                 onClick={clearChat}
                 disabled={isLoading}
                 title="Clear conversation"
-                className="px-3 py-2.5 text-cloudy hover:text-warm-600 rounded-xl hover:bg-sand/30 transition disabled:opacity-50"
+                aria-label="Clear conversation"
+                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-cloudy transition hover:bg-sand/30 hover:text-warm-600 disabled:opacity-50"
               >
-                <Trash2 size={14} />
+                <Trash2 size={18} className="shrink-0" aria-hidden />
               </button>
             )}
             <button
+              type="button"
               onClick={sendMessage}
               disabled={isLoading || !input.trim()}
-              className="px-4 py-2.5 bg-terra text-white rounded-xl hover:bg-terra-dark transition flex items-center gap-2 text-sm font-semibold disabled:opacity-50"
+              aria-label="Send message"
+              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl bg-terra text-white transition hover:bg-terra-dark disabled:opacity-50 sm:min-w-[4.5rem] sm:gap-2 sm:px-4"
             >
-              <Send size={14} />
+              <Send size={18} className="shrink-0 sm:hidden" aria-hidden />
+              <span className="hidden text-sm font-semibold sm:inline">Send</span>
             </button>
           </div>
         </div>

@@ -238,6 +238,30 @@ a {
     @apply inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-semibold text-warm-600;
   }
 
+  .control-label {
+    @apply block text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy/85;
+  }
+
+  .control-input {
+    @apply mt-2 w-full rounded-2xl border border-sand/80 bg-white/80 px-3.5 py-3 text-sm text-warm-800 shadow-sm transition placeholder:text-cloudy focus:border-terra/40 focus:outline-none focus:ring-1 focus:ring-terra/20;
+  }
+
+  .control-select {
+    @apply control-input appearance-none;
+  }
+
+  .control-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-semibold transition disabled:opacity-60;
+  }
+
+  .control-button-primary {
+    @apply control-button bg-terra text-white hover:bg-terra-dark;
+  }
+
+  .control-button-secondary {
+    @apply control-button border border-sand bg-white/75 text-warm-700 hover:border-terra/30;
+  }
+
   /* Stat card accent top bar helper */
   .stat-card-accent {
     @apply absolute inset-x-0 top-0 h-0.5 rounded-t-2xl;

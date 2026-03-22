@@ -13,12 +13,11 @@ import {
   ShieldCheck,
   Undo2,
 } from "lucide-react"
-import { useWalletIdentity } from "@/lib/wallet-context"
-import { cn } from "@/lib/utils"
-import { toBaseBuilderTxUrl } from "@/lib/basebuilder/config"
-import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
 import { AppPageHeader } from "@/components/layout/app-page"
 import TreasuryConsole from "@/components/payments/treasury-console"
+import { OpsBadge, OpsEmptyState, OpsMetricCard, OpsPanel } from "@/components/ui/ops-primitives"
+import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
+import { toBaseBuilderTxUrl } from "@/lib/basebuilder/config"
 import type {
   AttestationRecord,
   LedgerEntry,
@@ -27,6 +26,7 @@ import type {
   ReceiptRecord,
   RefundRecord,
 } from "@/lib/payments-ledger"
+import { useWalletIdentity } from "@/lib/wallet-context"
 
 interface SnapshotPayload {
   payments: PaymentRecord[]
@@ -106,21 +106,13 @@ export default function ComplianceLedgerPage() {
     () => snapshot.payments.find((item) => item.id === selectedPaymentId),
     [selectedPaymentId, snapshot.payments]
   )
-  const verifyTxUrl = useMemo(() => {
-    if (!isBaseTxHash(verifyTxHash)) return ""
-    return toBaseBuilderTxUrl(verifyTxHash.trim())
-  }, [verifyTxHash])
-  const refundTxUrl = useMemo(() => {
-    if (!isBaseTxHash(refundTxHash)) return ""
-    return toBaseBuilderTxUrl(refundTxHash.trim())
-  }, [refundTxHash])
+  const verifyTxUrl = useMemo(() => (isBaseTxHash(verifyTxHash) ? toBaseBuilderTxUrl(verifyTxHash.trim()) : ""), [verifyTxHash])
+  const refundTxUrl = useMemo(() => (isBaseTxHash(refundTxHash) ? toBaseBuilderTxUrl(refundTxHash.trim()) : ""), [refundTxHash])
   const canCreateIntent = isPositiveMoney(amount) && description.trim().length > 2
   const canRequestRefund = !!selectedPaymentId && isPositiveMoney(refundAmount) && refundReason.trim().length > 2
 
   function exportSnapshot() {
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
-      type: "application/json",
-    })
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" })
     const href = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = href
@@ -133,9 +125,7 @@ export default function ComplianceLedgerPage() {
     setLoading(true)
     setError("")
     try {
-      const response = await fetch(
-        `/api/payments/ledger?walletAddress=${encodeURIComponent(activeWallet)}`
-      )
+      const response = await fetch(`/api/payments/ledger?walletAddress=${encodeURIComponent(activeWallet)}`)
       const data = (await response.json()) as SnapshotPayload
       setSnapshot(data)
       setSelectedPaymentId((prev) => prev || data.payments[0]?.id || "")
@@ -162,12 +152,7 @@ export default function ComplianceLedgerPage() {
       const response = await fetch("/api/payments/intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: activeWallet,
-          amount,
-          category,
-          description,
-        }),
+        body: JSON.stringify({ walletAddress: activeWallet, amount, category, description }),
       })
       const data = (await response.json()) as { error?: string; payment?: PaymentRecord }
       if (!response.ok) throw new Error(data.error || "Failed to create payment intent.")
@@ -181,9 +166,7 @@ export default function ComplianceLedgerPage() {
   }
 
   async function launchBasePay() {
-    const payment =
-      snapshot.payments.find((item) => item.id === selectedPaymentId) ||
-      snapshot.payments[0]
+    const payment = snapshot.payments.find((item) => item.id === selectedPaymentId) || snapshot.payments[0]
     if (!payment) {
       setError("Create a payment intent before launching Base Pay.")
       return
@@ -198,11 +181,7 @@ export default function ComplianceLedgerPage() {
       })
       setVerifyTxHash(result.paymentId)
     } catch (issue) {
-      setError(
-        issue instanceof Error
-          ? issue.message
-          : "Failed to launch Base Pay flow."
-      )
+      setError(issue instanceof Error ? issue.message : "Failed to launch Base Pay flow.")
     } finally {
       setPaying(false)
     }
@@ -280,11 +259,7 @@ export default function ComplianceLedgerPage() {
       const response = await fetch("/api/payments/refunds", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "approve",
-          refundId: selectedRefundId,
-          approvedBy: activeWallet,
-        }),
+        body: JSON.stringify({ action: "approve", refundId: selectedRefundId, approvedBy: activeWallet }),
       })
       const data = (await response.json()) as { error?: string }
       if (!response.ok) throw new Error(data.error || "Failed to approve refund.")
@@ -330,414 +305,289 @@ export default function ComplianceLedgerPage() {
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
         eyebrow="Payments"
-        title="Compliance Ledger"
-        description="Base Pay-aligned payment verification, receipts, attestations, refunds, and ledger controls."
-        className="surface-card p-4 sm:p-5"
+        title="Compliance ledger"
+        description="Operational control for intents, verification, receipts, attestations, refunds, and treasury actions. The goal is fast review without losing audit depth."
+        meta={
+          <div className="flex flex-wrap items-center gap-2">
+            <OpsBadge tone={isConnected ? "accent" : "gold"}>{isConnected ? "wallet connected" : "wallet required"}</OpsBadge>
+            <OpsBadge tone="terra">{snapshot.entries.length} ledger entries</OpsBadge>
+            <OpsBadge tone={snapshot.summary.openRefundCount ? "red" : "blue"}>
+              {snapshot.summary.openRefundCount} open refunds
+            </OpsBadge>
+          </div>
+        }
         actions={
           <>
-            <button
-              onClick={exportSnapshot}
-              disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl border border-sand px-3 py-2 text-xs font-semibold text-warm-700 transition hover:border-terra/30 disabled:opacity-60"
-            >
-              <Download size={12} />
-              Export JSON
+            <button onClick={exportSnapshot} disabled={loading} className="control-button-secondary">
+              <Download size={12} /> Export JSON
             </button>
-            <button
-              onClick={() => void loadSnapshot()}
-              disabled={busy || loading}
-              className="inline-flex items-center gap-2 rounded-xl border border-sand px-3 py-2 text-xs font-semibold text-warm-700 transition hover:border-terra/30 disabled:opacity-60"
-            >
-              <RefreshCcw size={12} />
-              Refresh
+            <button onClick={() => void loadSnapshot()} disabled={busy || loading} className="control-button-secondary">
+              <RefreshCcw size={12} /> Refresh
             </button>
           </>
         }
       />
 
-      {!isConnected && (
-        <div className="bg-yellow-100/20 border border-yellow-300/30 rounded-xl p-3 text-xs text-warm-600">
-          Wallet is not connected. Connect a wallet to run payment, receipt, attestation, and refund actions.
+      {!isConnected ? (
+        <div className="rounded-2xl border border-yellow-300/30 bg-yellow-100/30 px-4 py-3 text-sm text-warm-700">
+          Wallet is not connected. Connect a wallet before creating intents, verifying Base Pay settlements, or running refunds.
         </div>
-      )}
+      ) : null}
 
-      {error && (
-        <div className="bg-soft-red/5 border border-soft-red/20 rounded-xl p-3 text-xs text-soft-red">
-          {error}
-        </div>
-      )}
+      {error ? (
+        <div className="rounded-2xl border border-soft-red/20 bg-soft-red/5 px-4 py-3 text-sm text-soft-red">{error}</div>
+      ) : null}
 
       {loading ? (
-        <div className="bg-pampas rounded-2xl border border-sand p-8 text-center text-sm text-cloudy">
-          <Loader2 size={16} className="animate-spin inline mr-2" />
-          Loading compliance state...
+        <div className="surface-card px-6 py-10 text-center text-sm text-cloudy">
+          <Loader2 size={16} className="mr-2 inline animate-spin" /> Loading compliance state...
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <SummaryCard label="Verified Volume" value={`$${snapshot.summary.verifiedVolume}`} icon={CreditCard} />
-            <SummaryCard label="Net Settled" value={`$${snapshot.summary.netSettledVolume}`} icon={CheckCircle2} />
-            <SummaryCard label="Pending Verify" value={`${snapshot.summary.pendingVerificationCount}`} icon={RefreshCcw} />
-            <SummaryCard label="Open Refunds" value={`${snapshot.summary.openRefundCount}`} icon={Undo2} />
-            <SummaryCard label="Refunded Volume" value={`$${snapshot.summary.refundedVolume}`} icon={Undo2} />
-            <SummaryCard label="Receipts" value={`${snapshot.summary.receiptCount}`} icon={FileText} />
-            <SummaryCard label="Attestations" value={`${snapshot.summary.attestationCount}`} icon={ShieldCheck} />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <OpsMetricCard label="Verified volume" value={`$${snapshot.summary.verifiedVolume}`} detail="Settlements confirmed against expected payment intents." icon={CreditCard} tone="terra" />
+            <OpsMetricCard label="Net settled" value={`$${snapshot.summary.netSettledVolume}`} detail="Verified less refunded volume." icon={CheckCircle2} tone="accent" />
+            <OpsMetricCard label="Pending verify" value={`${snapshot.summary.pendingVerificationCount}`} detail="Payment intents waiting on a chain hash." icon={RefreshCcw} tone="gold" />
+            <OpsMetricCard label="Open refunds" value={`${snapshot.summary.openRefundCount}`} detail="Refund requests not finalized yet." icon={Undo2} tone={snapshot.summary.openRefundCount ? "red" : "blue"} />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <OpsMetricCard label="Refunded volume" value={`$${snapshot.summary.refundedVolume}`} detail="Completed outbound refunds." icon={Undo2} tone="blue" />
+            <OpsMetricCard label="Receipts" value={`${snapshot.summary.receiptCount}`} detail="Payment and refund receipts generated so far." icon={FileText} tone="terra" />
+            <OpsMetricCard label="Attestations" value={`${snapshot.summary.attestationCount}`} detail="Recorded compliance attestations tied to receipts and refunds." icon={ShieldCheck} tone="accent" />
           </div>
 
           <TreasuryConsole />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="bg-pampas rounded-2xl border border-sand p-4 space-y-3">
-              <h2 className="text-sm font-bold text-warm-800">1) Payment Intent</h2>
-              <label className="block text-[11px] text-warm-500">
-                Amount (USDC)
-                <input
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
-                />
-              </label>
-              <label className="block text-[11px] text-warm-500">
-                Category
-                <select
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value as PaymentCategory)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
-                >
-                  {PAYMENT_CATEGORIES.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-[11px] text-warm-500">
-                Description
-                <input
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
-                />
-              </label>
-              <button
-                onClick={() => void createIntent()}
-                disabled={busy || !canCreateIntent}
-                className="w-full px-3 py-2 rounded-lg bg-terra text-white text-xs font-semibold hover:bg-terra-dark transition disabled:opacity-60"
-              >
-                Create Intent
-              </button>
-              {!canCreateIntent && (
-                <p className="text-[10px] text-cloudy">
-                  Enter a positive amount and description to create an intent.
-                </p>
-              )}
-            </div>
+          <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+            <div className="space-y-4">
+              <OpsPanel eyebrow="Step 1" title="Create payment intent" description="Start with an expected amount, category, and human-readable reason before launching any pay flow.">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="control-label">
+                    Amount (USDC)
+                    <input value={amount} onChange={(event) => setAmount(event.target.value)} className="control-input" />
+                  </label>
+                  <label className="control-label">
+                    Category
+                    <select value={category} onChange={(event) => setCategory(event.target.value as PaymentCategory)} className="control-select">
+                      {PAYMENT_CATEGORIES.map((item) => (
+                        <option key={item} value={item}>{item}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="control-label mt-3">
+                  Description
+                  <input value={description} onChange={(event) => setDescription(event.target.value)} className="control-input" />
+                </label>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button onClick={() => void createIntent()} disabled={busy || !canCreateIntent} className="control-button-primary">
+                    Create intent
+                  </button>
+                  {!canCreateIntent ? <span className="text-xs text-cloudy">Enter a positive amount and description.</span> : null}
+                </div>
+              </OpsPanel>
 
-            <div className="bg-pampas rounded-2xl border border-sand p-4 space-y-3">
-              <h2 className="text-sm font-bold text-warm-800">2) Verify Payment</h2>
-              <label className="block text-[11px] text-warm-500">
-                Intent
-                <select
-                  value={selectedPaymentId}
-                  onChange={(event) => setSelectedPaymentId(event.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
-                >
-                  <option value="">Select payment</option>
-                  {latestPayments.map((payment) => (
-                    <option key={payment.id} value={payment.id}>
-                      {payment.category} - ${payment.expectedAmount} - {payment.status}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-[11px] text-warm-500">
-                Base tx hash
-                <input
-                  value={verifyTxHash}
-                  onChange={(event) => setVerifyTxHash(event.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
-                />
-              </label>
-              {verifyTxUrl && (
-                <a
-                  href={verifyTxUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-terra hover:text-terra-dark"
-                >
-                  View verify tx on BaseScan <ExternalLink size={11} />
-                </a>
-              )}
-              {selectedPayment && (
-                <p className="text-[10px] text-cloudy">
-                  Expected: ${selectedPayment.expectedAmount} to {selectedPayment.recipientAddress.slice(0, 10)}...
-                </p>
-              )}
-              <p className="text-[10px] text-cloudy">Use a real Base Pay transaction hash from settlement.</p>
-              <button
-                onClick={() => void verifyPayment()}
-                disabled={busy || !selectedPaymentId}
-                className="w-full px-3 py-2 rounded-lg bg-accent text-white text-xs font-semibold hover:opacity-90 transition disabled:opacity-60"
-              >
-                Verify & Issue Receipt
-              </button>
-              <button
-                onClick={() => void launchBasePay()}
-                disabled={busy || paying || !selectedPaymentId}
-                className="w-full px-3 py-2 rounded-lg border border-sand text-xs font-semibold text-warm-700 hover:border-terra/30 transition disabled:opacity-60"
-              >
-                {paying ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Loader2 size={12} className="animate-spin" /> Launching Base Pay
-                  </span>
-                ) : (
-                  "Launch Base Pay"
-                )}
-              </button>
-            </div>
-
-            <div className="bg-pampas rounded-2xl border border-sand p-4 space-y-3">
-              <h2 className="text-sm font-bold text-warm-800">3) Refund Workflow</h2>
-              <label className="block text-[11px] text-warm-500">
-                Payment
-                <select
-                  value={selectedPaymentId}
-                  onChange={(event) => setSelectedPaymentId(event.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
-                >
-                  <option value="">Select payment</option>
-                  {snapshot.payments
-                    .filter((payment) => payment.status === "verified" || payment.status === "refunded")
-                    .map((payment) => (
-                      <option key={payment.id} value={payment.id}>
-                        {payment.category} - ${payment.settledAmount || payment.expectedAmount}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className="block text-[11px] text-warm-500">
-                Refund amount
-                <input
-                  value={refundAmount}
-                  onChange={(event) => setRefundAmount(event.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
-                />
-              </label>
-              <label className="block text-[11px] text-warm-500">
-                Reason
-                <input
-                  value={refundReason}
-                  onChange={(event) => setRefundReason(event.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
-                />
-              </label>
-              <button
-                onClick={() => void requestPaymentRefund()}
-                disabled={busy || !canRequestRefund}
-                className="w-full px-3 py-2 rounded-lg bg-soft-blue text-white text-xs font-semibold hover:opacity-90 transition disabled:opacity-60"
-              >
-                Request Refund
-              </button>
-              {!canRequestRefund && (
-                <p className="text-[10px] text-cloudy">
-                  Select a payment, positive refund amount, and reason.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-pampas rounded-2xl border border-sand p-4">
-              <h2 className="text-sm font-bold text-warm-800 mb-3">Pending Refunds</h2>
-              <div className="space-y-2">
-                {snapshot.refunds.length === 0 && (
-                  <p className="text-xs text-cloudy">No refunds in the ledger.</p>
-                )}
-                {snapshot.refunds.slice(0, 6).map((refund) => (
-                  <div key={refund.id} className="rounded-xl border border-sand/70 bg-cream/30 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-warm-800">${refund.amount}</span>
-                      <span
-                        className={cn(
-                          "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase",
-                          refund.status === "sent"
-                            ? "bg-accent/10 text-accent"
-                            : refund.status === "failed"
-                            ? "bg-soft-red/10 text-soft-red"
-                            : "bg-yellow-100/20 text-yellow-500"
-                        )}
-                      >
-                        {refund.status}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-warm-500 mt-1">{refund.reason}</p>
-                    <button
-                      onClick={() => setSelectedRefundId(refund.id)}
-                      className="mt-2 text-[10px] font-semibold text-terra hover:underline"
-                    >
-                      Select
+              <OpsPanel eyebrow="Step 2" title="Verify payment and issue receipt" description="Pick an intent, attach the onchain settlement hash, and verify against the expected recipient.">
+                <div className="space-y-3">
+                  <label className="control-label">
+                    Intent
+                    <select value={selectedPaymentId} onChange={(event) => setSelectedPaymentId(event.target.value)} className="control-select">
+                      <option value="">Select payment</option>
+                      {latestPayments.map((payment) => (
+                        <option key={payment.id} value={payment.id}>{payment.category} · ${payment.expectedAmount} · {payment.status}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="control-label">
+                    Base tx hash
+                    <input value={verifyTxHash} onChange={(event) => setVerifyTxHash(event.target.value)} className="control-input" />
+                  </label>
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-cloudy">
+                    {selectedPayment ? <span>Expected ${selectedPayment.expectedAmount} to {truncate(selectedPayment.recipientAddress)}</span> : null}
+                    {verifyTxUrl ? (
+                      <a href={verifyTxUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-terra hover:text-terra-dark">
+                        View tx <ExternalLink size={11} />
+                      </a>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <button onClick={() => void verifyPayment()} disabled={busy || !selectedPaymentId} className="control-button-primary">
+                      Verify & issue receipt
+                    </button>
+                    <button onClick={() => void launchBasePay()} disabled={busy || paying || !selectedPaymentId} className="control-button-secondary">
+                      {paying ? <><Loader2 size={12} className="animate-spin" /> Launching Base Pay</> : "Launch Base Pay"}
                     </button>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              </OpsPanel>
 
-            <div className="bg-pampas rounded-2xl border border-sand p-4 space-y-3">
-              <h2 className="text-sm font-bold text-warm-800">Finalize Selected Refund</h2>
-              <label className="block text-[11px] text-warm-500">
-                Selected refund ID
-                <input
-                  value={selectedRefundId}
-                  onChange={(event) => setSelectedRefundId(event.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
-                />
-              </label>
-              <label className="block text-[11px] text-warm-500">
-                Refund tx hash
-                <input
-                  value={refundTxHash}
-                  onChange={(event) => setRefundTxHash(event.target.value)}
-                  className="mt-1 w-full px-3 py-2 rounded-lg border border-sand bg-cream/40 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
-                />
-              </label>
-              {refundTxUrl && (
-                <a
-                  href={refundTxUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-terra hover:text-terra-dark"
-                >
-                  View refund tx on BaseScan <ExternalLink size={11} />
-                </a>
-              )}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => void approveRefund()}
-                  disabled={busy || !selectedRefundId}
-                  className="px-3 py-2 rounded-lg border border-sand text-xs font-semibold text-warm-700 hover:border-terra/30 transition disabled:opacity-60"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => void finalizeRefund()}
-                  disabled={busy || !selectedRefundId}
-                  className="px-3 py-2 rounded-lg bg-terra text-white text-xs font-semibold hover:bg-terra-dark transition disabled:opacity-60"
-                >
-                  Finalize as Sent
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-pampas rounded-2xl border border-sand p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText size={14} className="text-terra" />
-                <h2 className="text-sm font-bold text-warm-800">Recent Receipts</h2>
-              </div>
-              <div className="space-y-2">
-                {snapshot.receipts.slice(0, 6).map((receipt) => (
-                  <div key={receipt.id} className="rounded-xl border border-sand/70 bg-cream/30 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-warm-800">{receipt.receiptNumber}</span>
-                      <span className="text-[10px] text-cloudy uppercase">{receipt.kind}</span>
-                    </div>
-                    <p className="text-xs text-warm-600 mt-1">${receipt.amount} USDC</p>
-                    <p className="text-[10px] text-cloudy mt-1 font-mono">{receipt.complianceHash.slice(0, 18)}...</p>
+              <OpsPanel eyebrow="Step 3" title="Refund workflow" description="Request a refund first, then approve and finalize it once the chain transfer is ready.">
+                <div className="grid gap-3">
+                  <label className="control-label">
+                    Payment
+                    <select value={selectedPaymentId} onChange={(event) => setSelectedPaymentId(event.target.value)} className="control-select">
+                      <option value="">Select payment</option>
+                      {snapshot.payments.filter((payment) => payment.status === "verified" || payment.status === "refunded").map((payment) => (
+                        <option key={payment.id} value={payment.id}>{payment.category} · ${payment.settledAmount || payment.expectedAmount}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="control-label">
+                      Refund amount
+                      <input value={refundAmount} onChange={(event) => setRefundAmount(event.target.value)} className="control-input" />
+                    </label>
+                    <label className="control-label">
+                      Reason
+                      <input value={refundReason} onChange={(event) => setRefundReason(event.target.value)} className="control-input" />
+                    </label>
                   </div>
-                ))}
-                {snapshot.receipts.length === 0 && (
-                  <p className="text-xs text-cloudy">Receipts will appear after payment verification or refunds.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-pampas rounded-2xl border border-sand p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <ShieldCheck size={14} className="text-accent" />
-                <h2 className="text-sm font-bold text-warm-800">Recent Attestations</h2>
-              </div>
-              <div className="space-y-2">
-                {snapshot.attestations.slice(0, 6).map((attestation) => (
-                  <div key={attestation.id} className="rounded-xl border border-sand/70 bg-cream/30 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-warm-800">{attestation.schema}</span>
-                      <span className="text-[10px] text-cloudy uppercase">{attestation.subjectType}</span>
-                    </div>
-                    <p className="text-[10px] text-warm-500 mt-1">Attestor: {attestation.attestor}</p>
-                    <p className="text-[10px] text-cloudy mt-1 font-mono">{attestation.payloadHash.slice(0, 18)}...</p>
+                  <div className="flex flex-wrap gap-3">
+                    <button onClick={() => void requestPaymentRefund()} disabled={busy || !canRequestRefund} className="control-button-primary">
+                      Request refund
+                    </button>
+                    {!canRequestRefund ? <span className="text-xs text-cloudy">Select a payment, a positive amount, and a reason.</span> : null}
                   </div>
-                ))}
-                {snapshot.attestations.length === 0 && (
-                  <p className="text-xs text-cloudy">Attestations are generated automatically on verification/refunds.</p>
-                )}
-              </div>
-            </div>
-          </div>
 
-          <div className="bg-pampas rounded-2xl border border-sand p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <BookText size={14} className="text-terra" />
-              <h2 className="text-sm font-bold text-warm-800">Ledger Entries</h2>
+                  <div className="mt-2 rounded-[24px] border border-sand/70 bg-white/75 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-semibold text-warm-800">Finalize selected refund</h3>
+                      {refundTxUrl ? <a href={refundTxUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-terra hover:text-terra-dark">View refund tx <ExternalLink size={11} /></a> : null}
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="control-label">
+                        Selected refund ID
+                        <input value={selectedRefundId} onChange={(event) => setSelectedRefundId(event.target.value)} className="control-input" />
+                      </label>
+                      <label className="control-label">
+                        Refund tx hash
+                        <input value={refundTxHash} onChange={(event) => setRefundTxHash(event.target.value)} className="control-input" />
+                      </label>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <button onClick={() => void approveRefund()} disabled={busy || !selectedRefundId} className="control-button-secondary">Approve</button>
+                      <button onClick={() => void finalizeRefund()} disabled={busy || !selectedRefundId} className="control-button-primary">Finalize as sent</button>
+                    </div>
+                  </div>
+                </div>
+              </OpsPanel>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-left text-cloudy border-b border-sand/60">
-                    <th className="py-2 pr-3">Time</th>
-                    <th className="py-2 pr-3">Event</th>
-                    <th className="py-2 pr-3">Account</th>
-                    <th className="py-2 pr-3">Dir</th>
-                    <th className="py-2 pr-3">Amount</th>
-                    <th className="py-2">Reference</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {latestEntries.map((entry) => (
-                    <tr key={entry.id} className="border-b border-sand/30 text-warm-600">
-                      <td className="py-2 pr-3 whitespace-nowrap">
-                        {new Date(entry.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </td>
-                      <td className="py-2 pr-3">{entry.eventType}</td>
-                      <td className="py-2 pr-3">{entry.accountCode}</td>
-                      <td className="py-2 pr-3 uppercase">{entry.direction}</td>
-                      <td className="py-2 pr-3">${entry.amount}</td>
-                      <td className="py-2 font-mono text-[10px] text-cloudy">
-                        {entry.reference ? `${entry.reference.slice(0, 16)}...` : "-"}
-                      </td>
-                    </tr>
-                  ))}
-                  {latestEntries.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="py-4 text-center text-cloudy">
-                        No ledger entries yet.
-                      </td>
-                    </tr>
+
+            <div className="space-y-4">
+              <OpsPanel eyebrow="Review queue" title="Pending refunds" description="Refunds that still need human approval or finalization.">
+                <div className="space-y-3">
+                  {snapshot.refunds.length === 0 ? (
+                    <OpsEmptyState icon={Undo2} title="No refunds on deck" description="Refund requests will appear here once a payment is selected and submitted." />
+                  ) : (
+                    snapshot.refunds.slice(0, 6).map((refund) => (
+                      <div key={refund.id} className="surface-muted px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-warm-800">${refund.amount}</p>
+                            <p className="mt-1 text-xs text-cloudy">{refund.reason}</p>
+                          </div>
+                          <OpsBadge tone={refund.status === "sent" ? "accent" : refund.status === "failed" ? "red" : "gold"}>{refund.status}</OpsBadge>
+                        </div>
+                        <button onClick={() => setSelectedRefundId(refund.id)} className="mt-3 text-xs font-semibold text-terra hover:text-terra-dark">Select refund</button>
+                      </div>
+                    ))
                   )}
-                </tbody>
-              </table>
+                </div>
+              </OpsPanel>
+
+              <OpsPanel eyebrow="Artifacts" title="Receipts and attestations" description="Recently generated documents and attestations tied to ledger events.">
+                <div className="space-y-4">
+                  <ArtifactSection title="Receipts" icon={FileText} emptyText="Receipts will appear after payment verification or refund settlement.">
+                    {snapshot.receipts.slice(0, 6).map((receipt) => (
+                      <ArtifactCard key={receipt.id} title={receipt.receiptNumber} subtitle={`${receipt.kind} · $${receipt.amount} USDC`} footnote={truncate(receipt.complianceHash, 9)} />
+                    ))}
+                  </ArtifactSection>
+                  <ArtifactSection title="Attestations" icon={ShieldCheck} emptyText="Attestations are created automatically for verification and refund events.">
+                    {snapshot.attestations.slice(0, 6).map((attestation) => (
+                      <ArtifactCard key={attestation.id} title={attestation.schema} subtitle={`${attestation.subjectType} · ${attestation.attestor}`} footnote={truncate(attestation.payloadHash, 9)} />
+                    ))}
+                  </ArtifactSection>
+                </div>
+              </OpsPanel>
             </div>
           </div>
+
+          <OpsPanel eyebrow="Journal" title="Ledger entries" description="The low-level audit trail remains available in a compact table for reconciliation and exports.">
+            {latestEntries.length === 0 ? (
+              <OpsEmptyState icon={BookText} title="No ledger entries yet" description="Entries start appearing once intents, receipts, refunds, or treasury actions are recorded." />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-[760px] w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-sand/60 text-left text-cloudy">
+                      <th className="px-4 py-3 font-semibold">Time</th>
+                      <th className="px-3 py-3 font-semibold">Event</th>
+                      <th className="px-3 py-3 font-semibold">Account</th>
+                      <th className="px-3 py-3 font-semibold">Direction</th>
+                      <th className="px-3 py-3 text-right font-semibold">Amount</th>
+                      <th className="px-4 py-3 font-semibold">Reference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {latestEntries.map((entry) => (
+                      <tr key={entry.id} className="border-b border-sand/30 text-warm-700 last:border-b-0">
+                        <td className="px-4 py-3 whitespace-nowrap">{new Date(entry.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
+                        <td className="px-3 py-3">{entry.eventType}</td>
+                        <td className="px-3 py-3">{entry.accountCode}</td>
+                        <td className="px-3 py-3 uppercase">{entry.direction}</td>
+                        <td className="px-3 py-3 text-right">${entry.amount}</td>
+                        <td className="px-4 py-3 font-mono text-[11px] text-cloudy">{entry.reference ? truncate(entry.reference, 10) : "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </OpsPanel>
         </>
       )}
     </div>
   )
 }
 
-function SummaryCard({
-  label,
-  value,
+function truncate(value?: string, size = 8): string {
+  if (!value) return "-"
+  if (value.length <= size * 2) return value
+  return `${value.slice(0, size)}...${value.slice(-size)}`
+}
+
+function ArtifactSection({
+  title,
   icon: Icon,
+  emptyText,
+  children,
 }: {
-  label: string
-  value: string
-  icon: typeof CreditCard
+  title: string
+  icon: typeof FileText
+  emptyText: string
+  children: React.ReactNode
 }) {
+  const items = Array.isArray(children) ? children.filter(Boolean) : children
   return (
-    <div className="bg-pampas rounded-xl border border-sand p-3">
-      <Icon size={14} className="text-terra mb-1.5" />
-      <div className="text-base font-semibold text-warm-800">{value}</div>
-      <div className="text-[10px] text-cloudy">{label}</div>
+    <div>
+      <div className="mb-3 flex items-center gap-2">
+        <Icon size={14} className="text-terra" />
+        <h3 className="text-sm font-semibold text-warm-800">{title}</h3>
+      </div>
+      <div className="space-y-2">
+        {Array.isArray(items) && items.length === 0 ? <p className="text-xs text-cloudy">{emptyText}</p> : items}
+      </div>
+    </div>
+  )
+}
+
+function ArtifactCard({ title, subtitle, footnote }: { title: string; subtitle: string; footnote: string }) {
+  return (
+    <div className="surface-muted px-4 py-3">
+      <div className="text-sm font-semibold text-warm-800">{title}</div>
+      <div className="mt-1 text-xs text-warm-600">{subtitle}</div>
+      <div className="mt-2 font-mono text-[11px] text-cloudy">{footnote}</div>
     </div>
   )
 }

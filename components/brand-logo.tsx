@@ -12,7 +12,7 @@ export function BrandMark({ className, iconClassName, size = "md" }: BrandMarkPr
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#ffb185_0%,#e05b43_38%,#8b2c21_100%)] shadow-lg shadow-terra/30 ring-1 ring-white/20",
+        "flex shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#ffca9d_0%,#e05b43_42%,#7a261d_100%)] shadow-[0_14px_28px_rgba(224,91,67,0.22)] ring-1 ring-white/30",
         size === "sm" ? "h-8 w-8" : "h-9 w-9",
         className
       )}
@@ -44,11 +44,11 @@ export function BrandWordmark({
   const Title = titleAs
   return (
     <div className={cn("min-w-0", className)}>
-      <Title className={cn("truncate font-semibold tracking-[-0.04em] text-white", titleClassName ?? "text-sm")}>
+      <Title className={cn("truncate font-semibold tracking-[-0.04em] text-warm-800", titleClassName ?? "text-sm")}>
         OpenRx
       </Title>
       {subtitle ? (
-        <p className={cn("text-[9px] font-semibold uppercase tracking-[0.24em] text-white/34", subtitleClassName)}>
+        <p className={cn("text-[9px] font-semibold uppercase tracking-[0.24em] text-cloudy/80", subtitleClassName)}>
           Care OS
         </p>
       ) : null}

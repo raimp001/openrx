@@ -225,6 +225,13 @@ export default function Topbar() {
                 ) : null}
               </div>
 
+              <div className="space-y-1">
+                <h1 className="text-[clamp(1.8rem,2.5vw,2.5rem)] text-warm-800">Today&apos;s care desk</h1>
+                <p className="max-w-2xl text-sm leading-6 text-warm-600">
+                  Search your visits, medications, labs, claims, and conversations from one consistent workspace.
+                </p>
+              </div>
+
               <div ref={searchRef} className="relative w-full max-w-3xl">
                 <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-cloudy/80" />
                 <input
@@ -237,7 +244,7 @@ export default function Topbar() {
                   }}
                   onFocus={() => query.length >= 2 && setIsOpen(true)}
                   placeholder="Search meds, labs, visits, claims, referrals, or jump anywhere"
-                  className="w-full rounded-[22px] border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(248,243,235,0.92))] py-3 pl-11 pr-16 text-[13px] text-warm-800 placeholder:text-cloudy/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_10px_24px_rgba(17,34,30,0.05)] transition focus:border-terra/30 focus:bg-white focus:shadow-[0_0_0_4px_rgba(224,91,67,0.08)]"
+                  className="w-full rounded-[24px] border border-sand/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,241,231,0.94))] py-3.5 pl-11 pr-16 text-[13px] text-warm-800 placeholder:text-cloudy/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_16px_32px_rgba(17,34,30,0.06)] transition focus:border-terra/30 focus:bg-white focus:shadow-[0_0_0_4px_rgba(224,91,67,0.08),0_18px_34px_rgba(17,34,30,0.08)]"
                 />
                 {query ? (
                   <button
@@ -376,7 +383,7 @@ export default function Topbar() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2 xl:max-w-[40%]">
+            <div className="flex flex-wrap items-center justify-end gap-2 xl:max-w-[40%] xl:rounded-[26px] xl:border xl:border-sand/70 xl:bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,239,228,0.88))] xl:p-2">
               <QuickAction href="/scheduling" icon={Calendar} label="Book" />
               <QuickAction href="/billing" icon={Receipt} label="Bills" />
               <QuickAction href="/prescriptions" icon={Pill} label="Meds" />
@@ -394,7 +401,7 @@ export default function Topbar() {
               <Link
                 href="/messages"
                 aria-label="Messages"
-                className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,240,229,0.9))] text-warm-600 transition hover:border-sand hover:text-warm-800"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,240,229,0.92))] text-warm-600 transition hover:border-terra/20 hover:text-warm-800"
               >
                 <Bell size={17} />
                 {unread > 0 ? (
@@ -408,7 +415,7 @@ export default function Topbar() {
                 <Link
                   href="/dashboard/care-team"
                   aria-label="AI Care Team Command Center"
-                  className="relative inline-flex h-11 items-center gap-2 rounded-2xl border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,240,229,0.9))] px-3 text-[11px] font-semibold text-warm-700 transition hover:border-sand hover:text-warm-900"
+                  className="relative inline-flex h-11 items-center gap-2 rounded-2xl border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,240,229,0.92))] px-3 text-[11px] font-semibold text-warm-700 transition hover:border-soft-blue/25 hover:text-warm-900"
                 >
                   <Bot size={16} className="text-soft-blue" />
                   <span className="hidden sm:inline">Care Team</span>
@@ -421,11 +428,11 @@ export default function Topbar() {
               ) : null}
 
               <Wallet>
-                <ConnectWallet className="!h-11 !rounded-2xl !border !border-warm-800/10 !bg-warm-800 !px-3.5 !text-xs !font-semibold !text-white !shadow-[0_12px_28px_rgba(17,34,30,0.18)] !transition hover:!bg-warm-700">
+                <ConnectWallet className="!h-11 !rounded-2xl !border !border-warm-800/10 !bg-warm-800 !px-3.5 !text-xs !font-semibold !text-white !shadow-[0_14px_32px_rgba(17,34,30,0.18)] !transition hover:!bg-warm-700">
                   <Avatar className="h-5 w-5" />
                   <Name className="text-xs" />
                 </ConnectWallet>
-                  <WalletDropdown className="!rounded-[22px] !border-sand/70 !bg-pampas !shadow-premium">
+                <WalletDropdown className="!rounded-[22px] !border-sand/70 !bg-pampas !shadow-premium">
                   <Identity className="px-4 pb-2 pt-3" hasCopyAddressOnClick>
                     <Avatar />
                     <Name className="font-semibold text-warm-800" />
@@ -443,7 +450,7 @@ export default function Topbar() {
 
         <div className="flex flex-wrap items-center gap-2 px-4 py-3 lg:px-5">
           {statusPills.map((pill) => (
-            <span key={pill.label} className={cn("metric-chip border-sand/70 bg-white/78", pill.tone)}>
+            <span key={pill.label} className={cn("metric-chip border-sand/70 bg-white/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)]", pill.tone)}>
               {pill.label}
             </span>
           ))}

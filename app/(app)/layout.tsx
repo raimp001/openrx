@@ -3,9 +3,13 @@ import Topbar from "@/components/layout/topbar"
 import AgentBar from "@/components/layout/agent-bar"
 import { getDatabaseHealth } from "@/lib/database-health"
 
+export const dynamic = "force-dynamic"
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const databaseHealth = await getDatabaseHealth()
-  const showDatabaseBanner = databaseHealth.status !== "connected"
+  const isProduction = process.env.NODE_ENV === "production"
+  const showDatabaseBanner =
+    !isProduction && databaseHealth.status !== "connected"
 
   return (
     <div className="relative min-h-screen overflow-x-hidden">

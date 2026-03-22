@@ -152,6 +152,18 @@ export interface CareDirectoryMatch {
   confidence: "high" | "medium"
 }
 
+interface RankedCareDirectoryMatch extends CareDirectoryMatch {
+  locationMatched: boolean
+  locationScore: number
+}
+
+function toPublicCareDirectoryMatch(entry: RankedCareDirectoryMatch): CareDirectoryMatch {
+  const { locationMatched, locationScore, ...publicEntry } = entry
+  void locationMatched
+  void locationScore
+  return publicEntry
+}
+
 interface NppesAddress {
   address_purpose?: string
   address_1?: string
@@ -161,6 +173,12 @@ interface NppesAddress {
   postal_code?: string
   telephone_number?: string
   fax_number?: string
+}
+
+interface ParsedAddressMatch {
+  address: NppesAddress
+  matched: boolean
+  score: number
 }
 
 interface NppesTaxonomy {
@@ -205,6 +223,12 @@ function parseLocation(working: string): {
   let zip: string | undefined
   let city: string | undefined
   let state: string | undefined
+  const originalNormalized = working
+    .toLowerCase()
+    .replace(/[,.]+/g, " ")
+    .replace(/\b(find|search|look|need|want|please|for|near|in|around|nearby|closest|me)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
 
   const zipMatch = text.match(/\b(\d{5})(?:-\d{4})?\b/)
   if (zipMatch) {
@@ -212,9 +236,14 @@ function parseLocation(working: string): {
     text = text.replace(zipMatch[0], " ")
   }
 
+  if (originalNormalized === "new york") {
+    city = "New York"
+    state = "NY"
+  }
+
   const lowered = text.toLowerCase()
   for (const [stateName, abbreviation] of Object.entries(STATE_MAP)) {
-    if (lowered.includes(stateName)) {
+    if (!city && lowered.includes(stateName)) {
       state = abbreviation
       text = text.replace(new RegExp(stateName, "i"), " ")
       break
@@ -240,7 +269,14 @@ function parseLocation(working: string): {
     .replace(/\s+/g, " ")
     .trim()
 
-  if (normalizedForCity) {
+  const normalizedSource = normalizedForCity.toLowerCase()
+
+  if (normalizedSource === "new york") {
+    city = "New York"
+    state = "NY"
+  }
+
+  if (!city && normalizedForCity) {
     const words = normalizedForCity
       .split(" ")
       .map((word) => word.trim())
@@ -291,10 +327,7 @@ function buildClarification(missingInfo: string[], parsed: ParsedCareQuery): str
   if (missingInfo[0] === "service") {
     return "What should I search for: provider, caregiver, lab, or radiology center?"
   }
-  if (parsed.state && !parsed.city && !parsed.zip) {
-    return `I found state "${parsed.state}". Add a city or ZIP so I can start NPI search.`
-  }
-  if (!parsed.city && !parsed.zip) {
+  if (!parsed.city && !parsed.zip && !parsed.state) {
     return "What city/state or ZIP should I search near?"
   }
   return "Please add the missing detail so I can run NPI search."
@@ -327,7 +360,7 @@ export function parseCareSearchQuery(query: string): ParsedCareQuery {
   working = location.cleaned
 
   const missingInfo: string[] = []
-  if (!location.zip && !location.city) missingInfo.push("location")
+  if (!location.zip && !location.city && !location.state) missingInfo.push("location")
 
   const ready = missingInfo.length === 0
   const parsed: ParsedCareQuery = {
@@ -505,15 +538,80 @@ function classifyKind(desc: string, requested: CareSearchType): CareSearchType {
   return "provider"
 }
 
-function mapResult(result: NppesResult, requested: CareSearchType, parsed: ParsedCareQuery): CareDirectoryMatch | null {
+function normalizeAddressText(value?: string): string {
+  return (value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function scoreAddressMatch(address: NppesAddress, parsed: ParsedCareQuery): number {
+  const city = normalizeAddressText(address.city)
+  const state = (address.state || "").toUpperCase()
+  const zip = (address.postal_code || "").slice(0, 5)
+  const parsedCity = normalizeAddressText(parsed.city)
+  const parsedState = (parsed.state || "").toUpperCase()
+  const parsedZip = (parsed.zip || "").slice(0, 5)
+
+  if (parsedZip) {
+    return zip === parsedZip ? 8 : 0
+  }
+
+  if (parsedCity && parsedState) {
+    if (city !== parsedCity || state !== parsedState) return 0
+    return 7
+  }
+
+  if (parsedCity) {
+    return city === parsedCity ? 6 : 0
+  }
+
+  if (parsedState) {
+    return state === parsedState ? 4 : 0
+  }
+
+  return 1
+}
+
+function chooseBestAddress(addresses: NppesAddress[], parsed: ParsedCareQuery): ParsedAddressMatch {
+  const candidates = addresses.length > 0 ? addresses : [{}]
+  let best: ParsedAddressMatch = {
+    address: candidates[0] || {},
+    matched: !parsed.city && !parsed.state && !parsed.zip,
+    score: 0,
+  }
+
+  candidates.forEach((address) => {
+    const score = scoreAddressMatch(address, parsed)
+    const isLocation = address.address_purpose === "LOCATION"
+    const bestIsLocation = best.address.address_purpose === "LOCATION"
+    if (
+      score > best.score ||
+      (score === best.score && isLocation && !bestIsLocation)
+    ) {
+      best = {
+        address,
+        matched: score > 0 || (!parsed.city && !parsed.state && !parsed.zip),
+        score,
+      }
+    }
+  })
+
+  return best
+}
+
+function mapResult(
+  result: NppesResult,
+  requested: CareSearchType,
+  parsed: ParsedCareQuery
+): RankedCareDirectoryMatch | null {
   if (!result.number) return null
   const basic = result.basic || {}
   const addresses = result.addresses || []
   const taxonomies = result.taxonomies || []
-  const locationAddress =
-    addresses.find((address) => address.address_purpose === "LOCATION") ||
-    addresses[0] ||
-    {}
+  const addressChoice = chooseBestAddress(addresses, parsed)
+  const locationAddress = addressChoice.address || {}
   const taxonomy =
     taxonomies.find((entry) => entry.primary) ||
     taxonomies[0] ||
@@ -523,8 +621,8 @@ function mapResult(result: NppesResult, requested: CareSearchType, parsed: Parse
   const taxonomyLower = taxonomyDesc.toLowerCase()
   const specialtyLower = parsed.specialty?.toLowerCase() || ""
   const roleLower = parsed.caregiverRole?.toLowerCase() || ""
-  const parsedCityLower = (parsed.city || "").toLowerCase()
-  const resultCityLower = (locationAddress.city || "").toLowerCase()
+  const parsedCityLower = normalizeAddressText(parsed.city)
+  const resultCityLower = normalizeAddressText(locationAddress.city)
   const cityMatched = !!parsedCityLower && parsedCityLower === resultCityLower
   const isHighConfidence =
     (!!specialtyLower && taxonomyLower.includes(specialtyLower)) ||
@@ -554,6 +652,8 @@ function mapResult(result: NppesResult, requested: CareSearchType, parsed: Parse
     phone: locationAddress.telephone_number || "",
     fullAddress,
     confidence: isHighConfidence ? "high" : "medium",
+    locationMatched: addressChoice.matched,
+    locationScore: addressChoice.score,
   }
 }
 
@@ -590,7 +690,7 @@ export async function searchNpiCareDirectory(
   const plan = buildSearchPlan(parsed, limit)
   const primaryPlan = plan.filter((step) => step.phase === "primary")
   const fallbackPlan = plan.filter((step) => step.phase === "fallback")
-  const results: CareDirectoryMatch[] = []
+  const results: RankedCareDirectoryMatch[] = []
   const dedupe = new Set<string>()
   let successfulResponses = 0
 
@@ -621,6 +721,7 @@ export async function searchNpiCareDirectory(
       payload.list.forEach((entry) => {
         const mapped = mapResult(entry, payload.serviceType, parsed)
         if (!mapped) return
+        if ((parsed.city || parsed.state || parsed.zip) && !mapped.locationMatched) return
         const key = `${mapped.kind}:${mapped.npi}`
         if (dedupe.has(key)) return
         dedupe.add(key)
@@ -635,6 +736,7 @@ export async function searchNpiCareDirectory(
   }
 
   const sorted = results.sort((a, b) => {
+    if (a.locationScore !== b.locationScore) return b.locationScore - a.locationScore
     if (a.confidence !== b.confidence) return a.confidence === "high" ? -1 : 1
     if (a.status !== b.status) return a.status === "Active" ? -1 : 1
     return a.name.localeCompare(b.name)
@@ -652,7 +754,7 @@ export async function searchNpiCareDirectory(
       image: CARE_SEARCH_PROMPT_IMAGE_PATH,
       text: CARE_SEARCH_PROMPT_TEXT,
     },
-    matches: sorted.slice(0, limit),
+    matches: sorted.slice(0, limit).map(toPublicCareDirectoryMatch),
   }
 }
 

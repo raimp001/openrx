@@ -106,6 +106,7 @@ interface CtGovLocation {
   facility?: string
   city?: string
   state?: string
+  zip?: string
   country?: string
 }
 
@@ -255,6 +256,7 @@ interface ParsedTrialLocationQuery {
   normalized: string
   city?: string
   state?: string
+  zip?: string
   stateOnly: boolean
   wantsRemote: boolean
 }
@@ -596,36 +598,51 @@ function canonicalizeUsState(value?: string): string | null {
 function parseTrialLocationQuery(value?: string): ParsedTrialLocationQuery {
   const normalized = normalizeTrialLocationText(value)
   const wantsRemote = /\b(remote|virtual|telehealth|telemedicine|online|nationwide)\b/.test(normalized)
+  const zipMatch = normalized.match(/\b(\d{5})(?:-\d{4})?\b/)
+  const zip = zipMatch?.[1]
+  const withoutZip = zip ? normalizeTrialLocationText(normalized.replace(zipMatch![0], " ")) : normalized
   if (!normalized) {
     return { raw: value || "", normalized, stateOnly: false, wantsRemote }
   }
 
-  const commaParts = normalized.split(",").map((part) => part.trim()).filter(Boolean)
+  if (withoutZip === "new york") {
+    return {
+      raw: value || "",
+      normalized,
+      city: "new york",
+      state: "NY",
+      zip,
+      stateOnly: false,
+      wantsRemote,
+    }
+  }
+
+  const commaParts = withoutZip.split(",").map((part) => part.trim()).filter(Boolean)
   if (commaParts.length >= 2) {
     const state = canonicalizeUsState(commaParts.at(-1))
     const city = commaParts.slice(0, -1).join(" ").trim() || undefined
-    return { raw: value || "", normalized, city, state: state || undefined, stateOnly: Boolean(state && !city), wantsRemote }
+    return { raw: value || "", normalized, city, state: state || undefined, zip, stateOnly: Boolean(state && !city), wantsRemote }
   }
 
-  const directState = canonicalizeUsState(normalized)
+  const directState = canonicalizeUsState(withoutZip)
   if (directState) {
-    return { raw: value || "", normalized, state: directState, stateOnly: true, wantsRemote }
+    return { raw: value || "", normalized, state: directState, zip, stateOnly: true, wantsRemote }
   }
 
-  const tokens = normalized.split(" ")
+  const tokens = withoutZip.split(" ")
   const trailingTwo = tokens.length > 1 ? canonicalizeUsState(tokens.slice(-2).join(" ")) : null
   if (trailingTwo) {
     const city = tokens.slice(0, -2).join(" ").trim() || undefined
-    return { raw: value || "", normalized, city, state: trailingTwo, stateOnly: !city, wantsRemote }
+    return { raw: value || "", normalized, city, state: trailingTwo, zip, stateOnly: !city, wantsRemote }
   }
 
   const trailingOne = tokens.length > 1 ? canonicalizeUsState(tokens.at(-1)) : null
   if (trailingOne) {
     const city = tokens.slice(0, -1).join(" ").trim() || undefined
-    return { raw: value || "", normalized, city, state: trailingOne, stateOnly: !city, wantsRemote }
+    return { raw: value || "", normalized, city, state: trailingOne, zip, stateOnly: !city, wantsRemote }
   }
 
-  return { raw: value || "", normalized, city: normalized, stateOnly: false, wantsRemote }
+  return { raw: value || "", normalized, city: withoutZip || undefined, zip, stateOnly: false, wantsRemote }
 }
 
 function buildTrialLocationLabel(entry?: CtGovLocation | null): string {
@@ -639,6 +656,12 @@ function scoreTrialLocationEntry(entry: CtGovLocation, parsed: ParsedTrialLocati
   const city = normalizeTrialLocationText(entry.city)
   const facility = normalizeTrialLocationText(entry.facility)
   const state = canonicalizeUsState(entry.state)
+  const zip = entry.zip?.slice(0, 5)
+
+  if (parsed.zip) {
+    if (zip === parsed.zip) return 7
+    return 0
+  }
 
   if (parsed.stateOnly) {
     return parsed.state && state === parsed.state ? 5 : 0

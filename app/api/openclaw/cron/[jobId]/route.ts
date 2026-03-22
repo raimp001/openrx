@@ -9,6 +9,7 @@ import {
   readCronIdempotency,
   writeCronIdempotency,
 } from "@/lib/openclaw/cron-dispatch"
+import { recordCronRun } from "@/lib/openclaw/runtime-persistence"
 
 interface CronRequestBody {
   message?: string
@@ -67,7 +68,7 @@ export async function POST(
   })
 
   if (body.dryRun) {
-    return NextResponse.json({
+    const payload = {
       ok: true,
       dryRun: true,
       providerCalled: false,
@@ -88,19 +89,49 @@ export async function POST(
         role: session.role,
         authSource: session.authSource,
       },
+    }
+    await recordCronRun({
+      jobId: job.id,
+      sessionId: body.sessionId || `cron-${job.id}-preview`,
+      requestedByUserId: session.userId,
+      requestedByRole: session.role,
+      authSource: session.authSource,
+      dryRun: true,
+      ok: true,
+      httpStatus: 200,
+      idempotencyKey: body.idempotencyKey || null,
+      walletAddress: body.walletAddress || null,
+      message,
+      triggeredAt: triggeredAt.effectiveIso,
+      responsePayload: payload,
     })
+    return NextResponse.json(payload)
   }
 
   if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
-    return NextResponse.json(
-      {
-        ok: false,
-        failureReason: "missing_model_credentials",
-        error:
-          "OpenClaw AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
-      },
-      { status: 503 }
-    )
+    const payload = {
+      ok: false,
+      failureReason: "missing_model_credentials",
+      error:
+        "OpenClaw AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
+    }
+    await recordCronRun({
+      jobId: job.id,
+      sessionId: body.sessionId || `cron-${job.id}-missing-creds`,
+      requestedByUserId: session.userId,
+      requestedByRole: session.role,
+      authSource: session.authSource,
+      dryRun: false,
+      ok: false,
+      failureReason: payload.failureReason,
+      httpStatus: 503,
+      idempotencyKey: body.idempotencyKey || null,
+      walletAddress: body.walletAddress || null,
+      message,
+      triggeredAt: triggeredAt.effectiveIso,
+      responsePayload: payload,
+    })
+    return NextResponse.json(payload, { status: 503 })
   }
 
   const cached = readCronIdempotency<{
@@ -122,6 +153,28 @@ export async function POST(
   }>(job.id, body.idempotencyKey)
 
   if (cached) {
+    await recordCronRun({
+      jobId: job.id,
+      sessionId: cached.sessionId,
+      requestedByUserId: session.userId,
+      requestedByRole: session.role,
+      authSource: session.authSource,
+      dryRun: false,
+      ok: cached.ok,
+      failureReason: cached.failureReason,
+      httpStatus: cached.ok ? 200 : 503,
+      idempotencyKey: body.idempotencyKey || null,
+      walletAddress: body.walletAddress || null,
+      message,
+      triggeredAt: triggeredAt.effectiveIso,
+      responsePayload: {
+        ...cached,
+        idempotency: {
+          key: body.idempotencyKey || null,
+          status: "replayed",
+        },
+      },
+    })
     return NextResponse.json(
       {
         ...cached,
@@ -178,6 +231,22 @@ export async function POST(
   }
 
   writeCronIdempotency(job.id, body.idempotencyKey, payload)
+  await recordCronRun({
+    jobId: job.id,
+    sessionId,
+    requestedByUserId: session.userId,
+    requestedByRole: session.role,
+    authSource: session.authSource,
+    dryRun: false,
+    ok: payload.ok,
+    failureReason: payload.failureReason,
+    httpStatus: classification.httpStatus,
+    idempotencyKey: body.idempotencyKey || null,
+    walletAddress: body.walletAddress || null,
+    message,
+    triggeredAt: triggeredAt.effectiveIso,
+    responsePayload: payload,
+  })
 
   return NextResponse.json(payload, {
     status: classification.httpStatus,

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 })
   }
 
-  const snapshot = getCareTeamSnapshot(50)
+  const snapshot = await getCareTeamSnapshot(50)
   return NextResponse.json({
     session: {
       role: session.role,
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = getClientIp(request)
-  const limit = consumeCareTeamRateLimit({
+  const limit = await consumeCareTeamRateLimit({
     key: `notify:${ip}`,
     limit: 80,
     windowMs: 60 * 1000,
@@ -82,23 +82,23 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "context is required when status is needs_input." }, { status: 400 })
       }
 
-      const result = submitHumanInputRequest({
+      const result = await submitHumanInputRequest({
         payload,
         actor: { role: session.role, userId: session.userId },
       })
-      const event = buildCareTeamEvent({ type: "request_created", request: result.request, agent: result.agent })
+      const event = await buildCareTeamEvent({ type: "request_created", request: result.request, agent: result.agent })
       publishCareTeamEvent(event)
 
       return NextResponse.json({ request: result.request, agent: result.agent, event }, { status: 201 })
     }
 
-    const result = updateAgentStatus({
+    const result = await updateAgentStatus({
       agentId: payload.agent_id,
       agentName: payload.agent_name,
       status: payload.status,
       actor: { role: session.role, userId: session.userId },
     })
-    const event = buildCareTeamEvent({ type: "agent_status", agent: result.agent })
+    const event = await buildCareTeamEvent({ type: "agent_status", agent: result.agent })
     publishCareTeamEvent(event)
 
     return NextResponse.json({ agent: result.agent, event })

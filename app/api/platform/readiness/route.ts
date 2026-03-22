@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { assessHealthScreening } from "@/lib/basehealth"
 import { getLedgerSnapshot } from "@/lib/payments-ledger"
+import { getDatabaseHealth } from "@/lib/database-health"
 import {
   OPENRX_ADMIN_ID,
   listAdminNotifications,
@@ -16,9 +17,10 @@ function toStatus(ok: boolean): ReadinessStatus {
 }
 
 export async function GET() {
+  const databaseHealth = await getDatabaseHealth()
   const applications = listNetworkApplications()
   const notifications = listAdminNotifications(OPENRX_ADMIN_ID)
-  const ledger = getLedgerSnapshot()
+  const ledger = await getLedgerSnapshot()
   const screening = assessHealthScreening()
   const adminEmailConfigured = !!(process.env.OPENRX_ADMIN_EMAILS || "").trim()
   const adminEmailDeliveryConfigured =
@@ -62,6 +64,14 @@ export async function GET() {
       status: toStatus(true),
       metric: `${ledger.summary.receiptCount} receipts`,
       href: "/compliance-ledger",
+    },
+    {
+      id: "database-runtime",
+      title: "Database runtime",
+      description: "Live Postgres connectivity for patient records, durable ledger, and agent state.",
+      status: toStatus(databaseHealth.reachable),
+      metric: databaseHealth.status === "connected" ? "Connected" : databaseHealth.status === "missing" ? "Missing DATABASE_URL" : "Connection issue",
+      href: "/wallet",
     },
   ]
 

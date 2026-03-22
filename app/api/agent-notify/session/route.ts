@@ -6,7 +6,7 @@ export const runtime = "nodejs"
 
 export async function GET(request: NextRequest) {
   const session = await resolveClinicSession(request)
-  const snapshot = session.canAccessCareTeam ? getCareTeamSnapshot(10) : null
+  const snapshot = session.canAccessCareTeam ? await getCareTeamSnapshot(10) : null
 
   return NextResponse.json({
     role: session.role,

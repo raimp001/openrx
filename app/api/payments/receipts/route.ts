@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const paymentId = searchParams.get("paymentId") || undefined
   const refundId = searchParams.get("refundId") || undefined
 
-  const snapshot = getLedgerSnapshot({ walletAddress })
+  const snapshot = await getLedgerSnapshot({ walletAddress })
   let receipts = snapshot.receipts
   if (paymentId) receipts = receipts.filter((receipt) => receipt.paymentId === paymentId)
   if (refundId) receipts = receipts.filter((receipt) => receipt.refundId === refundId)

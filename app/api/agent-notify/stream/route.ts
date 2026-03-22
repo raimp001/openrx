@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const encoder = new TextEncoder()
 
   const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
+    async start(controller) {
       let closed = false
 
       const safeClose = () => {
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const initialSnapshot = getCareTeamSnapshot(15)
+      const initialSnapshot = await getCareTeamSnapshot(15)
       controller.enqueue(encoder.encode(formatSse({ type: "bootstrap", snapshot: initialSnapshot }, "care_team")))
 
       const unsubscribe = subscribeCareTeamEvents((event) => {

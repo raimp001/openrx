@@ -526,7 +526,7 @@ export async function GET(request: NextRequest) {
     const analysisLevel = resolveAnalysisLevel(searchParams.get("analysisLevel"))
 
     if (analysisLevel === "deep") {
-      const access = verifyScreeningAccess({ walletAddress, paymentId })
+      const access = await verifyScreeningAccess({ walletAddress, paymentId })
       if (!access.ok) {
         return paymentRequiredResponse({
           reason: access.reason,
@@ -561,7 +561,7 @@ export async function POST(request: NextRequest) {
     }
     const analysisLevel = resolveAnalysisLevel(body.analysisLevel)
     if (analysisLevel === "deep") {
-      const access = verifyScreeningAccess({
+      const access = await verifyScreeningAccess({
         walletAddress: body.walletAddress,
         paymentId: body.paymentId,
       })

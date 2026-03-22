@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "walletAddress must be a valid EVM address." }, { status: 400 })
     }
 
-    const payment = createScreeningPaymentIntent(walletAddress)
+    const payment = await createScreeningPaymentIntent(walletAddress)
     return NextResponse.json({
       payment,
       fee: getScreeningFeeUsd(),

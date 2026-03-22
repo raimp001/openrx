@@ -9,9 +9,9 @@
 }
 
 :root {
-  --font-sans: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
-  --font-serif: "Fraunces", "Iowan Old Style", "Times New Roman", serif;
-  --focus-ring: 0 0 0 2px rgba(240, 90, 61, 0.5);
+  --font-sans: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  --font-serif: "Instrument Serif", "Iowan Old Style", "Times New Roman", serif;
+  --focus-ring: 0 0 0 2px rgba(224, 91, 67, 0.42);
 }
 
 html {
@@ -24,17 +24,32 @@ body {
 }
 
 body {
+  position: relative;
   font-family: var(--font-sans), system-ui, sans-serif;
   background:
-    radial-gradient(ellipse 900px 500px at 5% -5%, rgba(240, 90, 61, 0.10), transparent 55%),
-    radial-gradient(ellipse 800px 600px at 98% 2%, rgba(31, 169, 113, 0.09), transparent 52%),
-    radial-gradient(ellipse 600px 400px at 50% 100%, rgba(30, 136, 182, 0.05), transparent 60%),
-    linear-gradient(160deg, #f8fcfa 0%, #f3f8f6 45%, #eef5f2 100%);
-  color: #14231f;
+    radial-gradient(ellipse 920px 520px at 2% -10%, rgba(224, 91, 67, 0.11), transparent 56%),
+    radial-gradient(ellipse 780px 540px at 100% 6%, rgba(22, 142, 104, 0.08), transparent 54%),
+    radial-gradient(ellipse 760px 460px at 50% 100%, rgba(42, 124, 167, 0.06), transparent 62%),
+    linear-gradient(160deg, #fbf7ef 0%, #f5f0e7 44%, #efe8dc 100%);
+  color: #11221e;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.4;
-  letter-spacing: -0.005em;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(17, 34, 30, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 34, 30, 0.03) 1px, transparent 1px);
+  background-size: 120px 120px;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.8), transparent 78%);
 }
 
 a {
@@ -42,14 +57,35 @@ a {
 }
 
 ::selection {
-  background: rgba(240, 90, 61, 0.18);
-  color: #14231f;
+  background: rgba(224, 91, 67, 0.18);
+  color: #11221e;
 }
 
 *:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
   border-radius: 10px;
+}
+
+/* Skip to main — visible only when focused (keyboard / a11y) */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  background: #f05a3d;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+}
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 /* Premium scrollbar — main content area */
@@ -100,12 +136,12 @@ a {
 @layer base {
   h1 {
     font-family: var(--font-serif), serif;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.035em;
     line-height: 1.1;
   }
   h2, h3, h4 {
     font-family: var(--font-serif), serif;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.02em;
     line-height: 1.2;
   }
 }
@@ -113,19 +149,35 @@ a {
 @layer utilities {
   /* Core surface styles */
   .surface-card {
-    @apply rounded-2xl border border-sand/60 bg-white/90 shadow-soft-card backdrop-blur-sm;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    @apply rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,253,249,0.96),rgba(252,247,238,0.9))] shadow-soft-card backdrop-blur-sm;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease, background 0.25s ease;
   }
   .surface-card:hover {
-    @apply shadow-card-hover border-sand/80;
+    @apply shadow-card-hover border-white;
   }
 
   .surface-muted {
-    @apply rounded-xl border border-sand/50 bg-cream/60;
+    @apply rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,250,245,0.8),rgba(242,235,224,0.62))];
   }
 
   .section-title {
     @apply text-[10px] font-bold uppercase tracking-[0.2em] text-cloudy/80;
+  }
+
+  .eyebrow-pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-terra/20 bg-terra/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-terra;
+  }
+
+  .metric-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/70 px-3 py-1.5 text-[11px] font-semibold text-warm-700 shadow-sm;
+  }
+
+  .app-shell-panel {
+    @apply rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,253,249,0.88),rgba(249,242,232,0.82))] shadow-premium backdrop-blur-xl;
+  }
+
+  .app-shell-divider {
+    @apply border-white/70;
   }
 
   /* Sidebar dark scrollbar */
@@ -142,16 +194,16 @@ a {
 
   /* Premium glass card */
   .glass-card {
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 1px 2px rgba(20,35,31,0.04), 0 8px 20px rgba(20,35,31,0.06);
+    background: rgba(255, 251, 245, 0.72);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.62);
+    box-shadow: 0 1px 2px rgba(17,34,30,0.04), 0 12px 26px rgba(17,34,30,0.08);
   }
 
   /* Terra gradient text */
   .text-gradient-terra {
-    background: linear-gradient(135deg, #F05A3D 0%, #F47F5C 100%);
+    background: linear-gradient(135deg, #E05B43 0%, #F28467 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -175,7 +227,7 @@ a {
 
   /* Gradient text utility for headings */
   .text-gradient-warm {
-    background: linear-gradient(135deg, #14231F 0%, #3E524A 100%);
+    background: linear-gradient(135deg, #11221E 0%, #405650 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -183,7 +235,7 @@ a {
 
   /* Chip / badge utility */
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-sand bg-pampas px-3 py-1.5 text-xs font-semibold text-warm-600;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-semibold text-warm-600;
   }
 
   /* Stat card accent top bar helper */
@@ -201,5 +253,20 @@ a {
 
   .care-team-banner-pulse {
     animation: care-team-banner-glow 1.3s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

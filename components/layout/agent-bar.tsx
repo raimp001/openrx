@@ -1,9 +1,19 @@
 "use client"
 
-import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
-import { Bot, Wifi, WifiOff, Zap, ChevronDown, ChevronUp, TrendingUp, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import {
+  Bot,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  TrendingUp,
+  Wifi,
+  WifiOff,
+  Zap,
+} from "lucide-react"
+import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 
 interface ImprovementMetrics {
   totalSuggested: number
@@ -16,139 +26,150 @@ export default function AgentBar() {
   const [status, setStatus] = useState<"checking" | "online" | "offline">("checking")
   const [expanded, setExpanded] = useState(false)
   const [metrics, setMetrics] = useState<ImprovementMetrics | null>(null)
-  const [inProgressCount, setInProgressCount] = useState(0)
-  const [approvedCount, setApprovedCount] = useState(0)
   const [inProgressTitle, setInProgressTitle] = useState<string | null>(null)
 
   useEffect(() => {
     fetch("/api/openclaw/status")
-      .then((r) => r.json())
-      .then((d) => setStatus(d.connected ? "online" : "offline"))
+      .then((response) => response.json())
+      .then((data) => setStatus(data.connected ? "online" : "offline"))
       .catch(() => setStatus("offline"))
   }, [])
 
   useEffect(() => {
     fetch("/api/openclaw/improvements?refresh=1")
-      .then((r) => r.json())
-      .then((d) => {
-        setMetrics(d.metrics)
-        setInProgressCount(d.metrics?.totalInProgress ?? 0)
-        setApprovedCount(d.metrics?.totalApproved ?? 0)
-        const inProg = (d.improvements ?? []).find((i: { status: string; title: string }) => i.status === "in_progress")
-        setInProgressTitle(inProg?.title ?? null)
+      .then((response) => response.json())
+      .then((data) => {
+        setMetrics(data.metrics)
+        const inProgress = (data.improvements ?? []).find(
+          (improvement: { status: string; title: string }) => improvement.status === "in_progress"
+        )
+        setInProgressTitle(inProgress?.title ?? null)
       })
       .catch(() => {})
   }, [])
 
-  return (
-    <div className="border-b border-sand/70 bg-gradient-to-r from-pampas via-pampas to-cream/80 text-warm-700">
-      <div className="flex h-10 items-center justify-between px-4 lg:px-8">
-        <div className="flex items-center gap-3">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-terra/20 bg-terra/10 px-2 py-0.5">
-            <Bot size={11} className="text-terra" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-terra">OpenClaw</span>
-          </div>
+  const statusMeta =
+    status === "online"
+      ? { label: "Live agent mesh", icon: Wifi, tone: "text-accent" }
+      : status === "offline"
+      ? { label: "Gateway offline", icon: WifiOff, tone: "text-soft-red" }
+      : { label: "Checking gateway", icon: Sparkles, tone: "text-yellow-600" }
 
-          <div className="flex items-center gap-1 text-[11px] text-warm-500">
-            {status === "online" ? (
-              <Wifi size={10} className="text-accent" />
-            ) : status === "offline" ? (
-              <WifiOff size={10} className="text-terra" />
-            ) : (
-              <div className="h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
-            )}
-            <span className="font-medium">
-              {status === "online" ? "Live agents" : status === "offline" ? "Gateway offline" : "Checking connection"}
+  return (
+    <div className="px-4 pt-4 sm:px-6 lg:px-8">
+      <div className="app-shell-panel overflow-hidden">
+        <div className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="eyebrow-pill">
+              <Bot size={11} />
+              OpenClaw runtime
+            </span>
+            <span className={`metric-chip ${statusMeta.tone}`}>
+              <statusMeta.icon size={12} />
+              {statusMeta.label}
+            </span>
+            <span className="metric-chip">
+              <Zap size={12} className="text-terra" />
+              {OPENCLAW_CONFIG.agents.length} agents
+            </span>
+            <span className="metric-chip">
+              <CheckCircle2 size={12} className="text-accent" />
+              {OPENCLAW_CONFIG.cronJobs.length} automations
             </span>
           </div>
 
-          <div className="hidden items-center gap-2 text-[11px] text-cloudy lg:flex">
-            <Zap size={10} className="text-yellow-600" />
-            <span>{OPENCLAW_CONFIG.agents.length} agents active</span>
-            <span>·</span>
-            <span>{OPENCLAW_CONFIG.cronJobs.length} automations</span>
+          <div className="flex items-center gap-2">
+            {metrics?.totalDeployed ? (
+              <span className="metric-chip text-accent">
+                <TrendingUp size={12} />
+                {metrics.totalDeployed} deployed
+              </span>
+            ) : null}
+
+            <Link
+              href="/chat"
+              className="inline-flex items-center gap-2 rounded-full border border-terra/20 bg-terra/10 px-3 py-2 text-[11px] font-semibold text-terra transition hover:bg-terra/16"
+            >
+              Open agent
+            </Link>
+
+            <button
+              onClick={() => setExpanded((value) => !value)}
+              aria-label={expanded ? "Collapse agent status" : "Expand agent status"}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/70 bg-white/70 text-warm-600 transition hover:text-warm-900"
+            >
+              {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
           </div>
-
         </div>
 
-        <div className="flex items-center gap-2">
-          {metrics && metrics.totalDeployed > 0 && (
-            <div className="hidden items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent lg:flex">
-              <TrendingUp size={9} />
-              {metrics.totalDeployed} deployed
+        {expanded ? (
+          <div className="border-t border-sand/60 px-4 py-4 lg:px-5">
+            <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
+              <div className="surface-muted p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">Active specialists</p>
+                  <span className="text-[11px] font-semibold text-warm-600">Atlas routes the handoffs</span>
+                </div>
+                <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                  {OPENCLAW_CONFIG.agents.map((agent) => (
+                    <div
+                      key={agent.id}
+                      className="rounded-[20px] border border-white/80 bg-white/70 px-3 py-3 shadow-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-terra/10 text-terra">
+                          <Bot size={14} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-warm-800">{agent.name}</p>
+                          <p className="text-[10px] uppercase tracking-[0.12em] text-warm-500">{agent.role}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="surface-muted p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">Improvement pipeline</p>
+                <div className="mt-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <MetricTile label="Suggested" value={metrics?.totalSuggested ?? 0} tone="text-warm-800" />
+                    <MetricTile label="Approved" value={metrics?.totalApproved ?? 0} tone="text-accent" />
+                    <MetricTile label="In progress" value={metrics?.totalInProgress ?? 0} tone="text-yellow-600" />
+                    <MetricTile label="Deployed" value={metrics?.totalDeployed ?? 0} tone="text-terra" />
+                  </div>
+
+                  <div className="rounded-[20px] border border-white/80 bg-white/70 px-3 py-3 text-sm text-warm-600">
+                    <p className="font-semibold text-warm-800">Current focus</p>
+                    <p className="mt-1 leading-6">
+                      {inProgressTitle || "No active self-improvement task is being tracked right now."}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-
-          <Link href="/chat" className="text-[11px] font-semibold text-terra transition hover:text-terra-dark">
-            Open agent
-          </Link>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            aria-label={expanded ? "Collapse agent panel" : "Expand agent panel"}
-            className="rounded-md p-0.5 text-cloudy transition hover:bg-cream hover:text-warm-700"
-          >
-            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          </button>
-        </div>
+          </div>
+        ) : null}
       </div>
+    </div>
+  )
+}
 
-      {expanded && (
-        <div className="border-t border-sand/70 px-4 pb-3 lg:px-8 animate-fade-in">
-          <div className="mt-2 grid grid-cols-3 gap-2 lg:grid-cols-9">
-            {OPENCLAW_CONFIG.agents.map((agent) => (
-              <div
-                key={agent.id}
-                className="rounded-xl border border-sand/70 bg-pampas px-2 py-2 text-center transition hover:border-terra/25"
-              >
-                <div className="mx-auto mb-1 h-1.5 w-1.5 rounded-full bg-accent" />
-                <p className="text-[11px] font-semibold text-warm-700">{agent.name}</p>
-                <p className="text-[9px] text-cloudy">{agent.role}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <div className="rounded-xl border border-sand/70 bg-pampas p-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cloudy">Agent Collaboration</p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-warm-500">
-                <span>{OPENCLAW_CONFIG.cronJobs.length} automations active</span>
-                <span>{Object.values(OPENCLAW_CONFIG.channels).filter((c) => c.enabled).length} channels</span>
-                <span>multi-agent routing enabled</span>
-              </div>
-              <p className="mt-1.5 text-[10px] text-cloudy">
-                Atlas orchestrates cross-agent routing across {OPENCLAW_CONFIG.agents.length} specialist agents.
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-sand/70 bg-pampas p-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cloudy">Self-Improvement Pipeline</p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-3">
-                {inProgressCount > 0 && (
-                  <div className="flex items-center gap-1 text-[11px] text-yellow-600">
-                    <Zap size={9} />
-                    <span>{inProgressCount} in progress</span>
-                  </div>
-                )}
-                {approvedCount > 0 && (
-                  <div className="flex items-center gap-1 text-[11px] text-accent">
-                    <CheckCircle2 size={9} />
-                    <span>{approvedCount} approved</span>
-                  </div>
-                )}
-                {metrics && (
-                  <div className="flex items-center gap-1 text-[11px] text-cloudy">
-                    <TrendingUp size={9} />
-                    <span>{metrics.totalSuggested} total suggestions</span>
-                  </div>
-                )}
-              </div>
-              {inProgressTitle && (
-                <p className="mt-1.5 truncate text-[10px] text-cloudy">Working on: {inProgressTitle}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+function MetricTile({
+  label,
+  value,
+  tone,
+}: {
+  label: string
+  value: number
+  tone: string
+}) {
+  return (
+    <div className="rounded-[20px] border border-white/80 bg-white/70 px-3 py-3 shadow-sm">
+      <p className={`text-xl font-semibold leading-none ${tone}`}>{value}</p>
+      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-warm-500">{label}</p>
     </div>
   )
 }

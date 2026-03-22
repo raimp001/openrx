@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const walletAddress = searchParams.get("walletAddress") || undefined
   const paymentId = searchParams.get("paymentId") || undefined
 
-  const snapshot = getLedgerSnapshot({ walletAddress })
+  const snapshot = await getLedgerSnapshot({ walletAddress })
   const refunds = paymentId
     ? snapshot.refunds.filter((refund) => refund.paymentId === paymentId)
     : snapshot.refunds
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const refund = requestRefund({
+    const refund = await requestRefund({
       paymentId: body.paymentId,
       amount: body.amount,
       reason: body.reason,
@@ -72,7 +72,7 @@ export async function PATCH(request: NextRequest) {
           { status: 400 }
         )
       }
-      const refund = updateRefundApproval(body.refundId, body.approvedBy)
+      const refund = await updateRefundApproval(body.refundId, body.approvedBy)
       return NextResponse.json({ refund })
     }
 
@@ -83,7 +83,7 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const result = finalizeRefund({
+    const result = await finalizeRefund({
       refundId: body.refundId,
       status: body.status,
       txHash: body.txHash,

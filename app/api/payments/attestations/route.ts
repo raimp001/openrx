@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const subjectType = searchParams.get("subjectType") || undefined
   const subjectId = searchParams.get("subjectId") || undefined
 
-  const snapshot = getLedgerSnapshot({ walletAddress })
+  const snapshot = await getLedgerSnapshot({ walletAddress })
   let attestations = snapshot.attestations
   if (subjectType) attestations = attestations.filter((item) => item.subjectType === subjectType)
   if (subjectId) attestations = attestations.filter((item) => item.subjectId === subjectId)
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const attestation = createAttestation({
+    const attestation = await createAttestation({
       schema: body.schema,
       subjectType: body.subjectType,
       subjectId: body.subjectId,

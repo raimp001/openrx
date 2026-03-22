@@ -432,3 +432,238 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
+
+// ============================================================
+// OPENCLAW / CARE TEAM RUNTIME STATE
+// ============================================================
+
+model CareTeamAgentRuntime {
+  id           String            @id
+  name         String
+  role         String
+  status       String            @default("running")
+  manualStatus String            @default("running")
+  unreadCount  Int               @default(0)
+  isCore       Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  requests     CareTeamRequest[]
+
+  @@index([status])
+  @@map("care_team_agents")
+}
+
+model CareTeamRequest {
+  id               String          @id
+  agentId          String
+  agentName        String
+  status           String
+  createdAt        DateTime
+  updatedAt        DateTime        @updatedAt
+  resolvedAt       DateTime?
+  resolution       String?
+  resolutionNote   String?
+  context          Json
+  encryptedContext Json?
+  agent            CareTeamAgentRuntime @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  auditEntries     CareTeamAudit[]
+
+  @@index([agentId, status])
+  @@index([status, updatedAt])
+  @@map("care_team_requests")
+}
+
+model CareTeamAudit {
+  id              String           @id
+  requestId       String?
+  action          String
+  actorRole       String
+  actorUserIdHash String
+  metadataHash    String
+  metadata        Json?
+  timestamp       DateTime         @default(now())
+  request         CareTeamRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  @@index([requestId])
+  @@index([timestamp])
+  @@map("care_team_audit")
+}
+
+model CareTeamRateLimit {
+  key       String   @id
+  startedAt DateTime
+  count     Int
+  updatedAt DateTime @updatedAt
+
+  @@map("care_team_rate_limits")
+}
+
+model OpenClawCronRun {
+  id                String   @id @default(cuid())
+  jobId             String
+  sessionId         String
+  requestedByUserId String?
+  requestedByRole   String
+  authSource        String
+  dryRun            Boolean  @default(false)
+  ok                Boolean?
+  failureReason     String?
+  httpStatus        Int?
+  idempotencyKey    String?
+  walletAddress     String?
+  message           String
+  triggeredAt       DateTime
+  responsePayload   Json?
+  createdAt         DateTime @default(now())
+
+  @@index([jobId, createdAt])
+  @@index([sessionId])
+  @@map("openclaw_cron_runs")
+}
+
+model OpenClawWorkerHeartbeat {
+  workerId    String   @id
+  workerType  String   @default("researcher-vm")
+  status      String   @default("running")
+  metadata    Json?
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([lastSeenAt])
+  @@map("openclaw_worker_heartbeats")
+}
+
+// ============================================================
+// PAYMENTS LEDGER / TREASURY
+// ============================================================
+
+model LedgerPaymentRecord {
+  id                  String   @id
+  intentId            String   @unique
+  walletAddress       String
+  senderAddress       String?
+  recipientAddress    String
+  category            String
+  description         String
+  expectedAmount      String
+  settledAmount       String?
+  currency            String   @default("USDC")
+  txHash              String?  @unique
+  status              String
+  verificationMessage String?
+  metadata            Json?
+  createdAt           DateTime
+  verifiedAt          DateTime?
+  refundedAmount      String   @default("0.00")
+
+  @@index([walletAddress, createdAt])
+  @@index([status, createdAt])
+  @@map("ledger_payments")
+}
+
+model LedgerReceiptRecord {
+  id             String   @id
+  receiptNumber  String   @unique
+  paymentId      String?
+  refundId       String?
+  walletAddress  String
+  kind           String
+  amount         String
+  currency       String   @default("USDC")
+  txHash         String?
+  issuedAt       DateTime
+  lineItems      Json
+  complianceHash String
+  attestationId  String?
+
+  @@index([walletAddress, issuedAt])
+  @@index([paymentId])
+  @@index([refundId])
+  @@map("ledger_receipts")
+}
+
+model LedgerAttestationRecord {
+  id          String   @id
+  schema      String
+  subjectType String
+  subjectId   String
+  attestor    String
+  payloadHash String
+  payload     Json
+  chainTxHash String?
+  createdAt   DateTime
+
+  @@index([subjectType, subjectId])
+  @@index([createdAt])
+  @@map("ledger_attestations")
+}
+
+model LedgerRefundRecord {
+  id          String   @id
+  paymentId   String
+  walletAddress String
+  amount      String
+  currency    String   @default("USDC")
+  reason      String
+  status      String
+  requestedBy String
+  approvedBy  String?
+  txHash      String?
+  requestedAt DateTime
+  processedAt DateTime?
+  receiptId   String?
+  attestationId String?
+
+  @@index([paymentId])
+  @@index([walletAddress, requestedAt])
+  @@index([status, requestedAt])
+  @@map("ledger_refunds")
+}
+
+model LedgerEntryRecord {
+  id          String   @id
+  eventType   String
+  direction   String
+  accountCode String
+  amount      String
+  currency    String   @default("USDC")
+  description String
+  paymentId   String?
+  refundId    String?
+  receiptId   String?
+  reference   String?
+  metadata    Json?
+  createdAt   DateTime
+
+  @@index([createdAt])
+  @@index([paymentId])
+  @@index([refundId])
+  @@index([receiptId])
+  @@map("ledger_entries")
+}
+
+model TreasuryActionRecord {
+  id               String   @id @default(cuid())
+  kind             String
+  asset            String
+  amount           String
+  chain            String   @default("base")
+  tokenAddress     String?
+  fromAddress      String
+  toAddress        String
+  initiatedBy      String
+  reason           String
+  status           String
+  walletId         String?
+  transactionHash  String?
+  privyTransferId  String?
+  metadata         Json?
+  errorMessage     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@map("treasury_actions")
+}

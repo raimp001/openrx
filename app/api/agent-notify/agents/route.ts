@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 })
   }
 
-  const snapshot = getCareTeamSnapshot(10)
+  const snapshot = await getCareTeamSnapshot(10)
   return NextResponse.json({ agents: snapshot.agents })
 }
 
@@ -28,12 +28,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "name and role are required." }, { status: 400 })
     }
 
-    const result = createCustomAgent({
+    const result = await createCustomAgent({
       payload,
       actor: { role: session.role, userId: session.userId },
     })
 
-    const event = buildCareTeamEvent({ type: "agent_status", agent: result.agent })
+    const event = await buildCareTeamEvent({ type: "agent_status", agent: result.agent })
     publishCareTeamEvent(event)
 
     return NextResponse.json({ agent: result.agent, event }, { status: 201 })

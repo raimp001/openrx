@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { toBaseBuilderTxUrl } from "@/lib/basebuilder/config"
 import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
 import { AppPageHeader } from "@/components/layout/app-page"
+import TreasuryConsole from "@/components/payments/treasury-console"
 import type {
   AttestationRecord,
   LedgerEntry,
@@ -382,6 +383,8 @@ export default function ComplianceLedgerPage() {
             <SummaryCard label="Receipts" value={`${snapshot.summary.receiptCount}`} icon={FileText} />
             <SummaryCard label="Attestations" value={`${snapshot.summary.attestationCount}`} icon={ShieldCheck} />
           </div>
+
+          <TreasuryConsole />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="bg-pampas rounded-2xl border border-sand p-4 space-y-3">

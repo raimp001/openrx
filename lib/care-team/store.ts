@@ -1,7 +1,8 @@
-import fs from "node:fs"
-import path from "node:path"
 import crypto from "node:crypto"
-import { CARE_TEAM_CORE_AGENTS, CARE_TEAM_STORE_VERSION } from "@/lib/care-team/constants"
+import { Prisma, type PrismaClient } from "@prisma/client"
+import { prisma } from "@/lib/db"
+import { CARE_TEAM_CORE_AGENTS } from "@/lib/care-team/constants"
+import * as fileStore from "@/lib/care-team/file-store"
 import {
   type AgentNotifyPayload,
   type CareTeamAgent,
@@ -10,438 +11,567 @@ import {
   type CareTeamDecision,
   type CareTeamEvent,
   type CareTeamHumanInputRequest,
+  type CareTeamRequestContext,
   type CareTeamResolveInput,
   type CareTeamStateSnapshot,
 } from "@/lib/care-team/types"
 import { encryptJson, sanitizeIncomingContext, stableHashJson } from "@/lib/care-team/security"
-
-interface RateLimitBucket {
-  startedAt: number
-  count: number
-}
-
-interface StoredRequest extends CareTeamHumanInputRequest {
-  encryptedContext?: {
-    ciphertext: string
-    iv: string
-    tag: string
-    algo: "aes-256-gcm"
-  } | null
-}
-
-interface CareTeamStore {
-  version: number
-  agents: CareTeamAgent[]
-  manualStatuses: Record<string, "running" | "paused">
-  requests: StoredRequest[]
-  audit: CareTeamAuditEntry[]
-  rateLimits: Record<string, RateLimitBucket>
-  lastUpdated: string
-}
 
 export interface CareTeamActor {
   userId: string
   role: "admin" | "staff" | "service" | "patient"
 }
 
-const MAX_AUDIT_ITEMS = 3000
-const MAX_REQUEST_ITEMS = 1200
+type DbClient = PrismaClient | Prisma.TransactionClient
 
-function nowIso(): string {
-  return new Date().toISOString()
+function hasDatabase(): boolean {
+  return Boolean(process.env.DATABASE_URL?.trim())
 }
 
 function createId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`
 }
 
-function resolveStorePath(): string {
-  const configured = process.env.OPENRX_CARE_TEAM_STORE_PATH
-  if (configured) return configured
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("OPENRX_CARE_TEAM_STORE_PATH is required in production for durable audit storage.")
-  }
-  return path.join(process.cwd(), ".openrx-care-team.json")
+function nowIso(): string {
+  return new Date().toISOString()
 }
 
-function ensureStoreDirectory(filePath: string): void {
-  const directory = path.dirname(filePath)
-  if (!fs.existsSync(directory)) {
-    fs.mkdirSync(directory, { recursive: true })
-  }
+function jsonValue(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue
 }
 
-function defaultAgents(): CareTeamAgent[] {
-  return CARE_TEAM_CORE_AGENTS.map((agent) => ({
-    id: agent.id,
-    name: agent.name,
-    role: agent.role,
-    status: "running",
-    unreadCount: 0,
-    isCore: true,
-    updatedAt: nowIso(),
-  }))
-}
-
-function defaultStore(): CareTeamStore {
-  const manualStatuses = Object.fromEntries(defaultAgents().map((agent) => [agent.id, "running" as const]))
+function toAgentRecord(input: {
+  id: string
+  name: string
+  role: string
+  status: string
+  unreadCount: number
+  isCore: boolean
+  updatedAt: Date
+}): CareTeamAgent {
   return {
-    version: CARE_TEAM_STORE_VERSION,
-    agents: defaultAgents(),
-    manualStatuses,
-    requests: [],
-    audit: [],
-    rateLimits: {},
-    lastUpdated: nowIso(),
-  }
-}
-
-function loadStore(): CareTeamStore {
-  const storePath = resolveStorePath()
-
-  try {
-    if (!fs.existsSync(storePath)) {
-      return defaultStore()
-    }
-
-    const parsed = JSON.parse(fs.readFileSync(storePath, "utf8")) as Partial<CareTeamStore>
-    const seeded = defaultStore()
-    const existingAgents = Array.isArray(parsed.agents) ? parsed.agents : []
-
-    const mergedAgentsMap = new Map<string, CareTeamAgent>()
-    seeded.agents.forEach((agent) => {
-      mergedAgentsMap.set(agent.id, agent)
-    })
-    existingAgents.forEach((agent) => {
-      if (!agent?.id || !agent?.name || !agent?.role) return
-      mergedAgentsMap.set(agent.id, {
-        id: agent.id,
-        name: agent.name,
-        role: agent.role,
-        status: agent.status || "running",
-        unreadCount: typeof agent.unreadCount === "number" ? agent.unreadCount : 0,
-        isCore: Boolean(agent.isCore),
-        updatedAt: agent.updatedAt || nowIso(),
-      })
-    })
-
-    const manualStatuses = {
-      ...seeded.manualStatuses,
-      ...(parsed.manualStatuses || {}),
-    }
-
-    return {
-      version: CARE_TEAM_STORE_VERSION,
-      agents: Array.from(mergedAgentsMap.values()),
-      manualStatuses,
-      requests: Array.isArray(parsed.requests) ? (parsed.requests as StoredRequest[]) : [],
-      audit: Array.isArray(parsed.audit) ? (parsed.audit as CareTeamAuditEntry[]) : [],
-      rateLimits: parsed.rateLimits || {},
-      lastUpdated: parsed.lastUpdated || nowIso(),
-    }
-  } catch {
-    return defaultStore()
-  }
-}
-
-function saveStore(store: CareTeamStore): void {
-  const storePath = resolveStorePath()
-  ensureStoreDirectory(storePath)
-  fs.writeFileSync(storePath, JSON.stringify(store, null, 2), "utf8")
-}
-
-function appendAudit(
-  store: CareTeamStore,
-  params: {
-    requestId?: string
-    action: string
-    actor: CareTeamActor
-    metadata: Record<string, unknown>
-  }
-): CareTeamAuditEntry {
-  const entry: CareTeamAuditEntry = {
-    id: createId("audit"),
-    requestId: params.requestId,
-    action: params.action,
-    actorRole: params.actor.role,
-    actorUserIdHash: stableHashJson(params.actor.userId),
-    metadataHash: stableHashJson(params.metadata),
-    timestamp: nowIso(),
-  }
-
-  store.audit.unshift(entry)
-  if (store.audit.length > MAX_AUDIT_ITEMS) {
-    store.audit = store.audit.slice(0, MAX_AUDIT_ITEMS)
-  }
-  return entry
-}
-
-function upsertAgent(store: CareTeamStore, input: { id: string; name: string; role: string; isCore: boolean }): CareTeamAgent {
-  const existing = store.agents.find((agent) => agent.id === input.id)
-  if (existing) {
-    existing.name = input.name
-    existing.role = input.role
-    existing.isCore = input.isCore
-    existing.updatedAt = nowIso()
-    return existing
-  }
-
-  const created: CareTeamAgent = {
     id: input.id,
     name: input.name,
     role: input.role,
-    status: "running",
-    unreadCount: 0,
+    status: normalizeAgentStatus(input.status),
+    unreadCount: input.unreadCount,
     isCore: input.isCore,
-    updatedAt: nowIso(),
+    updatedAt: input.updatedAt.toISOString(),
   }
-  store.agents.push(created)
-  store.manualStatuses[input.id] = "running"
-  return created
 }
 
-function recomputeAgentStatuses(store: CareTeamStore): void {
-  const openCounts = new Map<string, number>()
-  store.requests
-    .filter((request) => request.status === "needs_input")
-    .forEach((request) => {
-      openCounts.set(request.agentId, (openCounts.get(request.agentId) || 0) + 1)
-    })
-
-  store.agents.forEach((agent) => {
-    const openCount = openCounts.get(agent.id) || 0
-    const base = store.manualStatuses[agent.id] || "running"
-    agent.unreadCount = openCount
-    agent.status = openCount > 0 ? "needs_input" : base
-    agent.updatedAt = nowIso()
-  })
-}
-
-function touchStore(store: CareTeamStore): void {
-  store.lastUpdated = nowIso()
-}
-
-export function consumeCareTeamRateLimit(input: {
-  key: string
-  limit: number
-  windowMs: number
-}): { allowed: boolean; retryAfterMs?: number } {
-  const store = loadStore()
-  const now = Date.now()
-  const bucket = store.rateLimits[input.key]
-
-  if (!bucket || now - bucket.startedAt > input.windowMs) {
-    store.rateLimits[input.key] = { startedAt: now, count: 1 }
-    touchStore(store)
-    saveStore(store)
-    return { allowed: true }
-  }
-
-  if (bucket.count >= input.limit) {
-    return {
-      allowed: false,
-      retryAfterMs: Math.max(1000, input.windowMs - (now - bucket.startedAt)),
-    }
-  }
-
-  store.rateLimits[input.key] = { startedAt: bucket.startedAt, count: bucket.count + 1 }
-  touchStore(store)
-  saveStore(store)
-  return { allowed: true }
-}
-
-export function getCareTeamSnapshot(limitAudit = 40): CareTeamStateSnapshot {
-  const store = loadStore()
-  recomputeAgentStatuses(store)
-  saveStore(store)
-
+function toRequestRecord(input: {
+  id: string
+  agentId: string
+  agentName: string
+  status: string
+  createdAt: Date
+  updatedAt: Date
+  resolvedAt: Date | null
+  resolution: string | null
+  resolutionNote: string | null
+  context: Prisma.JsonValue
+}): CareTeamHumanInputRequest {
   return {
-    agents: store.agents,
-    openRequests: store.requests.filter((request) => request.status === "needs_input"),
-    recentAudit: store.audit.slice(0, Math.max(1, limitAudit)),
-    needsInputCount: store.requests.filter((request) => request.status === "needs_input").length,
-    lastUpdated: store.lastUpdated,
+    id: input.id,
+    agentId: input.agentId,
+    agentName: input.agentName,
+    status: input.status === "resolved" ? "resolved" : "needs_input",
+    createdAt: input.createdAt.toISOString(),
+    updatedAt: input.updatedAt.toISOString(),
+    ...(input.resolvedAt ? { resolvedAt: input.resolvedAt.toISOString() } : {}),
+    ...(input.resolution ? { resolution: input.resolution as CareTeamDecision } : {}),
+    ...(input.resolutionNote ? { resolutionNote: input.resolutionNote } : {}),
+    context: input.context as unknown as CareTeamRequestContext,
   }
 }
 
-export function findCareTeamRequest(requestId: string): CareTeamHumanInputRequest | null {
-  if (!requestId.trim()) return null
-  const store = loadStore()
-  const request = store.requests.find((entry) => entry.id === requestId.trim()) || null
-  return request
+function toAuditRecord(input: {
+  id: string
+  requestId: string | null
+  action: string
+  actorRole: string
+  actorUserIdHash: string
+  metadataHash: string
+  timestamp: Date
+}): CareTeamAuditEntry {
+  return {
+    id: input.id,
+    ...(input.requestId ? { requestId: input.requestId } : {}),
+    action: input.action,
+    actorRole: input.actorRole as CareTeamActor["role"],
+    actorUserIdHash: input.actorUserIdHash,
+    metadataHash: input.metadataHash,
+    timestamp: input.timestamp.toISOString(),
+  }
 }
 
-export function submitHumanInputRequest(input: {
-  payload: AgentNotifyPayload
-  actor: CareTeamActor
-}): { request: CareTeamHumanInputRequest; agent: CareTeamAgent; audit: CareTeamAuditEntry } {
-  const store = loadStore()
-  const agent = upsertAgent(store, {
-    id: input.payload.agent_id,
-    name: input.payload.agent_name,
-    role: input.payload.agent_name,
-    isCore: CARE_TEAM_CORE_AGENTS.some((entry) => entry.id === input.payload.agent_id),
-  })
+function normalizeAgentStatus(value: string): CareTeamAgent["status"] {
+  if (value === "paused") return "paused"
+  if (value === "needs_input") return "needs_input"
+  return "running"
+}
 
-  const context = sanitizeIncomingContext(input.payload)
-  const request: StoredRequest = {
-    id: createId("hitl"),
-    agentId: agent.id,
-    agentName: agent.name,
-    status: "needs_input",
-    createdAt: input.payload.timestamp || nowIso(),
-    updatedAt: nowIso(),
-    context,
-    encryptedContext: encryptJson(context),
-  }
+async function seedCoreAgents(client: DbClient): Promise<void> {
+  await Promise.all(
+    CARE_TEAM_CORE_AGENTS.map((agent) =>
+      client.careTeamAgentRuntime.upsert({
+        where: { id: agent.id },
+        update: {
+          name: agent.name,
+          role: agent.role,
+          isCore: true,
+        },
+        create: {
+          id: agent.id,
+          name: agent.name,
+          role: agent.role,
+          isCore: true,
+          status: "running",
+          manualStatus: "running",
+          unreadCount: 0,
+        },
+      })
+    )
+  )
+}
 
-  store.requests.unshift(request)
-  if (store.requests.length > MAX_REQUEST_ITEMS) {
-    store.requests = store.requests.slice(0, MAX_REQUEST_ITEMS)
-  }
-
-  const audit = appendAudit(store, {
-    requestId: request.id,
-    action: "care_team.request_human_input",
-    actor: input.actor,
-    metadata: {
-      agentId: request.agentId,
-      workflow: request.context.workflow,
-      patientRef: request.context.patientIdHash,
-      confidenceScore: request.context.confidenceScore,
+async function upsertAgentDb(
+  client: DbClient,
+  input: { id: string; name: string; role: string; isCore: boolean }
+): Promise<CareTeamAgent> {
+  const record = await client.careTeamAgentRuntime.upsert({
+    where: { id: input.id },
+    update: {
+      name: input.name,
+      role: input.role,
+      isCore: input.isCore,
+    },
+    create: {
+      id: input.id,
+      name: input.name,
+      role: input.role,
+      isCore: input.isCore,
+      status: "running",
+      manualStatus: "running",
+      unreadCount: 0,
     },
   })
 
-  recomputeAgentStatuses(store)
-  touchStore(store)
-  saveStore(store)
-
-  return { request, agent, audit }
+  return toAgentRecord(record)
 }
 
-export function updateAgentStatus(input: {
+async function recomputeAgentStatusesDb(client: DbClient): Promise<Map<string, CareTeamAgent>> {
+  const agents = await client.careTeamAgentRuntime.findMany()
+  const openRequests = await client.careTeamRequest.groupBy({
+    by: ["agentId"],
+    where: { status: "needs_input" },
+    _count: { _all: true },
+  })
+  const counts = new Map(openRequests.map((entry) => [entry.agentId, entry._count._all]))
+
+  await Promise.all(
+    agents.map((agent) => {
+      const unreadCount = counts.get(agent.id) || 0
+      const status = unreadCount > 0 ? "needs_input" : agent.manualStatus
+      return client.careTeamAgentRuntime.update({
+        where: { id: agent.id },
+        data: {
+          unreadCount,
+          status,
+        },
+      })
+    })
+  )
+
+  const refreshed = await client.careTeamAgentRuntime.findMany()
+  return new Map(refreshed.map((agent) => [agent.id, toAgentRecord(agent)]))
+}
+
+async function getSnapshotFromDb(limitAudit = 40): Promise<CareTeamStateSnapshot> {
+  await seedCoreAgents(prisma)
+  const agentMap = await recomputeAgentStatusesDb(prisma)
+
+  const [requests, audits, agents] = await Promise.all([
+    prisma.careTeamRequest.findMany({
+      where: { status: "needs_input" },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.careTeamAudit.findMany({
+      orderBy: { timestamp: "desc" },
+      take: Math.max(1, limitAudit),
+    }),
+    prisma.careTeamAgentRuntime.findMany(),
+  ])
+
+  const sortedAgents = agents
+    .map((agent) => agentMap.get(agent.id) || toAgentRecord(agent))
+    .sort((left, right) => {
+      if (left.isCore !== right.isCore) return left.isCore ? -1 : 1
+      return left.name.localeCompare(right.name)
+    })
+
+  const openRequests = requests.map(toRequestRecord)
+  const recentAudit = audits.map(toAuditRecord)
+  const lastUpdated = [
+    ...agents.map((agent) => agent.updatedAt.getTime()),
+    ...requests.map((request) => request.updatedAt.getTime()),
+    ...audits.map((audit) => audit.timestamp.getTime()),
+  ]
+  const maxUpdated = lastUpdated.length > 0 ? Math.max(...lastUpdated) : Date.now()
+
+  return {
+    agents: sortedAgents,
+    openRequests,
+    recentAudit,
+    needsInputCount: openRequests.length,
+    lastUpdated: new Date(maxUpdated).toISOString(),
+  }
+}
+
+function fallbackSnapshot(limitAudit = 40): CareTeamStateSnapshot {
+  return fileStore.getCareTeamSnapshot(limitAudit)
+}
+
+function logFallback(operation: string, error: unknown): void {
+  console.warn(`Care team DB persistence unavailable during ${operation}; falling back to file store.`, error)
+}
+
+export async function consumeCareTeamRateLimit(input: {
+  key: string
+  limit: number
+  windowMs: number
+}): Promise<{ allowed: boolean; retryAfterMs?: number }> {
+  if (!hasDatabase()) {
+    return fileStore.consumeCareTeamRateLimit(input)
+  }
+
+  try {
+    const now = Date.now()
+    const bucket = await prisma.careTeamRateLimit.findUnique({ where: { key: input.key } })
+
+    if (!bucket || now - bucket.startedAt.getTime() > input.windowMs) {
+      await prisma.careTeamRateLimit.upsert({
+        where: { key: input.key },
+        update: {
+          startedAt: new Date(now),
+          count: 1,
+        },
+        create: {
+          key: input.key,
+          startedAt: new Date(now),
+          count: 1,
+        },
+      })
+      return { allowed: true }
+    }
+
+    if (bucket.count >= input.limit) {
+      return {
+        allowed: false,
+        retryAfterMs: Math.max(1000, input.windowMs - (now - bucket.startedAt.getTime())),
+      }
+    }
+
+    await prisma.careTeamRateLimit.update({
+      where: { key: input.key },
+      data: { count: bucket.count + 1 },
+    })
+    return { allowed: true }
+  } catch (error) {
+    logFallback("consumeCareTeamRateLimit", error)
+    return fileStore.consumeCareTeamRateLimit(input)
+  }
+}
+
+export async function getCareTeamSnapshot(limitAudit = 40): Promise<CareTeamStateSnapshot> {
+  if (!hasDatabase()) {
+    return fallbackSnapshot(limitAudit)
+  }
+  try {
+    return await getSnapshotFromDb(limitAudit)
+  } catch (error) {
+    logFallback("getCareTeamSnapshot", error)
+    return fallbackSnapshot(limitAudit)
+  }
+}
+
+export async function findCareTeamRequest(requestId: string): Promise<CareTeamHumanInputRequest | null> {
+  const trimmed = requestId.trim()
+  if (!trimmed) return null
+  if (!hasDatabase()) {
+    return fileStore.findCareTeamRequest(trimmed)
+  }
+
+  try {
+    const request = await prisma.careTeamRequest.findUnique({ where: { id: trimmed } })
+    return request ? toRequestRecord(request) : null
+  } catch (error) {
+    logFallback("findCareTeamRequest", error)
+    return fileStore.findCareTeamRequest(trimmed)
+  }
+}
+
+export async function submitHumanInputRequest(input: {
+  payload: AgentNotifyPayload
+  actor: CareTeamActor
+}): Promise<{ request: CareTeamHumanInputRequest; agent: CareTeamAgent; audit: CareTeamAuditEntry }> {
+  if (!hasDatabase()) {
+    return fileStore.submitHumanInputRequest(input)
+  }
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await seedCoreAgents(tx)
+      const agent = await upsertAgentDb(tx, {
+        id: input.payload.agent_id,
+        name: input.payload.agent_name,
+        role: input.payload.agent_name,
+        isCore: CARE_TEAM_CORE_AGENTS.some((entry) => entry.id === input.payload.agent_id),
+      })
+
+      const context = sanitizeIncomingContext(input.payload)
+      const encryptedContext = encryptJson(context)
+      const createdAt = input.payload.timestamp ? new Date(input.payload.timestamp) : new Date()
+      const requestId = createId("hitl")
+
+      const requestRecord = await tx.careTeamRequest.create({
+        data: {
+          id: requestId,
+          agentId: agent.id,
+          agentName: agent.name,
+          status: "needs_input",
+          createdAt,
+          updatedAt: new Date(),
+          context: jsonValue(context),
+          encryptedContext: encryptedContext ? jsonValue(encryptedContext) : Prisma.JsonNull,
+        },
+      })
+
+      const auditRecord = await tx.careTeamAudit.create({
+        data: {
+          id: createId("audit"),
+          requestId,
+          action: "care_team.request_human_input",
+          actorRole: input.actor.role,
+          actorUserIdHash: stableHashJson(input.actor.userId),
+          metadataHash: stableHashJson({
+            agentId: requestRecord.agentId,
+            workflow: context.workflow,
+            patientRef: context.patientIdHash,
+            confidenceScore: context.confidenceScore,
+          }),
+          metadata: jsonValue({
+            agentId: requestRecord.agentId,
+            workflow: context.workflow,
+            patientRef: context.patientIdHash,
+            confidenceScore: context.confidenceScore,
+          }),
+        },
+      })
+
+      const agentMap = await recomputeAgentStatusesDb(tx)
+      const updatedAgent = agentMap.get(agent.id) || agent
+
+      return {
+        request: toRequestRecord(requestRecord),
+        agent: updatedAgent,
+        audit: toAuditRecord(auditRecord),
+      }
+    })
+  } catch (error) {
+    logFallback("submitHumanInputRequest", error)
+    return fileStore.submitHumanInputRequest(input)
+  }
+}
+
+export async function updateAgentStatus(input: {
   agentId: string
   agentName: string
   status: "running" | "paused"
   actor: CareTeamActor
-}): { agent: CareTeamAgent; audit: CareTeamAuditEntry } {
-  const store = loadStore()
-  const agent = upsertAgent(store, {
-    id: input.agentId,
-    name: input.agentName,
-    role: input.agentName,
-    isCore: CARE_TEAM_CORE_AGENTS.some((entry) => entry.id === input.agentId),
-  })
+}): Promise<{ agent: CareTeamAgent; audit: CareTeamAuditEntry }> {
+  if (!hasDatabase()) {
+    return fileStore.updateAgentStatus(input)
+  }
 
-  store.manualStatuses[input.agentId] = input.status
-  recomputeAgentStatuses(store)
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await seedCoreAgents(tx)
+      await upsertAgentDb(tx, {
+        id: input.agentId,
+        name: input.agentName,
+        role: input.agentName,
+        isCore: CARE_TEAM_CORE_AGENTS.some((entry) => entry.id === input.agentId),
+      })
 
-  const updatedAgent = store.agents.find((entry) => entry.id === input.agentId) || agent
-  const audit = appendAudit(store, {
-    action: "care_team.agent_status",
-    actor: input.actor,
-    metadata: {
-      agentId: input.agentId,
-      status: updatedAgent.status,
-    },
-  })
+      await tx.careTeamAgentRuntime.update({
+        where: { id: input.agentId },
+        data: { manualStatus: input.status },
+      })
 
-  touchStore(store)
-  saveStore(store)
+      const agentMap = await recomputeAgentStatusesDb(tx)
+      const updatedAgent = agentMap.get(input.agentId)
+      if (!updatedAgent) {
+        throw new Error("Agent not found.")
+      }
 
-  return { agent: updatedAgent, audit }
+      const auditRecord = await tx.careTeamAudit.create({
+        data: {
+          id: createId("audit"),
+          action: "care_team.agent_status",
+          actorRole: input.actor.role,
+          actorUserIdHash: stableHashJson(input.actor.userId),
+          metadataHash: stableHashJson({ agentId: input.agentId, status: updatedAgent.status }),
+          metadata: jsonValue({ agentId: input.agentId, status: updatedAgent.status }),
+        },
+      })
+
+      return { agent: updatedAgent, audit: toAuditRecord(auditRecord) }
+    })
+  } catch (error) {
+    logFallback("updateAgentStatus", error)
+    return fileStore.updateAgentStatus(input)
+  }
 }
 
-export function resolveHumanInputRequest(input: {
+export async function resolveHumanInputRequest(input: {
   actor: CareTeamActor
   payload: CareTeamResolveInput
-}): { request: CareTeamHumanInputRequest; agent: CareTeamAgent; audit: CareTeamAuditEntry } {
-  const store = loadStore()
-  const request = store.requests.find((entry) => entry.id === input.payload.requestId)
-  if (!request) {
-    throw new Error("Request not found.")
-  }
-  if (request.status !== "needs_input") {
-    throw new Error("Request is already resolved.")
+}): Promise<{ request: CareTeamHumanInputRequest; agent: CareTeamAgent; audit: CareTeamAuditEntry }> {
+  if (!hasDatabase()) {
+    return fileStore.resolveHumanInputRequest(input)
   }
 
-  request.status = "resolved"
-  request.resolution = input.payload.decision as CareTeamDecision
-  request.resolutionNote = (input.payload.note || "").trim() || undefined
-  request.updatedAt = nowIso()
-  request.resolvedAt = nowIso()
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await seedCoreAgents(tx)
+      const existing = await tx.careTeamRequest.findUnique({ where: { id: input.payload.requestId } })
+      if (!existing) {
+        throw new Error("Request not found.")
+      }
+      if (existing.status !== "needs_input") {
+        throw new Error("Request is already resolved.")
+      }
 
-  if (input.payload.decision === "edit") {
-    if (input.payload.editedSuggestedAction?.trim()) {
-      request.context.suggestedAction = input.payload.editedSuggestedAction.trim()
-    }
-    if (input.payload.browserUrl?.trim()) {
-      const browser = request.context.browser || {}
-      request.context.browser = { ...browser, url: input.payload.browserUrl.trim() }
-    }
-    request.encryptedContext = encryptJson(request.context)
+      const nextContext = { ...(existing.context as unknown as CareTeamRequestContext) }
+      if (input.payload.decision === "edit") {
+        if (input.payload.editedSuggestedAction?.trim()) {
+          nextContext.suggestedAction = input.payload.editedSuggestedAction.trim()
+        }
+        if (input.payload.browserUrl?.trim()) {
+          const browser = nextContext.browser || {}
+          nextContext.browser = { ...browser, url: input.payload.browserUrl.trim() }
+        }
+      }
+      const nextEncryptedContext = input.payload.decision === "edit" ? encryptJson(nextContext) : null
+
+      const requestRecord = await tx.careTeamRequest.update({
+        where: { id: input.payload.requestId },
+        data: {
+          status: "resolved",
+          resolution: input.payload.decision,
+          resolutionNote: (input.payload.note || "").trim() || null,
+          resolvedAt: new Date(),
+          context: jsonValue(nextContext),
+          encryptedContext:
+            input.payload.decision === "edit"
+              ? nextEncryptedContext
+                ? jsonValue(nextEncryptedContext)
+                : Prisma.JsonNull
+              : existing.encryptedContext ?? Prisma.JsonNull,
+        },
+      })
+
+      const agentMap = await recomputeAgentStatusesDb(tx)
+      const updatedAgent = agentMap.get(requestRecord.agentId)
+      if (!updatedAgent) {
+        throw new Error("Agent not found.")
+      }
+
+      const auditRecord = await tx.careTeamAudit.create({
+        data: {
+          id: createId("audit"),
+          requestId: requestRecord.id,
+          action: `care_team.request_${input.payload.decision}`,
+          actorRole: input.actor.role,
+          actorUserIdHash: stableHashJson(input.actor.userId),
+          metadataHash: stableHashJson({
+            requestId: requestRecord.id,
+            agentId: requestRecord.agentId,
+            decision: input.payload.decision,
+            noteHash: stableHashJson(input.payload.note || ""),
+          }),
+          metadata: jsonValue({
+            requestId: requestRecord.id,
+            agentId: requestRecord.agentId,
+            decision: input.payload.decision,
+            noteHash: stableHashJson(input.payload.note || ""),
+          }),
+        },
+      })
+
+      return {
+        request: toRequestRecord(requestRecord),
+        agent: updatedAgent,
+        audit: toAuditRecord(auditRecord),
+      }
+    })
+  } catch (error) {
+    logFallback("resolveHumanInputRequest", error)
+    return fileStore.resolveHumanInputRequest(input)
   }
-
-  recomputeAgentStatuses(store)
-  const agent = store.agents.find((entry) => entry.id === request.agentId)
-  if (!agent) {
-    throw new Error("Agent not found.")
-  }
-
-  const audit = appendAudit(store, {
-    requestId: request.id,
-    action: `care_team.request_${input.payload.decision}`,
-    actor: input.actor,
-    metadata: {
-      requestId: request.id,
-      agentId: request.agentId,
-      decision: input.payload.decision,
-      noteHash: stableHashJson(input.payload.note || ""),
-    },
-  })
-
-  touchStore(store)
-  saveStore(store)
-
-  return { request, agent, audit }
 }
 
-export function createCustomAgent(input: {
+export async function createCustomAgent(input: {
   payload: CareTeamCustomAgentInput
   actor: CareTeamActor
-}): { agent: CareTeamAgent; audit: CareTeamAuditEntry } {
-  const store = loadStore()
-  const id = (input.payload.id || `custom-${crypto.randomUUID().slice(0, 8)}`).toLowerCase()
+}): Promise<{ agent: CareTeamAgent; audit: CareTeamAuditEntry }> {
+  if (!hasDatabase()) {
+    return fileStore.createCustomAgent(input)
+  }
 
-  const agent = upsertAgent(store, {
-    id,
-    name: input.payload.name.trim(),
-    role: input.payload.role.trim(),
-    isCore: false,
-  })
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await seedCoreAgents(tx)
+      const id = (input.payload.id || `custom-${crypto.randomUUID().slice(0, 8)}`).toLowerCase()
 
-  const audit = appendAudit(store, {
-    action: "care_team.custom_agent_upsert",
-    actor: input.actor,
-    metadata: {
-      agentId: agent.id,
-      name: agent.name,
-    },
-  })
+      const agent = await upsertAgentDb(tx, {
+        id,
+        name: input.payload.name.trim(),
+        role: input.payload.role.trim(),
+        isCore: false,
+      })
 
-  recomputeAgentStatuses(store)
-  touchStore(store)
-  saveStore(store)
+      const auditRecord = await tx.careTeamAudit.create({
+        data: {
+          id: createId("audit"),
+          action: "care_team.custom_agent_upsert",
+          actorRole: input.actor.role,
+          actorUserIdHash: stableHashJson(input.actor.userId),
+          metadataHash: stableHashJson({ agentId: agent.id, name: agent.name }),
+          metadata: jsonValue({ agentId: agent.id, name: agent.name }),
+        },
+      })
 
-  return { agent, audit }
+      const agentMap = await recomputeAgentStatusesDb(tx)
+      return {
+        agent: agentMap.get(agent.id) || agent,
+        audit: toAuditRecord(auditRecord),
+      }
+    })
+  } catch (error) {
+    logFallback("createCustomAgent", error)
+    return fileStore.createCustomAgent(input)
+  }
 }
 
-export function buildCareTeamEvent(input: {
+export async function buildCareTeamEvent(input: {
   type: CareTeamEvent["type"]
   request?: CareTeamHumanInputRequest
   agent?: CareTeamAgent
-}): CareTeamEvent {
-  const snapshot = getCareTeamSnapshot(10)
+}): Promise<CareTeamEvent> {
+  const snapshot = await getCareTeamSnapshot(10)
   return {
     eventId: createId("event"),
     type: input.type,

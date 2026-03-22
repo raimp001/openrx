@@ -27,7 +27,7 @@ export function getScreeningRecipientWallet(): string {
   )
 }
 
-export function createScreeningPaymentIntent(walletAddress: string): PaymentRecord {
+export async function createScreeningPaymentIntent(walletAddress: string): Promise<PaymentRecord> {
   const fee = getScreeningFeeUsd()
   return createPaymentIntent({
     walletAddress,
@@ -42,16 +42,16 @@ export function createScreeningPaymentIntent(walletAddress: string): PaymentReco
   })
 }
 
-export function verifyScreeningAccess(input: {
+export async function verifyScreeningAccess(input: {
   walletAddress?: string
   paymentId?: string
-}): {
+}): Promise<{
   ok: boolean
   reason?: string
   payment?: PaymentRecord
   fee: string
   recipientAddress: string
-} {
+}> {
   const fee = getScreeningFeeUsd()
   const recipientAddress = getScreeningRecipientWallet()
   const walletAddress = (input.walletAddress || "").toLowerCase().trim()
@@ -64,7 +64,7 @@ export function verifyScreeningAccess(input: {
     return { ok: false, reason: "Screening payment is required before personalized recommendations.", fee, recipientAddress }
   }
 
-  const snapshot = getLedgerSnapshot({ walletAddress })
+  const snapshot = await getLedgerSnapshot({ walletAddress })
   const payment = snapshot.payments.find((item) => item.id === paymentId)
   if (!payment) {
     return { ok: false, reason: "Screening payment record not found for this wallet.", fee, recipientAddress }

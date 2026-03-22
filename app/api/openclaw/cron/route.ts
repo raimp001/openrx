@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { resolveClinicSession } from "@/lib/clinic-auth"
 import { buildCronAgentMessage, listCronJobs } from "@/lib/openclaw/cron-dispatch"
+import { listRecentCronRuns, listWorkerHeartbeats } from "@/lib/openclaw/runtime-persistence"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -25,6 +26,11 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  const [recentRuns, workers] = await Promise.all([
+    listRecentCronRuns(12),
+    listWorkerHeartbeats(12),
+  ])
+
   const jobs = listCronJobs().map((job) => ({
     ...job,
     previewMessage: buildCronAgentMessage(job),
@@ -35,6 +41,8 @@ export async function GET(request: NextRequest) {
     jobs,
     total: jobs.length,
     maxDurationSeconds: maxDuration,
+    recentRuns,
+    workers,
     requestedBy: {
       userId: session.userId,
       role: session.role,

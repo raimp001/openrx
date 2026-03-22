@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db"
+import { getDatabaseHealth } from "@/lib/database-health"
 import { createEmptyLiveSnapshot, type LiveClaim, type LiveLabResult, type LiveSnapshot, type LiveVital } from "@/lib/live-data-types"
 
 let hasWarnedMissingDatabaseUrl = false
@@ -114,10 +115,13 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
   const normalizedWallet = normalizeAddress(walletAddress)
   if (!normalizedWallet) return createEmptyLiveSnapshot(null)
 
-  if (!process.env.DATABASE_URL) {
+  const databaseHealth = await getDatabaseHealth()
+  if (!databaseHealth.reachable) {
     if (!hasWarnedMissingDatabaseUrl) {
       hasWarnedMissingDatabaseUrl = true
-      console.warn("DATABASE_URL is not configured. Running without patient data — connect a database to activate live records.")
+      console.warn(
+        `Live data unavailable. ${databaseHealth.message} Running without patient data until Postgres is reachable.`
+      )
     }
     return createEmptyLiveSnapshot(normalizedWallet)
   }

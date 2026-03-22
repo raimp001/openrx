@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { getDatabaseHealth } from "@/lib/database-health"
 import type { WalletProfile } from "@/lib/wallet-identity"
 
 interface SyncProfileRequest {
@@ -53,11 +54,15 @@ function serializeConditionStatus(status?: string): string | undefined {
 }
 
 export async function POST(request: NextRequest) {
-  if (!process.env.DATABASE_URL?.trim()) {
+  const databaseHealth = await getDatabaseHealth({ force: true })
+  if (!databaseHealth.reachable) {
     return NextResponse.json(
       {
-        error: "DATABASE_URL is not configured.",
-        message: "Set DATABASE_URL to activate live patient records.",
+        error: databaseHealth.message,
+        message:
+          databaseHealth.status === "missing"
+            ? "Set DATABASE_URL to activate live patient records."
+            : "OpenRx could not reach Postgres. Fix the database connection to activate live patient records.",
       },
       { status: 503 }
     )

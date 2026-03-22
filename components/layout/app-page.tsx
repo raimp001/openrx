@@ -26,32 +26,43 @@ export function AppPageHeader({
 }: AppPageHeaderProps) {
   const titleClass =
     variant === "hero"
-      ? "font-serif text-3xl leading-tight tracking-tight text-warm-800"
-      : "font-serif text-2xl tracking-tight text-warm-800"
+      ? "font-serif text-3xl leading-[1.02] tracking-[-0.05em] text-warm-800 sm:text-[2.6rem]"
+      : "font-serif text-[1.9rem] leading-tight tracking-[-0.04em] text-warm-800"
 
   return (
-    <div
+    <section
       className={cn(
-        "flex gap-4",
+        "surface-card relative isolate overflow-hidden p-5 sm:p-6",
         align === "center"
-          ? "flex-col items-center text-center"
-          : "flex-col sm:flex-row sm:items-start sm:justify-between",
+          ? "text-center"
+          : "",
         className
       )}
     >
-      <div className={cn("min-w-0 flex-1", align === "center" && "flex flex-col items-center")}>
-        <div className={cn("flex items-start gap-3", align === "center" && "flex-col items-center")}>
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-24 right-[-7rem] h-64 w-64 rounded-full bg-terra/12 blur-3xl" />
+        <div className="absolute bottom-[-7rem] left-[-4rem] h-52 w-52 rounded-full bg-accent/8 blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-28 bg-[linear-gradient(90deg,rgba(255,255,255,0.4),transparent)]" />
+      </div>
+      <div
+        className={cn(
+          "relative flex gap-5",
+          align === "center"
+            ? "flex-col items-center text-center"
+            : "flex-col xl:flex-row xl:items-start xl:justify-between"
+        )}
+      >
+        <div className={cn("min-w-0 flex-1", align === "center" && "flex flex-col items-center")}>
+          <div className={cn("flex items-start gap-4", align === "center" && "flex-col items-center")}>
           {leading ? <div className="shrink-0 pt-0.5">{leading}</div> : null}
           <div className={cn("min-w-0", align === "center" && "text-center")}>
             {eyebrow ? (
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-terra/80">
-                {eyebrow}
-              </p>
+              <span className="eyebrow-pill mb-3">{eyebrow}</span>
             ) : null}
             <h1 className={titleClass}>{title}</h1>
-            {meta ? <div className="mt-1">{meta}</div> : null}
+            {meta ? <div className="mt-3">{meta}</div> : null}
             {description ? (
-              <div className="mt-1 max-w-2xl text-sm leading-relaxed text-warm-500">{description}</div>
+              <div className="mt-3 max-w-3xl text-sm leading-7 text-warm-500 sm:text-[15px]">{description}</div>
             ) : null}
           </div>
         </div>
@@ -59,13 +70,14 @@ export function AppPageHeader({
       {actions ? (
         <div
           className={cn(
-            "flex shrink-0 flex-wrap items-center gap-2",
+            "relative flex shrink-0 flex-wrap items-center gap-2 xl:max-w-[34%] xl:justify-end",
             align === "center" && "justify-center"
           )}
         >
           {actions}
         </div>
       ) : null}
-    </div>
+      </div>
+    </section>
   )
 }

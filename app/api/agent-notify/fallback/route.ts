@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
   const limitRaw = Number.parseInt(searchParams.get("limit") || "30", 10)
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 30
 
-  const snapshot = getCareTeamSnapshot(20)
-  const requestItem = requestId ? findCareTeamRequest(requestId) : null
+  const snapshot = await getCareTeamSnapshot(20)
+  const requestItem = requestId ? await findCareTeamRequest(requestId) : null
 
   return NextResponse.json({
     needsInputCount: snapshot.needsInputCount,

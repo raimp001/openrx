@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const payment = createPaymentIntent({
+    const payment = await createPaymentIntent({
       walletAddress: body.walletAddress,
       amount: body.amount,
       category: body.category,

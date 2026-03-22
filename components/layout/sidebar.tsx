@@ -3,38 +3,39 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  LayoutDashboard,
-  Calendar,
-  Receipt,
-  Pill,
-  DollarSign,
-  Wallet as WalletIcon,
-  MessageSquare,
-  Bot,
-  ExternalLink,
-  Menu,
-  X,
-  Stethoscope,
-  Heart,
-  FlaskConical,
   Activity,
-  Syringe,
-  ArrowRightCircle,
   AlertCircle,
-  ShieldCheck,
-  UserPlus,
-  Workflow,
+  ArrowRightCircle,
+  Bot,
+  Calendar,
   Clock,
+  DollarSign,
+  ExternalLink,
+  FlaskConical,
+  Heart,
+  LayoutDashboard,
+  Menu,
+  MessageSquare,
+  Pill,
+  Receipt,
+  ShieldCheck,
+  Stethoscope,
+  Syringe,
   UserCircle,
+  UserPlus,
+  Wallet as WalletIcon,
+  Workflow,
+  X,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { useState, useEffect, useMemo } from "react"
-import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import { useEffect, useMemo, useState } from "react"
+import { BrandMark, BrandWordmark } from "@/components/brand-logo"
 import { useCareTeamSession } from "@/lib/hooks/use-care-team-session"
+import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import { cn, formatDate, formatTime } from "@/lib/utils"
 
 const baseNavSections = [
   {
-    label: null,
+    label: "Overview",
     items: [
       { href: "/dashboard", label: "Home", icon: LayoutDashboard },
       { href: "/profile", label: "My Profile", icon: UserCircle },
@@ -43,7 +44,7 @@ const baseNavSections = [
     ],
   },
   {
-    label: "Health",
+    label: "Care",
     items: [
       { href: "/scheduling", label: "Appointments", icon: Calendar },
       { href: "/screening", label: "AI Screening", icon: Heart },
@@ -55,7 +56,7 @@ const baseNavSections = [
     ],
   },
   {
-    label: "Finance",
+    label: "Operations",
     items: [
       { href: "/billing", label: "Bills & Claims", icon: Receipt },
       { href: "/compliance-ledger", label: "Compliance Ledger", icon: ShieldCheck },
@@ -65,7 +66,7 @@ const baseNavSections = [
     ],
   },
   {
-    label: "More",
+    label: "Explore",
     items: [
       { href: "/providers", label: "Care Network", icon: Stethoscope },
       { href: "/join-network", label: "Join Network", icon: UserPlus },
@@ -86,6 +87,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { snapshot } = useLiveSnapshot()
   const { session: careTeamSession } = useCareTeamSession({ pollMs: 15000 })
+
   const careTeamVisible = Boolean(careTeamSession?.canAccessCareTeam)
   const badges = {
     unreadMessages: snapshot.messages.filter((message) => !message.read).length,
@@ -96,17 +98,11 @@ export default function Sidebar() {
     pendingLabs: snapshot.labResults.filter((lab) => lab.status === "pending").length,
   }
 
-  useEffect(() => {
-    setMobileOpen(false)
-  }, [pathname])
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileOpen(false)
-    }
-    document.addEventListener("keydown", handleEscape)
-    return () => document.removeEventListener("keydown", handleEscape)
-  }, [])
+  const nextAppointment = useMemo(() => {
+    return [...snapshot.appointments]
+      .filter((appointment) => new Date(appointment.scheduled_at).getTime() >= Date.now())
+      .sort((left, right) => new Date(left.scheduled_at).getTime() - new Date(right.scheduled_at).getTime())[0]
+  }, [snapshot.appointments])
 
   const navSections = useMemo(() => {
     const sections = baseNavSections.map((section) => ({
@@ -114,139 +110,192 @@ export default function Sidebar() {
       items: [...section.items],
     }))
     if (careTeamVisible) {
-      const moreSection = sections.find((section) => section.label === "More")
-      if (moreSection && !moreSection.items.some((item) => item.href === "/dashboard/care-team")) {
-        moreSection.items.unshift({ href: "/dashboard/care-team", label: "AI Care Team", icon: Bot })
+      const careSection = sections.find((section) => section.label === "Overview")
+      if (careSection && !careSection.items.some((item) => item.href === "/dashboard/care-team")) {
+        careSection.items.splice(1, 0, {
+          href: "/dashboard/care-team",
+          label: "AI Care Team",
+          icon: Bot,
+        })
       }
     }
     return sections
   }, [careTeamVisible])
 
+  const attentionCount =
+    badges.pendingLabs +
+    badges.pendingPA +
+    badges.pendingRefills +
+    (careTeamSession?.needsInputCount ?? 0)
+
+  const summaryCards = [
+    { label: "Attention", value: attentionCount, tone: attentionCount > 0 ? "text-terra" : "text-white/80" },
+    { label: "Visits", value: snapshot.appointments.length, tone: "text-white/90" },
+    { label: "Messages", value: badges.unreadMessages, tone: badges.unreadMessages > 0 ? "text-accent" : "text-white/80" },
+  ]
+
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false)
+    }
+
+    document.addEventListener("keydown", handleEscape)
+    return () => document.removeEventListener("keydown", handleEscape)
+  }, [])
+
   const sidebarContent = (
     <>
-      {/* Logo area */}
-      <div className="px-5 pb-4 pt-5">
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-terra via-terra to-terra-dark shadow-terra-glow">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 4v16M4 12h16" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-            {/* Subtle glow ring */}
-            <div className="absolute inset-0 rounded-xl ring-1 ring-terra/30" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="truncate text-[15px] font-bold tracking-tight text-white">OpenRx</h1>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/30">Care OS</p>
-          </div>
+      <div className="relative overflow-hidden border-b border-white/8 px-5 pb-5 pt-5">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(224,91,67,0.22),transparent_38%),radial-gradient(circle_at_100%_20%,rgba(22,142,104,0.14),transparent_32%)]" />
+        <div className="relative flex items-center gap-3">
+          <BrandMark className="shadow-terra-glow" size="sm" />
+          <BrandWordmark className="min-w-0" titleClassName="text-[17px] font-semibold" subtitleClassName="text-white/38" />
           <button
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
-            className="ml-auto rounded-lg p-1 text-white/30 transition hover:bg-white/10 hover:text-white/60 lg:hidden"
+            className="ml-auto rounded-xl p-1.5 text-white/35 transition hover:bg-white/10 hover:text-white/70 lg:hidden"
           >
             <X size={15} />
           </button>
         </div>
 
-        {/* Patient chip */}
-        {snapshot.patient && (
-          <div className="mt-4 rounded-xl border border-white/8 bg-white/5 px-3 py-2.5">
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-terra/40 to-accent/40 flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-bold text-white/80">
-                  {snapshot.patient.full_name.charAt(0)}
-                </span>
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-[12px] font-semibold text-white/85 leading-tight">
-                  {snapshot.patient.full_name}
-                </p>
-                <p className="text-[10px] text-white/35 leading-tight mt-0.5">{snapshot.patient.insurance_provider || "Patient"}</p>
-              </div>
+        <div className="relative mt-5 rounded-[26px] border border-white/10 bg-white/6 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,rgba(255,255,255,0.18),rgba(255,255,255,0.04))] ring-1 ring-white/10">
+              <span className="text-sm font-semibold text-white">
+                {(snapshot.patient?.full_name || "OpenRx").charAt(0)}
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/34">Patient pulse</p>
+              <p className="truncate text-sm font-semibold text-white/92">
+                {snapshot.patient?.full_name || "Connect records to personalize"}
+              </p>
+              <p className="mt-1 text-[11px] leading-5 text-white/48">
+                {nextAppointment
+                  ? `Next visit ${formatDate(nextAppointment.scheduled_at)} at ${formatTime(nextAppointment.scheduled_at)}`
+                  : "Your care plan, screening, coverage, and messaging live here."}
+              </p>
             </div>
           </div>
-        )}
+
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {summaryCards.map((card) => (
+              <div
+                key={card.label}
+                className="rounded-2xl border border-white/8 bg-black/10 px-2.5 py-2 text-center"
+              >
+                <p className={cn("text-base font-semibold leading-none", card.tone)}>{card.value}</p>
+                <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/34">{card.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {careTeamSession?.needsInputCount ? (
+            <Link
+              href="/dashboard/care-team"
+              className="mt-4 flex items-center gap-2 rounded-2xl border border-soft-blue/25 bg-soft-blue/10 px-3 py-2 text-[11px] font-semibold text-soft-blue transition hover:bg-soft-blue/14"
+            >
+              <span className="h-2 w-2 rounded-full bg-soft-blue shadow-[0_0_0_6px_rgba(42,124,167,0.15)]" />
+              {careTeamSession.needsInputCount} agent item{careTeamSession.needsInputCount > 1 ? "s" : ""} waiting
+            </Link>
+          ) : null}
+        </div>
       </div>
 
-      {/* Nav */}
-      <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 pb-3" aria-label="Main navigation">
-        {navSections.map((section, si) => (
-          <div key={si} className={si > 0 ? "mt-5" : ""}>
-            {section.label && (
-              <p className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.22em] text-white/25">
-                {section.label}
-              </p>
-            )}
-            <div className="space-y-0.5">
+      <nav className="sidebar-scroll flex-1 overflow-y-auto px-4 py-4" aria-label="Main navigation">
+        {navSections.map((section) => (
+          <section key={section.label} className="mb-5">
+            <div className="mb-2 flex items-center gap-2 px-2">
+              <span className="h-px flex-1 bg-white/8" />
+              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/24">{section.label}</p>
+              <span className="h-px flex-1 bg-white/8" />
+            </div>
+
+            <div className="space-y-1.5">
               {section.items.map((item) => {
                 const matchAlso = "matchAlso" in item ? (item.matchAlso as string[]) : undefined
                 const active =
                   pathname === item.href ||
                   pathname?.startsWith(item.href + "/") ||
-                  matchAlso?.some((m) => pathname === m || pathname?.startsWith(m + "/"))
-                const badgeKey = "badgeKey" in item ? (item.badgeKey as BadgeKey) : undefined
-                const badgeCount = badgeKey ? badges[badgeKey] : 0
+                  matchAlso?.some((entry) => pathname === entry || pathname?.startsWith(entry + "/"))
+                const badgeKey = "badgeKey" in item ? (item.badgeKey as BadgeKey | undefined) : undefined
+                const badgeCount =
+                  item.href === "/dashboard/care-team"
+                    ? careTeamSession?.needsInputCount ?? 0
+                    : badgeKey
+                    ? badges[badgeKey]
+                    : 0
 
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "nav-active-bar group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12.5px] font-medium transition-all duration-150",
+                      "group relative flex items-center gap-3 rounded-2xl border px-3.5 py-3 text-[12.5px] font-medium transition-all duration-200",
                       active
-                        ? "bg-white/10 text-white"
-                        : "text-white/50 hover:bg-white/6 hover:text-white/80"
+                        ? "border-white/14 bg-white/10 text-white shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
+                        : "border-transparent text-white/54 hover:border-white/10 hover:bg-white/6 hover:text-white/86"
                     )}
                   >
+                    {active ? (
+                      <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[linear-gradient(180deg,#f4ae8d,#e05b43)]" />
+                    ) : null}
                     <item.icon
-                      size={14}
+                      size={15}
                       className={cn(
                         "shrink-0 transition-colors",
-                        active ? "text-terra" : "text-white/35 group-hover:text-white/60"
+                        active ? "text-terra-light" : "text-white/36 group-hover:text-white/80"
                       )}
                     />
-                    <span className="flex-1 truncate">{item.label}</span>
-                    {badgeCount > 0 && (
-                      <span className={cn(
-                        "flex h-4.5 min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold",
-                        active ? "bg-terra/30 text-terra" : "bg-white/12 text-white/60"
-                      )}>
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    {badgeCount > 0 ? (
+                      <span
+                        className={cn(
+                          "flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[9px] font-bold",
+                          active ? "bg-terra/22 text-terra-light" : "bg-white/12 text-white/62"
+                        )}
+                      >
                         {badgeCount}
                       </span>
-                    )}
-                    {active && (
-                      <div className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-terra shadow-[0_0_8px_rgba(240,90,61,0.7)]" />
-                    )}
+                    ) : null}
                   </Link>
                 )
               })}
             </div>
-          </div>
+          </section>
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-white/8 px-3 py-3 space-y-1">
+      <div className="border-t border-white/8 px-4 py-4">
         <Link
           href="/chat"
-          className="flex items-center gap-2.5 rounded-xl border border-terra/25 bg-terra/12 px-3 py-2.5 text-[12px] font-semibold text-terra transition hover:bg-terra/20 hover:border-terra/40"
+          className="flex items-center gap-3 rounded-[22px] border border-terra/20 bg-terra/12 px-4 py-3 text-sm font-semibold text-terra-light transition hover:border-terra/32 hover:bg-terra/18"
         >
-          <Bot size={13} className="text-terra" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/8">
+            <Bot size={15} />
+          </span>
           <span className="flex-1">AI Concierge</span>
-          <span className="h-1.5 w-1.5 rounded-full bg-terra animate-glow-pulse" />
+          <span className="h-2 w-2 rounded-full bg-terra-light animate-glow-pulse" />
         </Link>
-        <div className="flex gap-1">
+
+        <div className="mt-3 flex gap-2">
           <Link
             href="/"
-            className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-medium text-white/28 transition hover:bg-white/6 hover:text-white/55"
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/8 px-3 py-2.5 text-[11px] font-semibold text-white/42 transition hover:bg-white/6 hover:text-white/76"
           >
-            <ExternalLink size={11} />
+            <ExternalLink size={12} />
             Site
           </Link>
           <Link
             href="/privacy-explained"
-            className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-medium text-white/28 transition hover:bg-white/6 hover:text-white/55"
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/8 px-3 py-2.5 text-[11px] font-semibold text-white/42 transition hover:bg-white/6 hover:text-white/76"
           >
-            <ShieldCheck size={11} />
+            <ShieldCheck size={12} />
             Privacy
           </Link>
         </div>
@@ -258,29 +307,29 @@ export default function Sidebar() {
     <>
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 rounded-xl border border-white/15 bg-midnight p-2 text-white/60 shadow-sidebar transition hover:bg-white/10 hover:text-white lg:hidden"
+        className="fixed left-4 top-4 z-50 rounded-2xl border border-white/15 bg-midnight/95 p-2.5 text-white/70 shadow-sidebar transition hover:bg-midnight hover:text-white lg:hidden"
         aria-label="Open navigation"
       >
-        <Menu size={19} />
+        <Menu size={18} />
       </button>
 
-      {mobileOpen && (
+      {mobileOpen ? (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
-      )}
+      ) : null}
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col bg-midnight shadow-sidebar transition-transform duration-300 lg:hidden",
+          "fixed left-0 top-0 z-50 flex h-screen w-[272px] flex-col border-r border-white/8 bg-[linear-gradient(180deg,#0d1717_0%,#091312_48%,#060f0e_100%)] shadow-sidebar transition-transform duration-300 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {sidebarContent}
       </aside>
 
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[248px] flex-col bg-midnight shadow-sidebar lg:flex">
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[272px] flex-col border-r border-white/8 bg-[linear-gradient(180deg,#0d1717_0%,#091312_48%,#060f0e_100%)] shadow-sidebar lg:flex">
         {sidebarContent}
       </aside>
     </>

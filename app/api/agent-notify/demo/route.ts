@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   }
 
   const now = new Date().toISOString()
-  const requestRecord = submitHumanInputRequest({
+  const requestRecord = await submitHumanInputRequest({
     payload: {
       agent_id: "prior-auth",
       agent_name: "Rex Prior Auth",
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     actor: { role: session.role, userId: session.userId },
   })
 
-  const event = buildCareTeamEvent({
+  const event = await buildCareTeamEvent({
     type: "request_created",
     request: requestRecord.request,
     agent: requestRecord.agent,

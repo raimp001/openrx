@@ -23,12 +23,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "requestId and a valid decision are required." }, { status: 400 })
     }
 
-    const result = resolveHumanInputRequest({
+    const result = await resolveHumanInputRequest({
       actor: { role: session.role, userId: session.userId },
       payload,
     })
 
-    const event = buildCareTeamEvent({
+    const event = await buildCareTeamEvent({
       type: "request_resolved",
       request: result.request,
       agent: result.agent,

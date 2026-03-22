@@ -255,21 +255,39 @@ export default function DashboardPage() {
     <div className="animate-slide-up space-y-5">
 
       {/* ── Hero section ────────────────────────────────── */}
-      <section className="surface-card overflow-hidden">
-        <div className="px-5 py-5 lg:px-7 lg:py-6">
+      <section className="surface-card relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -right-16 top-0 h-56 w-56 rounded-full bg-terra/10 blur-3xl" />
+          <div className="absolute bottom-[-4rem] left-[-2rem] h-40 w-40 rounded-full bg-accent/8 blur-3xl" />
+        </div>
+        <div className="relative px-5 py-5 lg:px-7 lg:py-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-terra/80 uppercase tracking-widest mb-1">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-warm-500">
                 {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
               </p>
-              <h1 className="text-3xl text-warm-800 leading-tight">
+              <h1 className="text-4xl leading-[1.02] text-warm-800">
                 {greeting}{firstName ? ", " : ""}<span className="text-gradient-terra">{firstName}</span>
               </h1>
-              <p className="mt-1 text-sm text-warm-500 max-w-md">
+              <p className="mt-3 max-w-xl text-sm leading-7 text-warm-500">
                 {actionItems.length > 0
                   ? `${actionItems.length} item${actionItems.length > 1 ? "s" : ""} need your attention today.`
                   : "You're all caught up — great job staying on top of your health."}
               </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="metric-chip">
+                  <Calendar size={11} className="text-terra" />
+                  {upcomingApts.length} upcoming visit{upcomingApts.length === 1 ? "" : "s"}
+                </span>
+                <span className="metric-chip">
+                  <Pill size={11} className="text-accent" />
+                  {myRx.length} active medication{myRx.length === 1 ? "" : "s"}
+                </span>
+                <span className="metric-chip">
+                  <FlaskConical size={11} className="text-soft-blue" />
+                  {pendingLabs.length} pending lab{pendingLabs.length === 1 ? "" : "s"}
+                </span>
+              </div>
             </div>
 
             {/* Health Score Ring */}
@@ -287,7 +305,7 @@ export default function DashboardPage() {
 
           {/* Priority Actions */}
           {actionItems.length > 0 ? (
-            <div className="mt-4 space-y-1.5">
+            <div className="mt-5 space-y-2">
               <div className="flex items-center gap-1.5 mb-2">
                 <Zap size={11} className="text-terra" />
                 <span className="text-[10px] font-bold text-warm-500 uppercase tracking-widest">Today&rsquo;s Actions</span>
@@ -296,7 +314,7 @@ export default function DashboardPage() {
                 const Icon = item.icon
                 return (
                   <Link key={i} href={item.href}
-                    className={cn("group flex items-center gap-3 rounded-xl border px-3.5 py-2.5 transition-all hover:shadow-sm", item.bg, item.border)}
+                    className={cn("group flex items-center gap-3 rounded-[20px] border px-3.5 py-3 transition-all hover:shadow-sm", item.bg, item.border)}
                   >
                     <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", item.bg)}>
                       <Icon size={12} className={item.color} />
@@ -308,14 +326,14 @@ export default function DashboardPage() {
               })}
             </div>
           ) : (
-            <div className="mt-4 flex items-center gap-2 rounded-xl border border-accent/15 bg-accent/5 px-3.5 py-2.5">
+            <div className="mt-5 flex items-center gap-2 rounded-[20px] border border-accent/15 bg-accent/5 px-3.5 py-3">
               <CheckCircle2 size={14} className="text-accent shrink-0" />
               <span className="text-xs font-semibold text-accent">All caught up — no pending actions</span>
             </div>
           )}
 
           {/* Preventive progress bar */}
-          <div className="mt-4 rounded-xl border border-sand/60 bg-cream/40 px-4 py-3">
+          <div className="mt-5 rounded-[22px] border border-white/80 bg-white/65 px-4 py-3">
             <div className="flex items-center justify-between text-xs text-warm-700 mb-2">
               <span className="font-semibold">Preventive Care Plan</span>
               <span className="text-warm-500 font-medium">{preventiveTasksDone} of {preventiveTasksTotal} complete</span>
@@ -328,7 +346,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick links */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-sand/60 bg-cream/40">
+        <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-sand/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.35),rgba(248,240,230,0.55))]">
           {[
             { href: "/providers", icon: Search, label: "Find Care" },
             { href: "/screening", icon: Heart, label: "Screening" },

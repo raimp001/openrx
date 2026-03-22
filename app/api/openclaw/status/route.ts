@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 import { getRecentActions } from "@/lib/ai-engine"
+import { listRecentCronRuns, listWorkerHeartbeats } from "@/lib/openclaw/runtime-persistence"
+
+export const dynamic = "force-dynamic"
 
 export async function GET() {
   const hasLLM = !!process.env.OPENAI_API_KEY
   const recentActions = getRecentActions(5)
+  const [workers, recentRuns] = await Promise.all([
+    listWorkerHeartbeats(5),
+    listRecentCronRuns(5),
+  ])
 
   return NextResponse.json({
     connected: hasLLM,
@@ -21,6 +28,8 @@ export async function GET() {
     channels: Object.entries(OPENCLAW_CONFIG.channels)
       .filter(([, v]) => v.enabled)
       .map(([k]) => k),
+    backgroundWorkers: workers,
+    recentCronRuns: recentRuns,
     cronJobs: OPENCLAW_CONFIG.cronJobs.map((j) => ({
       id: j.id,
       schedule: j.schedule,

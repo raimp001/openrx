@@ -10,6 +10,9 @@ import {
   ShieldCheck,
   Stethoscope,
   Users,
+  Sparkles,
+  Building2,
+  ArrowRight,
 } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import Image from "next/image"
@@ -157,8 +160,25 @@ export default function ProvidersPage() {
       <AppPageHeader
         eyebrow="Care Directory"
         title="Find Care Network"
-        description="Natural-language search for providers, caregivers, labs, and radiology centers using NPI data."
-        className="surface-card p-4 sm:p-5"
+        description="Describe the care you need in plain language. OpenRx figures out the service type, location, and NPI-backed options without making you think in directories."
+        meta={
+          <div className="flex flex-wrap gap-2">
+            <span className="metric-chip">
+              <BadgeCheck size={11} className="text-accent" />
+              Live CMS NPI data
+            </span>
+            <span className="metric-chip">
+              <Sparkles size={11} className="text-terra" />
+              Natural-language only
+            </span>
+            {profileLocation ? (
+              <span className="metric-chip">
+                <MapPin size={11} className="text-soft-blue" />
+                {profileLocation}
+              </span>
+            ) : null}
+          </div>
+        }
         actions={
           <AIAction
             agentId="scheduling"
@@ -168,57 +188,104 @@ export default function ProvidersPage() {
         }
       />
 
-      <div className="bg-pampas rounded-2xl border border-sand p-5">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-cloudy"
-            />
-            <input
-              type="text"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && searchDirectory()}
-              placeholder="Example: find caregiver + radiology center near Seattle WA 98101"
-              className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40 focus:ring-2 focus:ring-terra/10 transition"
-            />
+      <section className="surface-card overflow-hidden">
+        <div className="grid gap-5 p-5 lg:grid-cols-[1.35fr_0.65fr] lg:p-6">
+          <div className="space-y-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">Search request</p>
+              <h2 className="mt-2 text-2xl text-warm-800">Tell OpenRx what care you need.</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-warm-500">
+                City-only and ZIP-only searches should work. If you already have a profile location, we can use it automatically when the request is underspecified.
+              </p>
+            </div>
+
+            <div className="relative">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-cloudy" />
+              <input
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && searchDirectory()}
+                placeholder="Examples: hillsboro, 97123, internal medicine near Seattle, radiology around Austin TX"
+                className="w-full rounded-[22px] border border-white/80 bg-white/80 py-4 pl-12 pr-4 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/35 focus:shadow-[0_0_0_4px_rgba(224,91,67,0.08)]"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => searchDirectory()}
+                disabled={isLoading}
+                className="inline-flex items-center gap-2 rounded-2xl bg-midnight px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#12211d] disabled:opacity-50"
+              >
+                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                Search care network
+              </button>
+              <button
+                onClick={useProfileLocation}
+                className="inline-flex items-center gap-2 rounded-2xl border border-sand bg-white/65 px-4 py-3 text-sm font-semibold text-warm-700 transition hover:border-terra/25 hover:text-terra"
+              >
+                <MapPin size={15} className="text-soft-blue" />
+                Use profile location
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {EXAMPLE_SEARCHES.map((example) => (
+                <button
+                  key={example}
+                  onClick={() => searchDirectory(example)}
+                  className="chip transition hover:border-terra/30 hover:text-terra"
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+
+            {autoLocationNote ? <p className="text-sm text-accent">{autoLocationNote}</p> : null}
+            {error ? <p className="text-sm text-soft-red">{error}</p> : null}
           </div>
-          <button
-            onClick={() => searchDirectory()}
-            disabled={isLoading}
-            className="px-6 py-3.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition flex items-center justify-center gap-2 disabled:opacity-50 shrink-0"
-          >
-            {isLoading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Search size={16} />
-            )}
-            Search
-          </button>
+
+          <div className="surface-muted p-4 sm:p-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">How matching works</p>
+            <div className="mt-4 space-y-3">
+              <StepRow
+                icon={Search}
+                title="You describe the need"
+                description="Specialty, city, ZIP, or a short sentence are all valid. Natural language only."
+              />
+              <StepRow
+                icon={BadgeCheck}
+                title="We parse and verify"
+                description="OpenRx resolves the service type and pulls live NPI-backed candidates from CMS data."
+              />
+              <StepRow
+                icon={Building2}
+                title="You get usable options"
+                description="Each result includes specialty, status, address, phone, and quick next actions."
+              />
+            </div>
+
+            <div className="mt-5 rounded-[22px] border border-white/70 bg-white/72 p-4">
+              <p className="text-xs font-semibold text-warm-800">Current search readiness</p>
+              <p className="mt-1 text-sm leading-6 text-warm-500">
+                {hasSearched
+                  ? ready
+                    ? "Enough context received. Results below are ready to act on."
+                    : clarificationQuestion || "We still need a location or specialty signal to search safely."
+                  : "Search begins once OpenRx has enough location context to avoid weak or misleading matches."}
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            onClick={useProfileLocation}
-            className="text-[11px] px-2.5 py-1 rounded-lg border border-sand text-warm-600 hover:border-terra/30 hover:text-terra transition"
-          >
-            Use profile location
-          </button>
-          <span className="text-[10px] text-cloudy">{profileLocation}</span>
-        </div>
-        {autoLocationNote && (
-          <p className="text-[11px] text-accent mt-2">{autoLocationNote}</p>
-        )}
-        {error && <p className="text-xs text-soft-red mt-3">{error}</p>}
-      </div>
+      </section>
 
       {hasSearched && !isLoading && ready === false && (
-        <div className="bg-yellow-100/20 rounded-2xl border border-yellow-300/30 p-4">
+        <div className="surface-card border-yellow-300/40 bg-[linear-gradient(180deg,rgba(255,251,235,0.95),rgba(255,246,213,0.88))] p-5">
           <div className="flex items-center gap-2 mb-1">
             <ShieldCheck size={14} className="text-yellow-500" />
             <p className="text-sm font-semibold text-warm-800">Need one more detail before search</p>
           </div>
-          <p className="text-sm text-warm-600">{clarificationQuestion}</p>
+          <p className="mt-2 text-sm leading-7 text-warm-600">{clarificationQuestion}</p>
           {parsed && (
             <div className="flex flex-wrap gap-2 mt-3">
               {parsed.serviceTypes.map((serviceType) => (
@@ -248,9 +315,12 @@ export default function ProvidersPage() {
 
       {hasSearched && !isLoading && ready && (
         <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-warm-500">{matches.length} care options found</p>
-            <span className="text-[10px] text-cloudy flex items-center gap-1">
+          <div className="surface-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">Matched network</p>
+              <p className="mt-1 text-lg font-semibold text-warm-800">{matches.length} care option{matches.length === 1 ? "" : "s"} found</p>
+            </div>
+            <span className="text-[11px] text-cloudy flex items-center gap-1">
               <BadgeCheck size={10} /> Live CMS NPI data
             </span>
           </div>
@@ -273,9 +343,10 @@ export default function ProvidersPage() {
           </div>
 
           {matches.length === 0 && (
-            <div className="rounded-xl border border-sand bg-cream/30 p-4 text-sm text-warm-600">
-              No NPI matches found yet. Try one of these: `hillsboro`, `97123`, or add a specialty like
-              `internal medicine near hillsboro`.
+            <div className="surface-card p-5 text-sm text-warm-600">
+              No NPI matches found yet. Try one of these: <span className="font-semibold text-warm-800">hillsboro</span>,{" "}
+              <span className="font-semibold text-warm-800">97123</span>, or a specialty phrase like{" "}
+              <span className="font-semibold text-warm-800">internal medicine near hillsboro</span>.
             </div>
           )}
 
@@ -311,8 +382,8 @@ export default function ProvidersPage() {
       )}
 
       {!hasSearched && (
-        <div className="text-center py-12 bg-pampas rounded-2xl border border-sand">
-          <div className="w-16 h-16 rounded-2xl bg-terra/5 flex items-center justify-center mx-auto mb-4">
+        <div className="surface-card py-12 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] bg-terra/8">
             <Search size={28} className="text-terra" />
           </div>
           <h3 className="text-lg font-serif text-warm-800">
@@ -326,7 +397,7 @@ export default function ProvidersPage() {
               <button
                 key={example}
                 onClick={() => searchDirectory(example)}
-                className="px-3 py-1.5 text-xs font-medium text-warm-600 bg-cream rounded-lg border border-sand hover:border-terra/30 hover:text-terra transition"
+                className="chip transition hover:border-terra/30 hover:text-terra"
               >
                 {example}
               </button>
@@ -336,7 +407,7 @@ export default function ProvidersPage() {
       )}
 
       {promptImage && (
-        <div className="bg-pampas rounded-2xl border border-sand p-4">
+        <div className="surface-card p-4">
           <div className="flex items-center gap-2 mb-2">
             <ImageIcon size={14} className="text-terra" />
             <span className="text-xs font-bold text-warm-800">Prompt Artifact Used</span>
@@ -368,7 +439,7 @@ function ResultGroup({
   if (items.length === 0) return null
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
+      <div className="mb-3 flex items-center gap-2">
         <Icon size={14} className="text-terra" />
         <h2 className="text-sm font-bold text-warm-800">{title}</h2>
       </div>
@@ -376,18 +447,18 @@ function ResultGroup({
         {items.map((item) => (
           <div
             key={`${item.kind}-${item.npi}`}
-            className="bg-pampas rounded-2xl border border-sand p-5 hover:border-terra/20 hover:shadow-sm transition"
+            className="surface-card p-5 transition hover:-translate-y-0.5"
           >
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-terra/10 to-terra/5 flex items-center justify-center text-terra shrink-0">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-terra/12 to-terra/4 text-terra">
                 <Icon size={20} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-sm font-bold text-warm-800">{item.name}</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-base font-semibold text-warm-800">{item.name}</h3>
                   <span
                     className={cn(
-                      "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase",
+                      "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase",
                       item.confidence === "high"
                         ? "bg-accent/10 text-accent"
                         : "bg-yellow-100/20 text-yellow-500"
@@ -400,8 +471,8 @@ function ResultGroup({
                   </span>
                 </div>
 
-                <p className="text-xs text-terra font-semibold mt-1">{item.specialty || "General"}</p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-warm-500">
+                <p className="mt-1 text-sm font-semibold text-terra">{item.specialty || "General care"}</p>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-warm-500">
                   <span className="flex items-center gap-1">
                     <MapPin size={12} />
                     {item.fullAddress}
@@ -417,15 +488,16 @@ function ResultGroup({
                   )}
                 </div>
 
-                <span className="text-[10px] font-mono text-cloudy mt-1.5 block">
+                <span className="mt-2 block text-[10px] font-mono text-cloudy">
                   NPI: {item.npi} · Taxonomy: {item.taxonomyCode || "n/a"}
                 </span>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-2">
                   {item.phone && (
                     <a
                       href={`tel:${item.phone.replace(/[^\d+]/g, "")}`}
-                      className="text-[10px] font-semibold px-2 py-1 rounded-md border border-sand text-warm-600 hover:text-terra hover:border-terra/30 transition"
+                      className="inline-flex items-center gap-1 rounded-full border border-sand bg-white/70 px-3 py-1.5 text-[10px] font-semibold text-warm-700 transition hover:border-terra/30 hover:text-terra"
                     >
+                      <Phone size={11} />
                       Call
                     </a>
                   )}
@@ -434,24 +506,51 @@ function ResultGroup({
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.fullAddress)}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[10px] font-semibold px-2 py-1 rounded-md border border-sand text-warm-600 hover:text-terra hover:border-terra/30 transition"
+                      className="inline-flex items-center gap-1 rounded-full border border-sand bg-white/70 px-3 py-1.5 text-[10px] font-semibold text-warm-700 transition hover:border-terra/30 hover:text-terra"
                     >
+                      <ArrowRight size={11} />
                       Map
                     </a>
                   )}
                 </div>
               </div>
 
-              <AIAction
-                agentId="scheduling"
-                label="Connect"
-                prompt={`Coordinate care with ${item.name} (NPI ${item.npi}) and verify network and scheduling options.`}
-                context={`${item.kind} | ${item.specialty} | ${item.fullAddress} | ${item.phone}`}
-                variant="inline"
-              />
+              <div className="lg:self-center">
+                <AIAction
+                  agentId="scheduling"
+                  label="Connect"
+                  prompt={`Coordinate care with ${item.name} (NPI ${item.npi}) and verify network and scheduling options.`}
+                  context={`${item.kind} | ${item.specialty} | ${item.fullAddress} | ${item.phone}`}
+                  variant="inline"
+                />
+              </div>
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function StepRow({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof Search
+  title: string
+  description: string
+}) {
+  return (
+    <div className="rounded-[20px] border border-white/70 bg-white/76 p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-terra/10 text-terra">
+          <Icon size={15} />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-warm-800">{title}</p>
+          <p className="mt-1 text-sm leading-6 text-warm-500">{description}</p>
+        </div>
       </div>
     </div>
   )

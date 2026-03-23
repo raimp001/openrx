@@ -654,7 +654,6 @@ function buildTrialLocationLabel(entry?: CtGovLocation | null): string {
 
 function scoreTrialLocationEntry(entry: CtGovLocation, parsed: ParsedTrialLocationQuery): number {
   const city = normalizeTrialLocationText(entry.city)
-  const facility = normalizeTrialLocationText(entry.facility)
   const state = canonicalizeUsState(entry.state)
   const zip = entry.zip?.slice(0, 5)
 
@@ -672,7 +671,7 @@ function scoreTrialLocationEntry(entry: CtGovLocation, parsed: ParsedTrialLocati
   if (parsed.city) {
     if (city === parsed.city) {
       score += 5
-    } else if (city.includes(parsed.city) || parsed.city.includes(city) || facility.includes(parsed.city)) {
+    } else if (city.includes(parsed.city) || parsed.city.includes(city)) {
       score += 3
     } else {
       return 0

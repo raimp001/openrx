@@ -33,6 +33,15 @@ export type CronSideEffectResult = {
   warnings: string[]
 }
 
+function isMissingTableError(error: unknown): error is { code: string } {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2021"
+  )
+}
+
 function emptyResult(): CronSideEffectResult {
   return {
     executed: false,
@@ -494,25 +503,35 @@ export async function executeCronSideEffects(
   input: CronSideEffectInput
 ): Promise<CronSideEffectResult> {
   const triggeredAt = new Date(input.triggeredAtIso)
-
-  switch (input.job.id) {
-    case "appointment-reminders":
-      return executeAppointmentReminders(triggeredAt)
-    case "no-show-followup":
-      return executeNoShowFollowup(triggeredAt)
-    case "refill-reminders":
-      return executeRefillReminders(triggeredAt)
-    case "screening-reminders":
-      return executeScreeningReminders(triggeredAt)
-    case "daily-deploy":
-      return executeDailyDeploy(input.agentResponse)
-    case "adherence-check":
-    case "claim-followup":
-    case "pa-status-check":
-    case "daily-health-check":
-    case "security-audit":
-      return executeAdminDigest(input.job.id, input.agentResponse)
-    default:
-      return emptyResult()
+  try {
+    switch (input.job.id) {
+      case "appointment-reminders":
+        return executeAppointmentReminders(triggeredAt)
+      case "no-show-followup":
+        return executeNoShowFollowup(triggeredAt)
+      case "refill-reminders":
+        return executeRefillReminders(triggeredAt)
+      case "screening-reminders":
+        return executeScreeningReminders(triggeredAt)
+      case "daily-deploy":
+        return executeDailyDeploy(input.agentResponse)
+      case "adherence-check":
+      case "claim-followup":
+      case "pa-status-check":
+      case "daily-health-check":
+      case "security-audit":
+        return executeAdminDigest(input.job.id, input.agentResponse)
+      default:
+        return emptyResult()
+    }
+  } catch (error) {
+    const result = emptyResult()
+    if (isMissingTableError(error)) {
+      result.warnings.push("Core application tables are unavailable for this side-effect handler.")
+      return result
+    }
+    result.failed = true
+    result.warnings.push(error instanceof Error ? error.message : "Cron side effects failed.")
+    return result
   }
 }

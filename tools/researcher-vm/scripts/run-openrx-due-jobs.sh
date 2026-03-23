@@ -33,7 +33,10 @@ payload="$(
     "${auth_header[@]}"
 )"
 
-mapfile -t due_jobs < <(
+due_jobs=()
+while IFS= read -r job_id; do
+  [[ -n "$job_id" ]] && due_jobs+=("$job_id")
+done < <(
   python3 - "$payload" <<'PY'
 import json
 import sys

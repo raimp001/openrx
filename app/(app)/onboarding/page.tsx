@@ -33,6 +33,8 @@ interface PatientData {
   hasPcp?: boolean
   pcpName?: string
   pcpNpi?: string
+  pcpPhone?: string
+  pcpAddress?: string
   hasDentist?: boolean
   dentistName?: string
   pharmacy?: string
@@ -58,6 +60,70 @@ const AGENT_NAMES: Record<string, { name: string; icon: typeof Bot; color: strin
   maya: { name: "Maya", icon: Pill, color: "text-yellow-600" },
   cal: { name: "Cal", icon: Stethoscope, color: "text-soft-blue" },
   ivy: { name: "Ivy", icon: Activity, color: "text-accent" },
+}
+
+function normalizeSelectionText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function resolveOrdinalChoice(value: string): number | null {
+  const normalized = normalizeSelectionText(value)
+  if (!normalized) return null
+
+  const direct = Number.parseInt(normalized, 10)
+  if (Number.isFinite(direct)) return direct - 1
+
+  const ordinalMap: Record<string, number> = {
+    first: 0,
+    "option one": 0,
+    "number one": 0,
+    second: 1,
+    "option two": 1,
+    "number two": 1,
+    third: 2,
+    "option three": 2,
+    "number three": 2,
+  }
+
+  return ordinalMap[normalized] ?? null
+}
+
+function wantsSearchAgain(value: string): boolean {
+  const normalized = normalizeSelectionText(value)
+  return (
+    normalized.includes("search again") ||
+    normalized.includes("show more") ||
+    normalized.includes("different one") ||
+    normalized.includes("another one") ||
+    normalized === "different" ||
+    normalized === "another"
+  )
+}
+
+function findSelectedProvider(
+  value: string,
+  options: Array<{ name: string; npi: string; specialty?: string; fullAddress?: string; phone?: string }>
+) {
+  const ordinalChoice = resolveOrdinalChoice(value)
+  if (ordinalChoice !== null && ordinalChoice >= 0 && ordinalChoice < options.length) {
+    return options[ordinalChoice]
+  }
+
+  const normalized = normalizeSelectionText(value)
+  if (!normalized) return null
+
+  const exact = options.find((option) => normalizeSelectionText(option.name) === normalized)
+  if (exact) return exact
+
+  const fuzzy = options.find((option) => {
+    const candidate = normalizeSelectionText(option.name)
+    return candidate.includes(normalized) || normalized.includes(candidate)
+  })
+  return fuzzy || null
 }
 
 export default function OnboardingPage() {
@@ -221,19 +287,36 @@ export default function OnboardingPage() {
 
       case "pcp-confirm":
         addUser(val)
-        const idx = parseInt(val) - 1
-        if (idx >= 0 && idx < searchResults.length) {
-          const chosen = searchResults[idx]
-          setPatient(p => ({ ...p, pcpName: chosen.name, pcpNpi: chosen.npi }))
-          addAgent(`${chosen.name} — great choice!\n\nDo you have a dentist?`, "sage", [
+        if (wantsSearchAgain(val)) {
+          addAgent("No problem. Give me a different name, city, or ZIP code and I'll search again.")
+          setStep("pcp-search")
+          break
+        }
+
+        const chosen = findSelectedProvider(val, searchResults)
+        if (chosen) {
+          setPatient(p => ({
+            ...p,
+            pcpName: chosen.name,
+            pcpNpi: chosen.npi,
+            pcpPhone: chosen.phone,
+            pcpAddress: chosen.fullAddress,
+          }))
+          const phoneLine = chosen.phone ? `Phone: ${chosen.phone}` : "Phone: Not listed in NPI Registry"
+          const addressLine = chosen.fullAddress ? `Address: ${chosen.fullAddress}` : "Address: Not listed in NPI Registry"
+          addAgent(
+            `Locked in **${chosen.name}** as your PCP.\n\nHere’s the contact information I found:\n${phoneLine}\n${addressLine}\n\nThe NPI registry usually does not publish email, so phone and office address are the reliable contact methods here.\n\nDo you have a dentist?`,
+            "sage",
+            [
             { label: "Yes", value: "yes" },
             { label: "No, find me one", value: "no" },
             { label: "Skip for now", value: "skip" },
-          ])
+            ]
+          )
           setStep("has-dentist")
         } else {
-          addAgent("Let me search again. Give me a name, city, or ZIP code:")
-          setStep("pcp-search")
+          addAgent("I didn’t recognize which PCP you meant. Reply with the number, paste the doctor’s name, or say 'search again'.")
+          setStep("pcp-confirm")
         }
         break
 
@@ -388,7 +471,7 @@ export default function OnboardingPage() {
 
           addAgent(
             `You're all set!\n\nHere's your care team summary:\n\n` +
-            `**PCP:** ${patient.pcpName || "To be assigned"}\n` +
+            `**PCP:** ${patient.pcpName || "To be assigned"}${patient.pcpPhone ? `\nPhone: ${patient.pcpPhone}` : ""}${patient.pcpAddress ? `\nAddress: ${patient.pcpAddress}` : ""}\n` +
             `**Pharmacy:** ${patient.pharmacy || "To be assigned"}\n\n` +
             `**Medications:**\n${medList}\n\n` +
             `**Upcoming Screenings:**\n${screenList}\n\n` +

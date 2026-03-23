@@ -5,6 +5,9 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+User=openrx
+Group=openrx
+UMask=0077
 WorkingDirectory=/opt/openrx/current/tools/researcher-vm
 EnvironmentFile=/etc/openrx/research.env
 ExecStart=/opt/openrx/current/tools/researcher-vm/scripts/run-openrx-due-jobs.sh

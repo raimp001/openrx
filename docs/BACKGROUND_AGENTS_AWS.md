@@ -75,10 +75,12 @@ Useful entry points:
 
 - [`/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-cron.sh`](/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-cron.sh)
 - [`/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-due-jobs.sh`](/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-due-jobs.sh)
+- [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/bootstrap/setup-openrx-scheduler-vm.sh`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/bootstrap/setup-openrx-scheduler-vm.sh)
 - [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/env/openrx-research.example.env`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/env/openrx-research.example.env)
 - [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-cron@.service`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-cron@.service)
 - [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.service`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.service)
 - [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.timer`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.timer)
+- [`/Users/shardingdog/openrx/prisma/manual-migrations/20260323_core_prisma_tables.sql`](/Users/shardingdog/openrx/prisma/manual-migrations/20260323_core_prisma_tables.sql)
 
 ## Recommended cutover
 
@@ -86,6 +88,37 @@ Useful entry points:
 2. Install the scheduler timer on the AWS worker.
 3. Confirm `/api/openclaw/status` shows the AWS worker and real cron runs.
 4. Remove the Vercel cron entries after the AWS timer is stable.
+
+## Production fix sequence
+
+If the live cron route reports missing core tables like `public.users`, do this first:
+
+1. Open Supabase SQL Editor.
+2. Run [`/Users/shardingdog/openrx/prisma/manual-migrations/20260323_core_prisma_tables.sql`](/Users/shardingdog/openrx/prisma/manual-migrations/20260323_core_prisma_tables.sql).
+3. Re-run one authenticated cron request and confirm warnings about unavailable core tables disappear.
+
+Then cut over the scheduler host:
+
+```bash
+sudo bash /opt/openrx/current/tools/researcher-vm/deploy/bootstrap/setup-openrx-scheduler-vm.sh https://github.com/raimp001/openrx.git
+sudo editor /etc/openrx/research.env
+sudo -u openrx /opt/openrx/current/tools/researcher-vm/scripts/run-openrx-due-jobs.sh
+sudo systemctl start openrx-scheduler.timer
+sudo systemctl status openrx-scheduler.timer --no-pager
+sudo journalctl -u openrx-scheduler.service -n 100 --no-pager
+```
+
+Recommended `research.env` minimum:
+
+```bash
+OPENRX_BASE_URL=https://openrx.health
+OPENRX_AGENT_NOTIFY_TOKEN=<service-token>
+OPENRX_WORKER_ID=researcher-vm-prod-aws
+OPENRX_WORKER_TYPE=aws-scheduler
+AWS_REGION=us-east-1
+```
+
+After the AWS timer is stable and `/api/openclaw/status` shows only the AWS worker path you want, remove the `crons` block from [`/Users/shardingdog/openrx/vercel.json`](/Users/shardingdog/openrx/vercel.json) and redeploy.
 
 ## Guardrails
 

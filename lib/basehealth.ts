@@ -610,7 +610,7 @@ function parseTrialLocationQuery(value?: string): ParsedTrialLocationQuery {
       raw: value || "",
       normalized,
       city: "new york",
-      state: "NY",
+      state: "new york",
       zip,
       stateOnly: false,
       wantsRemote,

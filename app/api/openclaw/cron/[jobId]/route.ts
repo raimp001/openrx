@@ -10,6 +10,7 @@ import {
   writeCronIdempotency,
 } from "@/lib/openclaw/cron-dispatch"
 import { recordCronRun, upsertWorkerHeartbeat } from "@/lib/openclaw/runtime-persistence"
+import { executeCronSideEffects } from "@/lib/openclaw/cron-side-effects"
 
 interface CronRequestBody {
   message?: string
@@ -174,13 +175,22 @@ async function executeCronRequest(
     dryRun: false
     live: boolean
     providerCalled: true
-    sideEffectsExecuted: false
+    sideEffectsExecuted: boolean
+    sideEffects: {
+      notificationsCreated: number
+      emailsSent: number
+      deployTriggered: boolean
+      summaries: string[]
+      warnings: string[]
+    }
     handoff: { requested: string | null; executed: false }
     idempotency: { key: string | null; status: string }
     maxDurationSeconds: number
   }>(job.id, body.idempotencyKey)
 
   if (cached) {
+    const replayStatus =
+      cached.failureReason === "side_effect_failed" ? 502 : cached.ok ? 200 : 503
     await recordCronRun({
       jobId: job.id,
       sessionId: cached.sessionId,
@@ -190,7 +200,7 @@ async function executeCronRequest(
       dryRun: false,
       ok: cached.ok,
       failureReason: cached.failureReason,
-      httpStatus: cached.ok ? 200 : 503,
+      httpStatus: replayStatus,
       idempotencyKey: body.idempotencyKey || null,
       walletAddress: body.walletAddress || null,
       message,
@@ -211,7 +221,7 @@ async function executeCronRequest(
           status: "replayed",
         },
       },
-      { status: cached.ok ? 200 : 503 }
+      { status: replayStatus }
     )
   }
 
@@ -225,13 +235,40 @@ async function executeCronRequest(
   })
 
   const classification = classifyCronAgentResult(result)
+  const sideEffects = classification.ok
+    ? await executeCronSideEffects({
+        job,
+        sessionId,
+        triggeredAtIso: triggeredAt.effectiveIso,
+        agentResponse: result.response,
+      })
+    : {
+        executed: false,
+        failed: false,
+        notificationsCreated: 0,
+        emailsSent: 0,
+        deployTriggered: false,
+        summaries: [] as string[],
+        warnings: [] as string[],
+      }
+
+  const ok = classification.ok && !sideEffects.failed
+  const failureReason = classification.failureReason || (sideEffects.failed ? "side_effect_failed" : null)
+  const httpStatus = sideEffects.failed ? 502 : classification.httpStatus
 
   const payload = {
-    ok: classification.ok,
-    failureReason: classification.failureReason,
+    ok,
+    failureReason,
     dryRun: false,
     providerCalled: true,
-    sideEffectsExecuted: false,
+    sideEffectsExecuted: sideEffects.executed,
+    sideEffects: {
+      notificationsCreated: sideEffects.notificationsCreated,
+      emailsSent: sideEffects.emailsSent,
+      deployTriggered: sideEffects.deployTriggered,
+      summaries: sideEffects.summaries,
+      warnings: sideEffects.warnings,
+    },
     job,
     message,
     sessionId,
@@ -266,9 +303,9 @@ async function executeCronRequest(
     requestedByRole: session.role,
     authSource: session.authSource,
     dryRun: false,
-    ok: payload.ok,
-    failureReason: payload.failureReason,
-    httpStatus: classification.httpStatus,
+    ok,
+    failureReason,
+    httpStatus,
     idempotencyKey: body.idempotencyKey || null,
     walletAddress: body.walletAddress || null,
     message,
@@ -277,7 +314,7 @@ async function executeCronRequest(
   })
 
   return NextResponse.json(payload, {
-    status: classification.httpStatus,
+    status: httpStatus,
   })
 }
 

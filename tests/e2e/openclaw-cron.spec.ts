@@ -74,4 +74,24 @@ test("cron API lists jobs and supports dry-run previews", async ({ request }) =>
   expect(getDryRunData.providerCalled).toBe(false)
   expect(getDryRunData.job.id).toBe("daily-health-check")
   expect(getDryRunData.requestedBy.authSource.length).toBeGreaterThan(0)
+
+  const dueOnlyResponse = await request.get(
+    "/api/openclaw/cron?dueOnly=true&at=2026-03-23T09:00:00Z",
+    {
+      headers,
+    }
+  )
+  expect(dueOnlyResponse.ok()).toBeTruthy()
+
+  const dueOnlyData = (await dueOnlyResponse.json()) as {
+    ok: boolean
+    dueOnly: boolean
+    jobs: Array<{ id: string }>
+    evaluatedAt: string
+  }
+
+  expect(dueOnlyData.ok).toBe(true)
+  expect(dueOnlyData.dueOnly).toBe(true)
+  expect(dueOnlyData.jobs.some((job) => job.id === "refill-reminders")).toBe(true)
+  expect(dueOnlyData.evaluatedAt).toContain("2026-03-23T09:00:00.000Z")
 })

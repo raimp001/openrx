@@ -1,0 +1,11 @@
+[Unit]
+Description=Run OpenRx due background jobs every minute
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=60s
+AccuracySec=1s
+Unit=openrx-scheduler.service
+
+[Install]
+WantedBy=timers.target

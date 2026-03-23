@@ -12,6 +12,7 @@ If you want agents to keep working while your laptop sleeps, the correct shape i
 This repo now includes a dedicated background-dispatch endpoint for that purpose:
 
 - `POST /api/openclaw/cron/[jobId]`
+- `GET /api/openclaw/cron?dueOnly=true&at=<iso-minute>`
 
 The endpoint:
 
@@ -46,7 +47,7 @@ For OpenRx background agents, the practical defaults are:
 
 ## Worker responsibilities
 
-1. Schedule the job.
+1. Poll for due jobs every minute.
 2. Authenticate with `OPENRX_ADMIN_API_KEY` or `OPENRX_AGENT_NOTIFY_TOKEN`.
 3. Call the narrow OpenRx endpoint, not the patient chat surface.
 4. Log to CloudWatch.
@@ -73,8 +74,18 @@ That workspace is intentionally isolated from the Next.js app. Use it as an auxi
 Useful entry points:
 
 - [`/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-cron.sh`](/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-cron.sh)
+- [`/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-due-jobs.sh`](/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-due-jobs.sh)
 - [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/env/openrx-research.example.env`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/env/openrx-research.example.env)
 - [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-cron@.service`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-cron@.service)
+- [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.service`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.service)
+- [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.timer`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.timer)
+
+## Recommended cutover
+
+1. Keep the current Vercel cron entries only as temporary fallback.
+2. Install the scheduler timer on the AWS worker.
+3. Confirm `/api/openclaw/status` shows the AWS worker and real cron runs.
+4. Remove the Vercel cron entries after the AWS timer is stable.
 
 ## Guardrails
 

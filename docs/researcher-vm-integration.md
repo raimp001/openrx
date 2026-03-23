@@ -75,10 +75,13 @@ For the worker:
    - [`/Users/shardingdog/openrx/tools/researcher-vm`](/Users/shardingdog/openrx/tools/researcher-vm)
 2. Added OpenRx-specific VM env template:
    - [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/env/openrx-research.example.env`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/env/openrx-research.example.env)
-3. Added a VM helper script to trigger OpenRx cron jobs:
+3. Added VM helper scripts to trigger OpenRx cron jobs and poll due work:
    - [`/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-cron.sh`](/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-cron.sh)
-4. Added a systemd service template for job execution:
+   - [`/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-due-jobs.sh`](/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-due-jobs.sh)
+4. Added systemd service templates for job execution:
    - [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-cron@.service`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-cron@.service)
+   - [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.service`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.service)
+   - [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.timer`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.timer)
 5. Added a hardened OpenRx cron endpoint:
    - [`/Users/shardingdog/openrx/app/api/openclaw/cron/[jobId]/route.ts`](/Users/shardingdog/openrx/app/api/openclaw/cron/[jobId]/route.ts)
 

@@ -1,0 +1,13 @@
+[Unit]
+Description=Run OpenRx due background jobs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/openrx/current/tools/researcher-vm
+EnvironmentFile=/etc/openrx/research.env
+ExecStart=/opt/openrx/current/tools/researcher-vm/scripts/run-openrx-due-jobs.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -10,6 +10,8 @@ worker_id="${OPENRX_WORKER_ID:-}"
 worker_type="${OPENRX_WORKER_TYPE:-researcher-vm}"
 message="${OPENRX_CRON_MESSAGE:-}"
 wallet_address="${OPENRX_WALLET_ADDRESS:-}"
+triggered_at="${OPENRX_CRON_TRIGGERED_AT:-}"
+idempotency_key="${OPENRX_CRON_IDEMPOTENCY_KEY:-}"
 session_id="cron-${job_id:-job}-$(date +%s)"
 
 if [[ -z "$job_id" ]]; then
@@ -28,16 +30,20 @@ if [[ -z "$admin_key" && -z "$agent_token" ]]; then
 fi
 
 payload="$(
-  python3 - "$message" "$wallet_address" "$session_id" <<'PY'
+  python3 - "$message" "$wallet_address" "$session_id" "$triggered_at" "$idempotency_key" <<'PY'
 import json
 import sys
 
-message, wallet_address, session_id = sys.argv[1:4]
+message, wallet_address, session_id, triggered_at, idempotency_key = sys.argv[1:6]
 body = {"sessionId": session_id}
 if message:
     body["message"] = message
 if wallet_address:
     body["walletAddress"] = wallet_address
+if triggered_at:
+    body["triggeredAt"] = triggered_at
+if idempotency_key:
+    body["idempotencyKey"] = idempotency_key
 print(json.dumps(body))
 PY
 )"

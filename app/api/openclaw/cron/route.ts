@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { resolveClinicSession } from "@/lib/clinic-auth"
-import { buildCronAgentMessage, listCronJobs } from "@/lib/openclaw/cron-dispatch"
+import {
+  buildCronAgentMessage,
+  listCronJobs,
+  listDueCronJobs,
+  normalizeTriggeredAt,
+} from "@/lib/openclaw/cron-dispatch"
 import { listRecentCronRuns, listWorkerHeartbeats } from "@/lib/openclaw/runtime-persistence"
 
 export const dynamic = "force-dynamic"
@@ -26,12 +31,15 @@ export async function GET(request: NextRequest) {
     )
   }
 
+  const search = request.nextUrl.searchParams
+  const dueOnly = search.get("dueOnly") === "true"
+  const at = normalizeTriggeredAt(search.get("at") || undefined)
   const [recentRuns, workers] = await Promise.all([
     listRecentCronRuns(12),
     listWorkerHeartbeats(12),
   ])
 
-  const jobs = listCronJobs().map((job) => ({
+  const jobs = (dueOnly ? listDueCronJobs(new Date(at.effectiveIso)) : listCronJobs()).map((job) => ({
     ...job,
     previewMessage: buildCronAgentMessage(job),
   }))
@@ -40,6 +48,8 @@ export async function GET(request: NextRequest) {
     ok: true,
     jobs,
     total: jobs.length,
+    dueOnly,
+    evaluatedAt: at.effectiveIso,
     maxDurationSeconds: maxDuration,
     recentRuns,
     workers,

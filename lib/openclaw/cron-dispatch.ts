@@ -14,6 +14,7 @@ type CronFailureReason =
   | "provider_auth_failed"
   | "provider_unavailable"
   | "empty_or_fallback_response"
+  | "side_effect_failed"
 
 type CronClassification = {
   ok: boolean
@@ -92,6 +93,67 @@ export function listCronJobs() {
     ...job,
     endpoint: `/api/openclaw/cron/${job.id}`,
   }))
+}
+
+function parseCronField(
+  field: string,
+  value: number,
+  bounds: { min: number; max: number }
+): boolean {
+  const normalized = field.trim()
+  if (!normalized) return false
+
+  return normalized.split(",").some((segment) => {
+    const [base, stepRaw] = segment.trim().split("/")
+    const step = stepRaw ? Number.parseInt(stepRaw, 10) : 1
+    if (!Number.isFinite(step) || step <= 0) return false
+
+    if (base === "*") {
+      return (value - bounds.min) % step === 0
+    }
+
+    const [rangeStartRaw, rangeEndRaw] = base.includes("-")
+      ? base.split("-", 2)
+      : [base, base]
+    const rangeStart = Number.parseInt(rangeStartRaw, 10)
+    const rangeEnd = Number.parseInt(rangeEndRaw, 10)
+    if (
+      !Number.isFinite(rangeStart) ||
+      !Number.isFinite(rangeEnd) ||
+      rangeStart < bounds.min ||
+      rangeEnd > bounds.max ||
+      value < rangeStart ||
+      value > rangeEnd
+    ) {
+      return false
+    }
+
+    return (value - rangeStart) % step === 0
+  })
+}
+
+export function isCronDue(schedule: string, at: Date): boolean {
+  const parts = schedule.trim().split(/\s+/)
+  if (parts.length !== 5) return false
+
+  const [minuteExpr, hourExpr, dayOfMonthExpr, monthExpr, dayOfWeekExpr] = parts
+  const minute = at.getUTCMinutes()
+  const hour = at.getUTCHours()
+  const dayOfMonth = at.getUTCDate()
+  const month = at.getUTCMonth() + 1
+  const dayOfWeek = at.getUTCDay()
+
+  return (
+    parseCronField(minuteExpr, minute, { min: 0, max: 59 }) &&
+    parseCronField(hourExpr, hour, { min: 0, max: 23 }) &&
+    parseCronField(dayOfMonthExpr, dayOfMonth, { min: 1, max: 31 }) &&
+    parseCronField(monthExpr, month, { min: 1, max: 12 }) &&
+    parseCronField(dayOfWeekExpr, dayOfWeek, { min: 0, max: 6 })
+  )
+}
+
+export function listDueCronJobs(at: Date) {
+  return listCronJobs().filter((job) => isCronDue(job.schedule, at))
 }
 
 export function getCronJob(jobId: string): CronJob | undefined {

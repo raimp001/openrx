@@ -42,11 +42,20 @@ interface ApplicationStore {
   notifications: AdminNotification[]
 }
 
+const FALLBACK_APPLICATIONS_FILE = path.join("/tmp", "openrx-applications.json")
+let hasWarnedEphemeralApplicationsFallback = false
+
 function resolveStorePath(): string {
   const configured = process.env.OPENRX_APPLICATIONS_PATH
   if (configured) return configured
   if (process.env.NODE_ENV === "production") {
-    throw new Error("OPENRX_APPLICATIONS_PATH is required in production for durable application storage.")
+    if (!hasWarnedEphemeralApplicationsFallback) {
+      hasWarnedEphemeralApplicationsFallback = true
+      console.warn(
+        "OPENRX_APPLICATIONS_PATH is not set in production. Falling back to /tmp/openrx-applications.json (ephemeral storage). Set OPENRX_APPLICATIONS_PATH for durable application records."
+      )
+    }
+    return FALLBACK_APPLICATIONS_FILE
   }
   return path.join(process.cwd(), ".openrx-applications.json")
 }

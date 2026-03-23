@@ -9,7 +9,7 @@ import {
   readCronIdempotency,
   writeCronIdempotency,
 } from "@/lib/openclaw/cron-dispatch"
-import { recordCronRun } from "@/lib/openclaw/runtime-persistence"
+import { recordCronRun, upsertWorkerHeartbeat } from "@/lib/openclaw/runtime-persistence"
 
 interface CronRequestBody {
   message?: string
@@ -18,14 +18,51 @@ interface CronRequestBody {
   dryRun?: boolean
   triggeredAt?: string
   idempotencyKey?: string
+  workerId?: string
+  workerType?: string
 }
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
-export async function POST(
+function parseBoolean(value: string | null): boolean | undefined {
+  if (value == null || value === "") return undefined
+  const normalized = value.trim().toLowerCase()
+  if (["1", "true", "yes"].includes(normalized)) return true
+  if (["0", "false", "no"].includes(normalized)) return false
+  return undefined
+}
+
+function getDefaultWorkerId(jobId: string): string {
+  return process.env.OPENRX_WORKER_ID?.trim() || `vercel-cron-${jobId}`
+}
+
+async function maybeRecordWorkerHeartbeat(
+  body: CronRequestBody,
+  jobId: string,
+  authSource: string
+) {
+  if (!(authSource === "agent_token" || authSource === "admin_api_key")) return
+
+  const workerId = (body.workerId || "").trim() || getDefaultWorkerId(jobId)
+  const workerType = (body.workerType || "").trim() || "vercel-cron"
+
+  await upsertWorkerHeartbeat({
+    workerId,
+    workerType,
+    status: "running",
+    metadata: {
+      lastJobId: jobId,
+      lastTriggerSource: authSource,
+      recordedAt: new Date().toISOString(),
+    },
+  })
+}
+
+async function executeCronRequest(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  jobIdParam: string,
+  body: CronRequestBody
 ) {
   const session = await resolveClinicSession(request)
   const authorized =
@@ -40,7 +77,7 @@ export async function POST(
     )
   }
 
-  const jobId = decodeURIComponent(params.jobId || "")
+  const jobId = decodeURIComponent(jobIdParam || "")
   const job = getCronJob(jobId)
 
   if (!job) {
@@ -50,16 +87,7 @@ export async function POST(
     )
   }
 
-  let body: CronRequestBody = {}
-  try {
-    const raw = await request.text()
-    body = raw ? (JSON.parse(raw) as CronRequestBody) : {}
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON payload." },
-      { status: 400 }
-    )
-  }
+  await maybeRecordWorkerHeartbeat(body, job.id, session.authSource)
 
   const triggeredAt = normalizeTriggeredAt(body.triggeredAt)
   const message = buildCronAgentMessage(job, {
@@ -251,4 +279,40 @@ export async function POST(
   return NextResponse.json(payload, {
     status: classification.httpStatus,
   })
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { jobId: string } }
+) {
+  let body: CronRequestBody = {}
+  try {
+    const raw = await request.text()
+    body = raw ? (JSON.parse(raw) as CronRequestBody) : {}
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON payload." },
+      { status: 400 }
+    )
+  }
+
+  return executeCronRequest(request, params.jobId, body)
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { jobId: string } }
+) {
+  const search = request.nextUrl.searchParams
+  const body: CronRequestBody = {
+    message: search.get("message") || undefined,
+    sessionId: search.get("sessionId") || undefined,
+    walletAddress: search.get("walletAddress") || undefined,
+    dryRun: parseBoolean(search.get("dryRun")),
+    triggeredAt: search.get("triggeredAt") || undefined,
+    idempotencyKey: search.get("idempotencyKey") || undefined,
+    workerId: search.get("workerId") || undefined,
+    workerType: search.get("workerType") || undefined,
+  }
+  return executeCronRequest(request, params.jobId, body)
 }

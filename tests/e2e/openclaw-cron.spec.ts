@@ -52,4 +52,26 @@ test("cron API lists jobs and supports dry-run previews", async ({ request }) =>
   expect(dryRunData.triggeredAt.effectiveIso.length).toBeGreaterThan(10)
   expect(dryRunData.message.toLowerCase()).toContain("refill")
   expect(dryRunData.idempotency.status).toBe("preview_only")
+
+  const getDryRunResponse = await request.get(
+    "/api/openclaw/cron/daily-health-check?dryRun=true&workerId=playwright-worker&workerType=test-cron",
+    {
+      headers,
+    }
+  )
+  expect(getDryRunResponse.ok()).toBeTruthy()
+
+  const getDryRunData = (await getDryRunResponse.json()) as {
+    ok: boolean
+    dryRun: boolean
+    providerCalled: boolean
+    job: { id: string }
+    requestedBy: { authSource: string }
+  }
+
+  expect(getDryRunData.ok).toBe(true)
+  expect(getDryRunData.dryRun).toBe(true)
+  expect(getDryRunData.providerCalled).toBe(false)
+  expect(getDryRunData.job.id).toBe("daily-health-check")
+  expect(getDryRunData.requestedBy.authSource.length).toBeGreaterThan(0)
 })

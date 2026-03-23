@@ -1,5 +1,47 @@
 {
   "framework": "nextjs",
   "buildCommand": "next build",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "crons": [
+    {
+      "path": "/api/openclaw/cron/appointment-reminders",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/openclaw/cron/adherence-check",
+      "schedule": "0 10 * * 1,4"
+    },
+    {
+      "path": "/api/openclaw/cron/claim-followup",
+      "schedule": "0 9 * * 1-5"
+    },
+    {
+      "path": "/api/openclaw/cron/pa-status-check",
+      "schedule": "0 14 * * 1-5"
+    },
+    {
+      "path": "/api/openclaw/cron/no-show-followup",
+      "schedule": "0 17 * * 1-5"
+    },
+    {
+      "path": "/api/openclaw/cron/refill-reminders",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/openclaw/cron/screening-reminders",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/openclaw/cron/daily-health-check",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/openclaw/cron/daily-deploy",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/openclaw/cron/security-audit",
+      "schedule": "0 7 * * 1"
+    }
+  ]
 }

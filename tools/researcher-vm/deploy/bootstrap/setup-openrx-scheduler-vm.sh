@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "$(uname -s)" != "Linux" ]]; then
+  printf '%s\n' "This bootstrap script must be run on a Linux EC2 host, not on macOS." >&2
+  exit 1
+fi
+
 if [[ "${EUID}" -ne 0 ]]; then
   printf '%s\n' "Run this script as root." >&2
   exit 1
@@ -22,6 +27,27 @@ as_user() {
   su -s /bin/bash "$service_user" -c "$*"
 }
 
+install_system_packages() {
+  if command -v apt-get >/dev/null 2>&1; then
+    apt-get update
+    apt-get install -y ca-certificates curl git python3 rsync
+    return
+  fi
+
+  if command -v dnf >/dev/null 2>&1; then
+    dnf install -y ca-certificates curl git python3 rsync
+    return
+  fi
+
+  if command -v yum >/dev/null 2>&1; then
+    yum install -y ca-certificates curl git python3 rsync
+    return
+  fi
+
+  printf '%s\n' "Unsupported package manager. Install curl, git, python3, and rsync manually." >&2
+  exit 1
+}
+
 sync_repo() {
   if [[ -d "$repo_url" ]]; then
     mkdir -p "$app_root"
@@ -39,8 +65,7 @@ sync_repo() {
   fi
 }
 
-apt-get update
-apt-get install -y ca-certificates curl git python3 rsync
+install_system_packages
 
 install -d -m 0755 /opt/openrx
 install -d -m 0750 "$env_root"

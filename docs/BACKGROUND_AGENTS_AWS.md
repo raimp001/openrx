@@ -99,8 +99,26 @@ If the live cron route reports missing core tables like `public.users`, do this 
 
 Then cut over the scheduler host:
 
+Important:
+
+- run these commands on the Linux EC2 host over SSH
+- do not run the bootstrap on your Mac
+- the bootstrap now supports Ubuntu/Debian (`apt-get`) and Amazon Linux (`dnf` / `yum`)
+
+```bash
+git clone https://github.com/raimp001/openrx.git /tmp/openrx-bootstrap
+sudo bash /tmp/openrx-bootstrap/tools/researcher-vm/deploy/bootstrap/setup-openrx-scheduler-vm.sh https://github.com/raimp001/openrx.git
+```
+
+If you already cloned the repo on the EC2 host, this also works:
+
 ```bash
 sudo bash /opt/openrx/current/tools/researcher-vm/deploy/bootstrap/setup-openrx-scheduler-vm.sh https://github.com/raimp001/openrx.git
+```
+
+Then:
+
+```bash
 sudo editor /etc/openrx/research.env
 sudo -u openrx /opt/openrx/current/tools/researcher-vm/scripts/run-openrx-due-jobs.sh
 sudo systemctl start openrx-scheduler.timer

@@ -333,7 +333,16 @@ export async function POST(
     )
   }
 
-  return executeCronRequest(request, params.jobId, body)
+  try {
+    return await executeCronRequest(request, params.jobId, body)
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unexpected background job failure."
+    return NextResponse.json(
+      { ok: false, failureReason: "unhandled_error", error: message },
+      { status: 500 }
+    )
+  }
 }
 
 export async function GET(
@@ -351,5 +360,14 @@ export async function GET(
     workerId: search.get("workerId") || undefined,
     workerType: search.get("workerType") || undefined,
   }
-  return executeCronRequest(request, params.jobId, body)
+  try {
+    return await executeCronRequest(request, params.jobId, body)
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unexpected background job failure."
+    return NextResponse.json(
+      { ok: false, failureReason: "unhandled_error", error: message },
+      { status: 500 }
+    )
+  }
 }

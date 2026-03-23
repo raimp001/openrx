@@ -506,21 +506,21 @@ export async function executeCronSideEffects(
   try {
     switch (input.job.id) {
       case "appointment-reminders":
-        return executeAppointmentReminders(triggeredAt)
+        return await executeAppointmentReminders(triggeredAt)
       case "no-show-followup":
-        return executeNoShowFollowup(triggeredAt)
+        return await executeNoShowFollowup(triggeredAt)
       case "refill-reminders":
-        return executeRefillReminders(triggeredAt)
+        return await executeRefillReminders(triggeredAt)
       case "screening-reminders":
-        return executeScreeningReminders(triggeredAt)
+        return await executeScreeningReminders(triggeredAt)
       case "daily-deploy":
-        return executeDailyDeploy(input.agentResponse)
+        return await executeDailyDeploy(input.agentResponse)
       case "adherence-check":
       case "claim-followup":
       case "pa-status-check":
       case "daily-health-check":
       case "security-audit":
-        return executeAdminDigest(input.job.id, input.agentResponse)
+        return await executeAdminDigest(input.job.id, input.agentResponse)
       default:
         return emptyResult()
     }

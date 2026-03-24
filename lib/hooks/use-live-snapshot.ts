@@ -14,7 +14,9 @@ interface UseLiveSnapshotResult {
 
 export function useLiveSnapshot(): UseLiveSnapshotResult {
   const { walletAddress } = useWalletIdentity()
-  const [snapshot, setSnapshot] = useState<LiveSnapshot>(() => createEmptyLiveSnapshot(walletAddress || null))
+  const demoWalletAddress = process.env.NEXT_PUBLIC_DEVELOPER_WALLET || undefined
+  const activeWalletAddress = walletAddress || demoWalletAddress
+  const [snapshot, setSnapshot] = useState<LiveSnapshot>(() => createEmptyLiveSnapshot(activeWalletAddress || null))
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -24,7 +26,7 @@ export function useLiveSnapshot(): UseLiveSnapshotResult {
 
     try {
       const params = new URLSearchParams()
-      if (walletAddress) params.set("walletAddress", walletAddress)
+      if (activeWalletAddress) params.set("walletAddress", activeWalletAddress)
 
       const response = await fetch(`/api/live/patient-snapshot?${params.toString()}`, {
         cache: "no-store",
@@ -37,12 +39,12 @@ export function useLiveSnapshot(): UseLiveSnapshotResult {
       const payload = (await response.json()) as LiveSnapshot
       setSnapshot(payload)
     } catch (issue) {
-      setSnapshot(createEmptyLiveSnapshot(walletAddress || null))
+      setSnapshot(createEmptyLiveSnapshot(activeWalletAddress || null))
       setError(issue instanceof Error ? issue.message : "Failed to load patient snapshot.")
     } finally {
       setLoading(false)
     }
-  }, [walletAddress])
+  }, [activeWalletAddress])
 
   useEffect(() => {
     void load()

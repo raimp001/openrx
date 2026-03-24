@@ -6,14 +6,12 @@ import {
   Calendar,
   CheckCircle2,
   Heart,
-  Lock,
   MessageSquare,
   Pill,
   Receipt,
   Search,
   ShieldCheck,
   Sparkles,
-  Stethoscope,
   Users,
   Zap,
 } from "lucide-react"
@@ -157,10 +155,10 @@ export default function LandingPage() {
 
           <div className="flex items-center gap-2">
             <Link
-              href="/chat"
-              className="hidden rounded-full border border-sand/70 bg-white/80 px-4 py-2 text-xs font-semibold text-warm-700 transition hover:border-terra/20 hover:text-warm-800 sm:inline-flex"
+              href="/onboarding"
+              className="hidden rounded-full border border-black/[0.07] bg-white/88 px-4 py-2 text-xs font-semibold text-warm-700 transition hover:border-terra/20 hover:text-warm-800 sm:inline-flex"
             >
-              Try AI Concierge
+              Start care setup
             </Link>
             <Link
               href="/dashboard"
@@ -178,14 +176,14 @@ export default function LandingPage() {
           <div>
             <span className="eyebrow-pill mb-5">
               <Sparkles size={11} />
-              OpenRx care operating system
+              Prevention-first care operating system
             </span>
             <h1 className="max-w-4xl text-[clamp(2.8rem,5vw,4.9rem)] font-serif leading-[0.98] tracking-[-0.055em] text-warm-800">
-              One calm, clear interface for the entire care journey.
+              One coherent system for screening, prevention, and care access.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-warm-600">
-              OpenRx brings provider search, scheduling, screening, medications, billing, and AI coordination into one
-              clinical workspace that feels deliberate instead of fragmented.
+              OpenRx helps patients move from uncertainty to next action: find the right clinician, run age-appropriate
+              screening, track medications, manage coverage friction, and coordinate follow-up without bouncing between portals.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -197,19 +195,19 @@ export default function LandingPage() {
                 <ArrowRight size={14} />
               </Link>
               <Link
-                href="/providers"
+                href="/screening"
                 className="inline-flex items-center gap-2 rounded-full border border-sand/70 bg-white/80 px-6 py-3 text-sm font-semibold text-warm-700 transition hover:border-terra/20 hover:text-warm-800"
               >
-                <Stethoscope size={14} className="text-terra-dark" />
-                Find care nearby
+                <Heart size={14} className="text-terra-dark" />
+                Preview prevention flow
               </Link>
             </div>
 
             <div className="mt-8 flex flex-wrap gap-2">
               {[
-                { icon: Search, label: "Natural-language search" },
-                { icon: Lock, label: "Privacy-first" },
-                { icon: Activity, label: "Live care status" },
+                { icon: Search, label: "Natural-language provider search" },
+                { icon: Heart, label: "Early detection and prevention" },
+                { icon: Activity, label: "Live care coordination" },
                 { icon: Bot, label: `${OPENCLAW_CONFIG.agents.length} AI specialists` },
               ].map((item) => (
                 <span key={item.label} className="metric-chip">
@@ -222,14 +220,14 @@ export default function LandingPage() {
 
           <div className="surface-card relative overflow-hidden p-5 sm:p-6">
             <div className="pointer-events-none absolute inset-0">
-              <div className="absolute -right-16 top-0 h-40 w-40 rounded-full bg-terra/10 blur-3xl" />
-              <div className="absolute -left-12 bottom-0 h-36 w-36 rounded-full bg-accent/8 blur-3xl" />
+              <div className="absolute -right-16 top-0 h-40 w-40 rounded-full bg-terra/8 blur-3xl" />
+              <div className="absolute -left-12 bottom-0 h-36 w-36 rounded-full bg-accent/6 blur-3xl" />
             </div>
             <div className="relative">
-              <div className="flex items-center justify-between border-b border-sand/60 pb-4">
+              <div className="flex items-center justify-between border-b border-black/[0.06] pb-4">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy">Today in your care desk</p>
-                  <p className="mt-1 text-base font-semibold text-warm-800">A single operating view for care</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy">What the patient sees</p>
+                  <p className="mt-1 text-base font-semibold text-warm-800">A calmer care desk with real next steps</p>
                 </div>
                 <span className="metric-chip text-accent">
                   <CheckCircle2 size={12} />
@@ -241,7 +239,7 @@ export default function LandingPage() {
                 {previewItems.map((item) => (
                   <div
                     key={item.title}
-                    className="flex items-start gap-3 rounded-[22px] border border-sand/70 bg-white/78 px-4 py-3.5 shadow-sm"
+                    className="flex items-start gap-3 rounded-[22px] border border-black/[0.06] bg-white/84 px-4 py-3.5"
                   >
                     <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${item.bg}`}>
                       <item.icon size={16} className={item.tone} />
@@ -256,8 +254,8 @@ export default function LandingPage() {
 
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 <StatCard value={`${OPENCLAW_CONFIG.agents.length}`} label="AI specialists" />
-                <StatCard value="Live" label="NPI data" />
-                <StatCard value="1" label="Care workspace" />
+                <StatCard value="Screening" label="Prevention flow" />
+                <StatCard value="Live" label="Care network" />
               </div>
             </div>
           </div>
@@ -290,7 +288,7 @@ export default function LandingPage() {
         <section className="mx-auto w-full max-w-7xl px-6 py-20">
           <div className="mb-10 max-w-2xl">
             <span className="eyebrow-pill">Platform</span>
-            <h2 className="mt-4 text-4xl font-serif text-warm-800">Everything important stays on one visual system.</h2>
+            <h2 className="mt-4 text-[clamp(2rem,4vw,3.4rem)] font-semibold tracking-[-0.06em] text-warm-800">Everything important stays on one visual system.</h2>
             <p className="mt-4 text-base leading-8 text-warm-600">
               No abrupt theme changes, no novelty dashboards, no mismatched interface language between search, screening,
               billing, and care coordination.
@@ -321,7 +319,7 @@ export default function LandingPage() {
             <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="max-w-2xl">
                 <span className="eyebrow-pill">OpenClaw network</span>
-                <h2 className="mt-4 text-4xl font-serif text-warm-800">
+                <h2 className="mt-4 text-[clamp(2rem,4vw,3.4rem)] font-semibold tracking-[-0.06em] text-warm-800">
                   {OPENCLAW_CONFIG.agents.length} specialists, one shared care desk.
                 </h2>
                 <p className="mt-4 text-base leading-8 text-warm-600">
@@ -349,7 +347,7 @@ export default function LandingPage() {
         <section className="mx-auto w-full max-w-7xl px-6 py-20">
           <div className="mb-10 text-center">
             <span className="eyebrow-pill">How it works</span>
-            <h2 className="mt-4 text-4xl font-serif text-warm-800">The flow should feel simple even when the system is not.</h2>
+            <h2 className="mt-4 text-[clamp(2rem,4vw,3.4rem)] font-semibold tracking-[-0.06em] text-warm-800">The flow should feel simple even when the system is not.</h2>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -374,7 +372,7 @@ export default function LandingPage() {
               <Heart size={11} />
               Start with one calm system
             </span>
-            <h2 className="mt-5 text-4xl font-serif text-warm-800 lg:text-5xl">
+            <h2 className="mt-5 text-[clamp(2.4rem,4vw,4.2rem)] font-semibold tracking-[-0.06em] text-warm-800">
               OpenRx should feel like one product from the first page onward.
             </h2>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-warm-600">
@@ -440,7 +438,7 @@ export default function LandingPage() {
 
 function StatCard({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-[22px] border border-sand/70 bg-white/82 px-4 py-3 shadow-sm">
+    <div className="rounded-[22px] border border-black/[0.06] bg-white/84 px-4 py-3">
       <p className="text-xl font-semibold leading-none text-warm-800">{value}</p>
       <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-cloudy">{label}</p>
     </div>

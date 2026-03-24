@@ -121,7 +121,6 @@ export default function DashboardPage() {
     : 100
   const deductions = (abnormalLabCount * 5) + (dueVaccines.filter(v => v.status === "overdue").length * 8) + (lowAdherenceRx.length * 10)
   const healthScore = Math.max(0, Math.min(100, avgAdherence - deductions))
-  const healthScoreLabel = healthScore >= 80 ? "Good" : healthScore >= 60 ? "Fair" : "Needs Attention"
   const healthScoreColor = healthScore >= 80 ? "text-accent" : healthScore >= 60 ? "text-yellow-600" : "text-soft-red"
 
   const preventiveTasksTotal = 3
@@ -264,107 +263,125 @@ export default function DashboardPage() {
       {/* ── Hero section ────────────────────────────────── */}
       <section className="surface-card relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -right-16 top-0 h-56 w-56 rounded-full bg-terra/10 blur-3xl" />
-          <div className="absolute bottom-[-4rem] left-[-2rem] h-40 w-40 rounded-full bg-accent/8 blur-3xl" />
+          <div className="absolute -right-20 top-0 h-56 w-56 rounded-full bg-terra/8 blur-3xl" />
+          <div className="absolute bottom-[-4rem] left-[-2rem] h-40 w-40 rounded-full bg-accent/6 blur-3xl" />
         </div>
-        <div className="relative px-5 py-5 lg:px-7 lg:py-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-warm-500">
-                {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-              </p>
-              <h1 className="text-4xl leading-[1.02] text-warm-800">
-                {greeting}{firstName ? ", " : ""}<span className="text-gradient-terra">{firstName}</span>
-              </h1>
-              <p className="mt-3 max-w-xl text-sm leading-7 text-warm-500">
-                {actionItems.length > 0
-                  ? `${actionItems.length} item${actionItems.length > 1 ? "s" : ""} need your attention today.`
-                  : "You're all caught up — great job staying on top of your health."}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="metric-chip">
-                  <Calendar size={11} className="text-terra" />
-                  {upcomingApts.length} upcoming visit{upcomingApts.length === 1 ? "" : "s"}
-                </span>
-                <span className="metric-chip">
-                  <Pill size={11} className="text-accent" />
-                  {myRx.length} active medication{myRx.length === 1 ? "" : "s"}
-                </span>
-                <span className="metric-chip">
-                  <FlaskConical size={11} className="text-soft-blue" />
-                  {pendingLabs.length} pending lab{pendingLabs.length === 1 ? "" : "s"}
-                </span>
-              </div>
-            </div>
+        <div className="relative grid gap-5 px-5 py-5 lg:grid-cols-[1.4fr_0.6fr] lg:px-7 lg:py-7">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-warm-500">
+              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+            </p>
+            <h1 className="mt-3 max-w-3xl text-[clamp(2.2rem,3.8vw,4.2rem)] font-semibold leading-[0.96] tracking-[-0.07em] text-warm-800">
+              {greeting}
+              {firstName ? `, ${firstName}` : ""}.
+            </h1>
+            <p className="mt-4 max-w-2xl text-[15px] leading-7 text-warm-600">
+              {actionItems.length > 0
+                ? `${actionItems.length} priority item${actionItems.length > 1 ? "s" : ""} need attention today. OpenRx keeps the next clinical, operational, and preventive steps in one view.`
+                : "You are caught up today. OpenRx keeps prevention, follow-up, and logistics visible before they become urgent."}
+            </p>
 
-            {/* Health Score Ring */}
-            <div className="hidden sm:flex flex-col items-center gap-1 shrink-0">
-              <div className="relative">
-                <HealthRing score={healthScore} size={88} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={cn("text-lg font-bold leading-none", healthScoreColor)}>{healthScore}</span>
-                  <span className="text-[8px] text-cloudy uppercase tracking-wide">/100</span>
-                </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-[24px] border border-black/[0.06] bg-white/84 px-4 py-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy">Upcoming</p>
+                <p className="mt-3 text-2xl font-semibold leading-none text-warm-800">{upcomingApts.length}</p>
+                <p className="mt-2 text-[11px] leading-5 text-warm-600">
+                  {upcomingApts[0]
+                    ? `${formatDate(upcomingApts[0].scheduled_at)} · ${formatTime(upcomingApts[0].scheduled_at)}`
+                    : "No visits booked yet"}
+                </p>
               </div>
-              <p className={cn("text-[10px] font-bold uppercase tracking-wide", healthScoreColor)}>{healthScoreLabel}</p>
+              <div className="rounded-[24px] border border-black/[0.06] bg-white/84 px-4 py-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy">Prevention</p>
+                <p className="mt-3 text-2xl font-semibold leading-none text-warm-800">
+                  {preventiveTasksDone}/{preventiveTasksTotal}
+                </p>
+                <p className="mt-2 text-[11px] leading-5 text-warm-600">
+                  {dueVaccines.length > 0 ? `${dueVaccines.length} vaccine item${dueVaccines.length > 1 ? "s" : ""} due` : "No overdue preventive items"}
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-black/[0.06] bg-white/84 px-4 py-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy">Inbox</p>
+                <p className="mt-3 text-2xl font-semibold leading-none text-warm-800">{unreadCount}</p>
+                <p className="mt-2 text-[11px] leading-5 text-warm-600">
+                  {unreadCount > 0 ? "Messages waiting from your care team" : "No new conversations"}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Priority Actions */}
-          {actionItems.length > 0 ? (
-            <div className="mt-5 space-y-2">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Zap size={11} className="text-terra" />
-                <span className="text-[10px] font-bold text-warm-500 uppercase tracking-widest">Today&rsquo;s Actions</span>
+          <div className="surface-muted p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy">Health signal</p>
+                <p className="mt-2 text-sm font-semibold text-warm-800">Current prevention posture</p>
+                <p className="mt-2 text-[12px] leading-6 text-warm-600">
+                  Adherence, labs, vaccines, and follow-up are condensed into one directional score for the day.
+                </p>
               </div>
+              <div className="relative shrink-0">
+                <HealthRing score={healthScore} size={84} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={cn("text-lg font-bold leading-none", healthScoreColor)}>{healthScore}</span>
+                  <span className="text-[8px] uppercase tracking-[0.16em] text-cloudy">score</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              <div className="flex items-center justify-between text-[11px] text-warm-600">
+                <span>Preventive plan</span>
+                <span className="font-semibold text-warm-700">
+                  {preventiveTasksDone} of {preventiveTasksTotal} complete
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-sand/50">
+                <div
+                  className="h-full rounded-full bg-terra transition-all duration-700"
+                  style={{ width: `${Math.round((preventiveTasksDone / preventiveTasksTotal) * 100)}%` }}
+                />
+              </div>
+              <div className="grid gap-2">
+                <QuickHeroLink href="/screening" icon={Heart} label="Run screening" detail="Risk, prevention, hereditary review" />
+                <QuickHeroLink href="/providers" icon={Search} label="Find care" detail="Locate the next clinician or center" />
+                <QuickHeroLink href="/chat" icon={Bot} label="Ask AI concierge" detail="Turn questions into next actions" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-black/[0.06] px-5 py-5 lg:px-7">
+          <div className="mb-3 flex items-center gap-2">
+            <Zap size={12} className="text-terra" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-warm-500">Priorities today</span>
+          </div>
+          {actionItems.length > 0 ? (
+            <div className="grid gap-2 lg:grid-cols-2">
               {actionItems.map((item, i) => {
                 const Icon = item.icon
                 return (
-                  <Link key={i} href={item.href}
-                    className={cn("group flex items-center gap-3 rounded-[20px] border px-3.5 py-3 transition-all hover:shadow-sm", item.bg, item.border)}
+                  <Link
+                    key={i}
+                    href={item.href}
+                    className="group flex items-center gap-3 rounded-[22px] border border-black/[0.06] bg-white/84 px-4 py-3 transition-all hover:border-terra/18 hover:bg-white"
                   >
-                    <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", item.bg)}>
-                      <Icon size={12} className={item.color} />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#f6f2ea]">
+                      <Icon size={14} className={item.color} />
                     </div>
-                    <span className="flex-1 text-xs font-medium text-warm-700 group-hover:text-warm-900 transition-colors">{item.label}</span>
-                    <ChevronRight size={12} className="text-cloudy shrink-0 group-hover:text-terra transition-colors" />
+                    <span className="flex-1 text-[12px] font-medium leading-6 text-warm-700 group-hover:text-warm-900">
+                      {item.label}
+                    </span>
+                    <ChevronRight size={13} className="text-cloudy shrink-0 group-hover:text-terra transition-colors" />
                   </Link>
                 )
               })}
             </div>
           ) : (
-            <div className="mt-5 flex items-center gap-2 rounded-[20px] border border-accent/15 bg-accent/5 px-3.5 py-3">
+            <div className="flex items-center gap-2 rounded-[20px] border border-accent/12 bg-white/82 px-4 py-3">
               <CheckCircle2 size={14} className="text-accent shrink-0" />
-              <span className="text-xs font-semibold text-accent">All caught up — no pending actions</span>
+              <span className="text-xs font-semibold text-warm-700">No urgent items right now.</span>
             </div>
           )}
-
-          {/* Preventive progress bar */}
-          <div className="mt-5 rounded-[22px] border border-white/80 bg-white/65 px-4 py-3">
-            <div className="flex items-center justify-between text-xs text-warm-700 mb-2">
-              <span className="font-semibold">Preventive Care Plan</span>
-              <span className="text-warm-500 font-medium">{preventiveTasksDone} of {preventiveTasksTotal} complete</span>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-sand/50">
-              <div className="h-full rounded-full bg-terra transition-all duration-700"
-                style={{ width: `${Math.round((preventiveTasksDone / preventiveTasksTotal) * 100)}%` }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Quick links */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-sand/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.35),rgba(248,240,230,0.55))]">
-          {[
-            { href: "/providers", icon: Search, label: "Find Care" },
-            { href: "/screening", icon: Heart, label: "Screening" },
-            { href: "/billing", icon: Receipt, label: "Billing" },
-            { href: "/chat", icon: Bot, label: "Ask AI" },
-          ].map(({ href, icon: Icon, label }) => (
-            <Link key={label} href={href}
-              className="flex items-center gap-2 px-4 py-3 text-xs font-semibold text-warm-600 hover:text-terra hover:bg-white/50 transition border-r border-sand/40 last:border-r-0">
-              <Icon size={13} className="text-terra" /> {label}
-            </Link>
-          ))}
         </div>
       </section>
 
@@ -396,14 +413,13 @@ export default function DashboardPage() {
           },
         ].map((card) => (
           <Link key={card.label} href={card.href}
-            className={cn("surface-card relative overflow-hidden p-4 transition-all hover:-translate-y-0.5", card.accentBorder)}>
-            <div className={cn("absolute inset-x-0 top-0 h-0.5 rounded-t-2xl", card.accentBg)} />
-            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center mb-3", card.accent8)}>
+            className={cn("surface-card relative overflow-hidden p-4 transition-all", card.accentBorder)}>
+            <div className={cn("w-9 h-9 rounded-2xl flex items-center justify-center mb-4", card.accent8)}>
               <card.icon size={16} className={card.color} />
             </div>
-            <div className="text-2xl font-bold text-warm-800 leading-none">{card.value}</div>
-            <div className="text-xs font-medium text-warm-600 mt-1">{card.label}</div>
-            <div className="text-[10px] text-cloudy mt-0.5">{card.sub}</div>
+            <div className="text-2xl font-semibold text-warm-800 leading-none">{card.value}</div>
+            <div className="mt-2 text-xs font-semibold text-warm-700">{card.label}</div>
+            <div className="mt-1 text-[10px] leading-5 text-cloudy">{card.sub}</div>
           </Link>
         ))}
       </div>
@@ -706,5 +722,33 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function QuickHeroLink({
+  href,
+  icon: Icon,
+  label,
+  detail,
+}: {
+  href: string
+  icon: React.ElementType
+  label: string
+  detail: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-[20px] border border-black/[0.06] bg-white/84 px-3.5 py-3 transition hover:border-terra/18 hover:bg-white"
+    >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#f6f2ea]">
+        <Icon size={14} className="text-terra" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[12px] font-semibold text-warm-800">{label}</p>
+        <p className="mt-1 truncate text-[10px] text-warm-500">{detail}</p>
+      </div>
+      <ChevronRight size={13} className="text-cloudy" />
+    </Link>
   )
 }

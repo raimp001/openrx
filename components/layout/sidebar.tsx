@@ -136,10 +136,22 @@ export default function Sidebar() {
       snapshot.labResults.length > 0
   )
 
-  const summaryCards = [
-    { label: "Attention", value: attentionCount, tone: attentionCount > 0 ? "text-terra-dark" : "text-warm-700" },
-    { label: "Visits", value: snapshot.appointments.length, tone: "text-warm-800" },
-    { label: "Messages", value: badges.unreadMessages, tone: badges.unreadMessages > 0 ? "text-accent" : "text-warm-700" },
+  const summaryRows = [
+    {
+      label: "Attention",
+      value: attentionCount > 0 ? `${attentionCount} item${attentionCount > 1 ? "s" : ""}` : "All clear",
+      tone: attentionCount > 0 ? "text-terra-dark" : "text-warm-700",
+    },
+    {
+      label: "Visits",
+      value: nextAppointment ? `${formatDate(nextAppointment.scheduled_at)} · ${formatTime(nextAppointment.scheduled_at)}` : "No visit scheduled",
+      tone: "text-warm-700",
+    },
+    {
+      label: "Inbox",
+      value: badges.unreadMessages > 0 ? `${badges.unreadMessages} unread` : "Quiet",
+      tone: badges.unreadMessages > 0 ? "text-accent" : "text-warm-700",
+    },
   ]
 
   useEffect(() => {
@@ -157,10 +169,10 @@ export default function Sidebar() {
 
   const sidebarContent = (
     <>
-      <div className="relative overflow-hidden border-b border-sand/70 px-5 pb-5 pt-5">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(224,91,67,0.14),transparent_38%),radial-gradient(circle_at_100%_16%,rgba(22,142,104,0.1),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.7),transparent)]" />
+      <div className="relative overflow-hidden border-b border-black/[0.06] px-5 pb-5 pt-5">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(224,91,67,0.08),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.72),transparent)]" />
         <div className="relative flex items-center gap-3">
-          <BrandMark className="shadow-[0_10px_30px_rgba(224,91,67,0.18)]" size="sm" />
+          <BrandMark size="sm" />
           <BrandWordmark
             className="min-w-0"
             titleClassName="text-[17px] font-semibold text-warm-800"
@@ -175,36 +187,36 @@ export default function Sidebar() {
           </button>
         </div>
 
-        <div className="relative mt-5 rounded-[26px] border border-sand/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(249,243,234,0.92))] p-4 shadow-[0_18px_40px_rgba(17,34,30,0.08)]">
+        <div className="relative mt-5 rounded-[28px] border border-black/[0.07] bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(246,241,233,0.94))] p-4 shadow-[0_16px_36px_rgba(17,34,30,0.06)]">
           {showActivityPanel ? (
             <>
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,rgba(224,91,67,0.12),rgba(242,132,103,0.18))] ring-1 ring-terra/12">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-black/[0.05] bg-white/88">
                   <span className="text-sm font-semibold text-warm-800">
                     {(snapshot.patient?.full_name || "OpenRx").charAt(0)}
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cloudy/90">Care brief</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cloudy/90">Patient summary</p>
                   <p className="truncate text-sm font-semibold text-warm-800">
                     {snapshot.patient?.full_name || "OpenRx patient"}
                   </p>
                   <p className="mt-1 text-[11px] leading-5 text-warm-600">
                     {nextAppointment
-                      ? `Next visit ${formatDate(nextAppointment.scheduled_at)} at ${formatTime(nextAppointment.scheduled_at)}`
-                      : "Your care plan, screenings, and coordination activity are summarized here."}
+                      ? `Next visit ${formatDate(nextAppointment.scheduled_at)} at ${formatTime(nextAppointment.scheduled_at)}.`
+                      : "Prevention, follow-up, and outreach activity are summarized here as the record fills in."}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {summaryCards.map((card) => (
+              <div className="mt-4 space-y-2">
+                {summaryRows.map((row) => (
                   <div
-                    key={card.label}
-                    className="rounded-2xl border border-sand/70 bg-pampas/88 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
+                    key={row.label}
+                    className="flex items-center justify-between rounded-2xl border border-black/[0.06] bg-white/82 px-3 py-2.5"
                   >
-                    <p className={cn("text-base font-semibold leading-none", card.tone)}>{card.value}</p>
-                    <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.14em] text-cloudy/85">{card.label}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cloudy/85">{row.label}</p>
+                    <p className={cn("text-[11px] font-semibold leading-none", row.tone)}>{row.value}</p>
                   </div>
                 ))}
               </div>
@@ -212,7 +224,7 @@ export default function Sidebar() {
               {careTeamSession?.needsInputCount ? (
                 <Link
                   href="/dashboard/care-team"
-                  className="mt-4 flex items-center gap-2 rounded-2xl border border-soft-blue/20 bg-soft-blue/8 px-3 py-2 text-[11px] font-semibold text-soft-blue transition hover:bg-soft-blue/12"
+                  className="mt-4 flex items-center gap-2 rounded-2xl border border-soft-blue/18 bg-white/84 px-3 py-2 text-[11px] font-semibold text-soft-blue transition hover:border-soft-blue/28"
                 >
                   <span className="h-2 w-2 rounded-full bg-soft-blue shadow-[0_0_0_6px_rgba(42,124,167,0.15)]" />
                   {careTeamSession.needsInputCount} agent item{careTeamSession.needsInputCount > 1 ? "s" : ""} waiting
@@ -222,7 +234,7 @@ export default function Sidebar() {
           ) : (
             <>
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,rgba(17,34,30,0.06),rgba(224,91,67,0.12))] ring-1 ring-black/5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-black/[0.05] bg-white/88">
                   <Heart size={16} className="text-terra-dark" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -237,21 +249,21 @@ export default function Sidebar() {
               <div className="mt-4 space-y-2">
                 <Link
                   href="/onboarding"
-                  className="flex items-center justify-between rounded-2xl border border-sand/70 bg-white/82 px-3 py-3 text-[11px] font-semibold text-warm-700 transition hover:border-terra/18 hover:bg-white hover:text-warm-800"
+                  className="flex items-center justify-between rounded-2xl border border-black/[0.06] bg-white/82 px-3 py-3 text-[11px] font-semibold text-warm-700 transition hover:border-terra/18 hover:bg-white hover:text-warm-800"
                 >
                   <span>Complete profile</span>
                   <span className="text-cloudy">Start</span>
                 </Link>
                 <Link
                   href="/screening"
-                  className="flex items-center justify-between rounded-2xl border border-sand/70 bg-white/82 px-3 py-3 text-[11px] font-semibold text-warm-700 transition hover:border-terra/18 hover:bg-white hover:text-warm-800"
+                  className="flex items-center justify-between rounded-2xl border border-black/[0.06] bg-white/82 px-3 py-3 text-[11px] font-semibold text-warm-700 transition hover:border-terra/18 hover:bg-white hover:text-warm-800"
                 >
                   <span>Run AI screening</span>
                   <span className="text-cloudy">Review</span>
                 </Link>
                 <Link
                   href="/providers"
-                  className="flex items-center justify-between rounded-2xl border border-sand/70 bg-white/82 px-3 py-3 text-[11px] font-semibold text-warm-700 transition hover:border-terra/18 hover:bg-white hover:text-warm-800"
+                  className="flex items-center justify-between rounded-2xl border border-black/[0.06] bg-white/82 px-3 py-3 text-[11px] font-semibold text-warm-700 transition hover:border-terra/18 hover:bg-white hover:text-warm-800"
                 >
                   <span>Find care nearby</span>
                   <span className="text-cloudy">Browse</span>
@@ -266,9 +278,9 @@ export default function Sidebar() {
         {navSections.map((section) => (
           <section key={section.label} className="mb-5">
             <div className="mb-2 flex items-center gap-2 px-2">
-              <span className="h-px flex-1 bg-sand/70" />
+              <span className="h-px flex-1 bg-black/[0.07]" />
               <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-cloudy/95">{section.label}</p>
-              <span className="h-px flex-1 bg-sand/70" />
+              <span className="h-px flex-1 bg-black/[0.07]" />
             </div>
 
             <div className="space-y-1.5">
@@ -293,12 +305,12 @@ export default function Sidebar() {
                     className={cn(
                       "group relative flex items-center gap-3 rounded-2xl border px-3.5 py-3 text-[12.5px] font-medium transition-all duration-200",
                       active
-                        ? "border-terra/20 bg-[linear-gradient(180deg,rgba(224,91,67,0.12),rgba(255,255,255,0.9))] text-warm-800 shadow-[0_12px_26px_rgba(17,34,30,0.08)]"
-                        : "border-transparent text-warm-700 hover:border-sand/70 hover:bg-white/82 hover:text-warm-800"
+                        ? "border-black/[0.08] bg-white text-warm-800 shadow-[0_10px_20px_rgba(17,34,30,0.05)]"
+                        : "border-transparent text-warm-700 hover:border-black/[0.06] hover:bg-white/78 hover:text-warm-800"
                     )}
                   >
                     {active ? (
-                      <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-[linear-gradient(180deg,#f4ae8d,#e05b43)]" />
+                      <span className="absolute inset-y-2 left-1 w-1 rounded-full bg-terra" />
                     ) : null}
                     <item.icon
                       size={15}
@@ -326,29 +338,29 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-sand/70 px-4 py-4">
+      <div className="border-t border-black/[0.06] px-4 py-4">
         <Link
           href="/chat"
-          className="flex items-center gap-3 rounded-[22px] border border-terra/18 bg-[linear-gradient(180deg,rgba(224,91,67,0.12),rgba(255,252,248,0.92))] px-4 py-3 text-sm font-semibold text-warm-800 transition hover:border-terra/28 hover:bg-[linear-gradient(180deg,rgba(224,91,67,0.16),rgba(255,252,248,0.96))]"
+          className="flex items-center gap-3 rounded-[22px] border border-black/[0.07] bg-white/90 px-4 py-3 text-sm font-semibold text-warm-800 transition hover:border-terra/24"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/90 text-terra-dark shadow-sm">
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl border border-black/[0.05] bg-[#f7f3ec] text-terra-dark shadow-sm">
             <Bot size={15} />
           </span>
-          <span className="flex-1">AI Concierge</span>
-          <span className="h-2 w-2 rounded-full bg-terra animate-glow-pulse" />
+          <span className="flex-1">Open concierge</span>
+          <span className="text-[11px] text-cloudy">Chat</span>
         </Link>
 
         <div className="mt-3 flex gap-2">
           <Link
             href="/"
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-sand/70 bg-white/72 px-3 py-2.5 text-[11px] font-semibold text-warm-700 transition hover:bg-white hover:text-warm-800"
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-black/[0.06] bg-white/72 px-3 py-2.5 text-[11px] font-semibold text-warm-700 transition hover:bg-white hover:text-warm-800"
           >
             <ExternalLink size={12} />
             Site
           </Link>
           <Link
             href="/privacy-explained"
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-sand/70 bg-white/72 px-3 py-2.5 text-[11px] font-semibold text-warm-700 transition hover:bg-white hover:text-warm-800"
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-black/[0.06] bg-white/72 px-3 py-2.5 text-[11px] font-semibold text-warm-700 transition hover:bg-white hover:text-warm-800"
           >
             <ShieldCheck size={12} />
             Privacy
@@ -377,14 +389,14 @@ export default function Sidebar() {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[272px] flex-col border-r border-sand/70 bg-[linear-gradient(180deg,rgba(255,252,248,0.98),rgba(248,241,231,0.97))] shadow-[12px_0_50px_rgba(17,34,30,0.09)] transition-transform duration-300 lg:hidden",
+          "fixed left-0 top-0 z-50 flex h-screen w-[272px] flex-col border-r border-black/[0.06] bg-[linear-gradient(180deg,rgba(251,248,242,0.98),rgba(245,240,232,0.97))] shadow-[12px_0_50px_rgba(17,34,30,0.09)] transition-transform duration-300 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {sidebarContent}
       </aside>
 
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[272px] flex-col border-r border-sand/70 bg-[linear-gradient(180deg,rgba(255,252,248,0.98),rgba(248,241,231,0.97))] shadow-[12px_0_50px_rgba(17,34,30,0.09)] lg:flex">
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[272px] flex-col border-r border-black/[0.06] bg-[linear-gradient(180deg,rgba(251,248,242,0.98),rgba(245,240,232,0.97))] shadow-[12px_0_50px_rgba(17,34,30,0.09)] lg:flex">
         {sidebarContent}
       </aside>
     </>

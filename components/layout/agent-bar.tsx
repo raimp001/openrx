@@ -4,14 +4,12 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import {
   Bot,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Sparkles,
   TrendingUp,
   Wifi,
   WifiOff,
-  Zap,
 } from "lucide-react"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 
@@ -62,19 +60,14 @@ export default function AgentBar() {
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="eyebrow-pill">
               <Bot size={11} />
-              OpenClaw runtime
+              Agent runtime
             </span>
             <span className={`metric-chip ${statusMeta.tone}`}>
               <statusMeta.icon size={12} />
               {statusMeta.label}
             </span>
-            <span className="metric-chip">
-              <Zap size={12} className="text-terra" />
-              {OPENCLAW_CONFIG.agents.length} agents
-            </span>
-            <span className="metric-chip">
-              <CheckCircle2 size={12} className="text-accent" />
-              {OPENCLAW_CONFIG.cronJobs.length} automations
+            <span className="text-[11px] font-medium text-warm-500">
+              {OPENCLAW_CONFIG.agents.length} specialists · {OPENCLAW_CONFIG.cronJobs.length} scheduled jobs
             </span>
           </div>
 
@@ -88,7 +81,7 @@ export default function AgentBar() {
 
             <Link
               href="/chat"
-              className="inline-flex items-center gap-2 rounded-full border border-terra/18 bg-[linear-gradient(180deg,rgba(224,91,67,0.08),rgba(255,255,255,0.94))] px-3 py-2 text-[11px] font-semibold text-terra-dark transition hover:bg-[linear-gradient(180deg,rgba(224,91,67,0.12),rgba(255,255,255,0.96))]"
+              className="inline-flex items-center gap-2 rounded-full border border-black/[0.07] bg-white/90 px-3 py-2 text-[11px] font-semibold text-warm-700 transition hover:border-terra/24 hover:text-warm-900"
             >
               Open agent
             </Link>
@@ -96,7 +89,7 @@ export default function AgentBar() {
             <button
               onClick={() => setExpanded((value) => !value)}
               aria-label={expanded ? "Collapse agent status" : "Expand agent status"}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(247,240,229,0.9))] text-warm-600 transition hover:text-warm-900"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-black/[0.07] bg-white/90 text-warm-600 transition hover:text-warm-900"
             >
               {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>

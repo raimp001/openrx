@@ -27,14 +27,14 @@ body {
   position: relative;
   font-family: var(--font-sans), system-ui, sans-serif;
   background:
-    radial-gradient(ellipse 980px 560px at 0% -8%, rgba(224, 91, 67, 0.08), transparent 58%),
-    radial-gradient(ellipse 760px 420px at 100% 4%, rgba(185, 149, 88, 0.08), transparent 56%),
-    linear-gradient(180deg, #fffdf9 0%, #f8f3ea 48%, #f2eadf 100%);
+    radial-gradient(ellipse 900px 480px at 0% -12%, rgba(224, 91, 67, 0.07), transparent 60%),
+    radial-gradient(ellipse 760px 420px at 100% 0%, rgba(17, 34, 30, 0.04), transparent 58%),
+    linear-gradient(180deg, #fbfaf6 0%, #f5f2eb 52%, #f0ece4 100%);
   color: #11221e;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
-  letter-spacing: -0.008em;
+  letter-spacing: -0.012em;
 }
 
 body::before {
@@ -43,11 +43,10 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
-  opacity: 0.16;
+  opacity: 0.75;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0)),
-    radial-gradient(circle at 20% 20%, rgba(17,34,30,0.05) 0.6px, transparent 0.8px);
-  background-size: auto, 14px 14px;
+    linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0)),
+    radial-gradient(ellipse 680px 320px at 50% -6%, rgba(255,255,255,0.34), transparent 72%);
 }
 
 a {
@@ -133,31 +132,31 @@ a {
 
 @layer base {
   h1 {
-    font-family: var(--font-serif), serif;
-    font-weight: 600;
-    letter-spacing: -0.038em;
-    line-height: 1.04;
+    font-family: var(--font-sans), sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.052em;
+    line-height: 0.98;
   }
   h2, h3, h4 {
-    font-family: var(--font-serif), serif;
+    font-family: var(--font-sans), sans-serif;
     font-weight: 600;
-    letter-spacing: -0.026em;
-    line-height: 1.12;
+    letter-spacing: -0.032em;
+    line-height: 1.05;
   }
 }
 
 @layer utilities {
   /* Core surface styles */
   .surface-card {
-    @apply rounded-[28px] border border-sand/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(250,245,237,0.92))] shadow-soft-card backdrop-blur-sm;
+    @apply rounded-[30px] border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,246,240,0.94))] shadow-[0_18px_44px_rgba(17,34,30,0.06)] backdrop-blur-sm;
     transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease, background 0.25s ease;
   }
   .surface-card:hover {
-    @apply shadow-card-hover border-sand/80;
+    @apply border-black/[0.08];
   }
 
   .surface-muted {
-    @apply rounded-[24px] border border-sand/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.84),rgba(246,239,228,0.72))];
+    @apply rounded-[26px] border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(244,239,231,0.76))];
   }
 
   .section-title {
@@ -165,15 +164,15 @@ a {
   }
 
   .eyebrow-pill {
-    @apply inline-flex items-center gap-2 rounded-full border border-[#d8c9ae] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,240,227,0.92))] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-warm-700;
+    @apply inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/90 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-warm-700 shadow-[0_1px_0_rgba(255,255,255,0.85)];
   }
 
   .metric-chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-sand/70 bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-warm-700 shadow-sm;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/90 px-3 py-1.5 text-[11px] font-semibold text-warm-700 shadow-[0_8px_18px_rgba(17,34,30,0.04)];
   }
 
   .app-shell-panel {
-    @apply rounded-[30px] border border-sand/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,242,232,0.9))] shadow-premium backdrop-blur-xl;
+    @apply rounded-[32px] border border-black/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(247,243,236,0.94))] shadow-[0_22px_52px_rgba(17,34,30,0.07)] backdrop-blur-xl;
   }
 
   .app-shell-divider {
@@ -188,7 +187,7 @@ a {
     background: transparent;
   }
   .sidebar-scroll::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(17, 34, 30, 0.14);
     border-radius: 999px;
   }
 

@@ -26,8 +26,8 @@ export function AppPageHeader({
 }: AppPageHeaderProps) {
   const titleClass =
     variant === "hero"
-      ? "font-serif text-3xl leading-[1.02] tracking-[-0.05em] text-warm-800 sm:text-[2.6rem]"
-      : "font-serif text-[1.9rem] leading-tight tracking-[-0.04em] text-warm-800"
+      ? "text-3xl font-semibold leading-[0.98] tracking-[-0.06em] text-warm-800 sm:text-[2.6rem]"
+      : "text-[1.9rem] font-semibold leading-[1] tracking-[-0.05em] text-warm-800"
 
   return (
     <section
@@ -40,9 +40,9 @@ export function AppPageHeader({
       )}
     >
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 right-[-7rem] h-64 w-64 rounded-full bg-terra/12 blur-3xl" />
-        <div className="absolute bottom-[-7rem] left-[-4rem] h-52 w-52 rounded-full bg-accent/8 blur-3xl" />
-        <div className="absolute inset-x-0 top-0 h-28 bg-[linear-gradient(90deg,rgba(255,255,255,0.4),transparent)]" />
+        <div className="absolute -top-24 right-[-7rem] h-64 w-64 rounded-full bg-terra/8 blur-3xl" />
+        <div className="absolute bottom-[-7rem] left-[-4rem] h-52 w-52 rounded-full bg-accent/6 blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(90deg,rgba(255,255,255,0.48),transparent)]" />
       </div>
       <div
         className={cn(

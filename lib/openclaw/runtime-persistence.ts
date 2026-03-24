@@ -29,10 +29,22 @@ function hasDatabase(): boolean {
 }
 
 let runtimeTablesAvailable: boolean | null = null
+let runtimeTablesUnavailableAt: number | null = null
 const runtimeLoggedFallbacks = new Set<string>()
+const RUNTIME_TABLE_RETRY_MS = 60_000
 
 function canUseRuntimeTables(): boolean {
-  return hasDatabase() && runtimeTablesAvailable !== false
+  if (!hasDatabase()) return false
+
+  if (runtimeTablesAvailable === false) {
+    if (runtimeTablesUnavailableAt && Date.now() - runtimeTablesUnavailableAt < RUNTIME_TABLE_RETRY_MS) {
+      return false
+    }
+    runtimeTablesAvailable = null
+    runtimeTablesUnavailableAt = null
+  }
+
+  return true
 }
 
 function isMissingTableError(error: unknown): error is { code: string } {
@@ -47,6 +59,7 @@ function isMissingTableError(error: unknown): error is { code: string } {
 function handlePersistenceError(scope: string, error: unknown): void {
   if (isMissingTableError(error)) {
     runtimeTablesAvailable = false
+    runtimeTablesUnavailableAt = Date.now()
     if (!runtimeLoggedFallbacks.has(scope)) {
       runtimeLoggedFallbacks.add(scope)
       console.warn(`${scope}: runtime persistence tables are unavailable; using in-memory responses until the DB schema is updated.`)
@@ -81,6 +94,8 @@ export async function recordCronRun(input: RecordCronRunInput): Promise<void> {
         responsePayload: input.responsePayload === undefined ? undefined : (input.responsePayload as never),
       },
     })
+    runtimeTablesAvailable = true
+    runtimeTablesUnavailableAt = null
   } catch (error) {
     handlePersistenceError("Failed to persist cron run", error)
   }
@@ -105,6 +120,8 @@ export async function upsertWorkerHeartbeat(input: UpsertWorkerHeartbeatInput): 
         lastSeenAt: new Date(),
       },
     })
+    runtimeTablesAvailable = true
+    runtimeTablesUnavailableAt = null
   } catch (error) {
     handlePersistenceError("Failed to persist worker heartbeat", error)
   }
@@ -113,10 +130,13 @@ export async function upsertWorkerHeartbeat(input: UpsertWorkerHeartbeatInput): 
 export async function listWorkerHeartbeats(limit = 20) {
   if (!canUseRuntimeTables()) return []
   try {
-    return await prisma.openClawWorkerHeartbeat.findMany({
+    const rows = await prisma.openClawWorkerHeartbeat.findMany({
       orderBy: { lastSeenAt: "desc" },
       take: Math.max(1, limit),
     })
+    runtimeTablesAvailable = true
+    runtimeTablesUnavailableAt = null
+    return rows
   } catch (error) {
     handlePersistenceError("Failed to load worker heartbeats", error)
     return []
@@ -126,10 +146,13 @@ export async function listWorkerHeartbeats(limit = 20) {
 export async function listRecentCronRuns(limit = 50) {
   if (!canUseRuntimeTables()) return []
   try {
-    return await prisma.openClawCronRun.findMany({
+    const rows = await prisma.openClawCronRun.findMany({
       orderBy: { createdAt: "desc" },
       take: Math.max(1, limit),
     })
+    runtimeTablesAvailable = true
+    runtimeTablesUnavailableAt = null
+    return rows
   } catch (error) {
     handlePersistenceError("Failed to load recent cron runs", error)
     return []

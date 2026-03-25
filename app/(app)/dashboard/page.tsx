@@ -184,10 +184,10 @@ export default function DashboardPage() {
                 )}>{healthScore}</span>
               </div>
             </div>
-            <div className="min-w-0 space-y-2">
-              <div className="flex items-center justify-between text-sm">
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex items-center justify-between gap-4 text-sm">
                 <span className="text-secondary">Adherence</span>
-                <span className="font-medium text-primary">{avgAdherence}%</span>
+                <span className="font-medium text-primary tabular-nums">{avgAdherence}%</span>
               </div>
               {latestVital?.systolic && (
                 <div className="flex items-center justify-between text-sm">

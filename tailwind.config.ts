@@ -11,8 +11,8 @@ const config: Config = {
       colors: {
         surface: "#FAFAF8",
         primary: "#1A1A1A",
-        secondary: "#71717A",
-        muted: "#A1A1AA",
+        secondary: "#52525B",
+        muted: "#71717A",
         border: "#E4E4E7",
         teal: {
           DEFAULT: "#0F5E54",

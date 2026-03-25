@@ -24,9 +24,7 @@ export function useScrollReveal(threshold = 0.15) {
       { threshold, rootMargin: "0px 0px -40px 0px" }
     )
 
-    for (const el of elements) {
-      observer.observe(el)
-    }
+    elements.forEach((el) => observer.observe(el))
 
     return () => observer.disconnect()
   }, [threshold])

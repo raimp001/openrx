@@ -63,7 +63,7 @@ Output format:
 Use clear section headers: ## APPEAL LETTER, ## CLINICAL EVIDENCE, ## SUBMISSION INSTRUCTIONS, ## PEER-TO-PEER REQUEST (if applicable).`
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
+  const auth = await requireAuth(req); if ("response" in auth) return auth.response;
   try {
     const body = await req.json() as AppealRequest
 
@@ -229,7 +229,7 @@ Physician availability: Please contact our office to schedule.`
 
 // GET — appeal evidence library
 export async function GET() {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
+  const auth = await requireAuth(req); if ("response" in auth) return auth.response;
   return NextResponse.json({
     appealTimelines: {
       Aetna: { standard: 60, expedited: 72 },

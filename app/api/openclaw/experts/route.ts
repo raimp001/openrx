@@ -20,7 +20,7 @@ const VALID_EXPERT_IDS = new Set<string>(OPENCLAW_CONFIG.agents.map((a) => a.id)
 const MAX_EXPERTS = 5
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
+  const auth = await requireAuth(req); if ("response" in auth) return auth.response;
   try {
     if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
       return NextResponse.json(

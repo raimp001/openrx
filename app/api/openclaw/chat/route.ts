@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { runAgent, runCoordinator } from "@/lib/ai-engine"
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
+  const auth = await requireAuth(req); if ("response" in auth) return auth.response;
   try {
     if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
       return NextResponse.json(

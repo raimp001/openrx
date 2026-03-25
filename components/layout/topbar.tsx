@@ -213,7 +213,7 @@ export default function Topbar() {
         </div>
 
         {/* Right side — pushed to far right */}
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-2.5">
           <Link
             href="/messages"
             className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-white text-secondary transition hover:text-primary hover:border-teal/30"
@@ -227,20 +227,17 @@ export default function Topbar() {
             )}
           </Link>
 
-          {displayName && (
-            <Link href="/profile" className="hidden items-center gap-2 sm:flex">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal/10 text-[12px] font-semibold text-teal">
-                {displayName.charAt(0).toUpperCase()}
-              </div>
-              <span className="text-[13px] font-medium text-primary">{displayName}</span>
-            </Link>
-          )}
-
           <Wallet>
-            <ConnectWallet className="!h-9 !rounded-full !border !border-border !bg-teal !px-4 !text-[13px] !font-medium !text-white !transition !flex !items-center !justify-center hover:!bg-teal-dark">
-              <Avatar className="h-5 w-5" />
-              <Name className="text-[13px]" />
-            </ConnectWallet>
+            {displayName ? (
+              <ConnectWallet className="!h-9 !rounded-full !border !border-border !bg-white !pl-1.5 !pr-3.5 !text-[13px] !font-medium !text-primary !shadow-none !transition !flex !items-center !justify-center !gap-2 hover:!border-teal/30 hover:!bg-surface">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal text-[11px] font-semibold text-white">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden sm:inline">{displayName}</span>
+              </ConnectWallet>
+            ) : (
+              <ConnectWallet className="!h-9 !rounded-full !border-0 !bg-teal !px-5 !text-[13px] !font-medium !text-white !transition !flex !items-center !justify-center hover:!bg-teal-dark" />
+            )}
             <WalletDropdown className="!rounded-card !border-border !bg-white !shadow-card-hover">
               <Identity className="px-4 pb-2 pt-3" hasCopyAddressOnClick>
                 <Avatar />

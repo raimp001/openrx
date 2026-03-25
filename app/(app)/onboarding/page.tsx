@@ -6,7 +6,7 @@ import { AppPageHeader } from "@/components/layout/app-page"
 import {
   Bot, User, Heart, Pill, Stethoscope,
   CheckCircle2,
-  Activity, ArrowRight, Sparkles, Wallet as WalletIcon,
+  Activity, ArrowRight, ArrowLeft, Sparkles, Wallet as WalletIcon,
 } from "lucide-react"
 import { useState, useRef, useEffect, useCallback } from "react"
 
@@ -54,6 +54,35 @@ type Step =
   | "devices"
   | "screenings"
   | "summary" | "complete"
+
+const STEP_ORDER: Step[] = [
+  "welcome", "has-pcp", "pcp-search", "pcp-confirm",
+  "has-dentist", "dentist-search", "pharmacy-search",
+  "medications", "med-more", "devices", "screenings", "summary", "complete",
+]
+
+const STEP_LABELS: Partial<Record<Step, string>> = {
+  "has-pcp": "Primary Care",
+  "pcp-search": "Primary Care",
+  "pcp-confirm": "Primary Care",
+  "has-dentist": "Dentist",
+  "dentist-search": "Dentist",
+  "pharmacy-search": "Pharmacy",
+  "medications": "Medications",
+  "med-more": "Medications",
+  "devices": "Devices",
+  "screenings": "Screenings",
+  "summary": "Summary",
+  "complete": "Complete",
+}
+
+function getStepProgress(step: Step): { current: number; total: number; label: string } {
+  // Group steps into user-facing milestones
+  const milestones = ["Primary Care", "Dentist", "Pharmacy", "Medications", "Devices", "Screenings", "Complete"]
+  const label = STEP_LABELS[step] || "Getting Started"
+  const idx = milestones.indexOf(label)
+  return { current: Math.max(1, idx + 1), total: milestones.length, label }
+}
 
 const AGENT_NAMES: Record<string, { name: string; icon: typeof Bot; color: string }> = {
   sage: { name: "Sage", icon: Heart, color: "text-teal" },
@@ -131,12 +160,30 @@ export default function OnboardingPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [step, setStep] = useState<Step>("welcome")
+  const [stepHistory, setStepHistory] = useState<Step[]>([])
   const [patient, setPatient] = useState<PatientData>({})
   const [isTyping, setIsTyping] = useState(false)
   const [searchResults, setSearchResults] = useState<{ name: string; npi: string; credential?: string; specialty?: string; fullAddress?: string; phone?: string }[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const advanceStep = useCallback((next: Step) => {
+    setStepHistory(prev => [...prev, step])
+    setStep(next)
+  }, [step])
+
+  const goBack = useCallback(() => {
+    if (stepHistory.length === 0) return
+    const prev = stepHistory[stepHistory.length - 1]
+    setStepHistory(h => h.slice(0, -1))
+    setStep(prev)
+    // Remove messages added after the last user message for this step
+    setMessages(msgs => {
+      const lastUserIdx = msgs.findLastIndex(m => m.role === "user")
+      return lastUserIdx > 0 ? msgs.slice(0, lastUserIdx) : msgs
+    })
+  }, [stepHistory])
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
   useEffect(() => { inputRef.current?.focus() }, [step])
@@ -222,11 +269,11 @@ export default function OnboardingPage() {
         if (val.toLowerCase().includes("yes")) {
           setPatient(p => ({ ...p, hasPcp: true }))
           addAgent("Who's your PCP? I'll verify they're in-network.")
-          setStep("pcp-search")
+          advanceStep("pcp-search")
         } else {
           setPatient(p => ({ ...p, hasPcp: false }))
           addAgent("No problem. What city or ZIP? I'll find in-network PCPs near you.")
-          setStep("pcp-search")
+          advanceStep("pcp-search")
         }
         break
 
@@ -269,7 +316,7 @@ export default function OnboardingPage() {
               `${i + 1}. **${p.name}** — ${p.specialty}\n   ${p.fullAddress}${p.phone ? `\n   ${p.phone}` : ""}\n   NPI: ${p.npi}`
             ).join("\n\n")
             addAgent(`Found some options for you!\n\n${list}\n\nWhich one would you like? (Just say the number, or tell me to search again)`)
-            setStep("pcp-confirm")
+            advanceStep("pcp-confirm")
           } else {
             addAgent("I couldn't find anyone matching that. Try a different name, city, or ZIP code?")
             setStep("pcp-search")
@@ -309,10 +356,10 @@ export default function OnboardingPage() {
             { label: "Skip for now", value: "skip" },
             ]
           )
-          setStep("has-dentist")
+          advanceStep("has-dentist")
         } else {
-          addAgent("I didn’t recognize which PCP you meant. Reply with the number, paste the doctor’s name, or say 'search again'.")
-          setStep("pcp-confirm")
+          addAgent("I didn’t recognize which PCP you meant. Reply with the number, paste the doctor’s name, or say ‘search again’.")
+          advanceStep("pcp-confirm")
         }
         break
 
@@ -320,20 +367,20 @@ export default function OnboardingPage() {
         addUser(val)
         if (val.toLowerCase().includes("skip")) {
           addAgent("No worries, we can set that up later.\n\nWhat pharmacy do you use? (Name and city)")
-          setStep("pharmacy-search")
+          advanceStep("pharmacy-search")
         } else if (val.toLowerCase().includes("yes")) {
           addAgent("Noted. What pharmacy do you use?")
-          setStep("pharmacy-search")
+          advanceStep("pharmacy-search")
         } else {
           addAgent("Let me find dentists near you. What city or ZIP?")
-          setStep("dentist-search")
+          advanceStep("dentist-search")
         }
         break
 
       case "dentist-search":
         addUser(val)
           addAgent("Noted. What pharmacy do you use?")
-        setStep("pharmacy-search")
+        advanceStep("pharmacy-search")
         break
 
       case "pharmacy-search":
@@ -360,7 +407,7 @@ export default function OnboardingPage() {
             addAgent(`Found it! **${p.name}**\n${p.fullAddress}\nNPI: ${p.npi}\n\nI've set this as your default pharmacy.\n\nNow the important part — let's go through your medications. I'm handing you to Maya, our Rx specialist.`)
             setTimeout(() => {
               addAgent("I'm Maya. What medications are you currently taking? (Name, dose, frequency — one at a time)", "maya")
-              setStep("medications")
+              advanceStep("medications")
             }, 1000)
           } else {
             addAgent("Couldn't find that pharmacy. Try the full name and city (e.g., 'CVS Portland OR')?")
@@ -383,14 +430,14 @@ export default function OnboardingPage() {
               { label: "Blood Pressure Cuff", value: "bp" },
               { label: "None", value: "none" },
             ])
-            setStep("devices")
+            advanceStep("devices")
           }, 800)
         } else {
           const parts = val.split(/\s+/)
           const med = { name: parts.slice(0, -2).join(" ") || val, dose: parts[parts.length - 2] || "", frequency: parts[parts.length - 1] || "" }
           setPatient(p => ({ ...p, medications: [...(p.medications || []), med] }))
           addAgent(`Got it — **${val}** added to your list.\n\nI'll check for interactions once we have everything.\n\nAny other medications? (Say 'done' when you're finished)`, "maya")
-          setStep("med-more")
+          advanceStep("med-more")
         }
         break
 
@@ -407,7 +454,7 @@ export default function OnboardingPage() {
               { label: "Multiple", value: "multiple" },
               { label: "None", value: "none" },
             ])
-            setStep("devices")
+            advanceStep("devices")
           }, 800)
         } else {
           const med = { name: val, dose: "", frequency: "" }
@@ -445,10 +492,10 @@ export default function OnboardingPage() {
               { label: "Yes, schedule them!", value: "yes" },
               { label: "Let me review first", value: "later" },
             ])
-            setStep("screenings")
+            advanceStep("screenings")
           } catch {
             addAgent("I've set up your wellness plan. Let's wrap up!", "ivy")
-            setStep("summary")
+            advanceStep("summary")
           }
         }, 800)
         break
@@ -480,7 +527,7 @@ export default function OnboardingPage() {
           // Save to wallet identity
           saveToWallet()
 
-          setStep("complete")
+          advanceStep("complete")
         }, 1500)
         break
 
@@ -488,7 +535,7 @@ export default function OnboardingPage() {
         addUser(val)
         break
     }
-  }, [input, step, patient, searchResults, addUser, addAgent, addSystem, isConnected, saveToWallet])
+  }, [input, step, patient, searchResults, addUser, addAgent, addSystem, advanceStep, isConnected, saveToWallet])
 
   const handleOption = useCallback((value: string) => {
     handleSubmit(value)
@@ -517,8 +564,39 @@ export default function OnboardingPage() {
         }
       />
 
+      {/* Progress */}
+      {step !== "welcome" && step !== "complete" && (() => {
+        const { current, total, label } = getStepProgress(step)
+        return (
+          <div className="flex items-center gap-3 mb-2">
+            {stepHistory.length > 0 && (
+              <button
+                onClick={goBack}
+                className="flex items-center gap-1 text-xs font-medium text-secondary hover:text-teal transition"
+                aria-label="Go back to previous step"
+              >
+                <ArrowLeft size={14} />
+                Back
+              </button>
+            )}
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">{label}</span>
+                <span className="text-[10px] text-muted">{current} / {total}</span>
+              </div>
+              <div className="h-1 rounded-full bg-border/50 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-teal transition-all duration-500"
+                  style={{ width: `${(current / total) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Chat */}
-      <div className="bg-surface rounded-2xl border border-border overflow-hidden flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
+      <div className="bg-surface rounded-2xl border border-border overflow-hidden flex flex-col h-[calc(100vh-320px)] min-h-[500px]">
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {messages.map((msg) => {
             const agentInfo = msg.agent ? AGENT_NAMES[msg.agent] : null

@@ -36,7 +36,13 @@ function AdherenceRing({ pct, size = 58 }: { pct: number; size?: number }) {
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        role="img"
+        aria-label={`Adherence: ${safePct}%. ${label}.`}
+      >
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(20,35,31,0.07)" strokeWidth={strokeWidth} />
         <circle
           cx={size / 2}
@@ -50,7 +56,7 @@ function AdherenceRing({ pct, size = 58 }: { pct: number; size?: number }) {
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center" aria-hidden="true">
         <span className="text-[10px] font-bold leading-none" style={{ color }}>{safePct}%</span>
         <span className="mt-0.5 text-[7px] leading-none text-muted">{label}</span>
       </div>
@@ -60,7 +66,16 @@ function AdherenceRing({ pct, size = 58 }: { pct: number; size?: number }) {
 
 function daysUntilRefill(lastFilled: string, frequency: string): number | null {
   if (!lastFilled) return null
-  const supplyDays = /twice|2x/i.test(frequency) ? 15 : /three|3x/i.test(frequency) ? 10 : 30
+  const f = frequency.toLowerCase()
+  let supplyDays = 30
+  if (/twice|2x|bid|b\.i\.d/i.test(f)) supplyDays = 15
+  else if (/three|3x|tid|t\.i\.d/i.test(f)) supplyDays = 10
+  else if (/four|4x|qid|q\.i\.d/i.test(f)) supplyDays = 7
+  else if (/every\s*12\s*h/i.test(f)) supplyDays = 15
+  else if (/every\s*8\s*h/i.test(f)) supplyDays = 10
+  else if (/every\s*6\s*h/i.test(f)) supplyDays = 7
+  else if (/weekly|qw|once\s*a\s*week/i.test(f)) supplyDays = 210
+  else if (/prn|as\s*needed/i.test(f)) return null
   const filled = new Date(lastFilled).getTime()
   const nextRefill = filled + supplyDays * 86400000
   return Math.ceil((nextRefill - Date.now()) / 86400000)

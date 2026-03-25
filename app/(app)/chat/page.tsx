@@ -154,6 +154,7 @@ export default function ChatPage() {
       timestamp: new Date(),
     }
 
+    const savedInput = input.trim()
     setMessages((prev) => [...prev, userMsg])
     setInput("")
     setIsLoading(true)
@@ -212,12 +213,13 @@ export default function ChatPage() {
 
       setMessages((prev) => [...prev, agentMsg])
     } catch {
+      setInput(savedInput)
       setMessages((prev) => [
         ...prev,
         {
           id: `error-${Date.now()}`,
           role: "system",
-          content: "Connection error. Please try again.",
+          content: "Connection error. Your message has been restored — try sending again.",
           timestamp: new Date(),
         },
       ])

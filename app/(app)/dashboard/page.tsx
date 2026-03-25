@@ -19,11 +19,19 @@ function HealthRing({ score, size = 72 }: { score: number; size?: number }) {
   const strokeW = 6
   const r = (size - strokeW) / 2
   const circ = 2 * Math.PI * r
-  const filled = Math.max(0, Math.min(1, score / 100)) * circ
-  const color = score >= 80 ? "#10B981" : score >= 60 ? "#F59E0B" : "#EF4444"
+  const clamped = Math.max(0, Math.min(100, score))
+  const filled = (clamped / 100) * circ
+  const color = clamped >= 80 ? "#10B981" : clamped >= 60 ? "#F59E0B" : "#EF4444"
+  const label = clamped >= 80 ? "Good" : clamped >= 60 ? "Fair" : "Needs attention"
   const trackColor = "rgba(0,0,0,0.06)"
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      role="img"
+      aria-label={`Health score: ${clamped} out of 100. ${label}.`}
+    >
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={trackColor} strokeWidth={strokeW} />
       <circle
         cx={size / 2} cy={size / 2} r={r} fill="none"
@@ -116,7 +124,7 @@ export default function DashboardPage() {
         </p>
         <div className="mt-8">
           <Wallet>
-            <ConnectWallet className="!rounded-button !bg-teal !px-8 !py-3.5 !text-[15px] !font-medium !text-white !transition hover:!bg-teal-dark">
+            <ConnectWallet className="ock-wallet-connect-primary px-8 py-3.5 text-[15px]">
               Connect Wallet
             </ConnectWallet>
           </Wallet>

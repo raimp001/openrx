@@ -177,12 +177,8 @@ export default function OnboardingPage() {
   // Start onboarding
   useEffect(() => {
     if (step === "welcome" && messages.length === 0) {
-      const walletNote = isConnected
-        ? `\n\nYour Coinbase Smart Wallet is connected — I'll save everything to your wallet identity so you never have to enter it again.`
-        : "\n\nTip: Connect your Coinbase Smart Wallet (top right) to save your profile permanently."
-
       addAgent(
-        `Hey there! I'm Sage, your onboarding guide at OpenRx.${walletNote}\n\nLet's get your care team set up. This takes about 2 minutes — no forms, just a quick chat.\n\nDo you currently have a primary care physician (PCP)?`,
+        `Hi! I'm Sage. Let's set up your care team — takes about 2 minutes.\n\nDo you have a primary care physician?`,
         "sage",
         [
           { label: "Yes, I have one", value: "yes" },
@@ -225,11 +221,11 @@ export default function OnboardingPage() {
         addUser(val)
         if (val.toLowerCase().includes("yes")) {
           setPatient(p => ({ ...p, hasPcp: true }))
-          addAgent("Who's your PCP? Give me their name and I'll look them up in the NPI registry to make sure they're in-network for you.")
+          addAgent("Who's your PCP? I'll verify they're in-network.")
           setStep("pcp-search")
         } else {
           setPatient(p => ({ ...p, hasPcp: false }))
-          addAgent("No problem! Let me find some great PCPs near you. What city or ZIP code should I search?\n\n(I'll check that they're in-network with your insurance)")
+          addAgent("No problem. What city or ZIP? I'll find in-network PCPs near you.")
           setStep("pcp-search")
         }
         break
@@ -323,10 +319,10 @@ export default function OnboardingPage() {
       case "has-dentist":
         addUser(val)
         if (val.toLowerCase().includes("skip")) {
-          addAgent("No worries, we can set that up later.\n\nNow let's connect your pharmacy. What pharmacy do you use? (Name and city, like 'Walgreens Portland' or a ZIP code)")
+          addAgent("No worries, we can set that up later.\n\nWhat pharmacy do you use? (Name and city)")
           setStep("pharmacy-search")
         } else if (val.toLowerCase().includes("yes")) {
-          addAgent("We'll keep your dentist on file. Moving on!\n\nWhat pharmacy do you use? (Name and city, or ZIP)")
+          addAgent("Noted. What pharmacy do you use?")
           setStep("pharmacy-search")
         } else {
           addAgent("Let me find dentists near you. What city or ZIP?")
@@ -336,7 +332,7 @@ export default function OnboardingPage() {
 
       case "dentist-search":
         addUser(val)
-        addAgent("I've noted your preference — we'll find the right dentist for you. Let's keep moving!\n\nWhat pharmacy do you use? (Name and city, or ZIP)")
+          addAgent("Noted. What pharmacy do you use?")
         setStep("pharmacy-search")
         break
 
@@ -363,7 +359,7 @@ export default function OnboardingPage() {
             setPatient(prev => ({ ...prev, pharmacy: p.name, pharmacyNpi: p.npi }))
             addAgent(`Found it! **${p.name}**\n${p.fullAddress}\nNPI: ${p.npi}\n\nI've set this as your default pharmacy.\n\nNow the important part — let's go through your medications. I'm handing you to Maya, our Rx specialist.`)
             setTimeout(() => {
-              addAgent("Hey! I'm Maya, your medication manager.\n\nLet's make sure we have your complete med list. What medications are you currently taking?\n\n(Just tell me the name, dose, and how often — like 'Metformin 500mg twice daily'. One at a time is fine!)", "maya")
+              addAgent("I'm Maya. What medications are you currently taking? (Name, dose, frequency — one at a time)", "maya")
               setStep("medications")
             }, 1000)
           } else {
@@ -379,9 +375,9 @@ export default function OnboardingPage() {
         addUser(val)
         if (val.toLowerCase().includes("none") || val.toLowerCase().includes("no meds") || val.toLowerCase().includes("nothing")) {
           setPatient(p => ({ ...p, medications: [] }))
-          addAgent("No medications — noted!\n\nLet me hand you back to Sage for the rest.", "maya")
+          addAgent("No medications — noted.", "maya")
           setTimeout(() => {
-            addAgent("Thanks Maya! Almost done. Do you use any health devices?", "sage", [
+            addAgent("Almost done. Any health devices?", "sage", [
               { label: "Apple Watch / Fitbit", value: "smartwatch" },
               { label: "Glucose Monitor", value: "glucose" },
               { label: "Blood Pressure Cuff", value: "bp" },
@@ -404,7 +400,7 @@ export default function OnboardingPage() {
           const medCount = patient.medications?.length || 0
           addAgent(`${medCount} medication${medCount !== 1 ? "s" : ""} recorded. Running interaction check... No interactions found!\n\nHanding you back to Sage.`, "maya")
           setTimeout(() => {
-            addAgent("Almost done! Do you use any health devices we should connect?", "sage", [
+            addAgent("Almost done. Any health devices?", "sage", [
               { label: "Apple Watch / Fitbit", value: "smartwatch" },
               { label: "Glucose Monitor", value: "glucose" },
               { label: "BP Cuff", value: "bp" },
@@ -423,7 +419,7 @@ export default function OnboardingPage() {
       case "devices":
         addUser(val)
         setPatient(p => ({ ...p, devices: [val] }))
-        addAgent("Noted!\n\nLast step — let me bring in Ivy, our wellness coach, to set up your preventive screenings.", "sage")
+        addAgent("Last step — Ivy will set up your preventive screenings.", "sage")
         setTimeout(async () => {
           let age = 40
           try {

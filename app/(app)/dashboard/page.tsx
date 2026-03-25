@@ -1,13 +1,14 @@
 "use client"
 
 import {
-  Calendar, Pill, CheckCircle2, Heart,
+  Calendar, Pill, CheckCircle2, Heart, Search,
   FlaskConical, Receipt, Syringe, Activity,
   ArrowRight, ChevronRight, Clock, Bot,
 } from "lucide-react"
 import Link from "next/link"
 import { cn, formatTime, formatDate } from "@/lib/utils"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import { useWalletIdentity } from "@/lib/wallet-context"
 import { useMemo } from "react"
 import {
   ConnectWallet,
@@ -37,7 +38,8 @@ function HealthRing({ score, size = 72 }: { score: number; size?: number }) {
 
 export default function DashboardPage() {
   const { snapshot, getPhysician, loading } = useLiveSnapshot()
-  const patientName = snapshot.patient?.full_name || ""
+  const { isConnected, profile } = useWalletIdentity()
+  const patientName = snapshot.patient?.full_name || profile?.fullName || ""
   const firstName = patientName.split(" ")[0]
   const hasData = !!snapshot.patient
 
@@ -102,8 +104,8 @@ export default function DashboardPage() {
     return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" })
   }
 
-  // Empty state -- wallet not connected / no data
-  if (!loading && !hasData) {
+  // No wallet connected
+  if (!loading && !isConnected && !hasData) {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center text-center animate-hero-fade">
         <h1 className="font-serif text-display-lg text-primary italic">
@@ -118,6 +120,40 @@ export default function DashboardPage() {
               Connect Wallet
             </ConnectWallet>
           </Wallet>
+        </div>
+      </div>
+    )
+  }
+
+  // Wallet connected but no patient data yet
+  if (!loading && isConnected && !hasData) {
+    return (
+      <div className="animate-hero-fade space-y-6">
+        <div className="pb-2">
+          <h1 className="text-2xl font-semibold text-primary tracking-tight">
+            {firstName ? `Welcome, ${firstName}` : "Welcome"}
+          </h1>
+          <p className="mt-1 text-sm text-secondary">
+            Your wallet is connected. Complete your profile to populate your care dashboard.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Link href="/onboarding" className="surface-card p-6 transition hover:shadow-card-hover group">
+            <Heart size={20} className="text-teal mb-3" strokeWidth={1.5} />
+            <p className="text-[15px] font-semibold text-primary group-hover:text-teal transition">Complete your profile</p>
+            <p className="mt-1 text-sm text-secondary">A 2-minute guided chat to set up your care team.</p>
+          </Link>
+          <Link href="/providers" className="surface-card p-6 transition hover:shadow-card-hover group">
+            <Search size={20} className="text-teal mb-3" strokeWidth={1.5} />
+            <p className="text-[15px] font-semibold text-primary group-hover:text-teal transition">Find a provider</p>
+            <p className="mt-1 text-sm text-secondary">Search for doctors, specialists, and care centers nearby.</p>
+          </Link>
+          <Link href="/chat" className="surface-card p-6 transition hover:shadow-card-hover group">
+            <Bot size={20} className="text-teal mb-3" strokeWidth={1.5} />
+            <p className="text-[15px] font-semibold text-primary group-hover:text-teal transition">Ask the AI concierge</p>
+            <p className="mt-1 text-sm text-secondary">Get answers about care, coverage, or next steps.</p>
+          </Link>
         </div>
       </div>
     )

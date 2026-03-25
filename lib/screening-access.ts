@@ -8,13 +8,13 @@ export const DEFAULT_SCREENING_FEE_USDC = "0.50"
 export const SCREENING_PAYMENT_CATEGORY = "screening" as const
 
 function toAmountNumber(value: string | undefined): number {
-  const parsed = Number.parseFloat(value || "")
+  const { toCents } = require("@/lib/money") as typeof import("@/lib/money"); const parsed = toCents(value || "0") / 100
   return Number.isFinite(parsed) ? parsed : 0
 }
 
 export function getScreeningFeeUsd(): string {
   const configured = process.env.OPENRX_SCREENING_FEE_USDC || DEFAULT_SCREENING_FEE_USDC
-  const parsed = Number.parseFloat(configured)
+  const parsed = toCents(configured) / 100
   if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_SCREENING_FEE_USDC
   return parsed.toFixed(2)
 }
@@ -79,7 +79,7 @@ export async function verifyScreeningAccess(input: {
     return { ok: false, reason: "Screening payment recipient does not match the configured screening wallet.", fee, recipientAddress }
   }
 
-  const minimum = Number.parseFloat(fee)
+  const minimum = toCents(fee) / 100
   const settled = toAmountNumber(payment.settledAmount || payment.expectedAmount)
   if (settled < minimum) {
     return { ok: false, reason: `Screening payment must be at least ${fee} USDC.`, fee, recipientAddress }

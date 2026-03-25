@@ -1,3 +1,4 @@
+import { requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
 import { reviewSecondOpinion, type SecondOpinionInput, type SecondOpinionResult } from "@/lib/basehealth"

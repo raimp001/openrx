@@ -10,11 +10,12 @@ interface LaunchBaseBuilderPayResult {
 }
 
 function normalizeUsdcAmount(raw: string): string {
-  const parsed = Number.parseFloat(raw)
-  if (!Number.isFinite(parsed) || parsed <= 0) {
+  const { toCents, fromCents } = require("@/lib/money") as typeof import("@/lib/money")
+  const cents = toCents(raw)
+  if (cents <= 0) {
     throw new Error("Amount must be a positive number.")
   }
-  return parsed.toFixed(2)
+  return fromCents(cents)
 }
 
 function assertEvmAddress(address: string): void {

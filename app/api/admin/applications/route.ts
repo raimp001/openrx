@@ -11,7 +11,7 @@ import { sendAdminApplicationEmail } from "@/lib/admin-email"
 
 function isAuthorizedAdminRequest(request: NextRequest): boolean {
   const required = process.env.OPENRX_ADMIN_API_KEY
-  if (!required) return true
+  if (!required) return false
   const received = request.headers.get("x-admin-api-key") || ""
   return received === required
 }

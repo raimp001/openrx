@@ -1,3 +1,4 @@
+import { requireAuth } from "@/lib/api-auth"
 /**
  * PA Criteria Evaluation API
  * POST /api/pa/evaluate   — evaluate approval likelihood for a drug/procedure

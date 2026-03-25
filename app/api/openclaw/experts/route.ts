@@ -1,3 +1,4 @@
+import { requireAuth } from "@/lib/api-auth"
 // ── Parallel Expert Fan-out — MoE-inspired endpoint ───────
 // Inspired by Sparse MoE architecture (DeepSeek V3, Llama 4 Maverick, etc.)
 // from Sebastian Raschka's LLM Architecture Gallery:

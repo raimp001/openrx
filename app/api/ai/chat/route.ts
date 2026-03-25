@@ -1,3 +1,4 @@
+import { requireAuth } from "@/lib/api-auth"
 /**
  * AI Chat API — OpenRx
  *

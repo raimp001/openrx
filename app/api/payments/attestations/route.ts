@@ -1,3 +1,4 @@
+import { requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { createAttestation, getLedgerSnapshot } from "@/lib/payments-ledger"
 

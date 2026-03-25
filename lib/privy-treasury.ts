@@ -87,11 +87,12 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
 }
 
 function normalizeAmount(value: string): string {
-  const numeric = Number.parseFloat(value)
-  if (!Number.isFinite(numeric) || numeric <= 0) {
+  const { toCents, fromCents } = require("@/lib/money") as typeof import("@/lib/money")
+  const cents = toCents(value)
+  if (cents <= 0) {
     throw new Error("Amount must be a positive decimal value.")
   }
-  return numeric.toFixed(2)
+  return fromCents(cents)
 }
 
 export function getPrivyTreasuryConfigState() {

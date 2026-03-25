@@ -1,3 +1,4 @@
+import { requireAuth } from "@/lib/api-auth"
 /**
  * PA Appeal Workflow API
  * POST /api/pa/appeal        — generate appeal letter + strategy using Claude

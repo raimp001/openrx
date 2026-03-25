@@ -1,3 +1,4 @@
+import { requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { AppointmentStatus } from '@prisma/client'

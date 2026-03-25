@@ -35,7 +35,7 @@ export function canAccessCareTeam(role: ClinicRole): boolean {
 function getDefaultRole(): ClinicRole {
   const envRole = normalizeRole(process.env.OPENRX_CARE_TEAM_DEFAULT_ROLE)
   if (envRole) return envRole
-  return process.env.NODE_ENV === "production" ? "patient" : "admin"
+  return "patient"
 }
 
 function getHeader(headers: Headers, key: string): string {
@@ -70,7 +70,7 @@ async function resolveRoleFromWallet(headers: Headers): Promise<{ userId?: strin
 }
 
 function getTrustedRole(headers: Headers): { userId?: string; role?: ClinicRole } {
-  const trustHeader = (process.env.OPENRX_TRUST_ROLE_HEADER || "true").toLowerCase() !== "false"
+  const trustHeader = (process.env.OPENRX_TRUST_ROLE_HEADER || "false").toLowerCase() === "true"
   if (!trustHeader) return {}
 
   const role = normalizeRole(getHeader(headers, "x-openrx-user-role") || getHeader(headers, "x-user-role"))

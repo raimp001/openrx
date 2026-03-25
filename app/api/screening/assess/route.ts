@@ -1,3 +1,4 @@
+import { requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import {
   assessHealthScreening,
@@ -518,6 +519,7 @@ function paymentRequiredResponse(input: {
 }
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const patientId = searchParams.get("patientId") || undefined
@@ -553,6 +555,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as ScreeningInput & {
       walletAddress?: string

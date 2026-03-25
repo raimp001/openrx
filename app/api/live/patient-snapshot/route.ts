@@ -1,3 +1,4 @@
+import { requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { getLiveSnapshotByWallet } from "@/lib/live-data.server"
 import { createEmptyLiveSnapshot } from "@/lib/live-data-types"

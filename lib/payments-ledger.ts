@@ -242,16 +242,17 @@ function normalizeAddress(address?: string): string {
 }
 
 function toAmount(amount: string): string {
-  const numeric = Number.parseFloat(amount)
-  if (!Number.isFinite(numeric) || numeric <= 0) {
+  const { toCents, fromCents } = require("@/lib/money") as typeof import("@/lib/money")
+  const cents = toCents(amount)
+  if (cents <= 0) {
     throw new Error("Amount must be a positive decimal number.")
   }
-  return numeric.toFixed(2)
+  return fromCents(cents)
 }
 
 function toAmountNumber(value: string): number {
-  const parsed = Number.parseFloat(value)
-  return Number.isFinite(parsed) ? parsed : 0
+  const { toCents } = require("@/lib/money") as typeof import("@/lib/money")
+  return toCents(value || "0") / 100
 }
 
 function hashPayload(payload: unknown): string {
@@ -653,9 +654,9 @@ function requestRefundInFileStore(input: RequestRefundInput): RefundRecord {
   }
 
   const amount = toAmount(input.amount)
-  const settled = Number.parseFloat(payment.settledAmount || payment.expectedAmount)
-  const refunded = Number.parseFloat(payment.refundedAmount)
-  const requested = Number.parseFloat(amount)
+  const settled = toAmountNumber(payment.settledAmount || payment.expectedAmount)
+  const refunded = toAmountNumber(payment.refundedAmount)
+  const requested = toAmountNumber(amount)
 
   if (requested + refunded > settled) {
     throw new Error("Refund exceeds remaining settled amount.")
@@ -758,9 +759,9 @@ function finalizeRefundInFileStore(input: FinalizeRefundInput): {
     reference: refund.txHash || refund.id,
   })
 
-  const refundedTotal = (Number.parseFloat(payment.refundedAmount) + Number.parseFloat(refund.amount)).toFixed(2)
+  const refundedTotal = toAmount(String(toAmountNumber(payment.refundedAmount) * 100 + toAmountNumber(refund.amount) * 100))
   payment.refundedAmount = refundedTotal
-  if (Number.parseFloat(refundedTotal) >= Number.parseFloat(payment.settledAmount || payment.expectedAmount)) {
+  if (toAmountNumber(refundedTotal) >= toAmountNumber(payment.settledAmount || payment.expectedAmount)) {
     payment.status = "refunded"
   }
 
@@ -1511,9 +1512,9 @@ async function requestRefundInDatabase(input: RequestRefundInput): Promise<Refun
   }
 
   const amount = toAmount(input.amount)
-  const settled = Number.parseFloat(payment.settledAmount || payment.expectedAmount)
-  const refunded = Number.parseFloat(payment.refundedAmount)
-  const requested = Number.parseFloat(amount)
+  const settled = toAmountNumber(payment.settledAmount || payment.expectedAmount)
+  const refunded = toAmountNumber(payment.refundedAmount)
+  const requested = toAmountNumber(amount)
   if (requested + refunded > settled) {
     throw new Error("Refund exceeds remaining settled amount.")
   }
@@ -1655,14 +1656,14 @@ async function finalizeRefundInDatabase(input: FinalizeRefundInput): Promise<{
     }),
   ])
 
-  const refundedTotal = (Number.parseFloat(payment.refundedAmount) + Number.parseFloat(refund.amount)).toFixed(2)
+  const refundedTotal = toAmount(String(toAmountNumber(payment.refundedAmount) * 100 + toAmountNumber(refund.amount) * 100))
   payment = mapPaymentRow(
     await prisma.ledgerPaymentRecord.update({
       where: { id: payment.id },
       data: {
         refundedAmount: refundedTotal,
         status:
-          Number.parseFloat(refundedTotal) >= Number.parseFloat(payment.settledAmount || payment.expectedAmount)
+          toAmountNumber(refundedTotal) >= toAmountNumber(payment.settledAmount || payment.expectedAmount)
             ? "refunded"
             : payment.status,
       },

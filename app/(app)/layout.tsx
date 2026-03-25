@@ -1,6 +1,5 @@
 import Sidebar from "@/components/layout/sidebar"
 import Topbar from "@/components/layout/topbar"
-import AgentBar from "@/components/layout/agent-bar"
 import { getDatabaseHealth } from "@/lib/database-health"
 
 export const dynamic = "force-dynamic"
@@ -16,35 +15,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute left-0 top-0 h-[30rem] w-full bg-[radial-gradient(ellipse_760px_320px_at_70%_-8%,rgba(224,91,67,0.05),transparent_66%)]" />
-        <div className="absolute left-0 top-0 h-full w-[272px] bg-[linear-gradient(180deg,rgba(247,243,236,0.96),rgba(244,239,231,0.88))]" />
-        <div className="absolute left-[272px] top-0 hidden h-full w-px bg-[linear-gradient(180deg,rgba(17,34,30,0.03),rgba(17,34,30,0.12),rgba(17,34,30,0.03))] lg:block" />
-      </div>
       <Sidebar />
-      <div className="relative lg:ml-[272px]">
-        <AgentBar />
+      <div className="relative lg:ml-[256px]">
         <Topbar />
         {showDatabaseBanner && (
-          <div className="mx-auto mt-4 w-full max-w-[1320px] px-4 sm:px-6 lg:px-8">
-            <div className="flex items-start gap-3 rounded-[22px] border border-amber-200/70 bg-[linear-gradient(180deg,rgba(255,251,235,0.95),rgba(255,247,217,0.84))] px-4 py-3 text-xs text-amber-900 shadow-soft-card">
+          <div className="mx-auto mt-3 w-full max-w-[1280px] px-4 sm:px-6 lg:px-8">
+            <div className="flex items-start gap-3 rounded-card border border-amber-200/70 bg-amber-50 px-4 py-3 text-xs text-amber-900">
               <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-amber-500" />
               <span>
                 {databaseHealth.status === "missing" ? (
                   <>
-                    <strong>No database connected</strong> — set <code className="font-mono bg-amber-100 px-1 rounded">DATABASE_URL</code> in <code className="font-mono bg-amber-100 px-1 rounded">.env.local</code> for local use, or run <code className="font-mono bg-amber-100 px-1 rounded">npx vercel env add DATABASE_URL production</code> and then <code className="font-mono bg-amber-100 px-1 rounded">npm run db:push</code> for the deployed app. Currently showing empty states.
+                    <strong>No database connected</strong> — set <code className="font-mono bg-amber-100 px-1 rounded">DATABASE_URL</code> in <code className="font-mono bg-amber-100 px-1 rounded">.env.local</code>.
                   </>
                 ) : (
                   <>
-                    <strong>Database connection needs attention</strong> — OpenRx has a configured <code className="font-mono bg-amber-100 px-1 rounded">DATABASE_URL</code> but could not reach Postgres at runtime. Live records and durable ledger features will fall back until connectivity is restored.
+                    <strong>Database connection needs attention</strong> — could not reach Postgres at runtime.
                   </>
                 )}
               </span>
             </div>
           </div>
         )}
-        <main id="main-content" className="px-4 pb-14 pt-5 sm:px-6 lg:px-8 lg:pt-7" tabIndex={-1}>
-          <div className="mx-auto w-full max-w-[1320px]">{children}</div>
+        <main id="main-content" className="px-4 pb-14 pt-6 sm:px-6 lg:px-8" tabIndex={-1}>
+          <div className="mx-auto w-full max-w-[1280px]">{children}</div>
         </main>
       </div>
     </div>

@@ -35,9 +35,6 @@ import { cn } from "@/lib/utils"
 
 const primaryNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/scheduling", label: "Appointments", icon: Calendar },
-  { href: "/prescriptions", label: "Medications", icon: Pill },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/chat", label: "Ask AI", icon: Bot },
 ]
 
@@ -45,6 +42,8 @@ const collapsibleSections = [
   {
     label: "Care",
     items: [
+      { href: "/scheduling", label: "Appointments", icon: Calendar },
+      { href: "/prescriptions", label: "Medications", icon: Pill },
       { href: "/screening", label: "AI Screening", icon: Heart },
       { href: "/lab-results", label: "Lab Results", icon: FlaskConical },
       { href: "/vitals", label: "Vitals", icon: Activity },
@@ -55,9 +54,9 @@ const collapsibleSections = [
   {
     label: "Operations",
     items: [
+      { href: "/messages", label: "Messages", icon: MessageSquare },
       { href: "/billing", label: "Bills & Claims", icon: Receipt },
       { href: "/prior-auth", label: "Prior Auth", icon: ShieldCheck },
-      { href: "/compliance-ledger", label: "Compliance Ledger", icon: ShieldCheck },
       { href: "/drug-prices", label: "Drug Prices", icon: DollarSign },
       { href: "/wallet", label: "Wallet", icon: WalletIcon },
     ],
@@ -68,11 +67,11 @@ const collapsibleSections = [
       { href: "/profile", label: "Profile", icon: UserCircle },
       { href: "/timeline", label: "Timeline", icon: Clock },
       { href: "/providers", label: "Care Network", icon: Stethoscope },
-      { href: "/join-network", label: "Join Network", icon: UserPlus },
+      { href: "/compliance-ledger", label: "Compliance Ledger", icon: ShieldCheck },
       { href: "/second-opinion", label: "Second Opinion", icon: ShieldCheck },
       { href: "/clinical-trials", label: "Clinical Trials", icon: FlaskConical },
       { href: "/emergency-card", label: "Emergency Card", icon: AlertCircle },
-      { href: "/projects/default/visualize", label: "Codebase Mapper", icon: Workflow },
+      { href: "/join-network", label: "Join Network", icon: UserPlus },
     ],
   },
 ]
@@ -172,11 +171,7 @@ export default function Sidebar() {
                 {active && <span className="absolute inset-y-1.5 left-0.5 w-[2px] rounded-full bg-teal" />}
                 <item.icon size={16} className={active ? "text-teal" : "text-muted group-hover:text-secondary"} strokeWidth={1.5} />
                 <span className="flex-1">{item.label}</span>
-                {item.href === "/messages" && unreadCount > 0 && (
-                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-coral/10 px-1.5 text-[10px] font-semibold text-coral">
-                    {unreadCount}
-                  </span>
-                )}
+                {null}
               </Link>
             )
           })}
@@ -218,6 +213,11 @@ export default function Sidebar() {
                         {active && <span className="absolute inset-y-1.5 left-0.5 w-[2px] rounded-full bg-teal" />}
                         <item.icon size={15} className={active ? "text-teal" : "text-muted group-hover:text-secondary"} strokeWidth={1.5} />
                         <span className="flex-1">{item.label}</span>
+                        {item.href === "/messages" && unreadCount > 0 && (
+                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-coral/10 px-1.5 text-[10px] font-semibold text-coral">
+                            {unreadCount}
+                          </span>
+                        )}
                       </Link>
                     )
                   })}

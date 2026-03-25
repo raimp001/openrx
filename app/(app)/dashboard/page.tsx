@@ -39,9 +39,9 @@ function HealthRing({ score, size = 72 }: { score: number; size?: number }) {
 export default function DashboardPage() {
   const { snapshot, getPhysician, loading } = useLiveSnapshot()
   const { isConnected, profile } = useWalletIdentity()
-  const patientName = snapshot.patient?.full_name || profile?.fullName || ""
+  const patientName = isConnected ? (profile?.fullName || snapshot.patient?.full_name || "") : ""
   const firstName = patientName.split(" ")[0]
-  const hasData = !!snapshot.patient
+  const hasData = isConnected && !!snapshot.patient
 
   const myRx = snapshot.prescriptions.filter((p) => p.status === "active")
   const avgAdherence = myRx.length > 0

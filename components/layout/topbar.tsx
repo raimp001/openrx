@@ -40,7 +40,7 @@ function shortenAddress(address: string): string {
 export default function Topbar() {
   const { snapshot, getPhysician } = useLiveSnapshot()
   const { isConnected, profile, walletAddress } = useWalletIdentity()
-  const displayName = profile?.fullName || snapshot.patient?.full_name || (walletAddress ? shortenAddress(walletAddress) : "")
+  const displayName = isConnected ? (profile?.fullName || snapshot.patient?.full_name || (walletAddress ? shortenAddress(walletAddress) : "")) : ""
   const [query, setQuery] = useState("")
   const [isOpen, setIsOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)

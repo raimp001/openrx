@@ -31,6 +31,7 @@ import {
 import { useEffect, useMemo, useState } from "react"
 import { BrandMark, BrandWordmark } from "@/components/brand-logo"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import { useWalletIdentity } from "@/lib/wallet-context"
 import { cn } from "@/lib/utils"
 
 const primaryNav = [
@@ -80,10 +81,11 @@ export default function Sidebar() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { snapshot } = useLiveSnapshot()
+  const { isConnected, profile } = useWalletIdentity()
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
 
-  const patientName = snapshot.patient?.full_name || ""
-  const hasPatient = !!snapshot.patient
+  const patientName = isConnected ? (profile?.fullName || snapshot.patient?.full_name || "") : ""
+  const hasPatient = isConnected && !!patientName
 
   const unreadCount = snapshot.messages.filter((m) => !m.read).length
 

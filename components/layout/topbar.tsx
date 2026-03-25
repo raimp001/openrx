@@ -26,9 +26,7 @@ import {
   Wallet,
   WalletDropdown,
   WalletDropdownDisconnect,
-  WalletDropdownLink,
 } from "@coinbase/onchainkit/wallet"
-import { Address, Avatar, Name, Identity } from "@coinbase/onchainkit/identity"
 import { cn, formatDate, formatTime } from "@/lib/utils"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useWalletIdentity } from "@/lib/wallet-context"
@@ -291,38 +289,23 @@ export default function Topbar() {
             )}
           </Link>
 
-          {displayName ? (
-            <Wallet>
-              <ConnectWallet className="ock-wallet-connect">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal text-[10px] font-semibold text-white">
-                  {displayName.charAt(0).toUpperCase()}
-                </div>
-                <span className="hidden sm:inline text-[13px]">{displayName.split(" ")[0]}</span>
-              </ConnectWallet>
-              <WalletDropdown className="ock-wallet-dropdown">
-                <div className="px-3 py-2.5 border-b border-border/60">
-                  <p className="text-[13px] font-medium text-primary">{displayName}</p>
-                  <p className="text-[11px] text-muted mt-0.5">{walletAddress ? shortenAddress(walletAddress) : ""}</p>
-                </div>
-                <WalletDropdownLink icon="wallet" href="/wallet" className="ock-wallet-link">
-                  Wallet
-                </WalletDropdownLink>
-                <WalletDropdownLink icon="wallet" href="/profile" className="ock-wallet-link">
-                  Profile
-                </WalletDropdownLink>
-                <WalletDropdownDisconnect className="ock-wallet-disconnect" />
-              </WalletDropdown>
-            </Wallet>
+          {isConnected ? (
+            <Link
+              href="/profile"
+              className="flex h-8 items-center gap-2 rounded-full border border-border bg-white pl-1 pr-3 transition hover:border-teal/30"
+            >
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal text-[10px] font-semibold text-white">
+                {displayName ? displayName.charAt(0).toUpperCase() : "?"}
+              </div>
+              <span className="hidden text-[13px] font-medium text-primary sm:inline">
+                {displayName ? displayName.split(" ")[0] : (walletAddress ? shortenAddress(walletAddress) : "")}
+              </span>
+            </Link>
           ) : (
             <Wallet>
-              <ConnectWallet className="ock-wallet-connect-primary" />
-              <WalletDropdown className="ock-wallet-dropdown">
-                <Identity className="px-3 py-2.5" hasCopyAddressOnClick>
-                  <Avatar className="h-8 w-8" />
-                  <Name className="font-medium text-primary text-[13px]" />
-                  <Address className="text-[11px] text-muted" />
-                </Identity>
-                <WalletDropdownDisconnect className="ock-wallet-disconnect" />
+              <ConnectWallet className="!h-8 !rounded-full !bg-teal !border-0 !px-4 !text-[13px] !font-medium !text-white !transition hover:!bg-teal-dark" />
+              <WalletDropdown className="!rounded-[12px] !border-border !bg-white !shadow-card-hover !w-[200px]">
+                <WalletDropdownDisconnect className="!text-soft-red !text-[13px]" />
               </WalletDropdown>
             </Wallet>
           )}

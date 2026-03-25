@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   return NextResponse.json({
     supportedDrugs: DRUG_RULES.map((r) => ({
       drugClass: r.drugClass,

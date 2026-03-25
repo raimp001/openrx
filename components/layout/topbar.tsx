@@ -212,14 +212,14 @@ export default function Topbar() {
           ) : null}
         </div>
 
-        {/* Right side — pushed to far right */}
-        <div className="ml-auto flex items-center gap-2.5">
+        {/* Right side */}
+        <div className="ml-auto flex items-center gap-2">
           <Link
             href="/messages"
-            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-white text-secondary transition hover:text-primary hover:border-teal/30"
+            className="relative inline-flex h-8 w-8 items-center justify-center rounded-full text-secondary transition hover:text-primary hover:bg-surface"
             aria-label="Messages"
           >
-            <Bell size={15} />
+            <Bell size={16} strokeWidth={1.5} />
             {unread > 0 && (
               <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-coral px-1 text-[9px] font-semibold text-white">
                 {unread}
@@ -227,29 +227,41 @@ export default function Topbar() {
             )}
           </Link>
 
-          <Wallet>
-            {displayName ? (
-              <ConnectWallet className="!h-9 !rounded-full !border !border-border !bg-white !pl-1.5 !pr-3.5 !text-[13px] !font-medium !text-primary !shadow-none !transition !flex !items-center !justify-center !gap-2 hover:!border-teal/30 hover:!bg-surface">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal text-[11px] font-semibold text-white">
+          {displayName ? (
+            <Wallet>
+              <ConnectWallet className="!h-8 !rounded-full !border !border-border !bg-white !pl-1 !pr-3 !text-[13px] !font-medium !text-primary !shadow-none !transition !flex !items-center !justify-center !gap-1.5 hover:!border-teal/30">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal text-[10px] font-semibold text-white">
                   {displayName.charAt(0).toUpperCase()}
                 </div>
-                <span className="hidden sm:inline">{displayName}</span>
+                <span className="hidden sm:inline text-[13px]">{displayName.split(" ")[0]}</span>
               </ConnectWallet>
-            ) : (
-              <ConnectWallet className="!h-9 !rounded-full !border-0 !bg-teal !px-5 !text-[13px] !font-medium !text-white !transition !flex !items-center !justify-center hover:!bg-teal-dark" />
-            )}
-            <WalletDropdown className="!rounded-card !border-border !bg-white !shadow-card-hover">
-              <Identity className="px-4 pb-2 pt-3" hasCopyAddressOnClick>
-                <Avatar />
-                <Name className="font-medium text-primary" />
-                <Address className="text-[10px] text-muted" />
-              </Identity>
-              <WalletDropdownLink icon="wallet" href="/wallet" className="!text-secondary hover:!bg-surface">
-                My Wallet
-              </WalletDropdownLink>
-              <WalletDropdownDisconnect className="!text-soft-red" />
-            </WalletDropdown>
-          </Wallet>
+              <WalletDropdown className="!rounded-[12px] !border-border !bg-white !shadow-card-hover !min-w-0 !w-[220px]">
+                <div className="px-3 py-2.5 border-b border-border/60">
+                  <p className="text-[13px] font-medium text-primary">{displayName}</p>
+                  <p className="text-[11px] text-muted mt-0.5">{walletAddress ? shortenAddress(walletAddress) : ""}</p>
+                </div>
+                <WalletDropdownLink icon="wallet" href="/wallet" className="!text-secondary !text-[13px] hover:!bg-surface !py-2">
+                  Wallet
+                </WalletDropdownLink>
+                <WalletDropdownLink icon="wallet" href="/profile" className="!text-secondary !text-[13px] hover:!bg-surface !py-2">
+                  Profile
+                </WalletDropdownLink>
+                <WalletDropdownDisconnect className="!text-soft-red !text-[13px] !py-2" />
+              </WalletDropdown>
+            </Wallet>
+          ) : (
+            <Wallet>
+              <ConnectWallet className="!h-8 !rounded-full !bg-teal !border-0 !px-4 !text-[13px] !font-medium !text-white !transition hover:!bg-teal-dark" />
+              <WalletDropdown className="!rounded-[12px] !border-border !bg-white !shadow-card-hover !min-w-0 !w-[220px]">
+                <Identity className="px-3 py-2.5" hasCopyAddressOnClick>
+                  <Avatar className="h-8 w-8" />
+                  <Name className="font-medium text-primary text-[13px]" />
+                  <Address className="text-[11px] text-muted" />
+                </Identity>
+                <WalletDropdownDisconnect className="!text-soft-red !text-[13px]" />
+              </WalletDropdown>
+            </Wallet>
+          )}
         </div>
       </div>
     </header>

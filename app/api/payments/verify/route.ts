@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { verifyAndRecordPayment } from "@/lib/payments-ledger"
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as {
       paymentId?: string

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getLedgerSnapshot } from "@/lib/payments-ledger"
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   const { searchParams } = new URL(request.url)
   const walletAddress = searchParams.get("walletAddress") || undefined
   const snapshot = await getLedgerSnapshot({ walletAddress })

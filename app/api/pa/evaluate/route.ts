@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { evaluatePACriteria, getPayerOverride, DRUG_RULES } from "@/lib/payer-rules/engine"
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = await request.json() as {
       drugName?: string
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   return NextResponse.json({
     supportedDrugs: DRUG_RULES.map((r) => ({
       drugClass: r.drugClass,

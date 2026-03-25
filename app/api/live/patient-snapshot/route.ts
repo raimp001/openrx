@@ -6,6 +6,7 @@ import { createEmptyLiveSnapshot } from "@/lib/live-data-types"
 export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   const { searchParams } = new URL(request.url)
   const walletAddress = searchParams.get("walletAddress") || undefined
 

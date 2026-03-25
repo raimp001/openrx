@@ -55,6 +55,7 @@ function serializeConditionStatus(status?: string): string | undefined {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   const databaseHealth = await getDatabaseHealth({ force: true })
   if (!databaseHealth.reachable) {
     return NextResponse.json(

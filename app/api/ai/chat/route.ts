@@ -104,6 +104,7 @@ function buildContextBlock(patientContext: Record<string, unknown> | null): stri
 // ── POST — streaming chat ─────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = await request.json() as {
       messages: Array<{ role: string; content: string }>

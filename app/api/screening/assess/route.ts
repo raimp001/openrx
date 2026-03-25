@@ -519,6 +519,7 @@ function paymentRequiredResponse(input: {
 }
 
 export async function GET(request: NextRequest) {
+ const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
@@ -555,6 +556,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+ const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as ScreeningInput & {

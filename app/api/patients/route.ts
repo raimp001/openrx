@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 
 // GET /api/patients - Get patient profile(s)
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
@@ -134,6 +135,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/patients - Create patient profile
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = await request.json()
     const {
@@ -200,6 +202,7 @@ export async function POST(request: NextRequest) {
 
 // PATCH /api/patients - Update patient profile
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = await request.json()
     const {

@@ -5,6 +5,7 @@ import { AppointmentStatus } from '@prisma/client'
 
 // GET /api/appointments - List appointments with optional filters
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const patientId = searchParams.get('patientId')
@@ -75,6 +76,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/appointments - Create a new appointment
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = await request.json()
     const {
@@ -173,6 +175,7 @@ export async function POST(request: NextRequest) {
 
 // PATCH /api/appointments - Update appointment status
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = await request.json()
     const { id, status, notes, meetingUrl } = body
@@ -230,6 +233,7 @@ export async function PATCH(request: NextRequest) {
 
 // DELETE /api/appointments - Cancel appointment
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

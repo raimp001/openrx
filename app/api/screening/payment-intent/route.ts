@@ -11,6 +11,7 @@ function isWalletAddress(value: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as { walletAddress?: string }
     const walletAddress = (body.walletAddress || "").trim()

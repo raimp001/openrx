@@ -8,6 +8,7 @@ import {
 } from "@/lib/payments-ledger"
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   const { searchParams } = new URL(request.url)
   const walletAddress = searchParams.get("walletAddress") || undefined
   const paymentId = searchParams.get("paymentId") || undefined
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as {
       paymentId?: string
@@ -50,6 +52,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as {
       action?: "approve" | "finalize"

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createAttestation, getLedgerSnapshot } from "@/lib/payments-ledger"
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   const { searchParams } = new URL(request.url)
   const walletAddress = searchParams.get("walletAddress") || undefined
   const subjectType = searchParams.get("subjectType") || undefined
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as {
       schema?: string

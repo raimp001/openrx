@@ -5,6 +5,7 @@ import { NotificationType } from '@prisma/client'
 
 // GET /api/notifications - Get notifications for a user
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
@@ -57,6 +58,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/notifications - Create a notification
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = await request.json()
     const { userId, type, title, message, metadata } = body
@@ -90,6 +92,7 @@ export async function POST(request: NextRequest) {
 
 // PATCH /api/notifications - Mark notification(s) as read
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = await request.json()
     const { id, userId, markAllRead } = body
@@ -129,6 +132,7 @@ export async function PATCH(request: NextRequest) {
 
 // DELETE /api/notifications - Delete notification(s)
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

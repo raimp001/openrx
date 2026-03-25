@@ -227,9 +227,8 @@ Reference authorization number: ${req.referenceNumber ?? "As provided in denial 
 Physician availability: Please contact our office to schedule.`
 }
 
-// GET — appeal evidence library
+// GET — appeal evidence library (static reference data, no auth needed)
 export async function GET() {
-  const auth = await requireAuth(req); if ("response" in auth) return auth.response;
   return NextResponse.json({
     appealTimelines: {
       Aetna: { standard: 60, expedited: 72 },

@@ -205,6 +205,69 @@ a {
   .glass-card {
     @apply surface-card;
   }
+
+  /* OnchainKit wallet overrides — single source of truth */
+  .ock-wallet-connect {
+    height: 2rem;
+    border-radius: 9999px;
+    border: 1px solid var(--color-border, #E4E4E7);
+    background: white;
+    padding-left: 0.25rem;
+    padding-right: 0.75rem;
+    font-size: 13px;
+    font-weight: 500;
+    color: #1A1A1A;
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    transition: border-color 0.15s;
+  }
+  .ock-wallet-connect:hover {
+    border-color: rgba(15, 94, 84, 0.3);
+  }
+
+  .ock-wallet-connect-primary {
+    height: 2rem;
+    border-radius: 9999px;
+    border: 0;
+    background: #0F5E54;
+    padding: 0 1rem;
+    font-size: 13px;
+    font-weight: 500;
+    color: white;
+    transition: background 0.15s;
+  }
+  .ock-wallet-connect-primary:hover {
+    background: #0A4A42;
+  }
+
+  .ock-wallet-dropdown {
+    border-radius: 12px;
+    border-color: #E4E4E7;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06);
+    min-width: 0;
+    width: 220px;
+  }
+
+  .ock-wallet-link {
+    color: #52525B;
+    font-size: 13px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .ock-wallet-link:hover {
+    background: #FAFAF8;
+  }
+
+  .ock-wallet-disconnect {
+    color: #EF4444;
+    font-size: 13px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

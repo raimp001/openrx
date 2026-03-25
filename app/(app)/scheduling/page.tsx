@@ -1,7 +1,7 @@
 "use client"
 
 import { cn, formatTime, formatDate, getStatusColor } from "@/lib/utils"
-import { Video, AlertTriangle, Stethoscope, Bot, Calendar } from "lucide-react"
+import { Video, AlertTriangle, Stethoscope, Bot, Calendar, ChevronDown, MapPin, Clock } from "lucide-react"
 import { useState, useMemo } from "react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
@@ -39,6 +39,7 @@ export default function SchedulingPage() {
     }
   }, [today, myAppointments])
 
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const activeList = view === "today" ? todayApts : view === "upcoming" ? upcomingApts : pastApts
 
   const statusCounts = useMemo(() => {
@@ -179,86 +180,134 @@ export default function SchedulingPage() {
         )}
         {activeList.map((apt) => {
           const physician = getPhysician(apt.physician_id)
+          const isExpanded = expandedId === apt.id
           return (
-            <div
-              key={apt.id}
-              className="flex items-center gap-4 px-5 py-4 hover:bg-border/20 transition"
-            >
-              {/* Time */}
-              <div className="w-20 shrink-0 text-center">
-                <div className="text-sm font-bold text-primary">
-                  {formatTime(apt.scheduled_at)}
+            <div key={apt.id}>
+              <button
+                onClick={() => setExpandedId(isExpanded ? null : apt.id)}
+                className="flex w-full items-center gap-4 px-5 py-4 hover:bg-border/20 transition text-left"
+                aria-expanded={isExpanded}
+              >
+                {/* Time */}
+                <div className="w-20 shrink-0 text-center">
+                  <div className="text-sm font-bold text-primary">
+                    {formatTime(apt.scheduled_at)}
+                  </div>
+                  <div className="text-[10px] text-muted">
+                    {apt.duration_minutes}min
+                  </div>
                 </div>
-                <div className="text-[10px] text-muted">
-                  {apt.duration_minutes}min
-                </div>
-              </div>
 
-              {/* Status bar */}
-              <div
-                className={cn(
-                  "w-1.5 h-10 rounded-full shrink-0",
-                  apt.status === "completed"
-                    ? "bg-accent"
-                    : apt.status === "in-progress"
-                    ? "bg-teal"
-                    : apt.status === "checked-in"
-                    ? "bg-yellow-400"
-                    : apt.status === "no-show"
-                    ? "bg-soft-red"
-                    : "bg-border"
-                )}
-              />
+                {/* Status bar */}
+                <div
+                  className={cn(
+                    "w-1.5 h-10 rounded-full shrink-0",
+                    apt.status === "completed"
+                      ? "bg-accent"
+                      : apt.status === "in-progress"
+                      ? "bg-teal"
+                      : apt.status === "checked-in"
+                      ? "bg-yellow-400"
+                      : apt.status === "no-show"
+                      ? "bg-soft-red"
+                      : "bg-border"
+                  )}
+                />
 
-              {/* Main info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide",
-                      getStatusColor(apt.status)
+                {/* Main info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide",
+                        getStatusColor(apt.status)
+                      )}
+                    >
+                      {apt.status}
+                    </span>
+                    {apt.type === "urgent" && (
+                      <span className="flex items-center gap-0.5 text-[10px] font-bold text-soft-red">
+                        <AlertTriangle size={10} />
+                        URGENT
+                      </span>
                     )}
-                  >
-                    {apt.status}
-                  </span>
-                  {apt.type === "urgent" && (
-                    <span className="flex items-center gap-0.5 text-[10px] font-bold text-soft-red">
-                      <AlertTriangle size={10} />
-                      URGENT
-                    </span>
-                  )}
-                  {apt.type === "telehealth" && (
-                    <span className="flex items-center gap-0.5 text-[10px] font-bold text-soft-blue">
-                      <Video size={10} />
-                      TELEHEALTH
-                    </span>
-                  )}
-                  {apt.type === "new-patient" && (
-                    <span className="text-[10px] font-bold text-accent">NEW</span>
-                  )}
-                </div>
-                <p className="text-xs text-muted mt-0.5 truncate">
-                  {apt.reason}
-                </p>
-                {apt.notes && (
-                  <p className="text-[10px] text-muted mt-0.5 truncate italic">
-                    {apt.notes}
+                    {apt.type === "telehealth" && (
+                      <span className="flex items-center gap-0.5 text-[10px] font-bold text-soft-blue">
+                        <Video size={10} />
+                        TELEHEALTH
+                      </span>
+                    )}
+                    {apt.type === "new-patient" && (
+                      <span className="text-[10px] font-bold text-accent">NEW</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted mt-0.5 truncate">
+                    {apt.reason}
                   </p>
+                </div>
+
+                {/* Physician */}
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-medium text-primary">
+                    {physician?.full_name}
+                  </p>
+                  <p className="text-[10px] text-muted">{physician?.specialty}</p>
+                </div>
+
+                {/* Date (for non-today) */}
+                {view !== "today" && (
+                  <div className="text-xs text-muted shrink-0 w-24 text-right">
+                    {formatDate(apt.scheduled_at)}
+                  </div>
                 )}
-              </div>
 
-              {/* Physician */}
-              <div className="text-right shrink-0">
-                <p className="text-xs font-medium text-primary">
-                  {physician?.full_name}
-                </p>
-                <p className="text-[10px] text-muted">{physician?.specialty}</p>
-              </div>
+                <ChevronDown size={14} className={cn("text-muted shrink-0 transition-transform", isExpanded && "rotate-180")} />
+              </button>
 
-              {/* Date (for non-today) */}
-              {view !== "today" && (
-                <div className="text-xs text-muted shrink-0 w-24 text-right">
-                  {formatDate(apt.scheduled_at)}
+              {/* Expanded details */}
+              {isExpanded && (
+                <div className="px-5 pb-4 pt-0 ml-[6.5rem] border-t border-border/30 animate-fade-in">
+                  <div className="grid gap-3 sm:grid-cols-3 py-3">
+                    <div className="flex items-start gap-2">
+                      <Clock size={13} className="text-muted mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Duration</p>
+                        <p className="text-sm text-primary">{apt.duration_minutes} minutes</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Stethoscope size={13} className="text-muted mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Provider</p>
+                        <p className="text-sm text-primary">{physician?.full_name}</p>
+                        <p className="text-xs text-muted">{physician?.specialty}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <MapPin size={13} className="text-muted mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Type</p>
+                        <p className="text-sm text-primary capitalize">{apt.type || "In-person"}</p>
+                      </div>
+                    </div>
+                  </div>
+                  {apt.notes && (
+                    <p className="text-xs text-secondary leading-5 mt-1 italic">{apt.notes}</p>
+                  )}
+                  <div className="flex gap-2 mt-3">
+                    <AIAction
+                      agentId="scheduling"
+                      label="Reschedule"
+                      prompt={`Help me reschedule my ${apt.reason} appointment on ${formatDate(apt.scheduled_at)} at ${formatTime(apt.scheduled_at)} with ${physician?.full_name || "my doctor"}.`}
+                      variant="compact"
+                    />
+                    <AIAction
+                      agentId="scheduling"
+                      label="Prepare for visit"
+                      prompt={`What should I bring and prepare for my ${apt.reason} appointment with ${physician?.full_name || "my doctor"} on ${formatDate(apt.scheduled_at)}?`}
+                      variant="compact"
+                    />
+                  </div>
                 </div>
               )}
             </div>

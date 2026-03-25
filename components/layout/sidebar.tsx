@@ -82,7 +82,15 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { snapshot } = useLiveSnapshot()
   const { isConnected, profile } = useWalletIdentity()
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") return {}
+    try {
+      const saved = localStorage.getItem("openrx:sidebar-sections")
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
 
   const patientName = isConnected ? (profile?.fullName || snapshot.patient?.full_name || "") : ""
   const hasPatient = isConnected && !!patientName
@@ -90,7 +98,11 @@ export default function Sidebar() {
   const unreadCount = snapshot.messages.filter((m) => !m.read).length
 
   const toggleSection = (label: string) => {
-    setOpenSections((prev) => ({ ...prev, [label]: !prev[label] }))
+    setOpenSections((prev) => {
+      const next = { ...prev, [label]: !prev[label] }
+      try { localStorage.setItem("openrx:sidebar-sections", JSON.stringify(next)) } catch {}
+      return next
+    })
   }
 
   // Auto-expand section if current path is inside it
@@ -113,6 +125,27 @@ export default function Sidebar() {
     document.addEventListener("keydown", handleEscape)
     return () => document.removeEventListener("keydown", handleEscape)
   }, [])
+
+  // Focus trap for mobile sidebar
+  useEffect(() => {
+    if (!mobileOpen) return
+    const sidebar = document.querySelector<HTMLElement>("[data-mobile-sidebar]")
+    if (!sidebar) return
+    const focusable = sidebar.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+    if (focusable.length === 0) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    first.focus()
+    const trap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+    document.addEventListener("keydown", trap)
+    return () => document.removeEventListener("keydown", trap)
+  }, [mobileOpen])
 
   const isActive = (href: string) =>
     pathname === href || pathname?.startsWith(href + "/")
@@ -163,6 +196,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "group relative flex items-center gap-3 rounded-nav px-3 py-2.5 text-[13px] font-medium transition",
                   active
@@ -173,7 +207,6 @@ export default function Sidebar() {
                 {active && <span className="absolute inset-y-1.5 left-0.5 w-[2px] rounded-full bg-teal" />}
                 <item.icon size={16} className={active ? "text-teal" : "text-muted group-hover:text-secondary"} strokeWidth={1.5} />
                 <span className="flex-1">{item.label}</span>
-                {null}
               </Link>
             )
           })}
@@ -205,6 +238,7 @@ export default function Sidebar() {
                       <Link
                         key={item.href}
                         href={item.href}
+                        aria-current={active ? "page" : undefined}
                         className={cn(
                           "group relative flex items-center gap-3 rounded-nav px-3 py-2 text-[13px] font-medium transition",
                           active
@@ -277,6 +311,7 @@ export default function Sidebar() {
       )}
 
       <aside
+        data-mobile-sidebar
         className={cn(
           "fixed left-0 top-0 z-50 flex h-screen w-[256px] flex-col border-r border-border/60 bg-white transition-transform duration-200 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"

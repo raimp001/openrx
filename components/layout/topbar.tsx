@@ -29,7 +29,7 @@ import {
   WalletDropdownLink,
 } from "@coinbase/onchainkit/wallet"
 import { Address, Avatar, Name, Identity } from "@coinbase/onchainkit/identity"
-import { formatDate, formatTime } from "@/lib/utils"
+import { cn, formatDate, formatTime } from "@/lib/utils"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useWalletIdentity } from "@/lib/wallet-context"
 
@@ -124,9 +124,39 @@ export default function Topbar() {
     return { navigation, prescriptions, appointments, total }
   }, [getPhysician, snapshot.appointments, snapshot.prescriptions, query, quickNav])
 
+  const [activeIndex, setActiveIndex] = useState(-1)
+
+  const flatResults = useMemo(() => {
+    if (!results) return []
+    const items: { href: string; label: string }[] = []
+    for (const n of results.navigation) items.push({ href: n.href, label: n.label })
+    for (const a of results.appointments) items.push({ href: "/scheduling", label: a.reason })
+    for (const r of results.prescriptions) items.push({ href: "/prescriptions", label: r.medication_name })
+    return items
+  }, [results])
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!isOpen || flatResults.length === 0) return
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setActiveIndex(i => Math.min(i + 1, flatResults.length - 1))
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setActiveIndex(i => Math.max(i - 1, 0))
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault()
+      const item = flatResults[activeIndex]
+      if (item) { window.location.href = item.href; closeSearch() }
+    }
+  }, [isOpen, flatResults, activeIndex])
+
+  // Reset active index when query changes
+  useEffect(() => { setActiveIndex(-1) }, [query])
+
   const closeSearch = useCallback(() => {
     setIsOpen(false)
     setQuery("")
+    setActiveIndex(-1)
   }, [])
 
   return (
@@ -141,6 +171,10 @@ export default function Topbar() {
             value={query}
             onChange={(e) => { setQuery(e.target.value); setIsOpen(true) }}
             onFocus={() => query.length >= 2 && setIsOpen(true)}
+            onKeyDown={handleSearchKeyDown}
+            role="combobox"
+            aria-expanded={isOpen && !!results}
+            aria-activedescendant={activeIndex >= 0 ? `search-result-${activeIndex}` : undefined}
             placeholder="Search..."
             className="w-full rounded-nav border border-border bg-white py-2 pl-9 pr-12 text-sm text-primary placeholder:text-muted transition focus:border-teal/40 focus:ring-1 focus:ring-teal/20"
           />
@@ -163,49 +197,79 @@ export default function Topbar() {
               {results.total === 0 ? (
                 <div className="px-4 py-3 text-sm text-secondary">No results for &ldquo;{query}&rdquo;</div>
               ) : (
-                <div className="max-h-80 overflow-y-auto py-1">
-                  {results.navigation.map((item) => {
-                    const Icon = item.icon
+                <div className="max-h-80 overflow-y-auto py-1" role="listbox">
+                  {(() => {
+                    let idx = 0
                     return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={closeSearch}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm transition hover:bg-surface"
-                      >
-                        <Icon size={14} className="text-teal" />
-                        <span className="font-medium text-primary">{item.label}</span>
-                      </Link>
+                      <>
+                        {results.navigation.map((item) => {
+                          const Icon = item.icon
+                          const i = idx++
+                          return (
+                            <Link
+                              key={item.href}
+                              id={`search-result-${i}`}
+                              href={item.href}
+                              onClick={closeSearch}
+                              role="option"
+                              aria-selected={activeIndex === i}
+                              className={cn(
+                                "flex items-center gap-3 px-4 py-2.5 text-sm transition hover:bg-surface",
+                                activeIndex === i && "bg-surface"
+                              )}
+                            >
+                              <Icon size={14} className="text-teal" />
+                              <span className="font-medium text-primary">{item.label}</span>
+                            </Link>
+                          )
+                        })}
+                        {results.appointments.map((apt) => {
+                          const physician = getPhysician(apt.physician_id)
+                          const i = idx++
+                          return (
+                            <Link
+                              key={apt.id}
+                              id={`search-result-${i}`}
+                              href="/scheduling"
+                              onClick={closeSearch}
+                              role="option"
+                              aria-selected={activeIndex === i}
+                              className={cn(
+                                "flex items-center gap-3 px-4 py-2.5 text-sm transition hover:bg-surface",
+                                activeIndex === i && "bg-surface"
+                              )}
+                            >
+                              <Calendar size={14} className="text-muted" />
+                              <div>
+                                <span className="font-medium text-primary">{apt.reason}</span>
+                                <span className="ml-2 text-xs text-muted">{physician?.full_name} · {formatDate(apt.scheduled_at)}</span>
+                              </div>
+                            </Link>
+                          )
+                        })}
+                        {results.prescriptions.map((rx) => {
+                          const i = idx++
+                          return (
+                            <Link
+                              key={rx.id}
+                              id={`search-result-${i}`}
+                              href="/prescriptions"
+                              onClick={closeSearch}
+                              role="option"
+                              aria-selected={activeIndex === i}
+                              className={cn(
+                                "flex items-center gap-3 px-4 py-2.5 text-sm transition hover:bg-surface",
+                                activeIndex === i && "bg-surface"
+                              )}
+                            >
+                              <Pill size={14} className="text-muted" />
+                              <span className="font-medium text-primary">{rx.medication_name} {rx.dosage}</span>
+                            </Link>
+                          )
+                        })}
+                      </>
                     )
-                  })}
-                  {results.appointments.map((apt) => {
-                    const physician = getPhysician(apt.physician_id)
-                    return (
-                      <Link
-                        key={apt.id}
-                        href="/scheduling"
-                        onClick={closeSearch}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm transition hover:bg-surface"
-                      >
-                        <Calendar size={14} className="text-muted" />
-                        <div>
-                          <span className="font-medium text-primary">{apt.reason}</span>
-                          <span className="ml-2 text-xs text-muted">{physician?.full_name} · {formatDate(apt.scheduled_at)}</span>
-                        </div>
-                      </Link>
-                    )
-                  })}
-                  {results.prescriptions.map((rx) => (
-                    <Link
-                      key={rx.id}
-                      href="/prescriptions"
-                      onClick={closeSearch}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm transition hover:bg-surface"
-                    >
-                      <Pill size={14} className="text-muted" />
-                      <span className="font-medium text-primary">{rx.medication_name} {rx.dosage}</span>
-                    </Link>
-                  ))}
+                  })()}
                 </div>
               )}
             </div>
@@ -229,36 +293,36 @@ export default function Topbar() {
 
           {displayName ? (
             <Wallet>
-              <ConnectWallet className="!h-8 !rounded-full !border !border-border !bg-white !pl-1 !pr-3 !text-[13px] !font-medium !text-primary !shadow-none !transition !flex !items-center !justify-center !gap-1.5 hover:!border-teal/30">
+              <ConnectWallet className="ock-wallet-connect">
                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal text-[10px] font-semibold text-white">
                   {displayName.charAt(0).toUpperCase()}
                 </div>
                 <span className="hidden sm:inline text-[13px]">{displayName.split(" ")[0]}</span>
               </ConnectWallet>
-              <WalletDropdown className="!rounded-[12px] !border-border !bg-white !shadow-card-hover !min-w-0 !w-[220px]">
+              <WalletDropdown className="ock-wallet-dropdown">
                 <div className="px-3 py-2.5 border-b border-border/60">
                   <p className="text-[13px] font-medium text-primary">{displayName}</p>
                   <p className="text-[11px] text-muted mt-0.5">{walletAddress ? shortenAddress(walletAddress) : ""}</p>
                 </div>
-                <WalletDropdownLink icon="wallet" href="/wallet" className="!text-secondary !text-[13px] hover:!bg-surface !py-2">
+                <WalletDropdownLink icon="wallet" href="/wallet" className="ock-wallet-link">
                   Wallet
                 </WalletDropdownLink>
-                <WalletDropdownLink icon="wallet" href="/profile" className="!text-secondary !text-[13px] hover:!bg-surface !py-2">
+                <WalletDropdownLink icon="wallet" href="/profile" className="ock-wallet-link">
                   Profile
                 </WalletDropdownLink>
-                <WalletDropdownDisconnect className="!text-soft-red !text-[13px] !py-2" />
+                <WalletDropdownDisconnect className="ock-wallet-disconnect" />
               </WalletDropdown>
             </Wallet>
           ) : (
             <Wallet>
-              <ConnectWallet className="!h-8 !rounded-full !bg-teal !border-0 !px-4 !text-[13px] !font-medium !text-white !transition hover:!bg-teal-dark" />
-              <WalletDropdown className="!rounded-[12px] !border-border !bg-white !shadow-card-hover !min-w-0 !w-[220px]">
+              <ConnectWallet className="ock-wallet-connect-primary" />
+              <WalletDropdown className="ock-wallet-dropdown">
                 <Identity className="px-3 py-2.5" hasCopyAddressOnClick>
                   <Avatar className="h-8 w-8" />
                   <Name className="font-medium text-primary text-[13px]" />
                   <Address className="text-[11px] text-muted" />
                 </Identity>
-                <WalletDropdownDisconnect className="!text-soft-red !text-[13px]" />
+                <WalletDropdownDisconnect className="ock-wallet-disconnect" />
               </WalletDropdown>
             </Wallet>
           )}

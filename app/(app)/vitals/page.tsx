@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils"
 type TimeRange = "7d" | "14d" | "30d"
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+  return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
 function TrendBadge({
@@ -43,7 +43,7 @@ function TrendBadge({
 }) {
   if (trend === "stable") {
     return (
-      <div className="inline-flex items-center gap-1 rounded-full border border-sand bg-white/80 px-2.5 py-1 text-[10px] font-semibold text-warm-500">
+      <div className="inline-flex items-center gap-1 rounded-full border border-border bg-white/80 px-2.5 py-1 text-[10px] font-semibold text-muted">
         <Minus size={11} /> stable
       </div>
     )
@@ -78,9 +78,9 @@ function ChartTooltip({
 }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-2xl border border-sand bg-white/95 px-3 py-2 text-xs shadow-soft-card backdrop-blur">
-      <p className="text-cloudy">{label}</p>
-      <p className="font-semibold text-warm-800">
+    <div className="rounded-2xl border border-border bg-white/95 px-3 py-2 text-xs shadow-soft-card backdrop-blur">
+      <p className="text-muted">{label}</p>
+      <p className="font-semibold text-primary">
         {payload[0].value} {unit}
       </p>
     </div>
@@ -207,7 +207,7 @@ export default function VitalsPage() {
           </div>
         }
         actions={
-          <div className="flex gap-1 rounded-2xl border border-sand bg-white/75 p-1">
+          <div className="flex gap-1 rounded-2xl border border-border bg-white/75 p-1">
             {(["7d", "14d", "30d"] as TimeRange[]).map((value) => (
               <OpsTabButton key={value} active={range === value} onClick={() => setRange(value)}>
                 {value}
@@ -256,7 +256,7 @@ export default function VitalsPage() {
               title="Values outside target"
               description="This panel only appears when the rolling averages drift above target, so the patient sees the problem before reading the charts."
             >
-              <div className="space-y-2 rounded-[24px] border border-soft-red/20 bg-soft-red/5 px-4 py-4 text-sm text-warm-700">
+              <div className="space-y-2 rounded-[24px] border border-soft-red/20 bg-soft-red/5 px-4 py-4 text-sm text-primary">
                 {highBP ? <p>Average blood pressure is {avgSystolic}/{avgDiastolic} mmHg. The target is below 130/80 mmHg.</p> : null}
                 {highGlucose ? <p>Average fasting glucose is {avgGlucose} mg/dL. The target is below 130 mg/dL.</p> : null}
               </div>
@@ -281,7 +281,7 @@ export default function VitalsPage() {
                   <Line type="monotone" dataKey="diastolic" stroke="#1E88B6" strokeWidth={2.5} dot={{ r: 3, fill: "#1E88B6" }} activeDot={{ r: 5 }} connectNulls />
                 </LineChart>
               </ResponsiveContainer>
-              <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-cloudy">
+              <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-muted">
                 <span className="inline-flex items-center gap-2"><span className="h-2 w-5 rounded-full bg-soft-red/80" /> Systolic</span>
                 <span className="inline-flex items-center gap-2"><span className="h-2 w-5 rounded-full bg-soft-blue/80" /> Diastolic</span>
                 <span>Dashed line = 130 mmHg target</span>
@@ -324,7 +324,7 @@ export default function VitalsPage() {
               <div className="overflow-x-auto">
                 <table className="min-w-[640px] w-full text-xs">
                   <thead>
-                    <tr className="border-b border-sand/60 text-left text-cloudy">
+                    <tr className="border-b border-border/60 text-left text-muted">
                       <th className="px-4 py-3 font-semibold">Date & time</th>
                       <th className="px-3 py-3 text-center font-semibold">Source</th>
                       <th className="px-3 py-3 text-right font-semibold">BP</th>
@@ -336,10 +336,10 @@ export default function VitalsPage() {
                   </thead>
                   <tbody>
                     {filteredVitals.map((vital) => (
-                      <tr key={vital.id} className="border-b border-sand/30 text-warm-700 last:border-b-0">
-                        <td className="px-4 py-3 font-medium text-warm-800">
+                      <tr key={vital.id} className="border-b border-border/30 text-primary last:border-b-0">
+                        <td className="px-4 py-3 font-medium text-primary">
                           {new Date(vital.recorded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                          <span className="ml-1.5 font-normal text-cloudy">
+                          <span className="ml-1.5 font-normal text-muted">
                             {new Date(vital.recorded_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                           </span>
                         </td>
@@ -348,11 +348,11 @@ export default function VitalsPage() {
                             {vital.source}
                           </OpsBadge>
                         </td>
-                        <td className={cn("px-3 py-3 text-right font-semibold", vital.systolic && vital.systolic >= 140 ? "text-soft-red" : "text-warm-800")}>
+                        <td className={cn("px-3 py-3 text-right font-semibold", vital.systolic && vital.systolic >= 140 ? "text-soft-red" : "text-primary")}>
                           {vital.systolic && vital.diastolic ? `${vital.systolic}/${vital.diastolic}` : "—"}
                         </td>
                         <td className="px-3 py-3 text-right">{vital.heart_rate ?? "—"}</td>
-                        <td className={cn("px-3 py-3 text-right font-semibold", vital.blood_glucose && vital.blood_glucose > 130 ? "text-yellow-700" : "text-warm-800")}>
+                        <td className={cn("px-3 py-3 text-right font-semibold", vital.blood_glucose && vital.blood_glucose > 130 ? "text-yellow-700" : "text-primary")}>
                           {vital.blood_glucose ?? "—"}
                         </td>
                         <td className="px-3 py-3 text-right">{vital.weight_lbs ?? "—"}</td>
@@ -368,12 +368,12 @@ export default function VitalsPage() {
 
         <div className="space-y-4">
           <OpsPanel eyebrow="Signal summary" title="What changed" description="A patient-facing synopsis that explains the numbers without needing chart literacy.">
-            <div className="space-y-3 text-sm leading-6 text-warm-600">
+            <div className="space-y-3 text-sm leading-6 text-secondary">
               <div className="surface-muted px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-warm-800">Blood pressure</p>
-                    <p className="mt-1 text-xs text-cloudy">Average {avgSystolic ?? "--"}/{avgDiastolic ?? "--"} mmHg</p>
+                    <p className="text-sm font-semibold text-primary">Blood pressure</p>
+                    <p className="mt-1 text-xs text-muted">Average {avgSystolic ?? "--"}/{avgDiastolic ?? "--"} mmHg</p>
                   </div>
                   <TrendBadge trend={bpTrend} goodDirection="down" />
                 </div>
@@ -381,15 +381,15 @@ export default function VitalsPage() {
               <div className="surface-muted px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-warm-800">Glucose</p>
-                    <p className="mt-1 text-xs text-cloudy">Average {avgGlucose ?? "--"} mg/dL</p>
+                    <p className="text-sm font-semibold text-primary">Glucose</p>
+                    <p className="mt-1 text-xs text-muted">Average {avgGlucose ?? "--"} mg/dL</p>
                   </div>
                   <TrendBadge trend={glucoseTrend} goodDirection="down" />
                 </div>
               </div>
               <div className="surface-muted px-4 py-3">
-                <p className="text-sm font-semibold text-warm-800">Source mix</p>
-                <p className="mt-1 text-xs text-cloudy">{homeCount} home · {clinicCount} clinic · {deviceCount} device readings</p>
+                <p className="text-sm font-semibold text-primary">Source mix</p>
+                <p className="mt-1 text-xs text-muted">{homeCount} home · {clinicCount} clinic · {deviceCount} device readings</p>
               </div>
             </div>
           </OpsPanel>
@@ -413,8 +413,8 @@ export default function VitalsPage() {
           <OpsPanel eyebrow="Record freshness" title="Capture cadence" description="How current the monitored data is and whether the feed looks stale.">
             <div className="space-y-3">
               <div className="surface-muted px-4 py-3">
-                <div className="text-sm font-semibold text-warm-800">Latest reading</div>
-                <div className="mt-1 text-xs text-cloudy">
+                <div className="text-sm font-semibold text-primary">Latest reading</div>
+                <div className="mt-1 text-xs text-muted">
                   {latestVital
                     ? new Date(latestVital.recorded_at).toLocaleString(undefined, {
                         month: "short",
@@ -426,8 +426,8 @@ export default function VitalsPage() {
                 </div>
               </div>
               <div className="surface-muted px-4 py-3">
-                <div className="text-sm font-semibold text-warm-800">Window coverage</div>
-                <div className="mt-1 text-xs text-cloudy">{filteredVitals.length} readings across the last {rangeDays} days.</div>
+                <div className="text-sm font-semibold text-primary">Window coverage</div>
+                <div className="mt-1 text-xs text-muted">{filteredVitals.length} readings across the last {rangeDays} days.</div>
               </div>
             </div>
           </OpsPanel>

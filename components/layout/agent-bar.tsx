@@ -66,7 +66,7 @@ export default function AgentBar() {
               <statusMeta.icon size={12} />
               {statusMeta.label}
             </span>
-            <span className="text-[11px] font-medium text-warm-500">
+            <span className="text-[11px] font-medium text-muted">
               {OPENCLAW_CONFIG.agents.length} specialists · {OPENCLAW_CONFIG.cronJobs.length} scheduled jobs
             </span>
           </div>
@@ -81,7 +81,7 @@ export default function AgentBar() {
 
             <Link
               href="/chat"
-              className="inline-flex items-center gap-2 rounded-full border border-black/[0.07] bg-white/90 px-3 py-2 text-[11px] font-semibold text-warm-700 transition hover:border-terra/24 hover:text-warm-900"
+              className="inline-flex items-center gap-2 rounded-full border border-black/[0.07] bg-white/90 px-3 py-2 text-[11px] font-semibold text-primary transition hover:border-teal/24 hover:text-primary"
             >
               Open agent
             </Link>
@@ -89,7 +89,7 @@ export default function AgentBar() {
             <button
               onClick={() => setExpanded((value) => !value)}
               aria-label={expanded ? "Collapse agent status" : "Expand agent status"}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-black/[0.07] bg-white/90 text-warm-600 transition hover:text-warm-900"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-black/[0.07] bg-white/90 text-secondary transition hover:text-primary"
             >
               {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
@@ -97,26 +97,26 @@ export default function AgentBar() {
         </div>
 
         {expanded ? (
-          <div className="border-t border-sand/60 px-4 py-4 lg:px-5">
+          <div className="border-t border-border/60 px-4 py-4 lg:px-5">
             <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
               <div className="surface-muted p-4">
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">Active specialists</p>
-                  <span className="text-[11px] font-semibold text-warm-600">Atlas routes the handoffs</span>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Active specialists</p>
+                  <span className="text-[11px] font-semibold text-secondary">Atlas routes the handoffs</span>
                 </div>
                 <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                   {OPENCLAW_CONFIG.agents.map((agent) => (
                     <div
                       key={agent.id}
-                      className="rounded-[20px] border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,229,0.84))] px-3 py-3 shadow-sm"
+                      className="rounded-[20px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,229,0.84))] px-3 py-3 shadow-sm"
                     >
                       <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-terra/10 text-terra">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-teal/10 text-teal">
                           <Bot size={14} />
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-warm-800">{agent.name}</p>
-                          <p className="text-[10px] uppercase tracking-[0.12em] text-warm-500">{agent.role}</p>
+                          <p className="truncate text-sm font-semibold text-primary">{agent.name}</p>
+                          <p className="text-[10px] uppercase tracking-[0.12em] text-muted">{agent.role}</p>
                         </div>
                       </div>
                     </div>
@@ -125,17 +125,17 @@ export default function AgentBar() {
               </div>
 
               <div className="surface-muted p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">Improvement pipeline</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Improvement pipeline</p>
                 <div className="mt-3 space-y-3">
                   <div className="grid grid-cols-2 gap-2">
-                    <MetricTile label="Suggested" value={metrics?.totalSuggested ?? 0} tone="text-warm-800" />
+                    <MetricTile label="Suggested" value={metrics?.totalSuggested ?? 0} tone="text-primary" />
                     <MetricTile label="Approved" value={metrics?.totalApproved ?? 0} tone="text-accent" />
                     <MetricTile label="In progress" value={metrics?.totalInProgress ?? 0} tone="text-yellow-600" />
-                    <MetricTile label="Deployed" value={metrics?.totalDeployed ?? 0} tone="text-terra" />
+                    <MetricTile label="Deployed" value={metrics?.totalDeployed ?? 0} tone="text-teal" />
                   </div>
 
-                  <div className="rounded-[20px] border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,229,0.84))] px-3 py-3 text-sm text-warm-600">
-                    <p className="font-semibold text-warm-800">Current focus</p>
+                  <div className="rounded-[20px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,229,0.84))] px-3 py-3 text-sm text-secondary">
+                    <p className="font-semibold text-primary">Current focus</p>
                     <p className="mt-1 leading-6">
                       {inProgressTitle || "No active self-improvement task is being tracked right now."}
                     </p>
@@ -160,9 +160,9 @@ function MetricTile({
   tone: string
 }) {
   return (
-    <div className="rounded-[20px] border border-sand/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,229,0.84))] px-3 py-3 shadow-sm">
+    <div className="rounded-[20px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(247,240,229,0.84))] px-3 py-3 shadow-sm">
       <p className={`text-xl font-semibold leading-none ${tone}`}>{value}</p>
-      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-warm-500">{label}</p>
+      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">{label}</p>
     </div>
   )
 }

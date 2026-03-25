@@ -100,12 +100,12 @@ export default function DrugPricesPage() {
         }
       />
 
-      <div className="bg-terra/10 rounded-2xl border border-terra/20 p-5">
+      <div className="bg-teal/10 rounded-2xl border border-teal/20 p-5">
         <div className="flex items-start gap-3">
-          <DollarSign size={20} className="text-terra shrink-0 mt-0.5" />
+          <DollarSign size={20} className="text-teal shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-sm font-bold text-warm-800">Pricing policy</h3>
-            <p className="text-xs text-warm-600 mt-1 leading-relaxed">
+            <h3 className="text-sm font-bold text-primary">Pricing policy</h3>
+            <p className="text-xs text-secondary mt-1 leading-relaxed">
               OpenRx only displays medication pricing from configured live providers. If no pricing integration is configured, the app shows
               FDA drug details and cost-reduction guidance without fabricated prices.
             </p>
@@ -113,12 +113,12 @@ export default function DrugPricesPage() {
         </div>
       </div>
 
-      <div className="bg-pampas rounded-2xl border border-sand p-5">
+      <div className="bg-surface rounded-2xl border border-border p-5">
         <div className="flex gap-3">
           <div className="relative flex-1">
             <Pill
               size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-cloudy"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted"
             />
             <input
               type="text"
@@ -127,14 +127,14 @@ export default function DrugPricesPage() {
               onKeyDown={(e) => e.key === "Enter" && searchDrug()}
               placeholder="Search a medication name"
               aria-label="Search drug prices"
-              className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-sand bg-sand/20 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40 focus:ring-2 focus:ring-terra/10 transition"
+              className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-border bg-border/20 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40 focus:ring-2 focus:ring-teal/10 transition"
             />
           </div>
           <button
             onClick={() => searchDrug()}
             disabled={isLoading}
             aria-label="Search prices"
-            className="px-6 py-3.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition flex items-center gap-2 disabled:opacity-50 shrink-0"
+            className="px-6 py-3.5 bg-teal text-white text-sm font-semibold rounded-xl hover:bg-teal-dark transition flex items-center gap-2 disabled:opacity-50 shrink-0"
           >
             {isLoading ? (
               <Loader2 size={16} className="animate-spin" />
@@ -149,16 +149,16 @@ export default function DrugPricesPage() {
       {hasSearched && result && !isLoading && (
         <div className="space-y-6">
           {result.drugInfo && result.drugInfo.length > 0 && (
-            <div className="bg-pampas rounded-2xl border border-sand p-5">
+            <div className="bg-surface rounded-2xl border border-border p-5">
               <div className="flex items-center gap-2 mb-3">
                 <BadgeCheck size={14} className="text-accent" />
-                <span className="text-xs font-bold text-warm-700">FDA Drug Information</span>
+                <span className="text-xs font-bold text-primary">FDA Drug Information</span>
               </div>
               {result.drugInfo.slice(0, 2).map((drug, i) => (
-                <div key={i} className={cn("pb-3", i > 0 && "pt-3 border-t border-sand")}>
-                  <h3 className="text-base font-bold text-warm-800">{drug.brandName || result.query}</h3>
-                  <p className="text-xs text-warm-600 mt-0.5">Generic: {drug.genericName || "Unavailable"}</p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-warm-500">
+                <div key={i} className={cn("pb-3", i > 0 && "pt-3 border-t border-border")}>
+                  <h3 className="text-base font-bold text-primary">{drug.brandName || result.query}</h3>
+                  <p className="text-xs text-secondary mt-0.5">Generic: {drug.genericName || "Unavailable"}</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-muted">
                     <span>Form: {drug.dosageForm || "N/A"}</span>
                     <span>Route: {drug.route || "N/A"}</span>
                     <span>Manufacturer: {drug.manufacturer || "N/A"}</span>
@@ -174,9 +174,9 @@ export default function DrugPricesPage() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <TrendingDown size={16} className="text-accent" />
-                  <h2 className="text-base font-serif text-warm-800">Live Pricing Results</h2>
+                  <h2 className="text-base font-serif text-primary">Live Pricing Results</h2>
                 </div>
-                <span className="text-xs text-warm-500">
+                <span className="text-xs text-muted">
                   {result.directPricing.retail ? `Reference: ${result.directPricing.retail}` : "Reference price unavailable"}
                 </span>
               </div>
@@ -186,24 +186,24 @@ export default function DrugPricesPage() {
                   <div
                     key={i}
                     className={cn(
-                      "bg-pampas rounded-2xl border p-5 transition",
-                      i === 0 ? "border-accent/30 ring-1 ring-accent/10" : "border-sand"
+                      "bg-surface rounded-2xl border p-5 transition",
+                      i === 0 ? "border-accent/30 ring-1 ring-accent/10" : "border-border"
                     )}
                   >
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold text-warm-800">{opt.source}</h3>
+                          <h3 className="text-sm font-bold text-primary">{opt.source}</h3>
                           {i === 0 && (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-accent/10 text-accent uppercase">
                               Best Available
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-warm-500 mt-1">{opt.note || "Live source result"}</p>
+                        <p className="text-xs text-muted mt-1">{opt.note || "Live source result"}</p>
                       </div>
                       <div className="text-right shrink-0 ml-4">
-                        <div className="text-xl font-bold text-terra">{opt.price}</div>
+                        <div className="text-xl font-bold text-teal">{opt.price}</div>
                         {opt.savings && <div className="text-xs font-bold text-accent">{opt.savings}</div>}
                       </div>
                     </div>
@@ -212,7 +212,7 @@ export default function DrugPricesPage() {
                         href={opt.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-terra hover:text-terra-dark transition"
+                        className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-teal hover:text-teal-dark transition"
                       >
                         View source <ExternalLink size={11} />
                       </a>
@@ -222,10 +222,10 @@ export default function DrugPricesPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-pampas rounded-2xl border border-sand p-6 text-center">
-              <DollarSign size={28} className="text-cloudy mx-auto mb-2" />
-              <p className="text-sm text-warm-700 font-semibold">No live price feed available for &ldquo;{result.query}&rdquo;</p>
-              <p className="text-xs text-warm-500 mt-1">
+            <div className="bg-surface rounded-2xl border border-border p-6 text-center">
+              <DollarSign size={28} className="text-muted mx-auto mb-2" />
+              <p className="text-sm text-primary font-semibold">No live price feed available for &ldquo;{result.query}&rdquo;</p>
+              <p className="text-xs text-muted mt-1">
                 {result.pricingProviderConfigured
                   ? "Your pricing provider did not return current price options for this medication."
                   : "Configure OPENRX_DRUG_PRICE_PROVIDER_URL to enable live medication price aggregation."}
@@ -235,14 +235,14 @@ export default function DrugPricesPage() {
 
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Lightbulb size={16} className="text-terra" />
-              <h2 className="text-base font-serif text-warm-800">Cost Optimization Tips</h2>
+              <Lightbulb size={16} className="text-teal" />
+              <h2 className="text-base font-serif text-primary">Cost Optimization Tips</h2>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {result.generalTips.map((tip, i) => (
-                <div key={i} className="bg-pampas rounded-xl border border-sand p-4">
-                  <p className="text-xs font-bold text-warm-800">{tip.tip}</p>
-                  <p className="text-[11px] text-warm-500 mt-1 leading-relaxed">{tip.detail}</p>
+                <div key={i} className="bg-surface rounded-xl border border-border p-4">
+                  <p className="text-xs font-bold text-primary">{tip.tip}</p>
+                  <p className="text-[11px] text-muted mt-1 leading-relaxed">{tip.detail}</p>
                 </div>
               ))}
             </div>
@@ -252,33 +252,33 @@ export default function DrugPricesPage() {
 
       {isLoading && (
         <div className="text-center py-12">
-          <Loader2 size={24} className="text-terra mx-auto animate-spin mb-3" />
-          <p className="text-sm text-warm-500">Querying live medication sources...</p>
+          <Loader2 size={24} className="text-teal mx-auto animate-spin mb-3" />
+          <p className="text-sm text-muted">Querying live medication sources...</p>
         </div>
       )}
 
       {!hasSearched && (
         <div>
-          <div className="text-center py-8 bg-pampas rounded-2xl border border-sand mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-terra/10 flex items-center justify-center mx-auto mb-4">
-              <DollarSign size={28} className="text-terra" />
+          <div className="text-center py-8 bg-surface rounded-2xl border border-border mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-teal/10 flex items-center justify-center mx-auto mb-4">
+              <DollarSign size={28} className="text-teal" />
             </div>
-            <h3 className="text-lg font-serif text-warm-800">Live-first pricing</h3>
-            <p className="text-sm text-warm-500 mt-2 max-w-md mx-auto">
+            <h3 className="text-lg font-serif text-primary">Live-first pricing</h3>
+            <p className="text-sm text-muted mt-2 max-w-md mx-auto">
               Search any medication to see validated drug details and real pricing when integrations are configured.
             </p>
           </div>
 
-          <h3 className="text-xs font-bold text-warm-500 uppercase tracking-wider mb-3">Popular Searches</h3>
+          <h3 className="text-xs font-bold text-muted uppercase tracking-wider mb-3">Popular Searches</h3>
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
             {POPULAR_DRUGS.map((drug) => (
               <button
                 key={drug}
                 onClick={() => searchDrug(drug)}
-                className="bg-pampas rounded-xl border border-sand p-3 text-left hover:border-terra/30 hover:bg-terra/5 transition group"
+                className="bg-surface rounded-xl border border-border p-3 text-left hover:border-teal/30 hover:bg-teal/5 transition group"
               >
-                <span className="text-xs font-semibold text-warm-800 group-hover:text-terra transition">{drug}</span>
-                <ArrowRight size={10} className="text-cloudy group-hover:text-terra transition inline ml-1" />
+                <span className="text-xs font-semibold text-primary group-hover:text-teal transition">{drug}</span>
+                <ArrowRight size={10} className="text-muted group-hover:text-teal transition inline ml-1" />
               </button>
             ))}
           </div>

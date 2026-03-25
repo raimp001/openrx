@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+  return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
 type EventCategory = "all" | "appointments" | "medications" | "labs" | "vitals" | "messages" | "vaccinations" | "referrals" | "billing"
@@ -30,14 +30,14 @@ interface TimelineEvent {
 }
 
 const CATEGORY_META: Record<Exclude<EventCategory, "all">, { label: string; icon: React.ElementType; color: string; bg: string; border: string }> = {
-  appointments: { label: "Appointments", icon: Calendar, color: "text-terra", bg: "bg-terra/10", border: "border-terra/20" },
+  appointments: { label: "Appointments", icon: Calendar, color: "text-teal", bg: "bg-teal/10", border: "border-teal/20" },
   medications:  { label: "Medications",  icon: Pill, color: "text-accent", bg: "bg-accent/10", border: "border-accent/20" },
   labs:         { label: "Labs",         icon: FlaskConical, color: "text-soft-blue", bg: "bg-soft-blue/10", border: "border-soft-blue/20" },
   vitals:       { label: "Vitals",       icon: Activity, color: "text-accent", bg: "bg-accent/8", border: "border-accent/15" },
   messages:     { label: "Messages",     icon: MessageSquare, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200/50" },
   vaccinations: { label: "Vaccinations", icon: Syringe, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200/50" },
   referrals:    { label: "Referrals",    icon: ArrowRightCircle, color: "text-soft-blue", bg: "bg-soft-blue/8", border: "border-soft-blue/15" },
-  billing:      { label: "Billing",      icon: Receipt, color: "text-warm-600", bg: "bg-sand/40", border: "border-sand/80" },
+  billing:      { label: "Billing",      icon: Receipt, color: "text-secondary", bg: "bg-border/40", border: "border-border/80" },
 }
 
 const FILTER_TABS: { key: EventCategory; label: string }[] = [
@@ -230,7 +230,7 @@ export default function TimelinePage() {
         </div>
         <div className="space-y-3">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="flex items-start gap-4 rounded-2xl border border-sand/70 bg-white/60 p-4">
+            <div key={i} className="flex items-start gap-4 rounded-2xl border border-border/70 bg-white/60 p-4">
               <Skeleton className="h-9 w-9 rounded-xl" />
               <div className="flex-1 space-y-1.5"><Skeleton className="h-4 w-48" /><Skeleton className="h-3 w-64" /></div>
               <Skeleton className="h-8 w-16" />
@@ -248,8 +248,8 @@ export default function TimelinePage() {
         description="Every health event, chronologically — appointments, labs, medications, vitals, and more."
         className="surface-card p-4 sm:p-5"
         leading={
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-terra/10">
-            <Clock size={18} className="text-terra" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal/10">
+            <Clock size={18} className="text-teal" />
           </div>
         }
       />
@@ -263,13 +263,13 @@ export default function TimelinePage() {
             className={cn(
               "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition",
               activeFilter === key
-                ? "bg-terra text-white shadow-sm"
-                : "border border-sand/80 bg-cream/80 text-warm-600 hover:border-terra/30 hover:text-terra"
+                ? "bg-teal text-white shadow-sm"
+                : "border border-border/80 bg-surface/80 text-secondary hover:border-teal/30 hover:text-teal"
             )}
           >
             {label}
             {categoryCounts[key] !== undefined && (
-              <span className={cn("ml-1.5 text-[10px]", activeFilter === key ? "text-white/70" : "text-cloudy")}>
+              <span className={cn("ml-1.5 text-[10px]", activeFilter === key ? "text-white/70" : "text-muted")}>
                 {categoryCounts[key]}
               </span>
             )}
@@ -281,8 +281,8 @@ export default function TimelinePage() {
       {grouped.length === 0 ? (
         <div className="surface-card p-12 text-center">
           <Clock size={32} className="text-sand mx-auto mb-3" />
-          <p className="text-sm text-warm-500">No events found</p>
-          <p className="text-xs text-cloudy mt-1">Your health history will appear here as data is added.</p>
+          <p className="text-sm text-muted">No events found</p>
+          <p className="text-xs text-muted mt-1">Your health history will appear here as data is added.</p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -290,15 +290,15 @@ export default function TimelinePage() {
             <div key={group.label}>
               {/* Month label */}
               <div className="flex items-center gap-3 mb-4">
-                <span className="text-xs font-bold text-warm-500 uppercase tracking-wider">{group.label}</span>
-                <div className="flex-1 h-px bg-sand/60" />
-                <span className="text-[10px] text-cloudy">{group.events.length} event{group.events.length !== 1 ? "s" : ""}</span>
+                <span className="text-xs font-bold text-muted uppercase tracking-wider">{group.label}</span>
+                <div className="flex-1 h-px bg-border/60" />
+                <span className="text-[10px] text-muted">{group.events.length} event{group.events.length !== 1 ? "s" : ""}</span>
               </div>
 
               {/* Events in this month */}
               <div className="relative">
                 {/* Vertical line */}
-                <div className="absolute left-[18px] top-4 bottom-4 w-px bg-sand/60" />
+                <div className="absolute left-[18px] top-4 bottom-4 w-px bg-border/60" />
 
                 <div className="space-y-3">
                   {group.events.map((ev) => {
@@ -314,7 +314,7 @@ export default function TimelinePage() {
                           "relative flex items-start gap-4 rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-sm",
                           ev.urgent
                             ? "border-soft-red/15 bg-soft-red/3 hover:border-soft-red/25"
-                            : "border-sand/70 bg-white/60 hover:border-terra/20 hover:bg-white/80"
+                            : "border-border/70 bg-white/60 hover:border-teal/20 hover:bg-white/80"
                         )}
                       >
                         {/* Dot on timeline */}
@@ -329,7 +329,7 @@ export default function TimelinePage() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-semibold text-warm-800 leading-tight">{ev.title}</span>
+                                <span className="text-sm font-semibold text-primary leading-tight">{ev.title}</span>
                                 {ev.urgent && (
                                   <span className="text-[9px] font-bold text-soft-red bg-soft-red/10 px-1.5 py-0.5 rounded-full uppercase tracking-wide">
                                     Needs attention
@@ -344,29 +344,29 @@ export default function TimelinePage() {
                                       ? "bg-soft-red/10 text-soft-red"
                                       : ev.status === "pending" || ev.status === "submitted"
                                       ? "bg-yellow-100 text-yellow-700"
-                                      : "bg-sand/60 text-warm-600"
+                                      : "bg-border/60 text-secondary"
                                   )}>
                                     {ev.status}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-warm-500 mt-0.5 truncate">{ev.subtitle}</p>
+                              <p className="text-xs text-muted mt-0.5 truncate">{ev.subtitle}</p>
                               {ev.detail && (
-                                <p className="text-[11px] text-cloudy mt-0.5">{ev.detail}</p>
+                                <p className="text-[11px] text-muted mt-0.5">{ev.detail}</p>
                               )}
                             </div>
                             <div className="shrink-0 text-right">
-                              <p className="text-[10px] text-warm-500 font-medium">
+                              <p className="text-[10px] text-muted font-medium">
                                 {isValidDate ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
                               </p>
-                              <p className="text-[10px] text-cloudy">
+                              <p className="text-[10px] text-muted">
                                 {isValidDate ? formatTime(ev.date) : ""}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        <ChevronRight size={14} className="text-cloudy shrink-0 self-center" />
+                        <ChevronRight size={14} className="text-muted shrink-0 self-center" />
                       </Link>
                     )
                   })}
@@ -378,7 +378,7 @@ export default function TimelinePage() {
       )}
 
       {filtered.length > 0 && (
-        <p className="text-center text-xs text-cloudy pb-4">
+        <p className="text-center text-xs text-muted pb-4">
           Showing {filtered.length} event{filtered.length !== 1 ? "s" : ""} across your health history
         </p>
       )}

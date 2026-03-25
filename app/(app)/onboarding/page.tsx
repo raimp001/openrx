@@ -56,7 +56,7 @@ type Step =
   | "summary" | "complete"
 
 const AGENT_NAMES: Record<string, { name: string; icon: typeof Bot; color: string }> = {
-  sage: { name: "Sage", icon: Heart, color: "text-terra" },
+  sage: { name: "Sage", icon: Heart, color: "text-teal" },
   maya: { name: "Maya", icon: Pill, color: "text-yellow-600" },
   cal: { name: "Cal", icon: Stethoscope, color: "text-soft-blue" },
   ivy: { name: "Ivy", icon: Activity, color: "text-accent" },
@@ -507,7 +507,7 @@ export default function OnboardingPage() {
         description="Your AI care team is ready. No forms — just a conversation."
         className="mb-6 surface-card p-5"
         leading={
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-terra to-terra-dark">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-teal to-teal-dark">
             <Sparkles size={24} className="text-white" />
           </div>
         }
@@ -522,7 +522,7 @@ export default function OnboardingPage() {
       />
 
       {/* Chat */}
-      <div className="bg-pampas rounded-2xl border border-sand overflow-hidden flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
+      <div className="bg-surface rounded-2xl border border-border overflow-hidden flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {messages.map((msg) => {
             const agentInfo = msg.agent ? AGENT_NAMES[msg.agent] : null
@@ -534,23 +534,23 @@ export default function OnboardingPage() {
                   {msg.role !== "system" && (
                     <div className={cn(
                       "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                      msg.role === "agent" ? "bg-terra/10" : "bg-soft-blue/10"
+                      msg.role === "agent" ? "bg-teal/10" : "bg-soft-blue/10"
                     )}>
-                      {msg.role === "user" ? <User size={14} className="text-soft-blue" /> : <Icon size={14} className={agentInfo?.color || "text-terra"} />}
+                      {msg.role === "user" ? <User size={14} className="text-soft-blue" /> : <Icon size={14} className={agentInfo?.color || "text-teal"} />}
                     </div>
                   )}
                   <div className={cn(
                     "rounded-xl px-4 py-3 max-w-[85%]",
                     msg.role === "user" ? "bg-soft-blue/5 border border-soft-blue/10" :
-                    msg.role === "system" ? "bg-cream text-center w-full max-w-full text-xs text-warm-500 py-2" :
-                    "bg-terra/5 border border-terra/10"
+                    msg.role === "system" ? "bg-surface text-center w-full max-w-full text-xs text-muted py-2" :
+                    "bg-teal/5 border border-teal/10"
                   )}>
                     {msg.role === "agent" && agentInfo && (
                       <span className={cn("text-[10px] font-bold uppercase tracking-wider mb-1 block", agentInfo.color)}>
                         {agentInfo.name}
                       </span>
                     )}
-                    <p className="text-sm text-warm-700 leading-relaxed whitespace-pre-line">
+                    <p className="text-sm text-primary leading-relaxed whitespace-pre-line">
                       {msg.content.replace(/\*\*(.*?)\*\*/g, "$1")}
                     </p>
                   </div>
@@ -563,7 +563,7 @@ export default function OnboardingPage() {
                       <button
                         key={opt.value}
                         onClick={() => handleOption(opt.value)}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-terra/20 bg-terra/5 text-terra hover:bg-terra/10 transition"
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-teal/20 bg-teal/5 text-teal hover:bg-teal/10 transition"
                       >
                         {opt.label}
                       </button>
@@ -576,14 +576,14 @@ export default function OnboardingPage() {
 
           {isTyping && (
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg bg-terra/10 flex items-center justify-center">
-                <Heart size={14} className="text-terra" />
+              <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center">
+                <Heart size={14} className="text-teal" />
               </div>
-              <div className="rounded-xl bg-terra/5 border border-terra/10 px-4 py-3">
+              <div className="rounded-xl bg-teal/5 border border-teal/10 px-4 py-3">
                 <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-terra/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 bg-terra/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 bg-terra/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  <span className="w-1.5 h-1.5 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                 </div>
               </div>
             </div>
@@ -594,7 +594,7 @@ export default function OnboardingPage() {
 
         {/* Input */}
         {step !== "complete" && (
-          <div className="px-5 py-3 border-t border-sand bg-cream/30">
+          <div className="px-5 py-3 border-t border-border bg-surface/30">
             <div className="flex gap-2">
               <input
                 ref={inputRef}
@@ -605,13 +605,13 @@ export default function OnboardingPage() {
                 placeholder="Type your answer..."
                 disabled={isTyping || isSearching}
                 aria-label="Onboarding chat input"
-                className="flex-1 px-4 py-2.5 rounded-xl border border-sand bg-pampas text-sm placeholder:text-cloudy focus:outline-none focus:border-terra/40 focus:ring-1 focus:ring-terra/20 transition disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 rounded-xl border border-border bg-surface text-sm placeholder:text-muted focus:outline-none focus:border-teal/40 focus:ring-1 focus:ring-teal/20 transition disabled:opacity-50"
               />
               <button
                 onClick={() => handleSubmit()}
                 disabled={isTyping || isSearching || !input.trim()}
                 aria-label="Send message"
-                className="px-4 py-2.5 bg-terra text-white rounded-xl hover:bg-terra-dark transition disabled:opacity-50"
+                className="px-4 py-2.5 bg-teal text-white rounded-xl hover:bg-teal-dark transition disabled:opacity-50"
               >
                 <ArrowRight size={16} />
               </button>
@@ -621,13 +621,13 @@ export default function OnboardingPage() {
 
         {/* Complete state */}
         {step === "complete" && (
-          <div className="px-5 py-4 border-t border-sand bg-accent/5 text-center">
+          <div className="px-5 py-4 border-t border-border bg-accent/5 text-center">
             <CheckCircle2 size={20} className="text-accent mx-auto mb-1" />
             <p className="text-sm font-semibold text-accent">Onboarding Complete</p>
             {isConnected && (
               <p className="text-[10px] text-accent/70 mt-0.5">Profile saved to your wallet identity</p>
             )}
-            <a href="/dashboard" className="text-xs text-terra font-semibold mt-1 inline-block hover:underline">
+            <a href="/dashboard" className="text-xs text-teal font-semibold mt-1 inline-block hover:underline">
               Go to Dashboard →
             </a>
           </div>

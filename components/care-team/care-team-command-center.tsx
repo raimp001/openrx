@@ -284,8 +284,8 @@ export default function CareTeamCommandCenter() {
   if (sessionLoading || loading) {
     return (
       <div className="surface-card p-8 text-center">
-        <Loader2 className="mx-auto mb-3 h-5 w-5 animate-spin text-terra" />
-        <p className="text-sm text-warm-600">Loading AI Care Team Command Center…</p>
+        <Loader2 className="mx-auto mb-3 h-5 w-5 animate-spin text-teal" />
+        <p className="text-sm text-secondary">Loading AI Care Team Command Center…</p>
       </div>
     )
   }
@@ -294,8 +294,8 @@ export default function CareTeamCommandCenter() {
     return (
       <div className="surface-card p-8 text-center">
         <ShieldCheck className="mx-auto mb-3 h-5 w-5 text-soft-blue" />
-        <p className="text-sm font-semibold text-warm-800">Care Team access is restricted to clinic operators.</p>
-        <p className="mt-1 text-xs text-warm-500">
+        <p className="text-sm font-semibold text-primary">Care Team access is restricted to clinic operators.</p>
+        <p className="mt-1 text-xs text-muted">
           Ask your clinic admin to grant staff/admin access before using this dashboard.
         </p>
       </div>
@@ -305,7 +305,7 @@ export default function CareTeamCommandCenter() {
   return (
     <div className="space-y-3">
       {showGuide && (
-        <div className="rounded-[22px] border border-soft-blue/25 bg-soft-blue/10 px-3 py-2 text-xs text-warm-700">
+        <div className="rounded-[22px] border border-soft-blue/25 bg-soft-blue/10 px-3 py-2 text-xs text-primary">
           <div className="flex items-start justify-between gap-3">
             <p>
               Supervise your AI care team like a terminal. <span className="font-semibold">Blue glow = your attention needed.</span>
@@ -321,11 +321,11 @@ export default function CareTeamCommandCenter() {
         </div>
       )}
 
-      <div className="surface-card overflow-hidden border-soft-blue/20 bg-[linear-gradient(180deg,rgba(255,250,244,0.98),rgba(243,236,225,0.95))] text-warm-800">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sand/70 px-4 py-4">
+      <div className="surface-card overflow-hidden border-soft-blue/20 bg-[linear-gradient(180deg,rgba(255,250,244,0.98),rgba(243,236,225,0.95))] text-primary">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-4 py-4">
           <div>
-            <h2 className="text-lg text-warm-800">AI Care Team Command Center</h2>
-            <p className="text-xs text-warm-600">
+            <h2 className="text-lg text-primary">AI Care Team Command Center</h2>
+            <p className="text-xs text-secondary">
               Supervise OpenClaw agents in real time. Blue glow means a human decision is required.
             </p>
           </div>
@@ -333,14 +333,14 @@ export default function CareTeamCommandCenter() {
             <button
               type="button"
               onClick={() => setSoundEnabled((value) => !value)}
-              className="inline-flex items-center gap-2 rounded-xl border border-sand/80 bg-white/75 px-3 py-1.5 text-xs font-semibold text-warm-700 hover:border-soft-blue/30"
+              className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-white/75 px-3 py-1.5 text-xs font-semibold text-primary hover:border-soft-blue/30"
             >
               {soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />} Chime
             </button>
             <button
               type="button"
               onClick={() => void refresh()}
-              className="inline-flex items-center gap-2 rounded-xl border border-sand/80 bg-white/75 px-3 py-1.5 text-xs font-semibold text-warm-700 hover:border-soft-blue/30"
+              className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-white/75 px-3 py-1.5 text-xs font-semibold text-primary hover:border-soft-blue/30"
             >
               <Workflow size={13} /> Refresh
             </button>
@@ -357,14 +357,14 @@ export default function CareTeamCommandCenter() {
 
         <div className="h-[74vh] min-h-[680px]">
           <div className="grid h-full min-h-0 grid-cols-[280px_1fr]">
-            <aside className="flex min-h-0 flex-col border-r border-sand/70 bg-[linear-gradient(180deg,rgba(255,253,248,0.9),rgba(245,238,227,0.94))]">
+            <aside className="flex min-h-0 flex-col border-r border-border/70 bg-[linear-gradient(180deg,rgba(255,253,248,0.9),rgba(245,238,227,0.94))]">
               <div className="flex items-center justify-between px-3 py-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">AI Specialists</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">AI Specialists</p>
                 <button
                   type="button"
                   onClick={() => void handleCreateCustomAgent()}
                   disabled={creatingAgent}
-                  className="rounded-lg border border-sand/80 bg-white/70 p-1 text-warm-700 hover:border-soft-blue/30 disabled:opacity-50"
+                  className="rounded-lg border border-border/80 bg-white/70 p-1 text-primary hover:border-soft-blue/30 disabled:opacity-50"
                   aria-label="Add custom agent"
                 >
                   {creatingAgent ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
@@ -396,7 +396,7 @@ export default function CareTeamCommandCenter() {
                         "relative w-full rounded-xl border px-2.5 py-2 text-left transition",
                         isActive
                           ? "border-soft-blue/35 bg-soft-blue/10 shadow-[0_10px_18px_rgba(42,124,167,0.08)]"
-                          : "border-sand/80 bg-white/76 hover:border-soft-blue/25 hover:bg-white/90",
+                          : "border-border/80 bg-white/76 hover:border-soft-blue/25 hover:bg-white/90",
                         needsInput && "care-team-needs-input"
                       )}
                     >
@@ -405,8 +405,8 @@ export default function CareTeamCommandCenter() {
                           {agentInitials(agent.name)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-semibold text-warm-800">{agent.name}</p>
-                          <p className="truncate text-[10px] text-warm-500">{agent.role}</p>
+                          <p className="truncate text-xs font-semibold text-primary">{agent.name}</p>
+                          <p className="truncate text-[10px] text-muted">{agent.role}</p>
                         </div>
                         {agent.unreadCount > 0 && (
                           <span className="rounded-full bg-soft-blue px-1.5 py-0.5 text-[9px] font-bold text-white">
@@ -426,7 +426,7 @@ export default function CareTeamCommandCenter() {
                         >
                           {agent.status === "running" ? "running" : agent.status === "paused" ? "paused" : "needs input"}
                         </span>
-                        <ChevronRight size={12} className="text-warm-400" />
+                        <ChevronRight size={12} className="text-muted" />
                       </div>
                     </button>
                   )
@@ -442,14 +442,14 @@ export default function CareTeamCommandCenter() {
                 maxPercent={70}
                 first={
                   <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,252,248,0.92),rgba(244,237,226,0.94))]">
-                    <div className="flex items-center justify-between border-b border-sand/70 px-4 py-3">
+                    <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Agent Log / Chat</p>
-                        <p className="mt-1 text-sm font-semibold text-warm-800">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Agent Log / Chat</p>
+                        <p className="mt-1 text-sm font-semibold text-primary">
                           {selectedAgent ? `${selectedAgent.name} · ${selectedAgent.role}` : "Select an agent"}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] text-warm-500">
+                      <div className="flex items-center gap-2 text-[11px] text-muted">
                         {connected ? <PlayCircle size={13} className="text-accent" /> : <PauseCircle size={13} className="text-amber-600" />}
                         {connected ? "Realtime" : "Polling fallback"}
                       </div>
@@ -489,7 +489,7 @@ export default function CareTeamCommandCenter() {
 
                     <div className={cn("min-h-0 flex-1 overflow-y-auto p-3", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}>
                       {activityFeed.length === 0 ? (
-                        <div className="flex h-full items-center justify-center text-xs text-warm-500">
+                        <div className="flex h-full items-center justify-center text-xs text-muted">
                           Waiting for agent activity...
                         </div>
                       ) : (
@@ -501,12 +501,12 @@ export default function CareTeamCommandCenter() {
                                 "rounded-xl border px-3 py-2",
                                 entry.type === "needs_input"
                                   ? "border-soft-blue/50 bg-soft-blue/10"
-                                  : "border-sand/75 bg-white/76"
+                                  : "border-border/75 bg-white/76"
                               )}
                             >
-                              <p className="text-xs font-semibold text-warm-800">{entry.title}</p>
-                              <p className="mt-1 text-[11px] text-warm-600">{entry.detail}</p>
-                              <p className="mt-1 text-[10px] text-warm-400">{new Date(entry.timestamp).toLocaleTimeString()}</p>
+                              <p className="text-xs font-semibold text-primary">{entry.title}</p>
+                              <p className="mt-1 text-[11px] text-secondary">{entry.detail}</p>
+                              <p className="mt-1 text-[10px] text-muted">{new Date(entry.timestamp).toLocaleTimeString()}</p>
                             </article>
                           ))}
                         </div>
@@ -523,7 +523,7 @@ export default function CareTeamCommandCenter() {
                     first={
                       <div className={cn("flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,252,248,0.94),rgba(242,235,224,0.96))]", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}
                       >
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sand/70 px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-4 py-3">
                           <div className="flex items-center gap-2">
                             {["patient", "claim", "record"].map((tab) => (
                               <button
@@ -534,50 +534,50 @@ export default function CareTeamCommandCenter() {
                                   "rounded-lg border px-2.5 py-1 text-[11px] font-semibold uppercase",
                                   viewerTab === tab
                                     ? "border-soft-blue/35 bg-soft-blue/10 text-soft-blue"
-                                    : "border-sand/80 bg-white/74 text-warm-600"
+                                    : "border-border/80 bg-white/74 text-secondary"
                                 )}
                               >
                                 {tab}
                               </button>
                             ))}
                           </div>
-                          <p className="text-[11px] text-warm-500">No PHI shown. References are hashed.</p>
+                          <p className="text-[11px] text-muted">No PHI shown. References are hashed.</p>
                         </div>
 
                         <div className="min-h-0 flex-1 overflow-y-auto p-4">
                           {!activeRequest ? (
-                            <div className="flex h-full items-center justify-center text-sm text-warm-500">
+                            <div className="flex h-full items-center justify-center text-sm text-muted">
                               No active request for this agent.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                              <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Patient Reference</p>
-                                <p className="mt-1 text-sm text-warm-800">{shortHash(activeRequest.context.patientIdHash)}</p>
+                              <div className="rounded-[22px] border border-border/75 bg-white/78 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Patient Reference</p>
+                                <p className="mt-1 text-sm text-primary">{shortHash(activeRequest.context.patientIdHash)}</p>
                               </div>
-                              <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Workflow</p>
-                                <p className="mt-1 text-sm text-warm-800">{activeRequest.context.workflow.toUpperCase()}</p>
+                              <div className="rounded-[22px] border border-border/75 bg-white/78 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Workflow</p>
+                                <p className="mt-1 text-sm text-primary">{activeRequest.context.workflow.toUpperCase()}</p>
                               </div>
                               {activeRequest.context.claimIdHash && (
-                                <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3">
-                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Claim Ref</p>
-                                  <p className="mt-1 text-sm text-warm-800">{shortHash(activeRequest.context.claimIdHash)}</p>
+                                <div className="rounded-[22px] border border-border/75 bg-white/78 p-3">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Claim Ref</p>
+                                  <p className="mt-1 text-sm text-primary">{shortHash(activeRequest.context.claimIdHash)}</p>
                                 </div>
                               )}
                               {activeRequest.context.recordIdHash && (
-                                <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3">
-                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Record Ref</p>
-                                  <p className="mt-1 text-sm text-warm-800">{shortHash(activeRequest.context.recordIdHash)}</p>
+                                <div className="rounded-[22px] border border-border/75 bg-white/78 p-3">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Record Ref</p>
+                                  <p className="mt-1 text-sm text-primary">{shortHash(activeRequest.context.recordIdHash)}</p>
                                 </div>
                               )}
-                              <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3 md:col-span-2">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Reason</p>
-                                <p className="mt-1 text-sm text-warm-800">{activeRequest.context.reason}</p>
+                              <div className="rounded-[22px] border border-border/75 bg-white/78 p-3 md:col-span-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Reason</p>
+                                <p className="mt-1 text-sm text-primary">{activeRequest.context.reason}</p>
                               </div>
-                              <div className="rounded-[22px] border border-sand/75 bg-white/78 p-3 md:col-span-2">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cloudy">Suggested Resolution</p>
-                                <p className="mt-1 text-sm text-warm-800">{activeRequest.context.suggestedAction}</p>
+                              <div className="rounded-[22px] border border-border/75 bg-white/78 p-3 md:col-span-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Suggested Resolution</p>
+                                <p className="mt-1 text-sm text-primary">{activeRequest.context.suggestedAction}</p>
                               </div>
                             </div>
                           )}
@@ -587,14 +587,14 @@ export default function CareTeamCommandCenter() {
                     second={
                       <div className={cn("flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,252,247,0.94),rgba(242,235,224,0.96))]", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}
                       >
-                        <div className="flex items-center justify-between border-b border-sand/70 px-4 py-2.5">
-                          <div className="flex items-center gap-2 text-xs text-warm-600">
+                        <div className="flex items-center justify-between border-b border-border/70 px-4 py-2.5">
+                          <div className="flex items-center gap-2 text-xs text-secondary">
                             <Globe size={13} /> Embedded Browser
                           </div>
                           <button
                             type="button"
                             onClick={() => setShowBrowser((value) => !value)}
-                            className="rounded-lg border border-sand/80 bg-white/74 px-2.5 py-1 text-[11px] font-semibold text-warm-700 hover:border-soft-blue/30"
+                            className="rounded-lg border border-border/80 bg-white/74 px-2.5 py-1 text-[11px] font-semibold text-primary hover:border-soft-blue/30"
                           >
                             {showBrowser ? "Hide" : "Show"}
                           </button>
@@ -602,8 +602,8 @@ export default function CareTeamCommandCenter() {
 
                         <div className="min-h-0 flex-1 p-2">
                           {showBrowser && activeRequest?.context.browser?.url ? (
-                            <div className="h-full overflow-hidden rounded-[20px] border border-sand/75 bg-white/80">
-                              <div className="flex items-center justify-between border-b border-sand/70 px-2 py-1.5 text-[10px] text-warm-500">
+                            <div className="h-full overflow-hidden rounded-[20px] border border-border/75 bg-white/80">
+                              <div className="flex items-center justify-between border-b border-border/70 px-2 py-1.5 text-[10px] text-muted">
                                 <span className="truncate">{activeRequest.context.browser.url}</span>
                                 <span className="inline-flex items-center gap-1">
                                   <Monitor size={11} /> sandboxed
@@ -618,7 +618,7 @@ export default function CareTeamCommandCenter() {
                               />
                             </div>
                           ) : (
-                            <div className="flex h-full items-center justify-center rounded-[20px] border border-dashed border-sand/80 text-xs text-warm-500">
+                            <div className="flex h-full items-center justify-center rounded-[20px] border border-dashed border-border/80 text-xs text-muted">
                               Browser pane is ready. Agents can attach portal URLs for rapid review.
                             </div>
                           )}
@@ -634,19 +634,19 @@ export default function CareTeamCommandCenter() {
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <div className="rounded-[22px] border border-sand/75 bg-white/80 px-3 py-2 text-xs text-warm-600">
-          <p className="font-semibold text-warm-800">Connection</p>
+        <div className="rounded-[22px] border border-border/75 bg-white/80 px-3 py-2 text-xs text-secondary">
+          <p className="font-semibold text-primary">Connection</p>
           <p className="mt-1 inline-flex items-center gap-2">
             {connected ? <Bot size={12} className="text-accent" /> : <AlertTriangle size={12} className="text-amber-600" />}
             {connected ? "Realtime feed active" : "Realtime unavailable, fallback polling active"}
           </p>
         </div>
-        <div className="rounded-[22px] border border-sand/75 bg-white/80 px-3 py-2 text-xs text-warm-600">
-          <p className="font-semibold text-warm-800">Pending Human Reviews</p>
+        <div className="rounded-[22px] border border-border/75 bg-white/80 px-3 py-2 text-xs text-secondary">
+          <p className="font-semibold text-primary">Pending Human Reviews</p>
           <p className="mt-1 text-lg font-bold text-soft-blue">{needsInputCount}</p>
         </div>
-        <div className="rounded-[22px] border border-sand/75 bg-white/80 px-3 py-2 text-xs text-warm-600">
-          <p className="font-semibold text-warm-800">Operator Guide</p>
+        <div className="rounded-[22px] border border-border/75 bg-white/80 px-3 py-2 text-xs text-secondary">
+          <p className="font-semibold text-primary">Operator Guide</p>
           <p className="mt-1">Blue glow = needs input. Use Approve / Reject / Edit to resume paused workflows.</p>
         </div>
       </div>

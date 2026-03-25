@@ -34,7 +34,7 @@ function statusTone(status: string): "terra" | "accent" | "blue" | "gold" | "red
 }
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+  return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
 export default function PriorAuthPage() {
@@ -206,19 +206,19 @@ export default function PriorAuthPage() {
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0 space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-serif text-warm-800">{auth.procedure_name}</h3>
+                          <h3 className="text-lg font-serif text-primary">{auth.procedure_name}</h3>
                           <OpsBadge tone={statusTone(auth.status)}>{statusLabel(auth.status)}</OpsBadge>
                           {urgentLabel ? <OpsBadge tone="red">{urgentLabel}</OpsBadge> : null}
                         </div>
 
-                        <div className="flex flex-wrap gap-2 text-[11px] font-medium text-cloudy">
+                        <div className="flex flex-wrap gap-2 text-[11px] font-medium text-muted">
                           <span className="chip">CPT {auth.procedure_code}</span>
                           <span className="chip">{auth.insurance_provider}</span>
                           <span className="chip">ICD {auth.icd_codes.join(", ")}</span>
                           {physician ? <span className="chip">{physician.full_name}</span> : null}
                         </div>
 
-                        <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-sm leading-6 text-warm-700">
+                        <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-sm leading-6 text-primary">
                           {auth.clinical_notes || "No clinical rationale has been captured for this authorization yet."}
                         </div>
 
@@ -320,7 +320,7 @@ export default function PriorAuthPage() {
             title="What this means in plain language"
             description="Translate the queue into immediate next steps the patient can actually act on."
           >
-            <div className="space-y-3 text-sm leading-6 text-warm-600">
+            <div className="space-y-3 text-sm leading-6 text-secondary">
               <p>
                 {denied.length
                   ? `You have ${denied.length} denied authorization${denied.length === 1 ? "" : "s"}. Start there, because those are the cases most likely to delay care unless someone prepares an appeal.`
@@ -342,8 +342,8 @@ export default function PriorAuthPage() {
 function MetaCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 shadow-sm">
-      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy/80">{label}</div>
-      <div className="mt-2 text-sm font-semibold text-warm-800">{value}</div>
+      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted/80">{label}</div>
+      <div className="mt-2 text-sm font-semibold text-primary">{value}</div>
     </div>
   )
 }
@@ -362,8 +362,8 @@ function FocusItem({
   return (
     <div className="surface-muted flex items-start justify-between gap-3 px-4 py-3">
       <div>
-        <div className="text-sm font-semibold text-warm-800">{label}</div>
-        <div className="mt-1 text-xs leading-5 text-cloudy">{detail}</div>
+        <div className="text-sm font-semibold text-primary">{label}</div>
+        <div className="mt-1 text-xs leading-5 text-muted">{detail}</div>
       </div>
       <OpsBadge tone={tone} className="shrink-0">{value}</OpsBadge>
     </div>

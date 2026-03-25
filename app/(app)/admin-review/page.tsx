@@ -9,12 +9,12 @@ export default function AdminReviewPage() {
         description="In-app admin queue is disabled. Application approvals are handled by signed email actions."
       />
 
-      <div className="bg-pampas rounded-2xl border border-sand p-5">
+      <div className="bg-surface rounded-2xl border border-border p-5">
         <div className="flex items-start gap-3">
-          <MailCheck size={18} className="text-terra mt-0.5" />
+          <MailCheck size={18} className="text-teal mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-warm-800">Email-first workflow is active</p>
-            <p className="text-xs text-warm-600 mt-1 leading-relaxed">
+            <p className="text-sm font-semibold text-primary">Email-first workflow is active</p>
+            <p className="text-xs text-secondary mt-1 leading-relaxed">
               Each network application now sends an email to configured administrators with signed Approve/Reject links.
               This keeps review operations outside patient-facing product surfaces.
             </p>
@@ -22,8 +22,8 @@ export default function AdminReviewPage() {
         </div>
       </div>
 
-      <div className="bg-cream/60 rounded-2xl border border-sand p-4 text-xs text-warm-600">
-        <ShieldCheck size={13} className="inline mr-1 text-terra" />
+      <div className="bg-surface/60 rounded-2xl border border-border p-4 text-xs text-secondary">
+        <ShieldCheck size={13} className="inline mr-1 text-teal" />
         Configure <code>OPENRX_ADMIN_EMAILS</code>, <code>OPENRX_ADMIN_REVIEW_SECRET</code>, <code>RESEND_API_KEY</code>, and <code>OPENRX_EMAIL_FROM</code> for production.
       </div>
     </div>

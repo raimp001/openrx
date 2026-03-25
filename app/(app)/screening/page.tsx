@@ -86,13 +86,13 @@ function FlowStep({
   return (
     <div className="surface-muted p-4">
       <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[20px] bg-terra/10 text-terra">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[20px] bg-teal/10 text-teal">
           <Icon size={16} />
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">{step}</p>
-          <p className="mt-2 text-sm font-semibold text-warm-800">{title}</p>
-          <p className="mt-1 text-sm leading-6 text-warm-500">{description}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">{step}</p>
+          <p className="mt-2 text-sm font-semibold text-primary">{title}</p>
+          <p className="mt-1 text-sm leading-6 text-muted">{description}</p>
         </div>
       </div>
     </div>
@@ -153,14 +153,14 @@ export default function ScreeningPage() {
   const [error, setError] = useState("")
 
   const riskStyle = useMemo(() => {
-    if (!assessment) return "bg-sand text-warm-500"
+    if (!assessment) return "bg-border text-muted"
     if (assessment.riskTier === "high") return "bg-soft-red/10 text-soft-red"
     if (assessment.riskTier === "moderate") return "bg-yellow-200/20 text-yellow-500"
     return "bg-accent/10 text-accent"
   }, [assessment])
 
   const riskBarStyle = useMemo(() => {
-    if (!assessment) return "bg-sand"
+    if (!assessment) return "bg-border"
     if (assessment.riskTier === "high") return "bg-soft-red"
     if (assessment.riskTier === "moderate") return "bg-yellow-500"
     return "bg-accent"
@@ -487,7 +487,7 @@ export default function ScreeningPage() {
               Free USPSTF preview
             </span>
             <span className="metric-chip">
-              <ShieldCheck size={11} className="text-terra" />
+              <ShieldCheck size={11} className="text-teal" />
               Deep dive {fee} USDC
             </span>
             {recipientAddress ? (
@@ -531,7 +531,7 @@ export default function ScreeningPage() {
       </section>
 
       {!isConnected && (
-        <div className="rounded-xl border border-yellow-300/30 bg-yellow-100/20 p-3 text-xs text-warm-600">
+        <div className="rounded-xl border border-yellow-300/30 bg-yellow-100/20 p-3 text-xs text-secondary">
           Wallet is optional for free preview. Connect only when you want to unlock deep genetics.
         </div>
       )}
@@ -544,29 +544,29 @@ export default function ScreeningPage() {
         <div className="surface-card space-y-4 p-5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <CreditCard size={14} className="text-terra" />
-              <h2 className="text-sm font-bold text-warm-800">Complete Base Pay Before Deep Recommendation</h2>
+              <CreditCard size={14} className="text-teal" />
+              <h2 className="text-sm font-bold text-primary">Complete Base Pay Before Deep Recommendation</h2>
             </div>
             <button
               onClick={() => setShowPaymentGate(false)}
-              className="text-[11px] font-semibold text-warm-500 hover:text-terra transition"
+              className="text-[11px] font-semibold text-muted hover:text-teal transition"
             >
               Close
             </button>
           </div>
 
-          <div className="surface-muted p-4 text-xs text-warm-600">
+          <div className="surface-muted p-4 text-xs text-secondary">
             <p>
-              <span className="font-semibold text-warm-800">Account:</span>{" "}
+              <span className="font-semibold text-primary">Account:</span>{" "}
               {connectedPatientName
                 ? `${connectedPatientName} · ${connectedWalletLabel || "wallet pending"}`
                 : connectedWalletLabel || "Connect wallet"}
             </p>
             <p>
-              <span className="font-semibold text-warm-800">Fee:</span> {fee} USDC
+              <span className="font-semibold text-primary">Fee:</span> {fee} USDC
             </p>
             <p className="break-all pt-1">
-              <span className="font-semibold text-warm-800">Recipient:</span> {recipientAddress || "Preparing recipient..."}
+              <span className="font-semibold text-primary">Recipient:</span> {recipientAddress || "Preparing recipient..."}
             </p>
           </div>
 
@@ -574,7 +574,7 @@ export default function ScreeningPage() {
             <button
               onClick={() => void launchBasePay()}
               disabled={!walletAddress || launchingPay || creatingIntent}
-              className="w-full rounded-[18px] border border-sand bg-white/70 px-3 py-3 text-xs font-semibold text-warm-700 transition hover:border-terra/30 disabled:opacity-60"
+              className="w-full rounded-[18px] border border-border bg-white/70 px-3 py-3 text-xs font-semibold text-primary transition hover:border-teal/30 disabled:opacity-60"
             >
               {creatingIntent
                 ? "Preparing payment..."
@@ -587,14 +587,14 @@ export default function ScreeningPage() {
                 value={verifyTxHash}
                 onChange={(event) => setVerifyTxHash(event.target.value)}
                 placeholder="Paste transaction hash"
-                className="w-full rounded-[18px] border border-sand bg-white/70 px-3 py-3 text-xs text-warm-800 focus:outline-none focus:border-terra/40"
+                className="w-full rounded-[18px] border border-border bg-white/70 px-3 py-3 text-xs text-primary focus:outline-none focus:border-teal/40"
               />
               {screeningTxUrl && (
                 <a
                   href={screeningTxUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-terra hover:text-terra-dark"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal hover:text-teal-dark"
                 >
                   View on BaseScan <ExternalLink size={11} />
                 </a>
@@ -613,7 +613,7 @@ export default function ScreeningPage() {
             <button
               onClick={() => void runScreening("deep")}
               disabled={running}
-              className="w-full rounded-[18px] bg-terra px-3 py-3 text-xs font-semibold text-white transition hover:bg-terra-dark disabled:opacity-60"
+              className="w-full rounded-[18px] bg-teal px-3 py-3 text-xs font-semibold text-white transition hover:bg-teal-dark disabled:opacity-60"
             >
               {running ? "Generating deep recommendation..." : "3. Release deep recommendation"}
             </button>
@@ -625,17 +625,17 @@ export default function ScreeningPage() {
         <div className="surface-card lg:col-span-2 p-5">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">Screening intake</p>
-              <h2 className="mt-2 text-2xl text-warm-800">Start with one sentence</h2>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Screening intake</p>
+              <h2 className="mt-2 text-2xl text-primary">Start with one sentence</h2>
             </div>
             <span className="metric-chip">
-              <HeartPulse size={11} className="text-terra" />
+              <HeartPulse size={11} className="text-teal" />
               Natural-language intake
             </span>
           </div>
 
           <div className="surface-muted mb-3 p-4 space-y-3">
-            <label className="text-xs text-warm-600 block">
+            <label className="text-xs text-secondary block">
               Tell us your history in plain English
               <textarea
                 aria-label="Tell us your history in plain English"
@@ -643,7 +643,7 @@ export default function ScreeningPage() {
                 onChange={(event) => setNarrative(event.target.value)}
                 rows={4}
                 placeholder="I am 58, father had prostate cancer at 52, BRCA2 mutation carrier, former smoker."
-                className="mt-1 w-full rounded-[18px] border border-white/80 bg-white/80 px-3 py-3 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40 resize-y"
+                className="mt-1 w-full rounded-[18px] border border-white/80 bg-white/80 px-3 py-3 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40 resize-y"
               />
             </label>
 
@@ -653,7 +653,7 @@ export default function ScreeningPage() {
                   key={starter}
                   type="button"
                   onClick={() => setNarrative(starter)}
-                  className="chip transition hover:border-terra/30 hover:text-terra"
+                  className="chip transition hover:border-teal/30 hover:text-teal"
                 >
                   Example {index + 1}
                 </button>
@@ -663,73 +663,73 @@ export default function ScreeningPage() {
             <button
               type="button"
               onClick={() => void parseNarrativeIntakeIfPresent()}
-              className="text-[11px] font-semibold text-terra hover:text-terra-dark transition"
+              className="text-[11px] font-semibold text-teal hover:text-teal-dark transition"
             >
               Preview what we understood
             </button>
 
-            {intakeFeedback && <p className="text-[11px] text-warm-500">{intakeFeedback}</p>}
+            {intakeFeedback && <p className="text-[11px] text-muted">{intakeFeedback}</p>}
           </div>
 
           <div className="surface-muted p-4">
             <button
               type="button"
               onClick={() => setShowManualFields((value) => !value)}
-              className="text-xs font-semibold text-warm-700 hover:text-terra transition"
+              className="text-xs font-semibold text-primary hover:text-teal transition"
             >
               {showManualFields ? "Hide optional details" : "Add optional details (if needed)"}
             </button>
             {showManualFields && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                <label className="text-xs text-warm-600">
+                <label className="text-xs text-secondary">
                   Age
                   <input
                     value={age}
                     onChange={(event) => setAge(event.target.value)}
                     inputMode="numeric"
                     placeholder="58"
-                    className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40"
+                    className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40"
                   />
                 </label>
-                <label className="text-xs text-warm-600">
+                <label className="text-xs text-secondary">
                   Family history
                   <input
                     value={familyHistory}
                     onChange={(event) => setFamilyHistory(event.target.value)}
                     placeholder="father prostate cancer at 52"
-                    className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40"
+                    className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40"
                   />
                 </label>
-                <label className="text-xs text-warm-600">
+                <label className="text-xs text-secondary">
                   Conditions / mutations
                   <input
                     value={conditions}
                     onChange={(event) => setConditions(event.target.value)}
                     placeholder="BRCA2 carrier, hypertension"
-                    className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40"
+                    className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40"
                   />
                 </label>
-                <label className="text-xs text-warm-600">
+                <label className="text-xs text-secondary">
                   Symptoms (optional)
                   <input
                     value={symptoms}
                     onChange={(event) => setSymptoms(event.target.value)}
                     placeholder="fatigue, abdominal pain"
-                    className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40"
+                    className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40"
                   />
                 </label>
-                <label className="text-xs text-warm-600">
+                <label className="text-xs text-secondary">
                   BMI (optional)
                   <input
                     value={bmi}
                     onChange={(event) => setBmi(event.target.value)}
                     inputMode="decimal"
                     placeholder="29.4"
-                    className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40"
+                    className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40"
                   />
                 </label>
-                <label className="text-xs text-warm-600 flex items-end">
-                  <span className="inline-flex items-center gap-2 rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-warm-700">
+                <label className="text-xs text-secondary flex items-end">
+                  <span className="inline-flex items-center gap-2 rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-primary">
                     <input
                       checked={smoker}
                       onChange={(event) => {
@@ -759,7 +759,7 @@ export default function ScreeningPage() {
               <button
                 onClick={() => void runScreening("deep")}
                 disabled={running || creatingIntent}
-                className="inline-flex items-center gap-2 rounded-2xl border border-sand bg-white/70 px-4 py-3 text-sm font-semibold text-warm-700 transition hover:border-terra/30 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-2xl border border-border bg-white/70 px-4 py-3 text-sm font-semibold text-primary transition hover:border-teal/30 disabled:opacity-60"
               >
                 {running ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
                 Generate Deep Dive (Paid)
@@ -768,7 +768,7 @@ export default function ScreeningPage() {
           </div>
 
           {assessment?.accessLevel === "preview" && (
-            <p className="text-[11px] text-cloudy mt-2">
+            <p className="text-[11px] text-muted mt-2">
               {assessment.upgradeMessage ||
                 "Preview is ready. Unlock deep mode if you want mutation-aware, inherited-risk personalization."}
             </p>
@@ -777,7 +777,7 @@ export default function ScreeningPage() {
 
         <div className="surface-card p-5 lg:sticky lg:top-28">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-warm-800">Risk Snapshot</h2>
+            <h2 className="text-sm font-bold text-primary">Risk Snapshot</h2>
             {assessment && (
               <span className={cn("text-[10px] font-bold px-2 py-1 rounded-full uppercase", riskStyle)}>
                 {assessment.riskTier}
@@ -785,14 +785,14 @@ export default function ScreeningPage() {
             )}
           </div>
           {!assessment ? (
-            <div className="flex h-24 items-center justify-center text-xs text-cloudy">
+            <div className="flex h-24 items-center justify-center text-xs text-muted">
               <Wallet size={14} className="mr-2" /> Run free preview to generate baseline screening guidance.
             </div>
           ) : (
             <>
-              <div className="text-3xl font-bold text-warm-800">{assessment.overallRiskScore}</div>
-              <div className="text-xs text-warm-500">Overall preventive risk score</div>
-              <div className="mt-3 h-2 rounded-full bg-sand/50 overflow-hidden">
+              <div className="text-3xl font-bold text-primary">{assessment.overallRiskScore}</div>
+              <div className="text-xs text-muted">Overall preventive risk score</div>
+              <div className="mt-3 h-2 rounded-full bg-border/50 overflow-hidden">
                 <div
                   className={cn("h-full rounded-full transition-all duration-700", riskBarStyle)}
                   style={{ width: `${assessment.overallRiskScore}%` }}
@@ -802,7 +802,7 @@ export default function ScreeningPage() {
                 {assessment.factors.slice(0, 3).map((factor) => (
                   <div
                     key={factor.label}
-                    className="flex items-start justify-between text-[11px] text-warm-600"
+                    className="flex items-start justify-between text-[11px] text-secondary"
                   >
                     <span>{factor.label}</span>
                     <span className="font-semibold">{factor.scoreDelta > 0 ? `+${factor.scoreDelta}` : factor.scoreDelta}</span>
@@ -810,8 +810,8 @@ export default function ScreeningPage() {
                 ))}
               </div>
               <div className="mt-4 rounded-[20px] border border-white/80 bg-white/70 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-warm-500">What deep mode adds</p>
-                <p className="mt-2 text-sm leading-6 text-warm-500">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">What deep mode adds</p>
+                <p className="mt-2 text-sm leading-6 text-muted">
                   Mutation-aware screening intervals, inherited-risk interpretation, evidence citations, and nearby care connections for follow-up.
                 </p>
               </div>
@@ -822,16 +822,16 @@ export default function ScreeningPage() {
 
       {assessment && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-pampas rounded-2xl border border-sand p-5">
+          <div className="bg-surface rounded-2xl border border-border p-5">
             <div className="flex items-center gap-2 mb-3">
-              <ShieldCheck size={14} className="text-terra" />
-              <h2 className="text-sm font-bold text-warm-800">Recommended Screenings</h2>
+              <ShieldCheck size={14} className="text-teal" />
+              <h2 className="text-sm font-bold text-primary">Recommended Screenings</h2>
             </div>
             <div className="space-y-2">
               {assessment.recommendedScreenings.map((rec) => (
-                <div key={rec.id} className="rounded-xl border border-sand/70 bg-cream/30 p-3">
+                <div key={rec.id} className="rounded-xl border border-border/70 bg-surface/30 p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-warm-800">{rec.name}</p>
+                    <p className="text-sm font-semibold text-primary">{rec.name}</p>
                     <span
                       className={cn(
                         "text-[9px] px-2 py-0.5 rounded-full font-bold uppercase",
@@ -845,20 +845,20 @@ export default function ScreeningPage() {
                       {rec.priority}
                     </span>
                   </div>
-                  <p className="text-xs text-warm-500 mt-1">{rec.reason}</p>
+                  <p className="text-xs text-muted mt-1">{rec.reason}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="bg-pampas rounded-2xl border border-sand p-5">
+          <div className="bg-surface rounded-2xl border border-border p-5">
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle size={14} className="text-yellow-500" />
-              <h2 className="text-sm font-bold text-warm-800">Immediate Next Actions</h2>
+              <h2 className="text-sm font-bold text-primary">Immediate Next Actions</h2>
             </div>
             <ul className="space-y-2">
               {assessment.nextActions.map((action) => (
-                <li key={action} className="text-sm text-warm-600 rounded-xl border border-sand/70 bg-cream/30 p-3">
+                <li key={action} className="text-sm text-secondary rounded-xl border border-border/70 bg-surface/30 p-3">
                   {action}
                 </li>
               ))}
@@ -868,10 +868,10 @@ export default function ScreeningPage() {
       )}
 
       {assessment && (
-        <div className="bg-pampas rounded-2xl border border-sand p-5">
+        <div className="bg-surface rounded-2xl border border-border p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Activity size={14} className="text-terra" />
-            <h2 className="text-sm font-bold text-warm-800">Recommended Timeline</h2>
+            <Activity size={14} className="text-teal" />
+            <h2 className="text-sm font-bold text-primary">Recommended Timeline</h2>
           </div>
           <div className="space-y-2">
             {assessment.recommendedScreenings.slice(0, 5).map((rec, index) => {
@@ -880,15 +880,15 @@ export default function ScreeningPage() {
               return (
                 <div
                   key={`timeline-${rec.id}`}
-                  className="flex items-start justify-between gap-3 rounded-xl border border-sand/70 bg-cream/30 p-3"
+                  className="flex items-start justify-between gap-3 rounded-xl border border-border/70 bg-surface/30 p-3"
                 >
                   <div>
-                    <p className="text-xs font-semibold text-warm-800">
+                    <p className="text-xs font-semibold text-primary">
                       {index + 1}. {rec.name}
                     </p>
-                    <p className="text-[11px] text-warm-500 mt-0.5">{rec.reason}</p>
+                    <p className="text-[11px] text-muted mt-0.5">{rec.reason}</p>
                   </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-terra/10 text-terra whitespace-nowrap">
+                  <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-teal/10 text-teal whitespace-nowrap">
                     {windowLabel}
                   </span>
                 </div>
@@ -899,12 +899,12 @@ export default function ScreeningPage() {
       )}
 
       {assessment && evidenceCitations.length > 0 && (
-        <div className="bg-pampas rounded-2xl border border-sand p-5 space-y-3">
+        <div className="bg-surface rounded-2xl border border-border p-5 space-y-3">
           <div className="flex items-center gap-2">
-            <Search size={14} className="text-terra" />
-            <h2 className="text-sm font-bold text-warm-800">Evidence Sources</h2>
+            <Search size={14} className="text-teal" />
+            <h2 className="text-sm font-bold text-primary">Evidence Sources</h2>
           </div>
-          <p className="text-xs text-warm-500">
+          <p className="text-xs text-muted">
             {showingDeepResults
               ? "Guideline and literature links supporting the deep personalized recommendation set."
               : "Free preview currently shows USPSTF guideline sources."}
@@ -916,18 +916,18 @@ export default function ScreeningPage() {
                 href={citation.url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-lg border border-sand/70 bg-cream/30 p-3 hover:border-terra/30 transition"
+                className="rounded-lg border border-border/70 bg-surface/30 p-3 hover:border-teal/30 transition"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold text-warm-800">{citation.title}</p>
-                  <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-terra/10 text-terra">
+                  <p className="text-xs font-semibold text-primary">{citation.title}</p>
+                  <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-teal/10 text-teal">
                     {citation.type}
                   </span>
                 </div>
-                <p className="text-[11px] text-warm-500 mt-1">{citation.source}</p>
-                {citation.publishedAt && <p className="text-[10px] text-cloudy mt-0.5">{citation.publishedAt}</p>}
-                <p className="text-[11px] text-warm-600 mt-1">{citation.summary}</p>
-                <span className="inline-flex items-center gap-1 text-[11px] text-terra font-semibold mt-2">
+                <p className="text-[11px] text-muted mt-1">{citation.source}</p>
+                {citation.publishedAt && <p className="text-[10px] text-muted mt-0.5">{citation.publishedAt}</p>}
+                <p className="text-[11px] text-secondary mt-1">{citation.summary}</p>
+                <span className="inline-flex items-center gap-1 text-[11px] text-teal font-semibold mt-2">
                   Open source <ExternalLink size={11} />
                 </span>
               </a>
@@ -937,19 +937,19 @@ export default function ScreeningPage() {
       )}
 
       {assessment && showingDeepResults && (
-        <div className="bg-pampas rounded-2xl border border-sand p-5 space-y-4">
+        <div className="bg-surface rounded-2xl border border-border p-5 space-y-4">
           <div className="flex items-center gap-2">
-            <Search size={14} className="text-terra" />
-            <h2 className="text-sm font-bold text-warm-800">
+            <Search size={14} className="text-teal" />
+            <h2 className="text-sm font-bold text-primary">
               Nearby Care Matches For This Screening
             </h2>
           </div>
-          <p className="text-xs text-warm-500">
+          <p className="text-xs text-muted">
             Personalized matches use your risk profile, recommendation priority, and address to run natural-language NPI search.
           </p>
 
           {promptImage && (
-            <div className="rounded-xl overflow-hidden border border-sand/70">
+            <div className="rounded-xl overflow-hidden border border-border/70">
               <Image
                 src={promptImage}
                 width={1400}
@@ -964,25 +964,25 @@ export default function ScreeningPage() {
             {localCareConnections.map((connection) => (
               <div
                 key={connection.recommendationId}
-                className="rounded-xl border border-sand/70 bg-cream/30 p-3"
+                className="rounded-xl border border-border/70 bg-surface/30 p-3"
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold text-warm-800">
+                  <p className="text-sm font-semibold text-primary">
                     {connection.recommendationName}
                   </p>
                   {connection.services.map((service) => (
                     <span
                       key={`${connection.recommendationId}-${service}`}
-                      className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-terra/10 text-terra"
+                      className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-teal/10 text-teal"
                     >
                       {service}
                     </span>
                   ))}
                 </div>
 
-                <p className="text-xs text-warm-500 mt-1">{connection.reason}</p>
-                <p className="text-[10px] text-cloudy mt-1">{connection.riskContext}</p>
-                <p className="text-[10px] font-mono text-terra mt-2">{connection.query}</p>
+                <p className="text-xs text-muted mt-1">{connection.reason}</p>
+                <p className="text-[10px] text-muted mt-1">{connection.riskContext}</p>
+                <p className="text-[10px] font-mono text-teal mt-2">{connection.query}</p>
 
                 {!connection.ready && (
                   <p className="text-xs text-yellow-500 mt-2">
@@ -995,21 +995,21 @@ export default function ScreeningPage() {
                     {connection.matches.slice(0, 6).map((match) => (
                       <div
                         key={`${connection.recommendationId}-${match.kind}-${match.npi}`}
-                        className="rounded-lg border border-sand/60 bg-pampas p-2.5"
+                        className="rounded-lg border border-border/60 bg-surface p-2.5"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-semibold text-warm-800">{match.name}</p>
+                          <p className="text-xs font-semibold text-primary">{match.name}</p>
                           <span className="text-[9px] uppercase px-2 py-0.5 rounded-full bg-accent/10 text-accent font-bold">
                             {match.kind}
                           </span>
                         </div>
-                        <p className="text-[11px] text-terra mt-1">{match.specialty || "General"}</p>
-                        <p className="text-[11px] text-warm-500 mt-1 flex items-start gap-1">
+                        <p className="text-[11px] text-teal mt-1">{match.specialty || "General"}</p>
+                        <p className="text-[11px] text-muted mt-1 flex items-start gap-1">
                           <MapPin size={11} className="mt-0.5 shrink-0" />
                           {match.fullAddress}
                         </p>
                         {match.phone && (
-                          <p className="text-[11px] text-warm-500 mt-1 flex items-center gap-1">
+                          <p className="text-[11px] text-muted mt-1 flex items-center gap-1">
                             <Phone size={11} />
                             {match.phone}
                           </p>

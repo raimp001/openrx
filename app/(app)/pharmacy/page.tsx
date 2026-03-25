@@ -133,23 +133,23 @@ export default function PharmacyPage() {
         }
       />
 
-      <div className="bg-pampas rounded-2xl border border-sand p-5">
+      <div className="bg-surface rounded-2xl border border-border p-5">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-cloudy" />
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={(event) => event.key === "Enter" && searchPharmacies()}
               placeholder="Example: Find CVS pharmacy near Seattle WA 98101"
-              className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/40 focus:ring-2 focus:ring-terra/10 transition"
+              className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-border bg-surface/30 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40 focus:ring-2 focus:ring-teal/10 transition"
             />
           </div>
           <button
             onClick={() => void searchPharmacies()}
             disabled={isLoading}
-            className="px-6 py-3.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition flex items-center justify-center gap-2 disabled:opacity-50 shrink-0"
+            className="px-6 py-3.5 bg-teal text-white text-sm font-semibold rounded-xl hover:bg-teal-dark transition flex items-center justify-center gap-2 disabled:opacity-50 shrink-0"
           >
             {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
             Search
@@ -158,11 +158,11 @@ export default function PharmacyPage() {
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             onClick={useProfileLocation}
-            className="text-[11px] px-2.5 py-1 rounded-lg border border-sand text-warm-600 hover:border-terra/30 hover:text-terra transition"
+            className="text-[11px] px-2.5 py-1 rounded-lg border border-border text-secondary hover:border-teal/30 hover:text-teal transition"
           >
             Use profile location
           </button>
-          <span className="text-[10px] text-cloudy">{profileLocation}</span>
+          <span className="text-[10px] text-muted">{profileLocation}</span>
         </div>
         {error && <p className="text-xs text-soft-red mt-3">{error}</p>}
       </div>
@@ -171,13 +171,13 @@ export default function PharmacyPage() {
         <div className="bg-yellow-100/20 rounded-2xl border border-yellow-300/30 p-4">
           <div className="flex items-center gap-2 mb-1">
             <ShieldCheck size={14} className="text-yellow-500" />
-            <p className="text-sm font-semibold text-warm-800">Need one more detail before search</p>
+            <p className="text-sm font-semibold text-primary">Need one more detail before search</p>
           </div>
-          <p className="text-sm text-warm-600">{clarificationQuestion}</p>
+          <p className="text-sm text-secondary">{clarificationQuestion}</p>
           {parsed && (
             <div className="flex flex-wrap gap-2 mt-3">
               {parsed.name && (
-                <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-terra/10 text-terra">
+                <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-teal/10 text-teal">
                   {parsed.name}
                 </span>
               )}
@@ -192,7 +192,7 @@ export default function PharmacyPage() {
                 </span>
               )}
               {parsed.zip && (
-                <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-terra/10 text-terra">
+                <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-teal/10 text-teal">
                   ZIP {parsed.zip}
                 </span>
               )}
@@ -204,10 +204,10 @@ export default function PharmacyPage() {
       {hasSearched && !isLoading && ready && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-warm-500">
+            <p className="text-sm text-muted">
               {count} pharmac{count !== 1 ? "ies" : "y"} found · {activeResults.length} active
             </p>
-            <span className="text-[10px] text-cloudy flex items-center gap-1">
+            <span className="text-[10px] text-muted flex items-center gap-1">
               <BadgeCheck size={10} /> Live CMS NPI data
             </span>
           </div>
@@ -217,8 +217,8 @@ export default function PharmacyPage() {
               <div
                 key={pharmacy.npi}
                 className={cn(
-                  "bg-pampas rounded-2xl border p-5 hover:border-terra/20 transition cursor-pointer",
-                  selectedPharmacy === pharmacy.npi ? "border-terra/30 ring-1 ring-terra/10" : "border-sand"
+                  "bg-surface rounded-2xl border p-5 hover:border-teal/20 transition cursor-pointer",
+                  selectedPharmacy === pharmacy.npi ? "border-teal/30 ring-1 ring-teal/10" : "border-border"
                 )}
                 onClick={() =>
                   setSelectedPharmacy(selectedPharmacy === pharmacy.npi ? null : pharmacy.npi)
@@ -230,7 +230,7 @@ export default function PharmacyPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-bold text-warm-800">{pharmacy.name || "Unknown pharmacy"}</h3>
+                      <h3 className="text-sm font-bold text-primary">{pharmacy.name || "Unknown pharmacy"}</h3>
                       <span
                         className={cn(
                           "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase",
@@ -243,7 +243,7 @@ export default function PharmacyPage() {
                       </span>
                     </div>
                     <p className="text-[10px] font-semibold text-accent mt-0.5">{pharmacy.type}</p>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-warm-500">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted">
                       <span className="flex items-center gap-1">
                         <MapPin size={12} />
                         {pharmacy.fullAddress}
@@ -255,12 +255,12 @@ export default function PharmacyPage() {
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] font-mono text-cloudy mt-1 block">NPI: {pharmacy.npi}</span>
+                    <span className="text-[10px] font-mono text-muted mt-1 block">NPI: {pharmacy.npi}</span>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {pharmacy.phone && (
                         <a
                           href={`tel:${pharmacy.phone.replace(/[^\d+]/g, "")}`}
-                          className="text-[10px] font-semibold px-2 py-1 rounded-md border border-sand text-warm-600 hover:text-terra hover:border-terra/30 transition"
+                          className="text-[10px] font-semibold px-2 py-1 rounded-md border border-border text-secondary hover:text-teal hover:border-teal/30 transition"
                         >
                           Call
                         </a>
@@ -270,7 +270,7 @@ export default function PharmacyPage() {
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pharmacy.fullAddress)}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-[10px] font-semibold px-2 py-1 rounded-md border border-sand text-warm-600 hover:text-terra hover:border-terra/30 transition"
+                          className="text-[10px] font-semibold px-2 py-1 rounded-md border border-border text-secondary hover:text-teal hover:border-teal/30 transition"
                         >
                           Map
                         </a>
@@ -280,7 +280,7 @@ export default function PharmacyPage() {
                 </div>
 
                 {selectedPharmacy === pharmacy.npi && (
-                  <div className="mt-4 pt-4 border-t border-sand flex flex-wrap gap-2 animate-fade-in">
+                  <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-2 animate-fade-in">
                     <AIAction
                       agentId="rx"
                       label="Transfer Rx"
@@ -308,9 +308,9 @@ export default function PharmacyPage() {
           </div>
 
           {results.length === 0 && (
-            <div className="text-center py-12 bg-pampas rounded-2xl border border-sand mt-3">
+            <div className="text-center py-12 bg-surface rounded-2xl border border-border mt-3">
               <Building2 size={30} className="text-sand mx-auto mb-2" />
-              <p className="text-sm text-warm-500">
+              <p className="text-sm text-muted">
                 No pharmacies found. Try a nearby ZIP or a different pharmacy name.
               </p>
             </div>
@@ -319,12 +319,12 @@ export default function PharmacyPage() {
       )}
 
       {!hasSearched && (
-        <div className="text-center py-12 bg-pampas rounded-2xl border border-sand">
+        <div className="text-center py-12 bg-surface rounded-2xl border border-border">
           <div className="w-16 h-16 rounded-2xl bg-accent/5 flex items-center justify-center mx-auto mb-4">
             <Pill size={28} className="text-accent" />
           </div>
-          <h3 className="text-lg font-serif text-warm-800">Natural Language Pharmacy Search</h3>
-          <p className="text-sm text-warm-500 mt-2 max-w-xl mx-auto">
+          <h3 className="text-lg font-serif text-primary">Natural Language Pharmacy Search</h3>
+          <p className="text-sm text-muted mt-2 max-w-xl mx-auto">
             Tell us the pharmacy and location in one sentence. Search begins only when location details are complete.
           </p>
           <div className="flex flex-wrap gap-2 justify-center mt-6 max-w-3xl mx-auto">
@@ -332,7 +332,7 @@ export default function PharmacyPage() {
               <button
                 key={example}
                 onClick={() => void searchPharmacies(example)}
-                className="px-3 py-1.5 text-xs font-medium text-warm-600 bg-cream rounded-lg border border-sand hover:border-terra/30 hover:text-terra transition"
+                className="px-3 py-1.5 text-xs font-medium text-secondary bg-surface rounded-lg border border-border hover:border-teal/30 hover:text-teal transition"
               >
                 {example}
               </button>
@@ -342,12 +342,12 @@ export default function PharmacyPage() {
       )}
 
       {promptImage && (
-        <div className="bg-pampas rounded-2xl border border-sand p-4">
+        <div className="bg-surface rounded-2xl border border-border p-4">
           <div className="flex items-center gap-2 mb-2">
-            <ShieldCheck size={14} className="text-terra" />
-            <span className="text-xs font-bold text-warm-800">Prompt Artifact Used</span>
+            <ShieldCheck size={14} className="text-teal" />
+            <span className="text-xs font-bold text-primary">Prompt Artifact Used</span>
           </div>
-          <div className="rounded-xl overflow-hidden border border-sand/70">
+          <div className="rounded-xl overflow-hidden border border-border/70">
             <Image
               src={promptImage}
               width={1400}

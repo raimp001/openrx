@@ -168,7 +168,7 @@ export default function ProvidersPage() {
               Live CMS NPI data
             </span>
             <span className="metric-chip">
-              <Sparkles size={11} className="text-terra" />
+              <Sparkles size={11} className="text-teal" />
               Natural-language only
             </span>
             {profileLocation ? (
@@ -192,22 +192,22 @@ export default function ProvidersPage() {
         <div className="grid gap-5 p-5 lg:grid-cols-[1.35fr_0.65fr] lg:p-6">
           <div className="space-y-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">Search request</p>
-              <h2 className="mt-2 text-2xl text-warm-800">Tell OpenRx what care you need.</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-warm-500">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Search request</p>
+              <h2 className="mt-2 text-2xl text-primary">Tell OpenRx what care you need.</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">
                 City-only and ZIP-only searches should work. If you already have a profile location, we can use it automatically when the request is underspecified.
               </p>
             </div>
 
             <div className="relative">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-cloudy" />
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && searchDirectory()}
                 placeholder="Example: find caregiver + radiology center near Seattle WA 98101"
-                className="w-full rounded-[22px] border border-white/80 bg-white/80 py-4 pl-12 pr-4 text-sm text-warm-800 placeholder:text-cloudy focus:outline-none focus:border-terra/35 focus:shadow-[0_0_0_4px_rgba(224,91,67,0.08)]"
+                className="w-full rounded-[22px] border border-white/80 bg-white/80 py-4 pl-12 pr-4 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/35 focus:shadow-[0_0_0_4px_rgba(224,91,67,0.08)]"
               />
             </div>
 
@@ -222,7 +222,7 @@ export default function ProvidersPage() {
               </button>
               <button
                 onClick={useProfileLocation}
-                className="inline-flex items-center gap-2 rounded-2xl border border-sand bg-white/65 px-4 py-3 text-sm font-semibold text-warm-700 transition hover:border-terra/25 hover:text-terra"
+                className="inline-flex items-center gap-2 rounded-2xl border border-border bg-white/65 px-4 py-3 text-sm font-semibold text-primary transition hover:border-teal/25 hover:text-teal"
               >
                 <MapPin size={15} className="text-soft-blue" />
                 Use profile location
@@ -234,7 +234,7 @@ export default function ProvidersPage() {
                 <button
                   key={example}
                   onClick={() => searchDirectory(example)}
-                  className="chip transition hover:border-terra/30 hover:text-terra"
+                  className="chip transition hover:border-teal/30 hover:text-teal"
                 >
                   {example}
                 </button>
@@ -246,7 +246,7 @@ export default function ProvidersPage() {
           </div>
 
           <div className="surface-muted p-4 sm:p-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">How matching works</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">How matching works</p>
             <div className="mt-4 space-y-3">
               <StepRow
                 icon={Search}
@@ -266,8 +266,8 @@ export default function ProvidersPage() {
             </div>
 
             <div className="mt-5 rounded-[22px] border border-white/70 bg-white/72 p-4">
-              <p className="text-xs font-semibold text-warm-800">Current search readiness</p>
-              <p className="mt-1 text-sm leading-6 text-warm-500">
+              <p className="text-xs font-semibold text-primary">Current search readiness</p>
+              <p className="mt-1 text-sm leading-6 text-muted">
                 {hasSearched
                   ? ready
                     ? "Enough context received. Results below are ready to act on."
@@ -283,13 +283,13 @@ export default function ProvidersPage() {
         <div className="surface-card border-yellow-300/40 bg-[linear-gradient(180deg,rgba(255,251,235,0.95),rgba(255,246,213,0.88))] p-5">
           <div className="flex items-center gap-2 mb-1">
             <ShieldCheck size={14} className="text-yellow-500" />
-            <p className="text-sm font-semibold text-warm-800">Need one more detail before search</p>
+            <p className="text-sm font-semibold text-primary">Need one more detail before search</p>
           </div>
-          <p className="mt-2 text-sm leading-7 text-warm-600">{clarificationQuestion}</p>
+          <p className="mt-2 text-sm leading-7 text-secondary">{clarificationQuestion}</p>
           {parsed && (
             <div className="flex flex-wrap gap-2 mt-3">
               {parsed.serviceTypes.map((serviceType) => (
-                <span key={serviceType} className="text-[10px] font-semibold px-2 py-1 rounded-full bg-terra/10 text-terra">
+                <span key={serviceType} className="text-[10px] font-semibold px-2 py-1 rounded-full bg-teal/10 text-teal">
                   {serviceType}
                 </span>
               ))}
@@ -304,7 +304,7 @@ export default function ProvidersPage() {
                 </span>
               )}
               {parsed.zip && (
-                <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-terra/10 text-terra">
+                <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-teal/10 text-teal">
                   ZIP {parsed.zip}
                 </span>
               )}
@@ -317,10 +317,10 @@ export default function ProvidersPage() {
         <div className="space-y-5">
           <div className="surface-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-warm-500">Matched network</p>
-              <p className="mt-1 text-lg font-semibold text-warm-800">{matches.length} care options found</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Matched network</p>
+              <p className="mt-1 text-lg font-semibold text-primary">{matches.length} care options found</p>
             </div>
-            <span className="text-[11px] text-cloudy flex items-center gap-1">
+            <span className="text-[11px] text-muted flex items-center gap-1">
               <BadgeCheck size={10} /> Live CMS NPI data
             </span>
           </div>
@@ -333,8 +333,8 @@ export default function ProvidersPage() {
                 className={cn(
                   "text-[11px] font-semibold px-3 py-1.5 rounded-full border transition",
                   activeGroup === item.id
-                    ? "border-terra/30 bg-terra/10 text-terra"
-                    : "border-sand text-warm-600 hover:border-terra/20"
+                    ? "border-teal/30 bg-teal/10 text-teal"
+                    : "border-border text-secondary hover:border-teal/20"
                 )}
               >
                 {item.label} ({item.count})
@@ -343,10 +343,10 @@ export default function ProvidersPage() {
           </div>
 
           {matches.length === 0 && (
-            <div className="surface-card p-5 text-sm text-warm-600">
-              No NPI matches found yet. Try one of these: <span className="font-semibold text-warm-800">hillsboro</span>,{" "}
-              <span className="font-semibold text-warm-800">97123</span>, or a specialty phrase like{" "}
-              <span className="font-semibold text-warm-800">internal medicine near hillsboro</span>.
+            <div className="surface-card p-5 text-sm text-secondary">
+              No NPI matches found yet. Try one of these: <span className="font-semibold text-primary">hillsboro</span>,{" "}
+              <span className="font-semibold text-primary">97123</span>, or a specialty phrase like{" "}
+              <span className="font-semibold text-primary">internal medicine near hillsboro</span>.
             </div>
           )}
 
@@ -383,13 +383,13 @@ export default function ProvidersPage() {
 
       {!hasSearched && (
         <div className="surface-card py-12 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] bg-terra/8">
-            <Search size={28} className="text-terra" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] bg-teal/8">
+            <Search size={28} className="text-teal" />
           </div>
-          <h3 className="text-lg font-serif text-warm-800">
+          <h3 className="text-lg font-serif text-primary">
             Natural Language Only
           </h3>
-          <p className="text-sm text-warm-500 mt-2 max-w-xl mx-auto">
+          <p className="text-sm text-muted mt-2 max-w-xl mx-auto">
             Tell us what care you need and where. Search begins only after we have enough information.
           </p>
           <div className="flex flex-wrap gap-2 justify-center mt-6 max-w-3xl mx-auto">
@@ -397,7 +397,7 @@ export default function ProvidersPage() {
               <button
                 key={example}
                 onClick={() => searchDirectory(example)}
-                className="chip transition hover:border-terra/30 hover:text-terra"
+                className="chip transition hover:border-teal/30 hover:text-teal"
               >
                 {example}
               </button>
@@ -409,10 +409,10 @@ export default function ProvidersPage() {
       {promptImage && (
         <div className="surface-card p-4">
           <div className="flex items-center gap-2 mb-2">
-            <ImageIcon size={14} className="text-terra" />
-            <span className="text-xs font-bold text-warm-800">Prompt Artifact Used</span>
+            <ImageIcon size={14} className="text-teal" />
+            <span className="text-xs font-bold text-primary">Prompt Artifact Used</span>
           </div>
-          <div className="rounded-xl overflow-hidden border border-sand/70">
+          <div className="rounded-xl overflow-hidden border border-border/70">
             <Image
               src={promptImage}
               width={1400}
@@ -440,8 +440,8 @@ function ResultGroup({
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        <Icon size={14} className="text-terra" />
-        <h2 className="text-sm font-bold text-warm-800">{title}</h2>
+        <Icon size={14} className="text-teal" />
+        <h2 className="text-sm font-bold text-primary">{title}</h2>
       </div>
       <div className="space-y-3">
         {items.map((item) => (
@@ -450,12 +450,12 @@ function ResultGroup({
             className="surface-card p-5 transition hover:-translate-y-0.5"
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-terra/12 to-terra/4 text-terra">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal/12 to-teal/4 text-teal">
                 <Icon size={20} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-base font-semibold text-warm-800">{item.name}</h3>
+                  <h3 className="text-base font-semibold text-primary">{item.name}</h3>
                   <span
                     className={cn(
                       "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase",
@@ -466,13 +466,13 @@ function ResultGroup({
                   >
                     {item.confidence === "high" ? "Verified" : "Unverified"}
                   </span>
-                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-terra/10 text-terra uppercase">
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-teal/10 text-teal uppercase">
                     {item.status === "A" ? "Active" : item.status}
                   </span>
                 </div>
 
-                <p className="mt-1 text-sm font-semibold text-terra">{item.specialty || "General care"}</p>
-                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-warm-500">
+                <p className="mt-1 text-sm font-semibold text-teal">{item.specialty || "General care"}</p>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted">
                   <span className="flex items-center gap-1">
                     <MapPin size={12} />
                     {item.fullAddress}
@@ -480,7 +480,7 @@ function ResultGroup({
                   {item.phone && (
                     <a
                       href={`tel:${item.phone.replace(/[^\d+]/g, "")}`}
-                      className="flex items-center gap-1 hover:text-terra transition"
+                      className="flex items-center gap-1 hover:text-teal transition"
                     >
                       <Phone size={12} />
                       {item.phone}
@@ -488,14 +488,14 @@ function ResultGroup({
                   )}
                 </div>
 
-                <span className="mt-2 block text-[10px] font-mono text-cloudy">
+                <span className="mt-2 block text-[10px] font-mono text-muted">
                   NPI: {item.npi} · Taxonomy: {item.taxonomyCode || "n/a"}
                 </span>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {item.phone && (
                     <a
                       href={`tel:${item.phone.replace(/[^\d+]/g, "")}`}
-                      className="inline-flex items-center gap-1 rounded-full border border-sand bg-white/70 px-3 py-1.5 text-[10px] font-semibold text-warm-700 transition hover:border-terra/30 hover:text-terra"
+                      className="inline-flex items-center gap-1 rounded-full border border-border bg-white/70 px-3 py-1.5 text-[10px] font-semibold text-primary transition hover:border-teal/30 hover:text-teal"
                     >
                       <Phone size={11} />
                       Call
@@ -506,7 +506,7 @@ function ResultGroup({
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.fullAddress)}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-full border border-sand bg-white/70 px-3 py-1.5 text-[10px] font-semibold text-warm-700 transition hover:border-terra/30 hover:text-terra"
+                      className="inline-flex items-center gap-1 rounded-full border border-border bg-white/70 px-3 py-1.5 text-[10px] font-semibold text-primary transition hover:border-teal/30 hover:text-teal"
                     >
                       <ArrowRight size={11} />
                       Map
@@ -544,12 +544,12 @@ function StepRow({
   return (
     <div className="rounded-[20px] border border-white/70 bg-white/76 p-4">
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-terra/10 text-terra">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-teal/10 text-teal">
           <Icon size={15} />
         </div>
         <div>
-          <p className="text-sm font-semibold text-warm-800">{title}</p>
-          <p className="mt-1 text-sm leading-6 text-warm-500">{description}</p>
+          <p className="text-sm font-semibold text-primary">{title}</p>
+          <p className="mt-1 text-sm leading-6 text-muted">{description}</p>
         </div>
       </div>
     </div>

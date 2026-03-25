@@ -329,7 +329,7 @@ export default function ComplianceLedgerPage() {
       />
 
       {!isConnected ? (
-        <div className="rounded-2xl border border-yellow-300/30 bg-yellow-100/30 px-4 py-3 text-sm text-warm-700">
+        <div className="rounded-2xl border border-yellow-300/30 bg-yellow-100/30 px-4 py-3 text-sm text-primary">
           Wallet is not connected. Connect a wallet before creating intents, verifying Base Pay settlements, or running refunds.
         </div>
       ) : null}
@@ -339,7 +339,7 @@ export default function ComplianceLedgerPage() {
       ) : null}
 
       {loading ? (
-        <div className="surface-card px-6 py-10 text-center text-sm text-cloudy">
+        <div className="surface-card px-6 py-10 text-center text-sm text-muted">
           <Loader2 size={16} className="mr-2 inline animate-spin" /> Loading compliance state...
         </div>
       ) : (
@@ -384,7 +384,7 @@ export default function ComplianceLedgerPage() {
                   <button onClick={() => void createIntent()} disabled={busy || !canCreateIntent} className="control-button-primary">
                     Create intent
                   </button>
-                  {!canCreateIntent ? <span className="text-xs text-cloudy">Enter a positive amount and description.</span> : null}
+                  {!canCreateIntent ? <span className="text-xs text-muted">Enter a positive amount and description.</span> : null}
                 </div>
               </OpsPanel>
 
@@ -403,10 +403,10 @@ export default function ComplianceLedgerPage() {
                     Base tx hash
                     <input value={verifyTxHash} onChange={(event) => setVerifyTxHash(event.target.value)} className="control-input" />
                   </label>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-cloudy">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
                     {selectedPayment ? <span>Expected ${selectedPayment.expectedAmount} to {truncate(selectedPayment.recipientAddress)}</span> : null}
                     {verifyTxUrl ? (
-                      <a href={verifyTxUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-terra hover:text-terra-dark">
+                      <a href={verifyTxUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-teal hover:text-teal-dark">
                         View tx <ExternalLink size={11} />
                       </a>
                     ) : null}
@@ -447,13 +447,13 @@ export default function ComplianceLedgerPage() {
                     <button onClick={() => void requestPaymentRefund()} disabled={busy || !canRequestRefund} className="control-button-primary">
                       Request refund
                     </button>
-                    {!canRequestRefund ? <span className="text-xs text-cloudy">Select a payment, a positive amount, and a reason.</span> : null}
+                    {!canRequestRefund ? <span className="text-xs text-muted">Select a payment, a positive amount, and a reason.</span> : null}
                   </div>
 
-                  <div className="mt-2 rounded-[24px] border border-sand/70 bg-white/75 p-4">
+                  <div className="mt-2 rounded-[24px] border border-border/70 bg-white/75 p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
-                      <h3 className="text-sm font-semibold text-warm-800">Finalize selected refund</h3>
-                      {refundTxUrl ? <a href={refundTxUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-terra hover:text-terra-dark">View refund tx <ExternalLink size={11} /></a> : null}
+                      <h3 className="text-sm font-semibold text-primary">Finalize selected refund</h3>
+                      {refundTxUrl ? <a href={refundTxUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-teal hover:text-teal-dark">View refund tx <ExternalLink size={11} /></a> : null}
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
                       <label className="control-label">
@@ -484,12 +484,12 @@ export default function ComplianceLedgerPage() {
                       <div key={refund.id} className="surface-muted px-4 py-3">
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <p className="text-sm font-semibold text-warm-800">${refund.amount}</p>
-                            <p className="mt-1 text-xs text-cloudy">{refund.reason}</p>
+                            <p className="text-sm font-semibold text-primary">${refund.amount}</p>
+                            <p className="mt-1 text-xs text-muted">{refund.reason}</p>
                           </div>
                           <OpsBadge tone={refund.status === "sent" ? "accent" : refund.status === "failed" ? "red" : "gold"}>{refund.status}</OpsBadge>
                         </div>
-                        <button onClick={() => setSelectedRefundId(refund.id)} className="mt-3 text-xs font-semibold text-terra hover:text-terra-dark">Select refund</button>
+                        <button onClick={() => setSelectedRefundId(refund.id)} className="mt-3 text-xs font-semibold text-teal hover:text-teal-dark">Select refund</button>
                       </div>
                     ))
                   )}
@@ -520,7 +520,7 @@ export default function ComplianceLedgerPage() {
               <div className="overflow-x-auto">
                 <table className="min-w-[760px] w-full text-xs">
                   <thead>
-                    <tr className="border-b border-sand/60 text-left text-cloudy">
+                    <tr className="border-b border-border/60 text-left text-muted">
                       <th className="px-4 py-3 font-semibold">Time</th>
                       <th className="px-3 py-3 font-semibold">Event</th>
                       <th className="px-3 py-3 font-semibold">Account</th>
@@ -531,13 +531,13 @@ export default function ComplianceLedgerPage() {
                   </thead>
                   <tbody>
                     {latestEntries.map((entry) => (
-                      <tr key={entry.id} className="border-b border-sand/30 text-warm-700 last:border-b-0">
+                      <tr key={entry.id} className="border-b border-border/30 text-primary last:border-b-0">
                         <td className="px-4 py-3 whitespace-nowrap">{new Date(entry.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
                         <td className="px-3 py-3">{entry.eventType}</td>
                         <td className="px-3 py-3">{entry.accountCode}</td>
                         <td className="px-3 py-3 uppercase">{entry.direction}</td>
                         <td className="px-3 py-3 text-right">${entry.amount}</td>
-                        <td className="px-4 py-3 font-mono text-[11px] text-cloudy">{entry.reference ? truncate(entry.reference, 10) : "-"}</td>
+                        <td className="px-4 py-3 font-mono text-[11px] text-muted">{entry.reference ? truncate(entry.reference, 10) : "-"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -572,11 +572,11 @@ function ArtifactSection({
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        <Icon size={14} className="text-terra" />
-        <h3 className="text-sm font-semibold text-warm-800">{title}</h3>
+        <Icon size={14} className="text-teal" />
+        <h3 className="text-sm font-semibold text-primary">{title}</h3>
       </div>
       <div className="space-y-2">
-        {Array.isArray(items) && items.length === 0 ? <p className="text-xs text-cloudy">{emptyText}</p> : items}
+        {Array.isArray(items) && items.length === 0 ? <p className="text-xs text-muted">{emptyText}</p> : items}
       </div>
     </div>
   )
@@ -585,9 +585,9 @@ function ArtifactSection({
 function ArtifactCard({ title, subtitle, footnote }: { title: string; subtitle: string; footnote: string }) {
   return (
     <div className="surface-muted px-4 py-3">
-      <div className="text-sm font-semibold text-warm-800">{title}</div>
-      <div className="mt-1 text-xs text-warm-600">{subtitle}</div>
-      <div className="mt-2 font-mono text-[11px] text-cloudy">{footnote}</div>
+      <div className="text-sm font-semibold text-primary">{title}</div>
+      <div className="mt-1 text-xs text-secondary">{subtitle}</div>
+      <div className="mt-2 font-mono text-[11px] text-muted">{footnote}</div>
     </div>
   )
 }

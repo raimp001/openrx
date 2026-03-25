@@ -46,7 +46,7 @@ function RangeBar({
   const dotColor = flag === "normal" ? "#1FA971" : flag === "critical" ? "#DC2626" : "#D1495B"
 
   return (
-    <div className="relative mt-2 h-1.5 w-full max-w-[9rem] rounded-full bg-sand/30" role="img" aria-label={`Value ${value}, range ${referenceRange}`}>
+    <div className="relative mt-2 h-1.5 w-full max-w-[9rem] rounded-full bg-border/30" role="img" aria-label={`Value ${value}, range ${referenceRange}`}>
       <div className="absolute h-full rounded-full bg-accent/20" style={{ left: `${normalStart}%`, width: `${normalWidth}%` }} />
       <div
         className="absolute top-1/2 h-2.5 w-2.5 rounded-full border-2 border-white shadow"
@@ -87,7 +87,7 @@ function FlagBadge({ flag }: { flag: string }) {
 }
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+  return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
 export default function LabResultsPage() {
@@ -268,25 +268,25 @@ export default function LabResultsPage() {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-serif text-warm-800">{lab.test_name}</h3>
+                          <h3 className="text-lg font-serif text-primary">{lab.test_name}</h3>
                           {criticalResults.length > 0 ? <OpsBadge tone="red">Critical</OpsBadge> : null}
                           {hasAbnormal && !criticalResults.length ? <OpsBadge tone="gold">{abnormalResults.length} abnormal</OpsBadge> : null}
                           {!hasAbnormal ? <OpsBadge tone="accent">All normal</OpsBadge> : null}
                           <OpsBadge tone={lab.status === "reviewed" ? "accent" : "blue"}>{lab.status === "reviewed" ? "Reviewed" : "Resulted"}</OpsBadge>
                         </div>
-                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium text-cloudy">
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium text-muted">
                           <span className="chip">{lab.lab_facility}</span>
                           <span className="chip">{lab.category}</span>
                           <span className="chip">{lab.resulted_at ? formatDate(lab.resulted_at) : "Pending"}</span>
                           {physician ? <span className="chip">{physician.full_name}</span> : null}
                         </div>
                       </div>
-                      <div className="shrink-0 text-cloudy">{isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
+                      <div className="shrink-0 text-muted">{isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
                     </button>
 
                     {isExpanded ? (
-                      <div className="border-t border-sand/60">
-                        <div className="divide-y divide-sand/40">
+                      <div className="border-t border-border/60">
+                        <div className="divide-y divide-border/40">
                           {lab.results.map((result, index) => (
                             <div
                               key={`${lab.id}-${index}`}
@@ -297,8 +297,8 @@ export default function LabResultsPage() {
                               )}
                             >
                               <div className="min-w-0 flex-1">
-                                <div className="text-sm font-semibold text-warm-800">{result.name}</div>
-                                {result.reference_range ? <div className="mt-1 text-[11px] text-cloudy">Ref: {result.reference_range}</div> : null}
+                                <div className="text-sm font-semibold text-primary">{result.name}</div>
+                                {result.reference_range ? <div className="mt-1 text-[11px] text-muted">Ref: {result.reference_range}</div> : null}
                                 {result.reference_range ? <RangeBar value={result.value} referenceRange={result.reference_range} flag={result.flag} /> : null}
                               </div>
                               <div className="shrink-0 text-right">
@@ -308,10 +308,10 @@ export default function LabResultsPage() {
                                     ? "text-red-600"
                                     : result.flag !== "normal"
                                     ? "text-soft-red"
-                                    : "text-warm-800"
+                                    : "text-primary"
                                 )}>
                                   {result.value}
-                                  {result.unit ? <span className="ml-1 text-xs font-normal text-warm-500">{result.unit}</span> : null}
+                                  {result.unit ? <span className="ml-1 text-xs font-normal text-muted">{result.unit}</span> : null}
                                 </div>
                                 <div className="mt-2 flex justify-end">
                                   <FlagBadge flag={result.flag} />
@@ -322,21 +322,21 @@ export default function LabResultsPage() {
                         </div>
 
                         {lab.notes ? (
-                          <div className="border-t border-sand/60 bg-white/45 px-4 py-3 sm:px-5">
+                          <div className="border-t border-border/60 bg-white/45 px-4 py-3 sm:px-5">
                             <div className="flex items-start gap-2">
-                              <FileText size={13} className="mt-0.5 shrink-0 text-terra" />
+                              <FileText size={13} className="mt-0.5 shrink-0 text-teal" />
                               <div>
-                                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy/80">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted/80">
                                   {physician?.full_name || "Clinician"} note
                                 </div>
-                                <div className="mt-1 text-sm leading-6 text-warm-700">{lab.notes}</div>
+                                <div className="mt-1 text-sm leading-6 text-primary">{lab.notes}</div>
                               </div>
                             </div>
                           </div>
                         ) : null}
 
                         {hasAbnormal ? (
-                          <div className="border-t border-sand/60 px-4 py-3 sm:px-5">
+                          <div className="border-t border-border/60 px-4 py-3 sm:px-5">
                             <AIAction
                               agentId="coordinator"
                               label="Explain These Results"
@@ -374,8 +374,8 @@ export default function LabResultsPage() {
                   <div key={lab.id} className="surface-muted px-4 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-sm font-semibold text-warm-800">{lab.test_name}</div>
-                        <div className="mt-1 text-xs leading-5 text-cloudy">Ordered {formatDate(lab.ordered_at)} · {lab.lab_facility}</div>
+                        <div className="text-sm font-semibold text-primary">{lab.test_name}</div>
+                        <div className="mt-1 text-xs leading-5 text-muted">Ordered {formatDate(lab.ordered_at)} · {lab.lab_facility}</div>
                       </div>
                       <OpsBadge tone="gold">Processing</OpsBadge>
                     </div>
@@ -421,7 +421,7 @@ export default function LabResultsPage() {
             title="How to read this board"
             description="Keep the interpretation grounded and actionable rather than dumping raw values back onto the patient."
           >
-            <div className="space-y-3 text-sm leading-6 text-warm-600">
+            <div className="space-y-3 text-sm leading-6 text-secondary">
               <p>
                 {criticalCount
                   ? `${criticalCount} value${criticalCount === 1 ? " is" : "s are"} critical. That should trigger direct clinical follow-up rather than a normal message thread.`
@@ -456,8 +456,8 @@ function FocusItem({
   return (
     <div className="surface-muted flex items-start justify-between gap-3 px-4 py-3">
       <div>
-        <div className="text-sm font-semibold text-warm-800">{label}</div>
-        <div className="mt-1 text-xs leading-5 text-cloudy">{detail}</div>
+        <div className="text-sm font-semibold text-primary">{label}</div>
+        <div className="mt-1 text-xs leading-5 text-muted">{detail}</div>
       </div>
       <OpsBadge tone={tone} className="shrink-0">{value}</OpsBadge>
     </div>

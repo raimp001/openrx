@@ -11,7 +11,7 @@ import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import Link from "next/link"
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+  return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
 export default function ReferralsPage() {
@@ -32,10 +32,10 @@ export default function ReferralsPage() {
           <Skeleton className="h-9 w-36" />
         </div>
         <div className="grid grid-cols-3 gap-3">
-          {[...Array(3)].map((_, i) => <div key={i} className="bg-pampas rounded-2xl border border-sand p-4"><Skeleton className="h-14 w-full" /></div>)}
+          {[...Array(3)].map((_, i) => <div key={i} className="bg-surface rounded-2xl border border-border p-4"><Skeleton className="h-14 w-full" /></div>)}
         </div>
         <div className="space-y-3">
-          {[...Array(3)].map((_, i) => <div key={i} className="bg-pampas rounded-2xl border border-sand p-5"><Skeleton className="h-20 w-full" /></div>)}
+          {[...Array(3)].map((_, i) => <div key={i} className="bg-surface rounded-2xl border border-border p-5"><Skeleton className="h-20 w-full" /></div>)}
         </div>
       </div>
     )
@@ -48,10 +48,10 @@ export default function ReferralsPage() {
           <ArrowRightCircle size={28} className="text-soft-blue" />
         </div>
         <div>
-          <h1 className="text-2xl font-serif text-warm-800">Referrals</h1>
-          <p className="text-warm-500 mt-1 max-w-sm">Connect your health record to track specialist referrals and appointments.</p>
+          <h1 className="text-2xl font-serif text-primary">Referrals</h1>
+          <p className="text-muted mt-1 max-w-sm">Connect your health record to track specialist referrals and appointments.</p>
         </div>
-        <Link href="/onboarding" className="px-5 py-2.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition">
+        <Link href="/onboarding" className="px-5 py-2.5 bg-teal text-white text-sm font-semibold rounded-xl hover:bg-teal-dark transition">
           Get Started
         </Link>
       </div>
@@ -75,20 +75,20 @@ export default function ReferralsPage() {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-pampas rounded-2xl p-4 border border-sand">
+        <div className="bg-surface rounded-2xl p-4 border border-border">
           <Clock size={20} className="text-yellow-600 mb-2" />
-          <div className="text-lg font-bold text-warm-800">{pending.length}</div>
-          <div className="text-xs text-warm-500">Pending</div>
+          <div className="text-lg font-bold text-primary">{pending.length}</div>
+          <div className="text-xs text-muted">Pending</div>
         </div>
-        <div className="bg-pampas rounded-2xl p-4 border border-sand">
+        <div className="bg-surface rounded-2xl p-4 border border-border">
           <Calendar size={20} className="text-soft-blue mb-2" />
-          <div className="text-lg font-bold text-warm-800">{scheduled.length}</div>
-          <div className="text-xs text-warm-500">Scheduled</div>
+          <div className="text-lg font-bold text-primary">{scheduled.length}</div>
+          <div className="text-xs text-muted">Scheduled</div>
         </div>
-        <div className="bg-pampas rounded-2xl p-4 border border-sand">
+        <div className="bg-surface rounded-2xl p-4 border border-border">
           <CheckCircle2 size={20} className="text-accent mb-2" />
-          <div className="text-lg font-bold text-warm-800">{completed.length}</div>
-          <div className="text-xs text-warm-500">Completed</div>
+          <div className="text-lg font-bold text-primary">{completed.length}</div>
+          <div className="text-xs text-muted">Completed</div>
         </div>
       </div>
 
@@ -102,11 +102,11 @@ export default function ReferralsPage() {
           {referrals
             .filter((r) => !r.insurance_authorized && r.status !== "completed")
             .map((r) => (
-              <p key={r.id} className="text-xs text-warm-600 mt-1">
+              <p key={r.id} className="text-xs text-secondary mt-1">
                 {r.specialist_name} ({r.specialist_specialty}) — authorization pending from {insuranceProvider}
               </p>
             ))}
-          <p className="text-[10px] text-warm-500 mt-2">
+          <p className="text-[10px] text-muted mt-2">
             Rex (PA specialist) is working on getting these authorized.
           </p>
         </div>
@@ -115,10 +115,10 @@ export default function ReferralsPage() {
       {/* Referral Cards */}
       <div className="space-y-3">
         {referrals.length === 0 && (
-          <div className="bg-pampas rounded-2xl border border-sand flex flex-col items-center justify-center py-16 text-center gap-3">
-            <ArrowRightCircle size={32} className="text-cloudy" />
-            <p className="text-sm font-semibold text-warm-600">No referrals on file</p>
-            <p className="text-xs text-cloudy max-w-xs">When your doctor refers you to a specialist, it will appear here.</p>
+          <div className="bg-surface rounded-2xl border border-border flex flex-col items-center justify-center py-16 text-center gap-3">
+            <ArrowRightCircle size={32} className="text-muted" />
+            <p className="text-sm font-semibold text-secondary">No referrals on file</p>
+            <p className="text-xs text-muted max-w-xs">When your doctor refers you to a specialist, it will appear here.</p>
           </div>
         )}
         {referrals.map((ref) => {
@@ -127,7 +127,7 @@ export default function ReferralsPage() {
           return (
             <div
               key={ref.id}
-              className="bg-pampas rounded-2xl border border-sand p-5"
+              className="bg-surface rounded-2xl border border-border p-5"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
@@ -144,11 +144,11 @@ export default function ReferralsPage() {
                     } />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-warm-800">
+                    <h3 className="text-sm font-semibold text-primary">
                       {ref.specialist_name}
                     </h3>
-                    <p className="text-xs text-warm-600 mt-0.5">{ref.specialist_specialty}</p>
-                    <p className="text-[10px] text-cloudy mt-1">
+                    <p className="text-xs text-secondary mt-0.5">{ref.specialist_specialty}</p>
+                    <p className="text-[10px] text-muted mt-1">
                       Referred by {referringDoc?.full_name || "your doctor"} on{" "}
                       {new Date(ref.created_at).toLocaleDateString()}
                     </p>
@@ -166,7 +166,7 @@ export default function ReferralsPage() {
                   {ref.appointment_date && ref.status === "scheduled" && (
                     <div className="mt-1.5 bg-soft-blue/8 rounded-lg px-2 py-1 text-right">
                       <p className="text-[9px] font-bold text-soft-blue uppercase tracking-wide">Appt</p>
-                      <p className="text-xs text-warm-700 font-semibold">
+                      <p className="text-xs text-primary font-semibold">
                         {new Date(ref.appointment_date).toLocaleDateString(undefined, {
                           weekday: "short",
                           month: "short",
@@ -180,13 +180,13 @@ export default function ReferralsPage() {
 
               {/* Reason */}
               <div className="mt-3 ml-[52px]">
-                <p className="text-xs text-warm-700">{ref.reason}</p>
+                <p className="text-xs text-primary">{ref.reason}</p>
 
                 {/* Details */}
-                <div className="flex items-center gap-4 mt-2 text-[10px] text-cloudy">
+                <div className="flex items-center gap-4 mt-2 text-[10px] text-muted">
                   <a
                     href={`tel:${ref.specialist_phone}`}
-                    className="flex items-center gap-1 hover:text-terra transition"
+                    className="flex items-center gap-1 hover:text-teal transition"
                   >
                     <Phone size={8} /> {ref.specialist_phone}
                   </a>
@@ -204,7 +204,7 @@ export default function ReferralsPage() {
                     "font-bold uppercase",
                     ref.urgency === "stat" ? "text-soft-red" :
                     ref.urgency === "urgent" ? "text-yellow-600" :
-                    "text-warm-400"
+                    "text-muted"
                   )}>
                     {ref.urgency}
                   </span>
@@ -212,7 +212,7 @@ export default function ReferralsPage() {
 
                 {/* Notes */}
                 {ref.notes && (
-                  <p className="text-[10px] text-cloudy mt-2 italic">{ref.notes}</p>
+                  <p className="text-[10px] text-muted mt-2 italic">{ref.notes}</p>
                 )}
               </div>
             </div>
@@ -227,7 +227,7 @@ export default function ReferralsPage() {
         prompt="Review my specialist referrals and help me understand next steps, any pending insurance authorizations needed, and how each referral relates to my overall care plan."
         context={`Referrals — pending: ${pending.length}, scheduled: ${scheduled.length}, completed: ${completed.length}. ${pending.map(r => r.specialist_specialty).join(", ")} pending auth.`}
         variant="inline"
-        className="bg-terra/5 rounded-2xl border border-terra/10 p-4"
+        className="bg-teal/5 rounded-2xl border border-teal/10 p-4"
       />
     </div>
   )

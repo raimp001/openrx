@@ -57,18 +57,18 @@ interface ChatMessage {
 }
 
 const agentMeta: Record<string, { label: string; icon: typeof Bot; color: string }> = {
-  onboarding: { label: "Sage (Onboarding)", icon: Bot, color: "text-terra" },
-  coordinator: { label: "Atlas (Coordinator)", icon: Bot, color: "text-terra" },
+  onboarding: { label: "Sage (Onboarding)", icon: Bot, color: "text-teal" },
+  coordinator: { label: "Atlas (Coordinator)", icon: Bot, color: "text-teal" },
   triage: { label: "Nova (Triage)", icon: Stethoscope, color: "text-soft-red" },
   scheduling: { label: "Cal (Scheduler)", icon: Calendar, color: "text-soft-blue" },
   billing: { label: "Vera (Billing)", icon: Receipt, color: "text-accent" },
   rx: { label: "Maya (Rx)", icon: Pill, color: "text-yellow-600" },
-  "prior-auth": { label: "Rex (PA)", icon: ShieldCheck, color: "text-terra" },
+  "prior-auth": { label: "Rex (PA)", icon: ShieldCheck, color: "text-teal" },
   wellness: { label: "Ivy (Wellness)", icon: Stethoscope, color: "text-accent" },
-  screening: { label: "Quinn (Screening)", icon: Heart, color: "text-terra" },
+  screening: { label: "Quinn (Screening)", icon: Heart, color: "text-teal" },
   "second-opinion": { label: "Orion (Second Opinion)", icon: ShieldCheck, color: "text-soft-blue" },
   trials: { label: "Lyra (Trials)", icon: FlaskConical, color: "text-accent" },
-  devops: { label: "Bolt (DevOps)", icon: Bot, color: "text-warm-600" },
+  devops: { label: "Bolt (DevOps)", icon: Bot, color: "text-secondary" },
 }
 
 export default function ChatPage() {
@@ -233,7 +233,7 @@ export default function ChatPage() {
     <div className="animate-slide-up space-y-4">
       <AppPageHeader
         leading={
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-terra to-terra-dark">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal to-teal-dark">
             <Bot size={20} className="text-white" />
           </div>
         }
@@ -241,7 +241,7 @@ export default function ChatPage() {
         meta={
           <div className="flex flex-wrap items-center gap-2">
             {gatewayStatus === "checking" ? (
-              <span className="flex items-center gap-1 text-[10px] text-cloudy">
+              <span className="flex items-center gap-1 text-[10px] text-muted">
                 <Loader2 size={10} className="animate-spin" /> Connecting...
               </span>
             ) : gatewayStatus === "online" ? (
@@ -249,7 +249,7 @@ export default function ChatPage() {
                 <Wifi size={10} /> OpenClaw gateway connected
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-terra">
+              <span className="flex items-center gap-1 text-[10px] font-semibold text-teal">
                 <WifiOff size={10} /> Gateway offline
               </span>
             )}
@@ -268,7 +268,7 @@ export default function ChatPage() {
               "rounded-lg border px-3 py-1.5 text-xs font-semibold transition",
               showImprovements
                 ? "border-accent bg-accent text-white"
-                : "border-sand text-warm-600 hover:border-accent/30"
+                : "border-border text-secondary hover:border-accent/30"
             )}
           >
             <TrendingUp size={12} className="mr-1 inline" />
@@ -279,36 +279,36 @@ export default function ChatPage() {
 
       {/* Self-Improvement Panel */}
       {showImprovements && (
-        <div className="bg-pampas rounded-2xl border border-sand p-4">
+        <div className="bg-surface rounded-2xl border border-border p-4">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={14} className="text-accent" />
-            <span className="text-xs font-bold text-warm-800">
+            <span className="text-xs font-bold text-primary">
               Self-Improvement Pipeline
             </span>
-            <span className="text-[10px] text-warm-500 ml-auto">
+            <span className="text-[10px] text-muted ml-auto">
               Agents recursively suggest and vote on improvements
             </span>
           </div>
           <div className="grid grid-cols-4 gap-3 mb-3">
-            <div className="bg-cream/50 rounded-lg p-2.5 text-center">
-              <div className="text-lg font-bold text-warm-800">{improvementMetrics.totalSuggested}</div>
-              <div className="text-[9px] text-warm-500">Suggested</div>
+            <div className="bg-surface/50 rounded-lg p-2.5 text-center">
+              <div className="text-lg font-bold text-primary">{improvementMetrics.totalSuggested}</div>
+              <div className="text-[9px] text-muted">Suggested</div>
             </div>
-            <div className="bg-cream/50 rounded-lg p-2.5 text-center">
+            <div className="bg-surface/50 rounded-lg p-2.5 text-center">
               <div className="text-lg font-bold text-accent">{improvementMetrics.totalDeployed}</div>
-              <div className="text-[9px] text-warm-500">Deployed</div>
+              <div className="text-[9px] text-muted">Deployed</div>
             </div>
-            <div className="bg-cream/50 rounded-lg p-2.5 text-center">
+            <div className="bg-surface/50 rounded-lg p-2.5 text-center">
               <div className="text-lg font-bold text-yellow-600">
                 {improvementMetrics.totalInProgress}
               </div>
-              <div className="text-[9px] text-warm-500">In Progress</div>
+              <div className="text-[9px] text-muted">In Progress</div>
             </div>
-            <div className="bg-cream/50 rounded-lg p-2.5 text-center">
+            <div className="bg-surface/50 rounded-lg p-2.5 text-center">
               <div className="text-lg font-bold text-soft-blue">
                 {improvementMetrics.totalApproved}
               </div>
-              <div className="text-[9px] text-warm-500">Approved</div>
+              <div className="text-[9px] text-muted">Approved</div>
             </div>
           </div>
           <div className="space-y-1.5">
@@ -317,7 +317,7 @@ export default function ChatPage() {
               return (
                 <div
                   key={imp.id}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-cream/30 border border-sand/50"
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface/30 border border-border/50"
                 >
                   <div
                     className={cn(
@@ -329,8 +329,8 @@ export default function ChatPage() {
                     )}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-semibold text-warm-800 truncate">{imp.title}</p>
-                    <p className="text-[9px] text-cloudy">
+                    <p className="text-[11px] font-semibold text-primary truncate">{imp.title}</p>
+                    <p className="text-[9px] text-muted">
                       {agent?.name} &middot; {imp.category} &middot; {imp.votes} votes
                     </p>
                   </div>
@@ -340,7 +340,7 @@ export default function ChatPage() {
                       imp.status === "deployed" ? "bg-accent/10 text-accent" :
                       imp.status === "in_progress" ? "bg-yellow-100 text-yellow-700" :
                       imp.status === "approved" ? "bg-blue-100 text-blue-700" :
-                      "bg-warm-100 text-warm-600"
+                      "bg-warm-100 text-secondary"
                     )}
                   >
                     {imp.status}
@@ -364,8 +364,8 @@ export default function ChatPage() {
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
                 activeAgent === agent.id
-                  ? "bg-terra/10 text-terra border-terra/20"
-                  : "text-warm-500 border-transparent hover:text-warm-700 hover:bg-cream"
+                  ? "bg-teal/10 text-teal border-teal/20"
+                  : "text-muted border-transparent hover:text-primary hover:bg-surface"
               )}
             >
               <Icon size={12} className={activeAgent === agent.id ? meta?.color : ""} />
@@ -402,14 +402,14 @@ export default function ChatPage() {
                       className={cn(
                         "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
                         msg.role === "agent"
-                          ? "bg-terra/10"
+                          ? "bg-teal/10"
                           : "bg-soft-blue/10"
                       )}
                     >
                       {msg.role === "user" ? (
                         <User size={14} className="text-soft-blue" />
                       ) : (
-                        <Icon size={14} className={meta?.color || "text-terra"} />
+                        <Icon size={14} className={meta?.color || "text-teal"} />
                       )}
                     </div>
                   )}
@@ -420,7 +420,7 @@ export default function ChatPage() {
                         ? "bg-soft-blue/5 border-soft-blue/10"
                         : msg.role === "system"
                         ? "bg-yellow-50 border-yellow-200/50 w-full text-center"
-                        : "bg-terra/5 border-terra/10"
+                        : "bg-teal/5 border-teal/10"
                     )}
                   >
                     {msg.role === "system" && (
@@ -438,7 +438,7 @@ export default function ChatPage() {
                           <Zap size={8} className="text-accent" />
                         )}
                         {msg.collaborators && msg.collaborators.length > 0 && (
-                          <span className="flex items-center gap-0.5 text-[9px] text-warm-400 ml-1">
+                          <span className="flex items-center gap-0.5 text-[9px] text-muted ml-1">
                             <Users size={8} />
                             +{msg.collaborators.length} agents
                           </span>
@@ -446,12 +446,12 @@ export default function ChatPage() {
                       </div>
                     )}
                     {msg.role !== "system" && (
-                      <p className="text-sm text-warm-700 leading-relaxed whitespace-pre-line">
+                      <p className="text-sm text-primary leading-relaxed whitespace-pre-line">
                         {msg.content}
                       </p>
                     )}
                     {msg.role !== "system" && (
-                      <span className="text-[9px] text-cloudy mt-1 block">
+                      <span className="text-[9px] text-muted mt-1 block">
                         {msg.timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                       </span>
                     )}
@@ -461,8 +461,8 @@ export default function ChatPage() {
                 {/* Routing info */}
                 {msg.routingInfo && (
                   <div className="ml-11 mt-1 flex items-center gap-1.5">
-                    <AlertCircle size={8} className="text-warm-400" />
-                    <span className="text-[9px] text-warm-400 italic">{msg.routingInfo}</span>
+                    <AlertCircle size={8} className="text-muted" />
+                    <span className="text-[9px] text-muted italic">{msg.routingInfo}</span>
                   </div>
                 )}
               </div>
@@ -471,13 +471,13 @@ export default function ChatPage() {
 
           {isLoading && (
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg bg-terra/10 flex items-center justify-center">
-                <Bot size={14} className="text-terra" />
+              <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center">
+                <Bot size={14} className="text-teal" />
               </div>
-              <div className="rounded-xl border bg-terra/5 border-terra/10 px-4 py-3">
+              <div className="rounded-xl border bg-teal/5 border-teal/10 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <Loader2 size={14} className="text-terra animate-spin" />
-                  <span className="text-xs text-warm-500">
+                  <Loader2 size={14} className="text-teal animate-spin" />
+                  <span className="text-xs text-muted">
                     Agents collaborating...
                   </span>
                 </div>
@@ -490,12 +490,12 @@ export default function ChatPage() {
 
         {/* Quick Prompts */}
         {messages.length <= 1 && (
-          <div className="px-5 py-3 border-t border-sand/50 flex flex-wrap gap-1.5">
+          <div className="px-5 py-3 border-t border-border/50 flex flex-wrap gap-1.5">
             {QUICK_PROMPTS.map((qp) => (
               <button
                 key={qp.label}
                 onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
-                className="px-2.5 py-1 text-[10px] font-semibold text-warm-600 bg-sand/30 hover:bg-terra/10 hover:text-terra border border-sand/60 hover:border-terra/20 rounded-lg transition"
+                className="px-2.5 py-1 text-[10px] font-semibold text-secondary bg-border/30 hover:bg-teal/10 hover:text-teal border border-border/60 hover:border-teal/20 rounded-lg transition"
               >
                 {qp.label}
               </button>
@@ -504,7 +504,7 @@ export default function ChatPage() {
         )}
 
         {/* Input — sticky within card; safe-area for notched phones */}
-        <div className="sticky bottom-0 z-10 border-t border-sand/80 bg-cream/95 px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] backdrop-blur-sm supports-[backdrop-filter]:bg-cream/85">
+        <div className="sticky bottom-0 z-10 border-t border-border/80 bg-surface/95 px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] backdrop-blur-sm supports-[backdrop-filter]:bg-surface/85">
           <div className="flex items-end gap-2">
             <input
               ref={inputRef}
@@ -515,7 +515,7 @@ export default function ChatPage() {
               placeholder={`Message ${agentMeta[activeAgent]?.label || "AI Agent"}...`}
               disabled={isLoading}
               aria-label="Message to AI concierge"
-              className="min-h-11 flex-1 rounded-xl border border-sand bg-pampas px-4 py-2.5 text-sm placeholder:text-cloudy transition focus:border-terra/40 focus:outline-none focus:ring-1 focus:ring-terra/20 disabled:opacity-50"
+              className="min-h-11 flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm placeholder:text-muted transition focus:border-teal/40 focus:outline-none focus:ring-1 focus:ring-teal/20 disabled:opacity-50"
             />
             {messages.length > 1 && (
               <button
@@ -524,7 +524,7 @@ export default function ChatPage() {
                 disabled={isLoading}
                 title="Clear conversation"
                 aria-label="Clear conversation"
-                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-cloudy transition hover:bg-sand/30 hover:text-warm-600 disabled:opacity-50"
+                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-border/30 hover:text-secondary disabled:opacity-50"
               >
                 <Trash2 size={18} className="shrink-0" aria-hidden />
               </button>
@@ -534,7 +534,7 @@ export default function ChatPage() {
               onClick={sendMessage}
               disabled={isLoading || !input.trim()}
               aria-label="Send message"
-              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl bg-terra text-white transition hover:bg-terra-dark disabled:opacity-50 sm:min-w-[4.5rem] sm:gap-2 sm:px-4"
+              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl bg-teal text-white transition hover:bg-teal-dark disabled:opacity-50 sm:min-w-[4.5rem] sm:gap-2 sm:px-4"
             >
               <Send size={18} className="shrink-0 sm:hidden" aria-hidden />
               <span className="hidden text-sm font-semibold sm:inline">Send</span>
@@ -546,10 +546,10 @@ export default function ChatPage() {
       {/* Automation Status & Agent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Cron Jobs */}
-        <div className="bg-pampas rounded-2xl border border-sand p-4">
+        <div className="bg-surface rounded-2xl border border-border p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Zap size={14} className="text-terra" />
-            <span className="text-xs font-bold text-warm-800">Active Automations</span>
+            <Zap size={14} className="text-teal" />
+            <span className="text-xs font-bold text-primary">Active Automations</span>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             {OPENCLAW_CONFIG.cronJobs.slice(0, 6).map((job) => {
@@ -559,12 +559,12 @@ export default function ChatPage() {
               return (
                 <div
                   key={job.id}
-                  className="flex items-start gap-2 p-2.5 rounded-lg bg-cream/50 border border-sand/50"
+                  className="flex items-start gap-2 p-2.5 rounded-lg bg-surface/50 border border-border/50"
                 >
-                  <Icon size={12} className={cn("mt-0.5 shrink-0", meta?.color || "text-terra")} />
+                  <Icon size={12} className={cn("mt-0.5 shrink-0", meta?.color || "text-teal")} />
                   <div>
-                    <p className="text-[11px] font-semibold text-warm-800">{job.description}</p>
-                    <p className="text-[9px] text-cloudy mt-0.5">
+                    <p className="text-[11px] font-semibold text-primary">{job.description}</p>
+                    <p className="text-[9px] text-muted mt-0.5">
                       <Clock size={8} className="inline mr-0.5" />
                       {job.schedule} &middot; {agent?.name}
                     </p>
@@ -576,14 +576,14 @@ export default function ChatPage() {
         </div>
 
         {/* Inter-Agent Activity */}
-        <div className="bg-pampas rounded-2xl border border-sand p-4">
+        <div className="bg-surface rounded-2xl border border-border p-4">
           <div className="flex items-center gap-2 mb-3">
-            <GitBranch size={14} className="text-terra" />
-            <span className="text-xs font-bold text-warm-800">Agent Collaboration Log</span>
+            <GitBranch size={14} className="text-teal" />
+            <span className="text-xs font-bold text-primary">Agent Collaboration Log</span>
           </div>
           <div className="text-center py-6">
               <Users size={20} className="text-sand mx-auto mb-2" />
-              <p className="text-[11px] text-warm-500">Send a message to see agents collaborate</p>
+              <p className="text-[11px] text-muted">Send a message to see agents collaborate</p>
             </div>
         </div>
       </div>

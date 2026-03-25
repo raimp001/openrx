@@ -62,7 +62,7 @@ export default function MermaidRender({ code }: { code: string }) {
 
   if (!svg) {
     return (
-      <div className="rounded-xl border border-sand bg-cream/30 p-4 text-xs text-warm-500">
+      <div className="rounded-xl border border-border bg-surface/30 p-4 text-xs text-muted">
         Rendering Mermaid...
       </div>
     )
@@ -70,7 +70,7 @@ export default function MermaidRender({ code }: { code: string }) {
 
   return (
     <div
-      className="overflow-auto rounded-[22px] border border-sand/80 bg-[linear-gradient(180deg,rgba(255,250,242,0.98),rgba(245,236,222,0.96))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
+      className="overflow-auto rounded-[22px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,250,242,0.98),rgba(245,236,222,0.96))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   )

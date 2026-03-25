@@ -109,25 +109,25 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-warm-900/20 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[30px] border border-sand/80 bg-[linear-gradient(180deg,rgba(255,251,245,0.98),rgba(244,237,226,0.96))] shadow-[0_28px_60px_rgba(17,34,30,0.16)]">
+      <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[30px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,251,245,0.98),rgba(244,237,226,0.96))] shadow-[0_28px_60px_rgba(17,34,30,0.16)]">
         {/* Header */}
-        <div className="shrink-0 border-b border-sand/70 px-5 py-5">
+        <div className="shrink-0 border-b border-border/70 px-5 py-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-soft-red/20 bg-soft-red/10">
                 <FileText size={16} className="text-soft-red" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy">Prior auth appeal</p>
-                <h2 className="mt-1 text-[1.45rem] text-warm-800">Generate a payer-ready appeal package</h2>
-                <p className="mt-1 text-[12px] text-warm-500">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Prior auth appeal</p>
+                <h2 className="mt-1 text-[1.45rem] text-primary">Generate a payer-ready appeal package</h2>
+                <p className="mt-1 text-[12px] text-muted">
                   {pa.procedure_name} · {pa.insurance_provider}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="rounded-xl border border-sand/80 bg-white/72 p-2 text-warm-400 transition hover:border-terra/20 hover:text-warm-700"
+              className="rounded-xl border border-border/80 bg-white/72 p-2 text-muted transition hover:border-teal/20 hover:text-primary"
             >
               <X size={16} />
             </button>
@@ -156,11 +156,11 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
         {step === "form" && (
           <div className="flex-1 overflow-y-auto p-5 space-y-5">
             {/* Appeal type */}
-            <div className="rounded-[24px] border border-sand/75 bg-white/72 p-4">
-              <label className="mb-2 block text-xs font-bold text-warm-700">Appeal Type</label>
+            <div className="rounded-[24px] border border-border/75 bg-white/72 p-4">
+              <label className="mb-2 block text-xs font-bold text-primary">Appeal Type</label>
               <div className="grid grid-cols-2 gap-2">
                 {([
-                  { value: "standard" as const, label: "Standard Appeal", detail: "30–60 day decision", color: "text-warm-700" },
+                  { value: "standard" as const, label: "Standard Appeal", detail: "30–60 day decision", color: "text-primary" },
                   { value: "expedited" as const, label: "Expedited Appeal", detail: "72-hour decision (urgent)", color: "text-soft-red" },
                 ] as const).map((opt) => (
                   <button
@@ -170,48 +170,48 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
                       "rounded-[20px] border p-3 text-left transition",
                       appealType === opt.value
                         ? "border-accent/30 bg-accent/7"
-                        : "border-sand/80 bg-pampas/70 hover:border-warm-300"
+                        : "border-border/80 bg-surface/70 hover:border-warm-300"
                     )}
                   >
-                    <div className={cn("text-xs font-bold", appealType === opt.value ? "text-accent" : "text-warm-700")}>
+                    <div className={cn("text-xs font-bold", appealType === opt.value ? "text-accent" : "text-primary")}>
                       {opt.label}
                     </div>
-                    <div className="text-[10px] text-warm-400 mt-0.5">{opt.detail}</div>
+                    <div className="text-[10px] text-muted mt-0.5">{opt.detail}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* P2P option */}
-            <div className="flex items-start gap-3 rounded-[24px] border border-sand/75 bg-white/72 p-4">
+            <div className="flex items-start gap-3 rounded-[24px] border border-border/75 bg-white/72 p-4">
               <button
                 onClick={() => setIncludeP2P(!includeP2P)}
                 className={cn(
                   "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition",
-                  includeP2P ? "bg-accent border-accent" : "border-sand"
+                  includeP2P ? "bg-accent border-accent" : "border-border"
                 )}
               >
                 {includeP2P && <Check size={10} className="text-white" />}
               </button>
               <div>
-                <p className="text-xs font-bold text-warm-700">Include Peer-to-Peer Review Request</p>
-                <p className="text-[11px] text-warm-400 mt-0.5">
+                <p className="text-xs font-bold text-primary">Include Peer-to-Peer Review Request</p>
+                <p className="text-[11px] text-muted mt-0.5">
                   P2P reversals run 50–70% for oncology denials. Highly recommended.
                 </p>
               </div>
             </div>
 
             {/* Additional context */}
-            <div className="rounded-[24px] border border-sand/75 bg-white/72 p-4">
-              <label className="mb-1.5 block text-xs font-bold text-warm-700">
-                Additional Clinical Context <span className="text-warm-400 font-normal">(optional)</span>
+            <div className="rounded-[24px] border border-border/75 bg-white/72 p-4">
+              <label className="mb-1.5 block text-xs font-bold text-primary">
+                Additional Clinical Context <span className="text-muted font-normal">(optional)</span>
               </label>
               <textarea
                 value={additionalNotes}
                 onChange={(e) => setAdditionalNotes(e.target.value)}
                 rows={3}
                 placeholder="E.g. trial eligibility, lab values, disease burden, prior treatment dates..."
-                className="w-full resize-none rounded-2xl border border-sand/80 bg-white/88 px-3 py-2 text-sm text-warm-800 placeholder:text-warm-400 focus:outline-none focus:ring-1 focus:ring-accent/40"
+                className="w-full resize-none rounded-2xl border border-border/80 bg-white/88 px-3 py-2 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent/40"
               />
             </div>
 
@@ -238,7 +238,7 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
 
             <button
               onClick={() => void generateAppeal()}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-warm-800 py-3 text-sm font-bold text-cream transition hover:bg-warm-900"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-teal py-3 text-sm font-bold text-cream transition hover:bg-warm-900"
             >
               <Send size={14} />
               Generate appeal package
@@ -258,8 +258,8 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
               </div>
             </div>
             <div className="text-center">
-              <p className="text-sm font-bold text-warm-800">Generating the appeal packet…</p>
-              <p className="text-xs text-warm-500 mt-1">Researching {pa.procedure_name} evidence</p>
+              <p className="text-sm font-bold text-primary">Generating the appeal packet…</p>
+              <p className="text-xs text-muted mt-1">Researching {pa.procedure_name} evidence</p>
             </div>
             <div className="space-y-2 w-full max-w-xs">
               {[
@@ -268,7 +268,7 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
                 "Drafting appeal letter",
                 includeP2P && "Preparing P2P request",
               ].filter(Boolean).map((label, i) => (
-                <div key={i} className="flex items-center gap-2 text-[11px] text-warm-500">
+                <div key={i} className="flex items-center gap-2 text-[11px] text-muted">
                   <RefreshCw size={10} className="animate-spin text-accent shrink-0" />
                   {label}
                 </div>
@@ -290,8 +290,8 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
                     className={cn(
                       "rounded-xl px-3 py-1 text-[10px] font-bold transition",
                       activeSection === sec
-                        ? "bg-warm-800 text-cream"
-                        : "bg-sand/50 text-warm-500 hover:bg-sand"
+                        ? "bg-teal text-cream"
+                        : "bg-border/50 text-muted hover:bg-border"
                     )}
                   >
                     {sec}
@@ -301,13 +301,13 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
             )}
 
             {/* Stats bar */}
-            <div className="flex shrink-0 flex-wrap items-center gap-3 px-5 pb-3 text-[10px] text-warm-400">
-              <span className="flex items-center gap-1 rounded-full border border-sand/70 bg-white/72 px-2.5 py-1">
+            <div className="flex shrink-0 flex-wrap items-center gap-3 px-5 pb-3 text-[10px] text-muted">
+              <span className="flex items-center gap-1 rounded-full border border-border/70 bg-white/72 px-2.5 py-1">
                 <CheckCircle2 size={10} className="text-accent" />
                 Generated by {result.model}
               </span>
               {result.metadata?.appealDeadline && (
-                <span className="flex items-center gap-1 rounded-full border border-sand/70 bg-white/72 px-2.5 py-1">
+                <span className="flex items-center gap-1 rounded-full border border-border/70 bg-white/72 px-2.5 py-1">
                   <Clock size={10} />
                   Deadline: {result.metadata.appealDeadline}
                 </span>
@@ -324,8 +324,8 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-5 pb-4">
-              <div className="rounded-[24px] border border-sand/75 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.86)]">
-                <pre className="text-[11px] text-warm-700 whitespace-pre-wrap font-sans leading-relaxed">
+              <div className="rounded-[24px] border border-border/75 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.86)]">
+                <pre className="text-[11px] text-primary whitespace-pre-wrap font-sans leading-relaxed">
                   {sections.length > 0
                     ? result.sections?.[activeSection] ?? result.appealContent
                     : result.appealContent}
@@ -334,17 +334,17 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
             </div>
 
             {/* Action bar */}
-            <div className="flex shrink-0 items-center gap-3 border-t border-sand/70 p-4">
+            <div className="flex shrink-0 items-center gap-3 border-t border-border/70 p-4">
               <button
                 onClick={() => void copyToClipboard()}
-                className="flex items-center gap-2 rounded-2xl border border-sand/80 bg-white/76 px-4 py-2 text-xs font-bold text-warm-700 transition hover:bg-white hover:text-warm-900"
+                className="flex items-center gap-2 rounded-2xl border border-border/80 bg-white/76 px-4 py-2 text-xs font-bold text-primary transition hover:bg-white hover:text-primary"
               >
                 {copied ? <Check size={13} className="text-accent" /> : <Copy size={13} />}
                 {copied ? "Copied!" : "Copy Section"}
               </button>
               <button
                 onClick={downloadLetter}
-                className="flex items-center gap-2 rounded-2xl border border-sand/80 bg-white/76 px-4 py-2 text-xs font-bold text-warm-700 transition hover:bg-white hover:text-warm-900"
+                className="flex items-center gap-2 rounded-2xl border border-border/80 bg-white/76 px-4 py-2 text-xs font-bold text-primary transition hover:bg-white hover:text-primary"
               >
                 <ExternalLink size={13} />
                 Download .txt
@@ -352,13 +352,13 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
               <div className="flex-1" />
               <button
                 onClick={() => setStep("form")}
-                className="text-xs text-warm-400 hover:text-warm-600 transition"
+                className="text-xs text-muted hover:text-secondary transition"
               >
                 Regenerate
               </button>
               <button
                 onClick={onClose}
-                className="flex items-center gap-2 bg-warm-800 hover:bg-warm-900 text-cream text-xs font-bold px-4 py-2 rounded-xl transition"
+                className="flex items-center gap-2 bg-teal hover:bg-warm-900 text-cream text-xs font-bold px-4 py-2 rounded-xl transition"
               >
                 Done
               </button>

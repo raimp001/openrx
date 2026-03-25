@@ -76,18 +76,18 @@ export default function PAauditPage() {
         meta={
           <Link
             href="/prior-auth"
-            className="inline-flex items-center gap-1 text-xs text-warm-500 transition hover:text-warm-700"
+            className="inline-flex items-center gap-1 text-xs text-muted transition hover:text-primary"
           >
             <ArrowLeft size={12} /> Back to PAs
           </Link>
         }
         actions={
           <>
-            <div className="flex items-center gap-1.5 rounded-full border border-accent/10 bg-accent/5 px-3 py-1.5 text-xs text-warm-500">
+            <div className="flex items-center gap-1.5 rounded-full border border-accent/10 bg-accent/5 px-3 py-1.5 text-xs text-muted">
               <Lock size={10} className="text-accent" />
               <span className="font-semibold text-accent">Immutable Log</span>
             </div>
-            <button className="flex items-center gap-1.5 rounded-lg border border-sand bg-sand/40 px-3 py-1.5 text-xs font-semibold text-warm-600 transition hover:bg-sand">
+            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-border/40 px-3 py-1.5 text-xs font-semibold text-secondary transition hover:bg-border">
               <Download size={12} /> Export CSV
             </button>
           </>
@@ -96,19 +96,19 @@ export default function PAauditPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-pampas rounded-2xl border border-sand p-4">
-          <div className="text-2xl font-bold text-warm-800">{events.length}</div>
-          <div className="text-xs text-warm-500 mt-1">Total Events</div>
+        <div className="bg-surface rounded-2xl border border-border p-4">
+          <div className="text-2xl font-bold text-primary">{events.length}</div>
+          <div className="text-xs text-muted mt-1">Total Events</div>
         </div>
         <div className="bg-accent/5 rounded-2xl border border-accent/10 p-4">
           <div className="text-2xl font-bold text-accent">{hipaaEvents.length}</div>
           <div className="text-xs text-accent/70 mt-1">HIPAA-Relevant</div>
         </div>
-        <div className="bg-terra/5 rounded-2xl border border-terra/10 p-4">
-          <div className="text-2xl font-bold text-terra">
+        <div className="bg-teal/5 rounded-2xl border border-teal/10 p-4">
+          <div className="text-2xl font-bold text-teal">
             {events.filter((e) => e.actor === "rex").length}
           </div>
-          <div className="text-xs text-terra/70 mt-1">AI Actions</div>
+          <div className="text-xs text-teal/70 mt-1">AI Actions</div>
         </div>
         <div className="bg-soft-red/5 rounded-2xl border border-soft-red/10 p-4">
           <div className="text-2xl font-bold text-soft-red">
@@ -119,20 +119,20 @@ export default function PAauditPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-pampas rounded-2xl border border-sand p-4 space-y-3">
+      <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <Filter size={13} className="text-warm-500" />
-          <span className="text-xs font-bold text-warm-700">Filter Events</span>
+          <Filter size={13} className="text-muted" />
+          <span className="text-xs font-bold text-primary">Filter Events</span>
         </div>
         <div className="flex flex-wrap gap-3">
           {/* Search */}
           <div className="relative flex-1 min-w-48">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-warm-400" />
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search events..."
-              className="w-full pl-7 pr-3 py-1.5 text-xs bg-white/50 border border-sand rounded-lg focus:outline-none focus:ring-1 focus:ring-accent/30 text-warm-700 placeholder:text-warm-400"
+              className="w-full pl-7 pr-3 py-1.5 text-xs bg-white/50 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-accent/30 text-primary placeholder:text-muted"
             />
           </div>
 
@@ -140,7 +140,7 @@ export default function PAauditPage() {
           <select
             value={selectedPaId}
             onChange={(e) => setSelectedPaId(e.target.value)}
-            className="text-xs bg-white/50 border border-sand rounded-lg px-2.5 py-1.5 text-warm-700 focus:outline-none focus:ring-1 focus:ring-accent/30"
+            className="text-xs bg-white/50 border border-border rounded-lg px-2.5 py-1.5 text-primary focus:outline-none focus:ring-1 focus:ring-accent/30"
           >
             <option value="all">All PAs</option>
             {myPAs.map((pa) => (
@@ -152,7 +152,7 @@ export default function PAauditPage() {
           <select
             value={actorFilter}
             onChange={(e) => setActorFilter(e.target.value as AuditActor | "all")}
-            className="text-xs bg-white/50 border border-sand rounded-lg px-2.5 py-1.5 text-warm-700 focus:outline-none focus:ring-1 focus:ring-accent/30"
+            className="text-xs bg-white/50 border border-border rounded-lg px-2.5 py-1.5 text-primary focus:outline-none focus:ring-1 focus:ring-accent/30"
           >
             <option value="all">All Actors</option>
             <option value="patient">Patient</option>
@@ -166,7 +166,7 @@ export default function PAauditPage() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value as AuditEventType | "all")}
-            className="text-xs bg-white/50 border border-sand rounded-lg px-2.5 py-1.5 text-warm-700 focus:outline-none focus:ring-1 focus:ring-accent/30"
+            className="text-xs bg-white/50 border border-border rounded-lg px-2.5 py-1.5 text-primary focus:outline-none focus:ring-1 focus:ring-accent/30"
           >
             <option value="all">All Event Types</option>
             <option value="PA_SUBMITTED">Submitted</option>
@@ -183,10 +183,10 @@ export default function PAauditPage() {
       </div>
 
       {/* Event timeline */}
-      <div className="bg-pampas rounded-2xl border border-sand overflow-hidden">
-        <div className="px-5 py-3 bg-sand/20 border-b border-sand flex items-center justify-between">
-          <h2 className="text-xs font-bold text-warm-700">Event Log</h2>
-          <div className="flex items-center gap-1.5 text-[10px] text-warm-500">
+      <div className="bg-surface rounded-2xl border border-border overflow-hidden">
+        <div className="px-5 py-3 bg-border/20 border-b border-border flex items-center justify-between">
+          <h2 className="text-xs font-bold text-primary">Event Log</h2>
+          <div className="flex items-center gap-1.5 text-[10px] text-muted">
             <Lock size={9} className="text-accent" />
             <span>Cryptographically immutable &middot; HIPAA §164.312(b)</span>
           </div>
@@ -194,12 +194,12 @@ export default function PAauditPage() {
 
         {events.length === 0 && (
           <div className="px-5 py-12 text-center">
-            <Clock size={28} className="text-warm-300 mx-auto mb-3" />
-            <p className="text-sm text-warm-500">No events match your filters.</p>
+            <Clock size={28} className="text-muted mx-auto mb-3" />
+            <p className="text-sm text-muted">No events match your filters.</p>
           </div>
         )}
 
-        <div className="divide-y divide-sand/40">
+        <div className="divide-y divide-border/40">
           {events.map((event, idx) => {
             const { date, time } = formatTimestamp(event.timestamp)
             const Icon = actorIcon[event.actor]
@@ -209,12 +209,12 @@ export default function PAauditPage() {
               <div
                 key={event.id}
                 className={cn(
-                  "px-5 py-3.5 flex items-start gap-4 hover:bg-sand/10 transition",
+                  "px-5 py-3.5 flex items-start gap-4 hover:bg-border/10 transition",
                   event.hipaaRelevant && "border-l-2 border-l-accent/30"
                 )}
               >
                 {/* Sequence */}
-                <div className="text-[10px] text-cloudy font-mono w-6 shrink-0 mt-0.5 text-right">
+                <div className="text-[10px] text-muted font-mono w-6 shrink-0 mt-0.5 text-right">
                   {events.length - idx}
                 </div>
 
@@ -241,23 +241,23 @@ export default function PAauditPage() {
                       </span>
                     )}
                     {paName && selectedPaId === "all" && (
-                      <span className="text-[10px] text-warm-400">{paName}</span>
+                      <span className="text-[10px] text-muted">{paName}</span>
                     )}
                   </div>
 
-                  <p className="text-xs text-warm-700 mt-1 leading-relaxed">{event.summary}</p>
+                  <p className="text-xs text-primary mt-1 leading-relaxed">{event.summary}</p>
 
                   {event.details && Object.keys(event.details).length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
                       {Object.entries(event.details).slice(0, 4).map(([k, v]) => (
-                        <span key={k} className="text-[10px] text-warm-400">
-                          <span className="text-cloudy">{k}:</span> {String(v)}
+                        <span key={k} className="text-[10px] text-muted">
+                          <span className="text-muted">{k}:</span> {String(v)}
                         </span>
                       ))}
                     </div>
                   )}
 
-                  <div className="mt-1 flex items-center gap-2 text-[10px] text-cloudy">
+                  <div className="mt-1 flex items-center gap-2 text-[10px] text-muted">
                     <span className="font-medium">{event.actorName}</span>
                     <span>&middot;</span>
                     <span>{date} at {time}</span>
@@ -275,7 +275,7 @@ export default function PAauditPage() {
                     <XCircle size={14} className="text-soft-red" />
                   )}
                   {["AI_RECOMMENDATION", "CRITERIA_CHECKED"].includes(event.type) && (
-                    <Bot size={14} className="text-terra" />
+                    <Bot size={14} className="text-teal" />
                   )}
                   {event.type === "FHIR_BUNDLE_SENT" && (
                     <ShieldCheck size={14} className="text-soft-blue" />
@@ -288,12 +288,12 @@ export default function PAauditPage() {
       </div>
 
       {/* HIPAA compliance note */}
-      <div className="bg-pampas rounded-2xl border border-sand p-4">
+      <div className="bg-surface rounded-2xl border border-border p-4">
         <div className="flex items-start gap-3">
           <ShieldCheck size={16} className="text-accent shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-bold text-warm-700 mb-1">HIPAA Audit Log Compliance</p>
-            <p className="text-[11px] text-warm-500 leading-relaxed">
+            <p className="text-xs font-bold text-primary mb-1">HIPAA Audit Log Compliance</p>
+            <p className="text-[11px] text-muted leading-relaxed">
               This audit trail is maintained in compliance with HIPAA Security Rule §164.312(b) (Audit Controls)
               and §164.312(c)(1) (Integrity). All events marked{" "}
               <span className="font-semibold text-accent">HIPAA</span> are cryptographically signed and
@@ -320,7 +320,7 @@ export default function PAauditPage() {
       <div className="flex justify-center">
         <Link
           href="/prior-auth"
-          className="flex items-center gap-2 text-sm text-warm-600 hover:text-warm-800 transition"
+          className="flex items-center gap-2 text-sm text-secondary hover:text-primary transition"
         >
           <ArrowLeft size={14} /> Back to Prior Authorizations
         </Link>

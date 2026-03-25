@@ -11,7 +11,7 @@ import { AppPageHeader } from "@/components/layout/app-page"
 import { cn } from "@/lib/utils"
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+  return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
 export default function VaccinationsPage() {
@@ -30,11 +30,11 @@ export default function VaccinationsPage() {
           <Skeleton className="h-9 w-32" />
         </div>
         <div className="grid grid-cols-3 gap-3">
-          {[...Array(3)].map((_, i) => <div key={i} className="bg-pampas rounded-2xl border border-sand p-4"><Skeleton className="h-14 w-full" /></div>)}
+          {[...Array(3)].map((_, i) => <div key={i} className="bg-surface rounded-2xl border border-border p-4"><Skeleton className="h-14 w-full" /></div>)}
         </div>
-        <div className="bg-pampas rounded-2xl border border-sand">
-          <div className="p-4 border-b border-sand"><Skeleton className="h-4 w-40" /></div>
-          <div className="divide-y divide-sand/50">
+        <div className="bg-surface rounded-2xl border border-border">
+          <div className="p-4 border-b border-border"><Skeleton className="h-4 w-40" /></div>
+          <div className="divide-y divide-border/50">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="p-4 flex items-start gap-3">
                 <Skeleton className="w-8 h-8 rounded-lg" />
@@ -55,10 +55,10 @@ export default function VaccinationsPage() {
           <Syringe size={28} className="text-accent" />
         </div>
         <div>
-          <h1 className="text-2xl font-serif text-warm-800">Vaccination Records</h1>
-          <p className="text-warm-500 mt-1 max-w-sm">Connect your health record to view your immunization history and upcoming vaccines.</p>
+          <h1 className="text-2xl font-serif text-primary">Vaccination Records</h1>
+          <p className="text-muted mt-1 max-w-sm">Connect your health record to view your immunization history and upcoming vaccines.</p>
         </div>
-        <Link href="/onboarding" className="px-5 py-2.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition">
+        <Link href="/onboarding" className="px-5 py-2.5 bg-teal text-white text-sm font-semibold rounded-xl hover:bg-teal-dark transition">
           Get Started
         </Link>
       </div>
@@ -83,20 +83,20 @@ export default function VaccinationsPage() {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-pampas rounded-2xl p-4 border border-sand">
+        <div className="bg-surface rounded-2xl p-4 border border-border">
           <CheckCircle2 size={20} className="text-accent mb-2" />
-          <div className="text-lg font-bold text-warm-800">{completed.length}</div>
-          <div className="text-xs text-warm-500">Up to Date</div>
+          <div className="text-lg font-bold text-primary">{completed.length}</div>
+          <div className="text-xs text-muted">Up to Date</div>
         </div>
-        <div className="bg-pampas rounded-2xl p-4 border border-sand">
+        <div className="bg-surface rounded-2xl p-4 border border-border">
           <AlertTriangle size={20} className="text-yellow-600 mb-2" />
-          <div className="text-lg font-bold text-warm-800">{due.length}</div>
-          <div className="text-xs text-warm-500">Due / Recommended</div>
+          <div className="text-lg font-bold text-primary">{due.length}</div>
+          <div className="text-xs text-muted">Due / Recommended</div>
         </div>
-        <div className="bg-pampas rounded-2xl p-4 border border-sand">
-          <Syringe size={20} className="text-terra mb-2" />
-          <div className="text-lg font-bold text-warm-800">{vaccinations.length}</div>
-          <div className="text-xs text-warm-500">Total Records</div>
+        <div className="bg-surface rounded-2xl p-4 border border-border">
+          <Syringe size={20} className="text-teal mb-2" />
+          <div className="text-lg font-bold text-primary">{vaccinations.length}</div>
+          <div className="text-xs text-muted">Total Records</div>
         </div>
       </div>
 
@@ -118,8 +118,8 @@ export default function VaccinationsPage() {
                 <div className="flex items-center gap-3">
                   <Syringe size={16} className="text-yellow-600" />
                   <div>
-                    <p className="text-sm font-semibold text-warm-800">{vax.vaccine_name}</p>
-                    <p className="text-[10px] text-warm-500">
+                    <p className="text-sm font-semibold text-primary">{vax.vaccine_name}</p>
+                    <p className="text-[10px] text-muted">
                       {vax.total_doses > 1
                         ? `${vax.total_doses}-dose series`
                         : "Single dose"}{" "}
@@ -129,45 +129,45 @@ export default function VaccinationsPage() {
                 </div>
                 <Link
                   href="/chat"
-                  className="text-[10px] font-bold text-terra bg-terra/10 px-2.5 py-1 rounded-lg hover:bg-terra/20 transition flex items-center gap-1"
+                  className="text-[10px] font-bold text-teal bg-teal/10 px-2.5 py-1 rounded-lg hover:bg-teal/20 transition flex items-center gap-1"
                 >
                   Schedule <ArrowRight size={8} />
                 </Link>
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-warm-500 mt-3">
+          <p className="text-[10px] text-muted mt-3">
             Ask Cal (scheduler) to book these at your preferred pharmacy or doctor&apos;s office.
           </p>
         </div>
       )}
 
       {/* Completed Vaccinations */}
-      <div className="bg-pampas rounded-2xl border border-sand">
-        <div className="p-4 border-b border-sand">
-          <h2 className="text-sm font-bold text-warm-800">Immunization History</h2>
+      <div className="bg-surface rounded-2xl border border-border">
+        <div className="p-4 border-b border-border">
+          <h2 className="text-sm font-bold text-primary">Immunization History</h2>
         </div>
-        <div className="divide-y divide-sand/50">
+        <div className="divide-y divide-border/50">
           {completed.map((vax) => (
-            <div key={vax.id} className="p-4 hover:bg-cream/30 transition">
+            <div key={vax.id} className="p-4 hover:bg-surface/30 transition">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center mt-0.5">
                     <Shield size={14} className="text-accent" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-warm-800">{vax.vaccine_name}</h3>
-                    <p className="text-[10px] text-cloudy mt-0.5">
+                    <h3 className="text-sm font-semibold text-primary">{vax.vaccine_name}</h3>
+                    <p className="text-[10px] text-muted mt-0.5">
                       {vax.brand} &middot; Dose {vax.dose_number}/{vax.total_doses}
                     </p>
-                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-warm-500">
+                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted">
                       <span className="flex items-center gap-1">
                         <Calendar size={8} />
                         {vax.administered_at ? new Date(vax.administered_at).toLocaleDateString() : "Date unavailable"}
                       </span>
                       <span>{vax.administered_by}</span>
                     </div>
-                    <p className="text-[9px] text-cloudy mt-1">
+                    <p className="text-[9px] text-muted mt-1">
                       Lot: {vax.lot_number} &middot; Site: {vax.site}
                     </p>
                   </div>
@@ -177,7 +177,7 @@ export default function VaccinationsPage() {
                     Complete
                   </span>
                   {vax.next_due && (
-                    <p className="text-[9px] text-cloudy mt-1">
+                    <p className="text-[9px] text-muted mt-1">
                       Next: {new Date(vax.next_due).toLocaleDateString(undefined, { month: "short", year: "numeric" })}
                     </p>
                   )}
@@ -195,7 +195,7 @@ export default function VaccinationsPage() {
         prompt={`Based on my age (50), conditions (Type 2 Diabetes, Hypertension), and completed vaccines (${completed.map(v => v.vaccine_name).join(", ")}), give me a complete vaccine plan: which vaccines I still need, why they're recommended for my risk profile, which are covered by Moda Medical, and which to schedule first.`}
         context={`Due vaccines: ${due.map(v => `${v.vaccine_name} (${v.status})`).join(", ")}`}
         variant="inline"
-        className="bg-terra/5 rounded-2xl border border-terra/10 p-4"
+        className="bg-teal/5 rounded-2xl border border-teal/10 p-4"
       />
     </div>
   )

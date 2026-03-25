@@ -126,7 +126,7 @@ export default function AIAction({
           disabled={isLoading}
           aria-label={label}
           className={cn(
-            "flex items-center gap-1 text-[10px] font-bold text-terra hover:text-terra-dark transition disabled:opacity-50",
+            "flex items-center gap-1 text-[10px] font-bold text-teal hover:text-teal-dark transition disabled:opacity-50",
             className
           )}
         >
@@ -157,26 +157,26 @@ export default function AIAction({
           onClick={runAction}
           disabled={isLoading}
           aria-label={label}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-terra/5 border border-terra/10 text-[10px] font-bold text-terra hover:bg-terra/10 transition disabled:opacity-50"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal/5 border border-teal/10 text-[10px] font-bold text-teal hover:bg-teal/10 transition disabled:opacity-50"
         >
           {isLoading ? <Loader2 size={10} className="animate-spin" /> : <Bot size={10} />}
           {label}
         </button>
 
         {isOpen && (response || error) && (
-          <div className="mt-2 p-3 rounded-lg bg-terra/5 border border-terra/10 animate-fade-in">
+          <div className="mt-2 p-3 rounded-lg bg-teal/5 border border-teal/10 animate-fade-in">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[9px] font-bold text-terra uppercase tracking-wider">
+              <span className="text-[9px] font-bold text-teal uppercase tracking-wider">
                 {AGENT_NAMES[agentId] ?? "AI"} · {model?.includes("claude") ? "Claude" : "AI"}
               </span>
-              <button onClick={() => setIsOpen(false)} className="text-cloudy hover:text-warm-600 transition">
+              <button onClick={() => setIsOpen(false)} className="text-muted hover:text-secondary transition">
                 <X size={10} />
               </button>
             </div>
             {response && (
-              <p className="text-xs text-warm-700 leading-relaxed whitespace-pre-line">
+              <p className="text-xs text-primary leading-relaxed whitespace-pre-line">
                 {response}
-                {isLoading && <span className="inline-block w-0.5 h-3 bg-terra ml-0.5 animate-pulse align-middle" />}
+                {isLoading && <span className="inline-block w-0.5 h-3 bg-teal ml-0.5 animate-pulse align-middle" />}
               </p>
             )}
             {error && <p className="text-[10px] text-soft-red">{error}</p>}
@@ -194,7 +194,7 @@ export default function AIAction({
         disabled={isLoading}
         aria-label={label}
         className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-xl bg-terra/5 border border-terra/10 text-xs font-semibold text-terra hover:bg-terra/10 transition disabled:opacity-50",
+          "flex items-center gap-2 px-3 py-2 rounded-xl bg-teal/5 border border-teal/10 text-xs font-semibold text-teal hover:bg-teal/10 transition disabled:opacity-50",
           className
         )}
       >
@@ -247,18 +247,18 @@ function AIResponsePanel({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
-      <div className="bg-pampas rounded-2xl border border-sand shadow-xl max-w-lg w-full max-h-[70vh] flex flex-col">
+      <div className="bg-surface rounded-2xl border border-border shadow-xl max-w-lg w-full max-h-[70vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-sand shrink-0">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            <Bot size={16} className="text-terra" />
-            <span className="text-sm font-bold text-warm-800">{agentName}</span>
+            <Bot size={16} className="text-teal" />
+            <span className="text-sm font-bold text-primary">{agentName}</span>
             {modelLabel ? (
               <span className="flex items-center gap-0.5 text-[9px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
                 <Cpu size={7} /> {modelLabel}
               </span>
             ) : (
-              <span className="text-[9px] font-bold text-terra bg-terra/10 px-1.5 py-0.5 rounded">
+              <span className="text-[9px] font-bold text-teal bg-teal/10 px-1.5 py-0.5 rounded">
                 AI AGENT
               </span>
             )}
@@ -267,7 +267,7 @@ function AIResponsePanel({
             {response && !isLoading && (
               <button
                 onClick={onCopy}
-                className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-warm-500 hover:text-warm-700 bg-sand/30 hover:bg-sand rounded-lg transition"
+                className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-muted hover:text-primary bg-border/30 hover:bg-border rounded-lg transition"
               >
                 {copied ? <Check size={10} className="text-accent" /> : <Copy size={10} />}
                 {copied ? "Copied" : "Copy"}
@@ -276,9 +276,9 @@ function AIResponsePanel({
             <button
               onClick={onClose}
               aria-label="Close AI response"
-              className="p-1 hover:bg-sand/30 rounded-lg transition"
+              className="p-1 hover:bg-border/30 rounded-lg transition"
             >
-              <X size={16} className="text-warm-500" />
+              <X size={16} className="text-muted" />
             </button>
           </div>
         </div>
@@ -287,17 +287,17 @@ function AIResponsePanel({
         <div className="p-5 overflow-y-auto flex-1">
           {isLoading && !response && (
             <div className="flex items-center gap-3 py-8 justify-center">
-              <Loader2 size={20} className="text-terra animate-spin" />
-              <span className="text-sm text-warm-500">
+              <Loader2 size={20} className="text-teal animate-spin" />
+              <span className="text-sm text-muted">
                 {agentName} is thinking...
               </span>
             </div>
           )}
           {response && (
-            <p className="text-sm text-warm-700 leading-relaxed whitespace-pre-line">
+            <p className="text-sm text-primary leading-relaxed whitespace-pre-line">
               {response}
               {isLoading && (
-                <span className="inline-block w-1 h-3.5 bg-terra ml-0.5 animate-pulse align-middle" />
+                <span className="inline-block w-1 h-3.5 bg-teal ml-0.5 animate-pulse align-middle" />
               )}
             </p>
           )}
@@ -310,13 +310,13 @@ function AIResponsePanel({
 
         {/* Footer */}
         {!isLoading && (response || error) && (
-          <div className="px-5 py-3 border-t border-sand/50 shrink-0 flex items-center justify-between">
-            <p className="text-[10px] text-cloudy">
+          <div className="px-5 py-3 border-t border-border/50 shrink-0 flex items-center justify-between">
+            <p className="text-[10px] text-muted">
               {modelLabel ? `Powered by ${modelLabel}` : "Powered by OpenRx AI"}
             </p>
             <button
               onClick={onClose}
-              className="text-xs font-semibold text-warm-600 hover:text-warm-800 px-3 py-1.5 rounded-lg bg-sand/40 hover:bg-sand transition"
+              className="text-xs font-semibold text-secondary hover:text-primary px-3 py-1.5 rounded-lg bg-border/40 hover:bg-border transition"
             >
               Close
             </button>

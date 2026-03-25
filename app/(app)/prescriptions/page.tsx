@@ -22,7 +22,7 @@ function statusLabel(status: string) {
 }
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+  return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
 function AdherenceRing({ pct, size = 58 }: { pct: number; size?: number }) {
@@ -52,7 +52,7 @@ function AdherenceRing({ pct, size = 58 }: { pct: number; size?: number }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-[10px] font-bold leading-none" style={{ color }}>{safePct}%</span>
-        <span className="mt-0.5 text-[7px] leading-none text-cloudy">{label}</span>
+        <span className="mt-0.5 text-[7px] leading-none text-muted">{label}</span>
       </div>
     </div>
   )
@@ -227,7 +227,7 @@ export default function PrescriptionsPage() {
           actions={
             <div className="flex flex-1 flex-wrap items-center gap-2 xl:justify-end">
               <label className="relative min-w-[16rem] flex-1 xl:max-w-[18rem]">
-                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-cloudy" />
+                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                 <input
                   type="text"
                   value={search}
@@ -275,13 +275,13 @@ export default function PrescriptionsPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-serif text-warm-800">{prescription.medication_name}</h3>
+                          <h3 className="text-lg font-serif text-primary">{prescription.medication_name}</h3>
                           <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide", getStatusColor(prescription.status))}>
                             {statusLabel(prescription.status)}
                           </span>
                         </div>
-                        <div className="text-sm font-medium text-warm-700">{prescription.dosage}</div>
-                        <div className="flex flex-wrap gap-2 text-[11px] font-medium text-cloudy">
+                        <div className="text-sm font-medium text-primary">{prescription.dosage}</div>
+                        <div className="flex flex-wrap gap-2 text-[11px] font-medium text-muted">
                           <span className="chip">{prescription.frequency}</span>
                           <span className="chip">{prescription.pharmacy || "Pharmacy on file"}</span>
                           {physician ? <span className="chip">{physician.full_name}</span> : null}
@@ -294,7 +294,7 @@ export default function PrescriptionsPage() {
                       <MetaCard
                         label="Refills remaining"
                         value={prescription.refills_remaining === 0 ? "No refills" : `${prescription.refills_remaining} remaining`}
-                        tone={prescription.refills_remaining === 0 ? "text-soft-red" : "text-warm-800"}
+                        tone={prescription.refills_remaining === 0 ? "text-soft-red" : "text-primary"}
                       />
                       <MetaCard label="Last filled" value={formatDate(prescription.last_filled)} />
                     </div>
@@ -311,7 +311,7 @@ export default function PrescriptionsPage() {
                     ) : null}
 
                     {prescription.notes ? (
-                      <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-xs leading-5 text-warm-600">
+                      <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-xs leading-5 text-secondary">
                         {prescription.notes}
                       </div>
                     ) : null}
@@ -392,7 +392,7 @@ export default function PrescriptionsPage() {
             title="How this reads day to day"
             description="Explain the medication board in plain language, not pharmacy system language."
           >
-            <div className="space-y-3 text-sm leading-6 text-warm-600">
+            <div className="space-y-3 text-sm leading-6 text-secondary">
               <p>
                 {lowAdherence.length
                   ? `${lowAdherence.length} medication${lowAdherence.length === 1 ? " is" : "s are"} slipping below the adherence target. Start there, because refill requests alone will not fix missed doses.`
@@ -414,7 +414,7 @@ export default function PrescriptionsPage() {
 function MetaCard({
   label,
   value,
-  tone = "text-warm-800",
+  tone = "text-primary",
 }: {
   label: string
   value: string
@@ -422,7 +422,7 @@ function MetaCard({
 }) {
   return (
     <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 shadow-sm">
-      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy/80">{label}</div>
+      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted/80">{label}</div>
       <div className={cn("mt-2 text-sm font-semibold", tone)}>{value}</div>
     </div>
   )
@@ -466,8 +466,8 @@ function FocusItem({
   return (
     <div className="surface-muted flex items-start justify-between gap-3 px-4 py-3">
       <div>
-        <div className="text-sm font-semibold text-warm-800">{label}</div>
-        <div className="mt-1 text-xs leading-5 text-cloudy">{detail}</div>
+        <div className="text-sm font-semibold text-primary">{label}</div>
+        <div className="mt-1 text-xs leading-5 text-muted">{detail}</div>
       </div>
       <OpsBadge tone={tone} className="shrink-0">{value}</OpsBadge>
     </div>

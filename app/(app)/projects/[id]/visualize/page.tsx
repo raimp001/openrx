@@ -14,7 +14,7 @@ export default function ProjectVisualizerPage({
         title="Project AI Visualizer"
         description={
           <>
-            Project <span className="font-semibold text-warm-700">{params.id}</span>: map architecture, agent
+            Project <span className="font-semibold text-primary">{params.id}</span>: map architecture, agent
             interactions, communication, deployments, and dependencies with one click.
           </>
         }

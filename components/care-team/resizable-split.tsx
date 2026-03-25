@@ -81,13 +81,13 @@ export default function ResizableSplit({
         className={cn(
           "group relative shrink-0 bg-transparent transition-colors",
           isHorizontal
-            ? "w-2 cursor-col-resize border-x border-sand/50 hover:bg-soft-blue/20"
-            : "h-2 cursor-row-resize border-y border-sand/50 hover:bg-soft-blue/20"
+            ? "w-2 cursor-col-resize border-x border-border/50 hover:bg-soft-blue/20"
+            : "h-2 cursor-row-resize border-y border-border/50 hover:bg-soft-blue/20"
         )}
       >
         <span
           className={cn(
-            "absolute rounded-full bg-cloudy/40 group-hover:bg-soft-blue",
+            "absolute rounded-full bg-muted/40 group-hover:bg-soft-blue",
             isHorizontal
               ? "left-1/2 top-1/2 h-8 w-[2px] -translate-x-1/2 -translate-y-1/2"
               : "left-1/2 top-1/2 h-[2px] w-8 -translate-x-1/2 -translate-y-1/2"

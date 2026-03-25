@@ -141,10 +141,10 @@ export default function TreasuryConsole() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <WalletCards size={15} className="text-terra" />
-            <h2 className="text-sm font-bold text-warm-800">Treasury Console</h2>
+            <WalletCards size={15} className="text-teal" />
+            <h2 className="text-sm font-bold text-primary">Treasury Console</h2>
           </div>
-          <p className="text-xs text-warm-500 mt-1">
+          <p className="text-xs text-muted mt-1">
             Privy-backed treasury balances, outbound transfers, and recorded actions. Server credentials stay off the client.
           </p>
         </div>
@@ -168,7 +168,7 @@ export default function TreasuryConsole() {
       </div>
 
       {!payload && (
-        <div className="grid grid-cols-1 gap-3 rounded-[24px] border border-sand/70 bg-white/65 p-4 md:grid-cols-[1fr_auto]">
+        <div className="grid grid-cols-1 gap-3 rounded-[24px] border border-border/70 bg-white/65 p-4 md:grid-cols-[1fr_auto]">
           <label className="control-label">
             Admin API key
             <input
@@ -202,25 +202,25 @@ export default function TreasuryConsole() {
           </div>
 
           {!payload.config.configured && (
-            <div className="rounded-xl border border-yellow-300/30 bg-yellow-100/20 p-3 text-xs text-warm-700">
+            <div className="rounded-xl border border-yellow-300/30 bg-yellow-100/20 p-3 text-xs text-primary">
               {payload.config.message}
             </div>
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="surface-muted space-y-3 p-4">
-              <h3 className="text-xs font-bold text-warm-800">Balances</h3>
+              <h3 className="text-xs font-bold text-primary">Balances</h3>
               <div className="space-y-2">
-                {payload.treasury.balances.length === 0 && <p className="text-[11px] text-cloudy">No balances returned by Privy.</p>}
+                {payload.treasury.balances.length === 0 && <p className="text-[11px] text-muted">No balances returned by Privy.</p>}
                 {payload.treasury.balances.map((balance) => (
                   <div key={`${balance.chain}-${balance.asset}`} className="flex items-center justify-between gap-2 rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm">
                     <div>
-                      <p className="text-xs font-semibold text-warm-800">{balance.asset}</p>
-                      <p className="text-[10px] text-cloudy">{balance.chain}</p>
+                      <p className="text-xs font-semibold text-primary">{balance.asset}</p>
+                      <p className="text-[10px] text-muted">{balance.chain}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-semibold text-warm-800">{balance.display}</p>
-                      <p className="text-[10px] text-cloudy">{balance.usd ? `$${balance.usd}` : balance.rawValue}</p>
+                      <p className="text-xs font-semibold text-primary">{balance.display}</p>
+                      <p className="text-[10px] text-muted">{balance.usd ? `$${balance.usd}` : balance.rawValue}</p>
                     </div>
                   </div>
                 ))}
@@ -228,7 +228,7 @@ export default function TreasuryConsole() {
             </div>
 
             <div className="surface-muted space-y-3 p-4">
-              <h3 className="text-xs font-bold text-warm-800">Admin Transfer</h3>
+              <h3 className="text-xs font-bold text-primary">Admin Transfer</h3>
               <div className="grid grid-cols-2 gap-2">
                 <label className="control-label">
                   Kind
@@ -272,19 +272,19 @@ export default function TreasuryConsole() {
             <div className="surface-muted space-y-3 p-4">
               <div className="flex items-center gap-2">
                 <ShieldCheck size={13} className="text-accent" />
-                <h3 className="text-xs font-bold text-warm-800">Recorded Treasury Actions</h3>
+                <h3 className="text-xs font-bold text-primary">Recorded Treasury Actions</h3>
               </div>
               <div className="space-y-2">
-                {payload.treasury.recentActions.length === 0 && <p className="text-[11px] text-cloudy">No treasury actions recorded yet.</p>}
+                {payload.treasury.recentActions.length === 0 && <p className="text-[11px] text-muted">No treasury actions recorded yet.</p>}
                 {payload.treasury.recentActions.map((action) => (
                   <div key={action.id} className="rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-warm-800">{action.kind} {action.asset} ${action.amount}</span>
-                      <span className="text-[10px] uppercase text-cloudy">{action.status}</span>
+                      <span className="text-xs font-semibold text-primary">{action.kind} {action.asset} ${action.amount}</span>
+                      <span className="text-[10px] uppercase text-muted">{action.status}</span>
                     </div>
-                    <p className="text-[10px] text-cloudy mt-1">To {truncate(action.toAddress, 8)} • {action.reason}</p>
+                    <p className="text-[10px] text-muted mt-1">To {truncate(action.toAddress, 8)} • {action.reason}</p>
                     {action.transactionHash && (
-                      <a href={toBaseBuilderTxUrl(action.transactionHash)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-terra hover:underline">
+                      <a href={toBaseBuilderTxUrl(action.transactionHash)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-teal hover:underline">
                         View tx <ArrowUpRight size={10} />
                       </a>
                     )}
@@ -294,18 +294,18 @@ export default function TreasuryConsole() {
             </div>
 
             <div className="surface-muted space-y-3 p-4">
-              <h3 className="text-xs font-bold text-warm-800">Recent Privy Transactions</h3>
+              <h3 className="text-xs font-bold text-primary">Recent Privy Transactions</h3>
               <div className="space-y-2">
-                {payload.treasury.recentTransactions.length === 0 && <p className="text-[11px] text-cloudy">No recent transactions returned by Privy.</p>}
+                {payload.treasury.recentTransactions.length === 0 && <p className="text-[11px] text-muted">No recent transactions returned by Privy.</p>}
                 {payload.treasury.recentTransactions.map((transaction, index) => (
                   <div key={`${transaction.hash || transaction.createdAt}-${index}`} className="rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-warm-800">{transaction.asset || "Asset"} {transaction.type || "transaction"}</span>
-                      <span className="text-[10px] uppercase text-cloudy">{transaction.status}</span>
+                      <span className="text-xs font-semibold text-primary">{transaction.asset || "Asset"} {transaction.type || "transaction"}</span>
+                      <span className="text-[10px] uppercase text-muted">{transaction.status}</span>
                     </div>
-                    <p className="text-[10px] text-cloudy mt-1">{truncate(transaction.sender, 8)} → {truncate(transaction.recipient, 8)}</p>
+                    <p className="text-[10px] text-muted mt-1">{truncate(transaction.sender, 8)} → {truncate(transaction.recipient, 8)}</p>
                     {transaction.hash && (
-                      <a href={toBaseBuilderTxUrl(transaction.hash)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-terra hover:underline">
+                      <a href={toBaseBuilderTxUrl(transaction.hash)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-teal hover:underline">
                         {truncate(transaction.hash, 10)} <ArrowUpRight size={10} />
                       </a>
                     )}
@@ -323,9 +323,9 @@ export default function TreasuryConsole() {
 function TreasuryStat({ label, value, sublabel }: { label: string; value: string; sublabel: string }) {
   return (
     <div className="surface-muted p-3">
-      <p className="text-[10px] text-cloudy">{label}</p>
-      <p className="text-sm font-semibold text-warm-800 mt-1">{value}</p>
-      <p className="text-[10px] text-cloudy mt-1">{sublabel}</p>
+      <p className="text-[10px] text-muted">{label}</p>
+      <p className="text-sm font-semibold text-primary mt-1">{value}</p>
+      <p className="text-[10px] text-muted mt-1">{sublabel}</p>
     </div>
   )
 }

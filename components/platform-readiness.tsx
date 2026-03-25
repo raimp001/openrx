@@ -82,7 +82,7 @@ export default function PlatformReadiness() {
 
   if (loading) {
     return (
-      <div className="bg-pampas rounded-2xl border border-sand p-5 text-sm text-cloudy">
+      <div className="bg-surface rounded-2xl border border-border p-5 text-sm text-muted">
         <Loader2 size={14} className="animate-spin inline mr-2" />
         Loading readiness checks...
       </div>
@@ -90,14 +90,14 @@ export default function PlatformReadiness() {
   }
 
   return (
-    <div className="bg-pampas rounded-2xl border border-sand p-5 space-y-4">
+    <div className="bg-surface rounded-2xl border border-border p-5 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-terra" />
-            <h2 className="text-sm font-bold text-warm-800">Platform Readiness</h2>
+            <Sparkles size={14} className="text-teal" />
+            <h2 className="text-sm font-bold text-primary">Platform Readiness</h2>
           </div>
-          <p className="text-xs text-warm-500 mt-1">
+          <p className="text-xs text-muted mt-1">
             Coverage status across care search, onboarding, screening, and payment compliance.
           </p>
         </div>
@@ -115,7 +115,7 @@ export default function PlatformReadiness() {
           <button
             onClick={() => void load(true)}
             disabled={refreshing}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-sand text-[11px] font-semibold text-warm-700 hover:border-terra/30 transition disabled:opacity-60"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border text-[11px] font-semibold text-primary hover:border-teal/30 transition disabled:opacity-60"
           >
             {refreshing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCcw size={11} />}
             Refresh
@@ -134,10 +134,10 @@ export default function PlatformReadiness() {
           <Link
             key={check.id}
             href={check.href}
-            className="rounded-xl border border-sand/70 bg-cream/30 p-3 hover:border-terra/25 transition"
+            className="rounded-xl border border-border/70 bg-surface/30 p-3 hover:border-teal/25 transition"
           >
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-warm-800">{check.title}</p>
+              <p className="text-sm font-semibold text-primary">{check.title}</p>
               <span
                 className={cn(
                   "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
@@ -149,8 +149,8 @@ export default function PlatformReadiness() {
                 {check.status}
               </span>
             </div>
-            <p className="text-xs text-warm-500 mt-1">{check.description}</p>
-            <p className="text-[10px] font-semibold text-terra mt-2">{check.metric}</p>
+            <p className="text-xs text-muted mt-1">{check.description}</p>
+            <p className="text-[10px] font-semibold text-teal mt-2">{check.metric}</p>
           </Link>
         ))}
       </div>
@@ -162,17 +162,17 @@ export default function PlatformReadiness() {
         <OpsStat label="Open Refunds" value={String(payload.operations.openRefunds)} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 text-[11px] text-cloudy">
+      <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted">
         <span className="inline-flex items-center gap-1">
           <CheckCircle2 size={11} className="text-accent" />
           Ready checks: {readyCount}/{payload.checks.length}
         </span>
         <span className="inline-flex items-center gap-1">
-          <ShieldAlert size={11} className="text-terra" />
+          <ShieldAlert size={11} className="text-teal" />
           Verified volume ${payload.operations.verifiedVolume}
         </span>
         <span className="inline-flex items-center gap-1">
-          <Clock3 size={11} className="text-cloudy" />
+          <Clock3 size={11} className="text-muted" />
           Updated {new Date(payload.generatedAt).toLocaleTimeString()}
         </span>
       </div>
@@ -182,9 +182,9 @@ export default function PlatformReadiness() {
 
 function OpsStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-sand/70 bg-pampas px-3 py-2">
-      <p className="text-[10px] text-cloudy">{label}</p>
-      <p className="text-sm font-semibold text-warm-800">{value}</p>
+    <div className="rounded-lg border border-border/70 bg-surface px-3 py-2">
+      <p className="text-[10px] text-muted">{label}</p>
+      <p className="text-sm font-semibold text-primary">{value}</p>
     </div>
   )
 }

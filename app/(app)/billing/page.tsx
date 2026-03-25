@@ -42,7 +42,7 @@ function describeCPT(codes: string[]) {
 }
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+  return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
 export default function BillingPage() {
@@ -150,7 +150,7 @@ export default function BillingPage() {
           description="Filter by status, scan the amounts quickly, and open the right AI action for each claim instead of digging through a table."
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              <div className="chip gap-2"><Filter size={12} className="text-cloudy" /> Status</div>
+              <div className="chip gap-2"><Filter size={12} className="text-muted" /> Status</div>
               <OpsTabButton active={!statusFilter} onClick={() => setStatusFilter("")}>All</OpsTabButton>
               {statuses.map((status) => (
                 <OpsTabButton key={status} active={statusFilter === status} onClick={() => setStatusFilter(status)}>
@@ -176,7 +176,7 @@ export default function BillingPage() {
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0 space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-serif text-warm-800">{describeCPT(claim.cpt_codes) || claim.claim_number}</h3>
+                          <h3 className="text-lg font-serif text-primary">{describeCPT(claim.cpt_codes) || claim.claim_number}</h3>
                           <OpsBadge tone={statusTone as "terra" | "accent" | "blue" | "gold" | "red"}>{claimStatusLabel(claim.status)}</OpsBadge>
                           {hasIssues ? (
                             <OpsBadge tone="red">
@@ -184,7 +184,7 @@ export default function BillingPage() {
                             </OpsBadge>
                           ) : null}
                         </div>
-                        <div className="flex flex-wrap gap-2 text-[11px] font-medium text-cloudy">
+                        <div className="flex flex-wrap gap-2 text-[11px] font-medium text-muted">
                           <span className="chip">Claim {claim.claim_number}</span>
                           <span className="chip">DOS {formatDate(claim.date_of_service)}</span>
                           <span className="chip">ICD {claim.icd_codes.join(", ")}</span>
@@ -195,7 +195,7 @@ export default function BillingPage() {
                           </div>
                         ) : null}
                         {hasIssues ? (
-                          <div className="rounded-2xl border border-amber-300/30 bg-amber-100/50 px-4 py-3 text-xs leading-5 text-warm-700">
+                          <div className="rounded-2xl border border-amber-300/30 bg-amber-100/50 px-4 py-3 text-xs leading-5 text-primary">
                             {claim.errors_detected.join(" • ")}
                           </div>
                         ) : null}
@@ -245,7 +245,7 @@ export default function BillingPage() {
           </OpsPanel>
 
           <OpsPanel eyebrow="Patient snapshot" title="How this feels to the patient" description="Translate the billing state into plain next steps rather than payer jargon.">
-            <div className="space-y-3 text-sm leading-6 text-warm-600">
+            <div className="space-y-3 text-sm leading-6 text-secondary">
               <p>
                 {deniedClaims.length
                   ? `You have ${deniedClaims.length} denied claim${deniedClaims.length > 1 ? "s" : ""}. Start there, because those claims are the most likely to generate confusing balances.`
@@ -267,8 +267,8 @@ export default function BillingPage() {
 function MiniAmount({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 shadow-sm">
-      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-cloudy/80">{label}</div>
-      <div className="mt-2 text-lg font-semibold text-warm-800">{value}</div>
+      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted/80">{label}</div>
+      <div className="mt-2 text-lg font-semibold text-primary">{value}</div>
     </div>
   )
 }
@@ -287,8 +287,8 @@ function InsightRow({
   return (
     <div className="surface-muted flex items-start justify-between gap-3 px-4 py-3">
       <div>
-        <div className="text-sm font-semibold text-warm-800">{label}</div>
-        <div className="mt-1 text-xs leading-5 text-cloudy">{detail}</div>
+        <div className="text-sm font-semibold text-primary">{label}</div>
+        <div className="mt-1 text-xs leading-5 text-muted">{detail}</div>
       </div>
       <OpsBadge tone={tone} className="shrink-0">{value}</OpsBadge>
     </div>

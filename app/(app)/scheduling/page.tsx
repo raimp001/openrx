@@ -11,7 +11,7 @@ import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 type ViewMode = "today" | "upcoming" | "past"
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+  return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
 export default function SchedulingPage() {
@@ -58,7 +58,7 @@ export default function SchedulingPage() {
         </div>
         <div className="flex gap-2"><Skeleton className="h-7 w-20 rounded-full" /><Skeleton className="h-7 w-20 rounded-full" /></div>
         <Skeleton className="h-10 w-60 rounded-xl" />
-        <div className="bg-pampas rounded-2xl border border-sand divide-y divide-sand/50">
+        <div className="bg-surface rounded-2xl border border-border divide-y divide-border/50">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="flex items-center gap-4 px-5 py-4">
               <Skeleton className="h-10 w-16" />
@@ -75,14 +75,14 @@ export default function SchedulingPage() {
   if (!loading && !hasData) {
     return (
       <div className="animate-slide-up flex flex-col items-center justify-center min-h-[50vh] text-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-terra/5 flex items-center justify-center">
-          <Calendar size={28} className="text-terra" />
+        <div className="w-16 h-16 rounded-2xl bg-teal/5 flex items-center justify-center">
+          <Calendar size={28} className="text-teal" />
         </div>
         <div>
-          <h1 className="text-2xl font-serif text-warm-800">My Appointments</h1>
-          <p className="text-warm-500 mt-1 max-w-sm">Connect your health record to view and manage your appointments.</p>
+          <h1 className="text-2xl font-serif text-primary">My Appointments</h1>
+          <p className="text-muted mt-1 max-w-sm">Connect your health record to view and manage your appointments.</p>
         </div>
-        <Link href="/onboarding" className="px-5 py-2.5 bg-terra text-white text-sm font-semibold rounded-xl hover:bg-terra-dark transition">
+        <Link href="/onboarding" className="px-5 py-2.5 bg-teal text-white text-sm font-semibold rounded-xl hover:bg-teal-dark transition">
           Get Started
         </Link>
       </div>
@@ -129,7 +129,7 @@ export default function SchedulingPage() {
 
       {/* Tabs */}
       <div className="flex items-center justify-between">
-        <div className="flex bg-pampas border border-sand rounded-xl overflow-hidden">
+        <div className="flex bg-surface border border-border rounded-xl overflow-hidden">
           {(["today", "upcoming", "past"] as ViewMode[]).map((v) => (
             <button
               key={v}
@@ -137,8 +137,8 @@ export default function SchedulingPage() {
               className={cn(
                 "px-4 py-2 text-sm font-semibold transition-all capitalize",
                 view === v
-                  ? "bg-terra text-white"
-                  : "text-warm-600 hover:text-warm-800 hover:bg-sand/30"
+                  ? "bg-teal text-white"
+                  : "text-secondary hover:text-primary hover:bg-border/30"
               )}
             >
               {v}
@@ -148,27 +148,27 @@ export default function SchedulingPage() {
       </div>
 
       {/* Appointment List */}
-      <div className="bg-pampas rounded-2xl border border-sand divide-y divide-sand/50">
+      <div className="bg-surface rounded-2xl border border-border divide-y divide-border/50">
         {activeList.length === 0 && (
           <div className="flex flex-col items-center py-14 gap-3">
-            <div className="w-12 h-12 rounded-full bg-sand/40 flex items-center justify-center">
-              <Calendar size={22} className="text-cloudy" />
+            <div className="w-12 h-12 rounded-full bg-border/40 flex items-center justify-center">
+              <Calendar size={22} className="text-muted" />
             </div>
-            <p className="text-sm font-semibold text-warm-600">
+            <p className="text-sm font-semibold text-secondary">
               {view === "today" ? "No appointments today" : view === "upcoming" ? "No upcoming appointments" : "No past appointments"}
             </p>
             {view !== "past" && (
               <div className="flex gap-2 mt-1">
                 <Link
                   href="/providers"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-terra border border-terra/20 hover:bg-terra/5 transition"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-teal border border-teal/20 hover:bg-teal/5 transition"
                 >
                   <Stethoscope size={13} />
                   Find a Doctor
                 </Link>
                 <Link
                   href="/chat"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-warm-600 border border-sand hover:bg-sand/30 transition"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-secondary border border-border hover:bg-border/30 transition"
                 >
                   <Bot size={13} />
                   Ask AI to Schedule
@@ -182,14 +182,14 @@ export default function SchedulingPage() {
           return (
             <div
               key={apt.id}
-              className="flex items-center gap-4 px-5 py-4 hover:bg-sand/20 transition"
+              className="flex items-center gap-4 px-5 py-4 hover:bg-border/20 transition"
             >
               {/* Time */}
               <div className="w-20 shrink-0 text-center">
-                <div className="text-sm font-bold text-warm-800">
+                <div className="text-sm font-bold text-primary">
                   {formatTime(apt.scheduled_at)}
                 </div>
-                <div className="text-[10px] text-cloudy">
+                <div className="text-[10px] text-muted">
                   {apt.duration_minutes}min
                 </div>
               </div>
@@ -201,12 +201,12 @@ export default function SchedulingPage() {
                   apt.status === "completed"
                     ? "bg-accent"
                     : apt.status === "in-progress"
-                    ? "bg-terra"
+                    ? "bg-teal"
                     : apt.status === "checked-in"
                     ? "bg-yellow-400"
                     : apt.status === "no-show"
                     ? "bg-soft-red"
-                    : "bg-sand"
+                    : "bg-border"
                 )}
               />
 
@@ -237,11 +237,11 @@ export default function SchedulingPage() {
                     <span className="text-[10px] font-bold text-accent">NEW</span>
                   )}
                 </div>
-                <p className="text-xs text-warm-500 mt-0.5 truncate">
+                <p className="text-xs text-muted mt-0.5 truncate">
                   {apt.reason}
                 </p>
                 {apt.notes && (
-                  <p className="text-[10px] text-cloudy mt-0.5 truncate italic">
+                  <p className="text-[10px] text-muted mt-0.5 truncate italic">
                     {apt.notes}
                   </p>
                 )}
@@ -249,15 +249,15 @@ export default function SchedulingPage() {
 
               {/* Physician */}
               <div className="text-right shrink-0">
-                <p className="text-xs font-medium text-warm-700">
+                <p className="text-xs font-medium text-primary">
                   {physician?.full_name}
                 </p>
-                <p className="text-[10px] text-cloudy">{physician?.specialty}</p>
+                <p className="text-[10px] text-muted">{physician?.specialty}</p>
               </div>
 
               {/* Date (for non-today) */}
               {view !== "today" && (
-                <div className="text-xs text-warm-500 shrink-0 w-24 text-right">
+                <div className="text-xs text-muted shrink-0 w-24 text-right">
                   {formatDate(apt.scheduled_at)}
                 </div>
               )}

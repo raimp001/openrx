@@ -10,7 +10,7 @@ import { AppPageHeader } from "@/components/layout/app-page"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-sand/40", className)} />
+  return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
 export default function EmergencyCardPage() {
@@ -113,14 +113,14 @@ export default function EmergencyCardPage() {
           {/* Patient Info */}
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-lg font-bold text-warm-800">{currentUser.full_name}</p>
-              <p className="text-xs text-warm-500 mt-0.5">
+              <p className="text-lg font-bold text-primary">{currentUser.full_name}</p>
+              <p className="text-xs text-muted mt-0.5">
                 DOB: {new Date(currentUser.date_of_birth).toLocaleDateString()} &middot;{" "}
                 {currentUser.gender} &middot; Blood Type: Not on file
               </p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-warm-100 flex items-center justify-center">
-              <User size={24} className="text-warm-400" />
+              <User size={24} className="text-muted" />
             </div>
           </div>
 
@@ -144,15 +144,15 @@ export default function EmergencyCardPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-warm-600">No known allergies (NKDA)</p>
+              <p className="text-sm text-secondary">No known allergies (NKDA)</p>
             )}
           </div>
 
           {/* Medical Conditions */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Droplets size={14} className="text-terra" />
-              <span className="text-xs font-bold text-warm-800 uppercase tracking-wider">
+              <Droplets size={14} className="text-teal" />
+              <span className="text-xs font-bold text-primary uppercase tracking-wider">
                 Medical Conditions
               </span>
             </div>
@@ -160,14 +160,14 @@ export default function EmergencyCardPage() {
               {currentUser.medical_history.map((condition) => (
                 <div
                   key={condition.condition}
-                  className="flex items-center justify-between px-3 py-2 bg-cream/50 rounded-lg"
+                  className="flex items-center justify-between px-3 py-2 bg-surface/50 rounded-lg"
                 >
-                  <span className="text-sm font-medium text-warm-800">{condition.condition}</span>
+                  <span className="text-sm font-medium text-primary">{condition.condition}</span>
                   <span className={cn(
                     "text-[9px] font-bold px-2 py-0.5 rounded uppercase",
                     condition.status === "active" ? "bg-yellow-100 text-yellow-700" :
                     condition.status === "managed" ? "bg-accent/10 text-accent" :
-                    "bg-warm-100 text-warm-600"
+                    "bg-warm-100 text-secondary"
                   )}>
                     {condition.status}
                   </span>
@@ -180,7 +180,7 @@ export default function EmergencyCardPage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Pill size={14} className="text-yellow-600" />
-              <span className="text-xs font-bold text-warm-800 uppercase tracking-wider">
+              <span className="text-xs font-bold text-primary uppercase tracking-wider">
                 Current Medications
               </span>
             </div>
@@ -188,12 +188,12 @@ export default function EmergencyCardPage() {
               {meds.map((med) => (
                 <div
                   key={med.id}
-                  className="flex items-center justify-between px-3 py-2 bg-cream/50 rounded-lg"
+                  className="flex items-center justify-between px-3 py-2 bg-surface/50 rounded-lg"
                 >
-                  <span className="text-sm font-medium text-warm-800">
+                  <span className="text-sm font-medium text-primary">
                     {med.medication_name} {med.dosage}
                   </span>
-                  <span className="text-[10px] text-cloudy">{med.frequency}</span>
+                  <span className="text-[10px] text-muted">{med.frequency}</span>
                 </div>
               ))}
             </div>
@@ -201,12 +201,12 @@ export default function EmergencyCardPage() {
 
           {/* Emergency Contact & PCP */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-sand p-3">
+            <div className="rounded-xl border border-border p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Phone size={12} className="text-soft-red" />
-                <span className="text-[10px] font-bold text-warm-800 uppercase">Emergency Contact</span>
+                <span className="text-[10px] font-bold text-primary uppercase">Emergency Contact</span>
               </div>
-              <p className="text-sm font-semibold text-warm-800">
+              <p className="text-sm font-semibold text-primary">
                 {currentUser.emergency_contact_name}
               </p>
               <a
@@ -216,12 +216,12 @@ export default function EmergencyCardPage() {
                 {currentUser.emergency_contact_phone}
               </a>
             </div>
-            <div className="rounded-xl border border-sand p-3">
+            <div className="rounded-xl border border-border p-3">
               <div className="flex items-center gap-2 mb-2">
-                <Heart size={12} className="text-terra" />
-                <span className="text-[10px] font-bold text-warm-800 uppercase">Primary Doctor</span>
+                <Heart size={12} className="text-teal" />
+                <span className="text-[10px] font-bold text-primary uppercase">Primary Doctor</span>
               </div>
-              <p className="text-sm font-semibold text-warm-800">
+              <p className="text-sm font-semibold text-primary">
                 {physician?.full_name || "Not assigned"}
               </p>
               {physician?.phone && (
@@ -236,19 +236,19 @@ export default function EmergencyCardPage() {
           </div>
 
           {/* Insurance */}
-          <div className="rounded-xl border border-sand p-3">
+          <div className="rounded-xl border border-border p-3">
             <div className="flex items-center gap-2 mb-2">
               <Shield size={12} className="text-soft-blue" />
-              <span className="text-[10px] font-bold text-warm-800 uppercase">Insurance</span>
+              <span className="text-[10px] font-bold text-primary uppercase">Insurance</span>
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-warm-800">
+                <p className="text-sm font-semibold text-primary">
                   {currentUser.insurance_provider}
                 </p>
-                <p className="text-xs text-warm-600">{currentUser.insurance_plan}</p>
+                <p className="text-xs text-secondary">{currentUser.insurance_plan}</p>
               </div>
-              <p className="text-xs font-mono text-cloudy">{currentUser.insurance_id}</p>
+              <p className="text-xs font-mono text-muted">{currentUser.insurance_id}</p>
             </div>
           </div>
         </div>
@@ -262,7 +262,7 @@ export default function EmergencyCardPage() {
             "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition",
             copied
               ? "bg-accent text-white"
-              : "bg-terra text-white hover:bg-terra-dark"
+              : "bg-teal text-white hover:bg-teal-dark"
           )}
         >
           {copied ? (
@@ -273,7 +273,7 @@ export default function EmergencyCardPage() {
         </button>
       </div>
 
-      <p className="text-center text-[10px] text-cloudy">
+      <p className="text-center text-[10px] text-muted">
         Tip: Save this to your phone&apos;s Medical ID for instant access in emergencies.
       </p>
     </div>

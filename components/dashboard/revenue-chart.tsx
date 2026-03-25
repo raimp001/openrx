@@ -21,8 +21,8 @@ const data = [
 
 export default function RevenueChart() {
   return (
-    <div className="bg-pampas rounded-2xl border border-sand p-5">
-      <h3 className="text-sm font-bold text-warm-800 mb-4">
+    <div className="bg-surface rounded-2xl border border-border p-5">
+      <h3 className="text-sm font-bold text-primary mb-4">
         Revenue (6-Month)
       </h3>
       <div className="h-48">
@@ -72,11 +72,11 @@ export default function RevenueChart() {
         </ResponsiveContainer>
       </div>
       <div className="flex items-center gap-4 mt-3 justify-center">
-        <span className="flex items-center gap-1.5 text-[10px] text-warm-500">
-          <span className="w-2.5 h-2.5 rounded-sm bg-sand" /> Billed
+        <span className="flex items-center gap-1.5 text-[10px] text-muted">
+          <span className="w-2.5 h-2.5 rounded-sm bg-border" /> Billed
         </span>
-        <span className="flex items-center gap-1.5 text-[10px] text-warm-500">
-          <span className="w-2.5 h-2.5 rounded-sm bg-terra" /> Collected
+        <span className="flex items-center gap-1.5 text-[10px] text-muted">
+          <span className="w-2.5 h-2.5 rounded-sm bg-teal" /> Collected
         </span>
       </div>
     </div>

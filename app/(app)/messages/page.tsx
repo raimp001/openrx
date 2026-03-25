@@ -143,10 +143,10 @@ export default function MessagesPage() {
           </div>
         }
         actions={
-          <div className="flex items-center gap-2 rounded-2xl border border-terra/10 bg-terra/5 px-3 py-2">
-            <Cpu size={12} className="text-terra" />
-            <span className="text-[11px] font-bold text-terra">Claude multi-channel</span>
-            <span className="text-[10px] text-warm-500">WhatsApp · SMS · Telegram · Portal</span>
+          <div className="flex items-center gap-2 rounded-2xl border border-teal/10 bg-teal/5 px-3 py-2">
+            <Cpu size={12} className="text-teal" />
+            <span className="text-[11px] font-bold text-teal">Claude multi-channel</span>
+            <span className="text-[10px] text-muted">WhatsApp · SMS · Telegram · Portal</span>
           </div>
         }
       />
@@ -176,14 +176,14 @@ export default function MessagesPage() {
           className="overflow-hidden"
         >
           <div className="surface-muted overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sand/70 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-terra/10 to-accent/10 text-terra">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-teal/10 to-accent/10 text-teal">
                   <User size={18} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-warm-800">My conversation</h3>
-                  <p className="text-[11px] text-cloudy">{patient?.phone || "No phone"} · {patient?.email || "No email"}</p>
+                  <h3 className="text-sm font-semibold text-primary">My conversation</h3>
+                  <p className="text-[11px] text-muted">{patient?.phone || "No phone"} · {patient?.email || "No email"}</p>
                 </div>
               </div>
               <OpsBadge tone={channelFilter ? "terra" : "blue"}>{channelFilter || "all channels"}</OpsBadge>
@@ -208,7 +208,7 @@ export default function MessagesPage() {
                       isPatient ? "ml-auto" : ""
                     )}
                   >
-                    <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-warm-500">
+                    <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
                       <span className="inline-flex items-center gap-1.5">
                         {getSenderIcon(message.sender_type)}
                         {message.sender_type === "physician" && physician
@@ -219,28 +219,28 @@ export default function MessagesPage() {
                           ? "System"
                           : "Me"}
                       </span>
-                      <span className="text-cloudy normal-case tracking-normal">{formatDate(message.created_at)}</span>
-                      <span className="text-cloudy normal-case tracking-normal">via {message.channel}</span>
-                      {!message.read ? <Circle size={6} className="fill-terra text-terra" /> : null}
+                      <span className="text-muted normal-case tracking-normal">{formatDate(message.created_at)}</span>
+                      <span className="text-muted normal-case tracking-normal">via {message.channel}</span>
+                      {!message.read ? <Circle size={6} className="fill-terra text-teal" /> : null}
                     </div>
-                    <p className="whitespace-pre-line text-sm leading-6 text-warm-700">
+                    <p className="whitespace-pre-line text-sm leading-6 text-primary">
                       {message.content}
-                      {streamingId === message.id ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-terra align-middle" /> : null}
+                      {streamingId === message.id ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-teal align-middle" /> : null}
                     </p>
                   </article>
                 )
               })}
 
               {isSending && !streamingId ? (
-                <div className="flex items-center gap-2 pl-1 text-xs text-warm-500">
-                  <Loader2 size={12} className="animate-spin text-terra" />
+                <div className="flex items-center gap-2 pl-1 text-xs text-muted">
+                  <Loader2 size={12} className="animate-spin text-teal" />
                   Atlas is drafting a response...
                 </div>
               ) : null}
               <div ref={bottomRef} />
             </div>
 
-            <div className="sticky bottom-0 border-t border-sand/70 bg-cream/95 px-4 py-3 pb-[max(0.875rem,env(safe-area-inset-bottom))] backdrop-blur-sm">
+            <div className="sticky bottom-0 border-t border-border/70 bg-surface/95 px-4 py-3 pb-[max(0.875rem,env(safe-area-inset-bottom))] backdrop-blur-sm">
               {sendError ? <p className="mb-2 text-xs text-soft-red">{sendError}</p> : null}
               <div className="flex items-end gap-2">
                 <input
@@ -251,13 +251,13 @@ export default function MessagesPage() {
                   placeholder="Type a message..."
                   disabled={isSending}
                   aria-label="Message patient care team"
-                  className="min-h-11 flex-1 rounded-xl border border-sand bg-white/85 px-4 py-2.5 text-sm text-warm-800 placeholder:text-cloudy focus:border-terra/40 focus:outline-none focus:ring-1 focus:ring-terra/20 disabled:opacity-50"
+                  className="min-h-11 flex-1 rounded-xl border border-border bg-white/85 px-4 py-2.5 text-sm text-primary placeholder:text-muted focus:border-teal/40 focus:outline-none focus:ring-1 focus:ring-teal/20 disabled:opacity-50"
                 />
                 <button
                   type="button"
                   onClick={sendMessage}
                   disabled={isSending || !newMessage.trim()}
-                  className="flex min-h-11 min-w-11 items-center justify-center rounded-xl bg-terra px-4 text-white transition hover:bg-terra-dark disabled:opacity-50"
+                  className="flex min-h-11 min-w-11 items-center justify-center rounded-xl bg-teal px-4 text-white transition hover:bg-teal-dark disabled:opacity-50"
                   aria-label="Send message"
                 >
                   {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
@@ -307,11 +307,11 @@ function getSenderIcon(type: string) {
     case "physician":
       return <Stethoscope size={14} className="text-accent" />
     case "agent":
-      return <Bot size={14} className="text-terra" />
+      return <Bot size={14} className="text-teal" />
     case "system":
       return <Bell size={14} className="text-yellow-600" />
     default:
-      return <MessageSquare size={14} className="text-cloudy" />
+      return <MessageSquare size={14} className="text-muted" />
   }
 }
 
@@ -322,23 +322,23 @@ function getSenderBg(type: string) {
     case "physician":
       return "border-accent/10 bg-accent/5"
     case "agent":
-      return "border-terra/10 bg-terra/5"
+      return "border-teal/10 bg-teal/5"
     case "system":
       return "border-yellow-700/30 bg-yellow-900/20"
     default:
-      return "border-sand bg-sand/20"
+      return "border-border bg-border/20"
   }
 }
 
 function ContextRow({ icon: Icon, label, value }: { icon: typeof User; label: string; value: string }) {
   return (
     <div className="surface-muted flex items-start gap-3 px-4 py-3">
-      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-terra shadow-sm">
+      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-teal shadow-sm">
         <Icon size={15} />
       </div>
       <div>
-        <div className="text-xs font-bold uppercase tracking-[0.16em] text-cloudy/80">{label}</div>
-        <div className="mt-1 text-sm leading-6 text-warm-700">{value}</div>
+        <div className="text-xs font-bold uppercase tracking-[0.16em] text-muted/80">{label}</div>
+        <div className="mt-1 text-sm leading-6 text-primary">{value}</div>
       </div>
     </div>
   )

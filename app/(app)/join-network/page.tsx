@@ -104,102 +104,102 @@ export default function JoinNetworkPage() {
         description="Providers and caregivers can apply here. Review happens through signed admin email actions."
       />
 
-      <div className="bg-pampas rounded-2xl border border-sand p-5 space-y-4">
+      <div className="bg-surface rounded-2xl border border-border p-5 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <label className="text-xs text-warm-600">
+          <label className="text-xs text-secondary">
             Role
             <select
               value={role}
               onChange={(event) => setRole(event.target.value as RoleOption)}
-              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-border bg-surface/30 text-sm text-primary focus:outline-none focus:border-teal/40"
             >
               <option value="provider">Provider</option>
               <option value="caregiver">Caregiver</option>
             </select>
           </label>
-          <label className="text-xs text-warm-600">
+          <label className="text-xs text-secondary">
             Full name
             <input
               value={fullName}
               onChange={(event) => setFullName(event.target.value)}
-              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-border bg-surface/30 text-sm text-primary focus:outline-none focus:border-teal/40"
             />
           </label>
-          <label className="text-xs text-warm-600">
+          <label className="text-xs text-secondary">
             Email
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-border bg-surface/30 text-sm text-primary focus:outline-none focus:border-teal/40"
             />
           </label>
-          <label className="text-xs text-warm-600">
+          <label className="text-xs text-secondary">
             Phone
             <input
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
-              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-border bg-surface/30 text-sm text-primary focus:outline-none focus:border-teal/40"
             />
           </label>
-          <label className="text-xs text-warm-600">
+          <label className="text-xs text-secondary">
             NPI (optional)
             <input
               value={npi}
               onChange={(event) => setNpi(event.target.value)}
-              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-border bg-surface/30 text-sm text-primary focus:outline-none focus:border-teal/40"
             />
           </label>
-          <label className="text-xs text-warm-600">
+          <label className="text-xs text-secondary">
             License number (optional)
             <input
               value={licenseNumber}
               onChange={(event) => setLicenseNumber(event.target.value)}
-              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-border bg-surface/30 text-sm text-primary focus:outline-none focus:border-teal/40"
             />
           </label>
-          <label className="text-xs text-warm-600">
+          <label className="text-xs text-secondary">
             Specialty / Caregiver role
             <input
               value={specialtyOrRole}
               onChange={(event) => setSpecialtyOrRole(event.target.value)}
               placeholder={role === "provider" ? "Family medicine" : "Home health aide"}
-              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-border bg-surface/30 text-sm text-primary focus:outline-none focus:border-teal/40"
             />
           </label>
-          <label className="text-xs text-warm-600">
+          <label className="text-xs text-secondary">
             ZIP
             <input
               value={zip}
               onChange={(event) => setZip(event.target.value)}
-              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-border bg-surface/30 text-sm text-primary focus:outline-none focus:border-teal/40"
             />
           </label>
-          <label className="text-xs text-warm-600">
+          <label className="text-xs text-secondary">
             City
             <input
               value={city}
               onChange={(event) => setCity(event.target.value)}
-              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-border bg-surface/30 text-sm text-primary focus:outline-none focus:border-teal/40"
             />
           </label>
-          <label className="text-xs text-warm-600">
+          <label className="text-xs text-secondary">
             State
             <input
               value={state}
               onChange={(event) => setState(event.target.value)}
-              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+              className="mt-1 w-full px-3 py-2.5 rounded-xl border border-border bg-surface/30 text-sm text-primary focus:outline-none focus:border-teal/40"
             />
           </label>
         </div>
-        <label className="text-xs text-warm-600 block">
+        <label className="text-xs text-secondary block">
           Services summary (natural language)
           <textarea
             value={servicesSummary}
             onChange={(event) => setServicesSummary(event.target.value)}
             rows={4}
             placeholder="Describe patient populations, services, and availability in plain language."
-            className="mt-1 w-full px-3 py-2.5 rounded-xl border border-sand bg-cream/30 text-sm text-warm-800 focus:outline-none focus:border-terra/40"
+            className="mt-1 w-full px-3 py-2.5 rounded-xl border border-border bg-surface/30 text-sm text-primary focus:outline-none focus:border-teal/40"
           />
         </label>
 
@@ -214,7 +214,7 @@ export default function JoinNetworkPage() {
         <button
           onClick={() => void submitApplication()}
           disabled={submitting}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-terra text-white text-sm font-semibold hover:bg-terra-dark disabled:opacity-60 transition"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal text-white text-sm font-semibold hover:bg-teal-dark disabled:opacity-60 transition"
         >
           {submitting ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
           Submit Application

@@ -51,7 +51,7 @@ function statusColor(status: PaymentRecord["status"]): string {
   if (status === "pending_verification") return "bg-yellow-100/30 text-yellow-700"
   if (status === "failed") return "bg-soft-red/10 text-soft-red"
   if (status === "refunded") return "bg-soft-blue/10 text-soft-blue"
-  return "bg-sand text-warm-600"
+  return "bg-border text-secondary"
 }
 
 export default function WalletPage() {
@@ -125,17 +125,17 @@ export default function WalletPage() {
       />
 
       {/* Connect / Status */}
-      <div className="bg-pampas rounded-2xl border border-sand p-6">
+      <div className="bg-surface rounded-2xl border border-border p-6">
         {!isConnected ? (
           <div className="text-center py-8">
-            <WalletIcon size={32} className="text-terra mx-auto mb-3" />
-            <h2 className="text-lg font-semibold text-warm-800 mb-1">Connect Your Wallet</h2>
-            <p className="text-sm text-warm-500 mb-4 max-w-md mx-auto">
+            <WalletIcon size={32} className="text-teal mx-auto mb-3" />
+            <h2 className="text-lg font-semibold text-primary mb-1">Connect Your Wallet</h2>
+            <p className="text-sm text-muted mb-4 max-w-md mx-auto">
               Connect your Coinbase Smart Wallet to create your OpenRx identity.
               Your profile, preferences, and health data will be linked to your wallet address.
             </p>
             <Wallet>
-              <ConnectWallet className="!bg-terra !text-white !rounded-xl !text-sm !font-semibold !py-3 !px-6 hover:!bg-terra-dark !transition mx-auto">
+              <ConnectWallet className="!bg-teal !text-white !rounded-xl !text-sm !font-semibold !py-3 !px-6 hover:!bg-teal-dark !transition mx-auto">
                 <Avatar className="h-5 w-5" />
                 <Name />
               </ConnectWallet>
@@ -145,24 +145,24 @@ export default function WalletPage() {
           <div>
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-terra to-terra-dark flex items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal to-teal-dark flex items-center justify-center">
                   <WalletIcon size={24} className="text-white" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <Wallet>
-                      <ConnectWallet className="!bg-transparent !p-0 !text-warm-800 !font-serif !text-lg">
+                      <ConnectWallet className="!bg-transparent !p-0 !text-primary !font-serif !text-lg">
                         <Avatar className="h-6 w-6" />
                         <Name className="text-lg font-serif" />
                       </ConnectWallet>
-                      <WalletDropdown className="!bg-pampas !border-sand !rounded-xl">
+                      <WalletDropdown className="!bg-surface !border-border !rounded-xl">
                         <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
                           <Avatar />
-                          <Name className="text-warm-800 font-semibold" />
-                          <Address className="text-cloudy text-[10px]" />
+                          <Name className="text-primary font-semibold" />
+                          <Address className="text-muted text-[10px]" />
                         </Identity>
-                        <WalletDropdownFundLink className="!text-warm-700" />
-                        <WalletDropdownLink icon="wallet" href="/wallet" className="!text-warm-700">
+                        <WalletDropdownFundLink className="!text-primary" />
+                        <WalletDropdownLink icon="wallet" href="/wallet" className="!text-primary">
                           Wallet Settings
                         </WalletDropdownLink>
                         <WalletDropdownDisconnect className="!text-soft-red" />
@@ -173,7 +173,7 @@ export default function WalletPage() {
                       Connected
                     </div>
                   </div>
-                  <p className="text-[10px] text-cloudy font-mono mt-0.5">
+                  <p className="text-[10px] text-muted font-mono mt-0.5">
                     {walletAddress}
                   </p>
                 </div>
@@ -182,18 +182,18 @@ export default function WalletPage() {
 
             {/* Profile status */}
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-cream/50 border border-sand/50 p-3">
+              <div className="rounded-xl bg-surface/50 border border-border/50 p-3">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <UserCircle size={14} className="text-terra" />
-                  <span className="text-xs font-bold text-warm-800">Identity</span>
+                  <UserCircle size={14} className="text-teal" />
+                  <span className="text-xs font-bold text-primary">Identity</span>
                 </div>
                 {profile?.onboardingComplete ? (
                   <div>
-                    <p className="text-sm font-semibold text-warm-800">{profile.fullName || "Profile Active"}</p>
-                    <p className="text-[10px] text-cloudy mt-0.5">
+                    <p className="text-sm font-semibold text-primary">{profile.fullName || "Profile Active"}</p>
+                    <p className="text-[10px] text-muted mt-0.5">
                       Pharmacy: {profile.preferredPharmacy || "Not set"}
                     </p>
-                    <p className="text-[10px] text-cloudy">
+                    <p className="text-[10px] text-muted">
                       Last seen: {new Date(profile.lastSeen).toLocaleDateString()}
                     </p>
                     <p
@@ -213,10 +213,10 @@ export default function WalletPage() {
                   </div>
                 ) : (
                   <div>
-                    <p className="text-xs text-warm-500">Profile not set up yet</p>
+                    <p className="text-xs text-muted">Profile not set up yet</p>
                     <Link
                       href="/onboarding"
-                      className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold text-terra hover:underline"
+                      className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold text-teal hover:underline"
                     >
                       <Sparkles size={8} />
                       Complete onboarding
@@ -224,21 +224,21 @@ export default function WalletPage() {
                   </div>
                 )}
               </div>
-              <div className="rounded-xl bg-cream/50 border border-sand/50 p-3">
+              <div className="rounded-xl bg-surface/50 border border-border/50 p-3">
                 <div className="flex items-center gap-2 mb-1.5">
                   <Shield size={14} className="text-accent" />
-                  <span className="text-xs font-bold text-warm-800">Network</span>
+                  <span className="text-xs font-bold text-primary">Network</span>
                 </div>
-                <p className="text-sm font-semibold text-warm-800">Base (Coinbase L2)</p>
-                <p className="text-[10px] text-cloudy mt-0.5">Fast, low-cost healthcare payments</p>
-                <p className="text-[10px] text-warm-600 mt-1">
+                <p className="text-sm font-semibold text-primary">Base (Coinbase L2)</p>
+                <p className="text-[10px] text-muted mt-0.5">Fast, low-cost healthcare payments</p>
+                <p className="text-[10px] text-secondary mt-1">
                   BaseBuilder runtime: {baseBuilderLabel} (chain {baseBuilderChainId})
                 </p>
                 <a
                   href={baseBuilderExplorer}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold text-terra hover:underline"
+                  className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold text-teal hover:underline"
                 >
                   Open BaseScan <ArrowUpRight size={10} />
                 </a>
@@ -250,27 +250,27 @@ export default function WalletPage() {
 
       {/* Payment Options */}
       {isConnected && (
-        <div className="bg-pampas rounded-2xl border border-sand p-6">
-          <h2 className="text-base font-serif text-warm-800 mb-4">Healthcare Payments</h2>
+        <div className="bg-surface rounded-2xl border border-border p-6">
+          <h2 className="text-base font-serif text-primary mb-4">Healthcare Payments</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="rounded-xl border border-sand bg-cream/30 p-4">
-              <CreditCard size={18} className="text-terra mb-2" />
-              <h3 className="text-xs font-bold text-warm-800">Copays</h3>
-              <p className="text-[10px] text-warm-500 mt-1">
+            <div className="rounded-xl border border-border bg-surface/30 p-4">
+              <CreditCard size={18} className="text-teal mb-2" />
+              <h3 className="text-xs font-bold text-primary">Copays</h3>
+              <p className="text-[10px] text-muted mt-1">
                 Pay appointment copays instantly in USDC on Base.
               </p>
             </div>
-            <div className="rounded-xl border border-sand bg-cream/30 p-4">
+            <div className="rounded-xl border border-border bg-surface/30 p-4">
               <Pill size={18} className="text-yellow-600 mb-2" />
-              <h3 className="text-xs font-bold text-warm-800">Prescriptions</h3>
-              <p className="text-[10px] text-warm-500 mt-1">
+              <h3 className="text-xs font-bold text-primary">Prescriptions</h3>
+              <p className="text-[10px] text-muted mt-1">
                 Pay for Rx refills directly from your wallet.
               </p>
             </div>
-            <div className="rounded-xl border border-sand bg-cream/30 p-4">
+            <div className="rounded-xl border border-border bg-surface/30 p-4">
               <ArrowUpRight size={18} className="text-soft-blue mb-2" />
-              <h3 className="text-xs font-bold text-warm-800">Lab & Tests</h3>
-              <p className="text-[10px] text-warm-500 mt-1">
+              <h3 className="text-xs font-bold text-primary">Lab & Tests</h3>
+              <p className="text-[10px] text-muted mt-1">
                 Transparent pricing for lab work and diagnostics.
               </p>
             </div>
@@ -279,17 +279,17 @@ export default function WalletPage() {
       )}
 
       {isConnected && (
-        <div className="bg-pampas rounded-2xl border border-sand p-6">
+        <div className="bg-surface rounded-2xl border border-border p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-serif text-warm-800">Compliance Controls</h2>
-              <p className="text-xs text-warm-500 mt-1">
+              <h2 className="text-base font-serif text-primary">Compliance Controls</h2>
+              <p className="text-xs text-muted mt-1">
                 Base Pay-aligned verification, receipts, attestations, refunds, and ledger entries.
               </p>
             </div>
             <Link
               href="/compliance-ledger"
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-sand text-xs font-semibold text-warm-700 hover:border-terra/30 transition"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-border text-xs font-semibold text-primary hover:border-teal/30 transition"
             >
               <BookText size={12} />
               Open Ledger
@@ -299,24 +299,24 @@ export default function WalletPage() {
       )}
 
       {isConnected && (
-        <div className="bg-pampas rounded-2xl border border-sand p-6">
+        <div className="bg-surface rounded-2xl border border-border p-6">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div>
-              <h2 className="text-base font-serif text-warm-800">Recent BaseBuilder Transactions</h2>
-              <p className="text-xs text-warm-500 mt-1">
+              <h2 className="text-base font-serif text-primary">Recent BaseBuilder Transactions</h2>
+              <p className="text-xs text-muted mt-1">
                 Latest wallet-linked payment events from the compliance ledger.
               </p>
             </div>
             <Link
               href="/compliance-ledger"
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-terra hover:underline"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal hover:underline"
             >
               Full ledger <ArrowUpRight size={11} />
             </Link>
           </div>
 
           {loadingPayments && (
-            <p className="text-xs text-cloudy inline-flex items-center gap-2">
+            <p className="text-xs text-muted inline-flex items-center gap-2">
               <Loader2 size={12} className="animate-spin" />
               Loading transactions...
             </p>
@@ -327,7 +327,7 @@ export default function WalletPage() {
           )}
 
           {!loadingPayments && !paymentsError && recentPayments.length === 0 && (
-            <p className="text-xs text-cloudy">
+            <p className="text-xs text-muted">
               No payment activity yet for this wallet.
             </p>
           )}
@@ -339,16 +339,16 @@ export default function WalletPage() {
                 return (
                   <div
                     key={payment.id}
-                    className="rounded-xl border border-sand/70 bg-cream/30 p-3 flex items-center justify-between gap-3"
+                    className="rounded-xl border border-border/70 bg-surface/30 p-3 flex items-center justify-between gap-3"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-warm-800 truncate">
+                      <p className="text-xs font-semibold text-primary truncate">
                         {payment.category} · ${payment.settledAmount || payment.expectedAmount} USDC
                       </p>
-                      <p className="text-[10px] text-cloudy truncate mt-0.5">
+                      <p className="text-[10px] text-muted truncate mt-0.5">
                         {payment.description}
                       </p>
-                      <p className="text-[10px] text-cloudy mt-0.5">
+                      <p className="text-[10px] text-muted mt-0.5">
                         {new Date(payment.createdAt).toLocaleString()}
                       </p>
                     </div>
@@ -361,7 +361,7 @@ export default function WalletPage() {
                           href={txUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block mt-1 text-[10px] font-semibold text-terra hover:underline"
+                          className="block mt-1 text-[10px] font-semibold text-teal hover:underline"
                         >
                           View tx
                         </a>
@@ -374,7 +374,7 @@ export default function WalletPage() {
           )}
 
           {!loadingPayments && !paymentsError && paymentsWithTx.length > 0 && (
-            <p className="text-[10px] text-cloudy mt-2">
+            <p className="text-[10px] text-muted mt-2">
               Transactions resolve on {baseBuilderLabel}.
             </p>
           )}
@@ -383,28 +383,28 @@ export default function WalletPage() {
 
       {/* Agent Auto-Pay */}
       {isConnected && (
-        <div className="bg-pampas rounded-2xl border border-sand p-6">
+        <div className="bg-surface rounded-2xl border border-border p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Bot size={18} className="text-terra" />
-            <h2 className="text-base font-serif text-warm-800">Agent Auto-Pay</h2>
+            <Bot size={18} className="text-teal" />
+            <h2 className="text-base font-serif text-primary">Agent Auto-Pay</h2>
           </div>
-          <p className="text-xs text-warm-500 mb-4">
+          <p className="text-xs text-muted mb-4">
             Allow your AI care team to make payments on your behalf for routine healthcare expenses.
           </p>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-cream/50 border border-sand/50">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-surface/50 border border-border/50">
               <div className="flex items-center gap-3">
-                <Zap size={14} className="text-terra" />
+                <Zap size={14} className="text-teal" />
                 <div>
-                  <p className="text-xs font-semibold text-warm-800">Auto-pay copays under ${profile?.agentAutoPayLimit || 50}</p>
-                  <p className="text-[10px] text-warm-500">Agents can pay routine copays automatically</p>
+                  <p className="text-xs font-semibold text-primary">Auto-pay copays under ${profile?.agentAutoPayLimit || 50}</p>
+                  <p className="text-[10px] text-muted">Agents can pay routine copays automatically</p>
                 </div>
               </div>
               <button
                 onClick={() => setAgentAutoPay(!profile?.agentAutoPay)}
                 className={cn(
                   "w-10 h-5 rounded-full transition relative",
-                  profile?.agentAutoPay ? "bg-accent" : "bg-sand"
+                  profile?.agentAutoPay ? "bg-accent" : "bg-border"
                 )}
                 aria-label="Toggle auto-pay for copays"
               >
@@ -416,19 +416,19 @@ export default function WalletPage() {
                 />
               </button>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-cream/50 border border-sand/50">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-surface/50 border border-border/50">
               <div className="flex items-center gap-3">
                 <Pill size={14} className="text-yellow-600" />
                 <div>
-                  <p className="text-xs font-semibold text-warm-800">Auto-pay Rx refills</p>
-                  <p className="text-[10px] text-warm-500">Maya can process prescription payments</p>
+                  <p className="text-xs font-semibold text-primary">Auto-pay Rx refills</p>
+                  <p className="text-[10px] text-muted">Maya can process prescription payments</p>
                 </div>
               </div>
               <button
                 onClick={() => setAgentRxAutoPay(!profile?.agentRxAutoPay)}
                 className={cn(
                   "w-10 h-5 rounded-full transition relative",
-                  profile?.agentRxAutoPay ? "bg-accent" : "bg-sand"
+                  profile?.agentRxAutoPay ? "bg-accent" : "bg-border"
                 )}
                 aria-label="Toggle auto-pay for prescriptions"
               >
@@ -445,16 +445,16 @@ export default function WalletPage() {
       )}
 
       {/* Platform Info */}
-      <div className="bg-pampas rounded-2xl border border-sand p-6">
-        <h3 className="text-xs font-bold text-warm-800 mb-3">Platform Wallets</h3>
+      <div className="bg-surface rounded-2xl border border-border p-6">
+        <h3 className="text-xs font-bold text-primary mb-3">Platform Wallets</h3>
         <div className="space-y-2">
           <div className="flex items-center justify-between text-[10px]">
-            <span className="text-warm-500">Platform Treasury</span>
-            <code className="text-cloudy font-mono">{PLATFORM_WALLET}</code>
+            <span className="text-muted">Platform Treasury</span>
+            <code className="text-muted font-mono">{PLATFORM_WALLET}</code>
           </div>
           <div className="flex items-center justify-between text-[10px]">
-            <span className="text-warm-500">Developer</span>
-            <code className="text-cloudy font-mono">{DEVELOPER_WALLET}</code>
+            <span className="text-muted">Developer</span>
+            <code className="text-muted font-mono">{DEVELOPER_WALLET}</code>
           </div>
         </div>
       </div>

@@ -2,20 +2,34 @@ import { requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { AppointmentStatus } from '@prisma/client'
+import { resolveClinicSession } from '@/lib/clinic-auth'
+
+const MAX_LIMIT = 100
+const VALID_STATUSES: string[] = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW']
 
 // GET /api/appointments - List appointments with optional filters
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
+    const session = await resolveClinicSession(request)
+    if (session.authSource === 'default' && session.userId === 'anonymous') {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const patientId = searchParams.get('patientId')
     const doctorId = searchParams.get('doctorId')
     const status = searchParams.get('status') as AppointmentStatus | null
     const from = searchParams.get('from')
     const to = searchParams.get('to')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const page = parseInt(searchParams.get('page') || '1')
+    const rawLimit = parseInt(searchParams.get('limit') || '20')
+    const limit = Math.min(Math.max(rawLimit || 20, 1), MAX_LIMIT)
+    const page = Math.max(parseInt(searchParams.get('page') || '1') || 1, 1)
     const skip = (page - 1) * limit
+
+    if (status && !VALID_STATUSES.includes(status)) {
+      return NextResponse.json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` }, { status: 400 })
+    }
 
     const where: Record<string, unknown> = {}
 
@@ -78,18 +92,28 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
-    const body = await request.json()
-    const {
-      patientId,
-      doctorId,
-      scheduledAt,
-      duration = 30,
-      type = 'consultation',
-      reason,
-      notes,
-      paymentAmount,
-      transactionHash,
-    } = body
+    const session = await resolveClinicSession(request)
+    if (session.authSource === 'default' && session.userId === 'anonymous') {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
+    const b = body as Record<string, unknown>
+    const patientId = typeof b.patientId === "string" ? b.patientId : ""
+    const doctorId = typeof b.doctorId === "string" ? b.doctorId : ""
+    const scheduledAt = b.scheduledAt
+    const duration = typeof b.duration === "number" ? b.duration : 30
+    const type = typeof b.type === "string" ? b.type : "consultation"
+    const reason = typeof b.reason === "string" ? b.reason : undefined
+    const notes = typeof b.notes === "string" ? b.notes : undefined
+    const paymentAmount = typeof b.paymentAmount === "number" ? b.paymentAmount : undefined
+    const transactionHash = typeof b.transactionHash === "string" ? b.transactionHash : undefined
 
     // Validate required fields
     if (!patientId || !doctorId || !scheduledAt) {
@@ -100,7 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for scheduling conflicts
-    const scheduledDate = new Date(scheduledAt)
+    const scheduledDate = new Date(String(scheduledAt))
     const endTime = new Date(scheduledDate.getTime() + duration * 60 * 1000)
 
     const conflict = await prisma.appointment.findFirst({
@@ -111,7 +135,7 @@ export async function POST(request: NextRequest) {
           { scheduledAt: { lt: endTime } },
           {
             scheduledAt: {
-              gte: new Date(scheduledDate.getTime() - duration * 60 * 1000),
+              gte: new Date(scheduledDate.getTime() - (duration as number) * 60 * 1000),
             },
           },
         ],
@@ -167,7 +191,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating appointment:', error)
     return NextResponse.json(
-      { error: 'Failed to create appointment' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -177,8 +201,23 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
-    const body = await request.json()
-    const { id, status, notes, meetingUrl } = body
+    const session = await resolveClinicSession(request)
+    if (session.authSource === 'default' && session.userId === 'anonymous') {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
+    const b2 = body as Record<string, unknown>
+    const id = typeof b2.id === "string" ? b2.id : ""
+    const status = typeof b2.status === "string" ? b2.status : undefined
+    const notes = typeof b2.notes === "string" ? b2.notes : undefined
+    const meetingUrl = typeof b2.meetingUrl === "string" ? b2.meetingUrl : undefined
 
     if (!id) {
       return NextResponse.json(
@@ -187,13 +226,14 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
+    const updateData: Record<string, unknown> = {}
+    if (status && VALID_STATUSES.includes(status)) updateData.status = status as AppointmentStatus
+    if (notes) updateData.notes = notes
+    if (meetingUrl) updateData.meetingUrl = meetingUrl
+
     const appointment = await prisma.appointment.update({
-      where: { id },
-      data: {
-        ...(status && { status }),
-        ...(notes && { notes }),
-        ...(meetingUrl && { meetingUrl }),
-      },
+      where: { id: id as string },
+      data: updateData,
       include: {
         patient: {
           include: {
@@ -225,7 +265,7 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error('Error updating appointment:', error)
     return NextResponse.json(
-      { error: 'Failed to update appointment' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -235,6 +275,11 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
+    const session = await resolveClinicSession(request)
+    if (session.authSource === 'default' && session.userId === 'anonymous') {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
@@ -254,7 +299,7 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error('Error cancelling appointment:', error)
     return NextResponse.json(
-      { error: 'Failed to cancel appointment' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

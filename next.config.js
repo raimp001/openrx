@@ -4,8 +4,8 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   eslint: {
-    // Codebase has a lint backlog; keep builds unblocked until resolved
-    ignoreDuringBuilds: true,
+    // TODO: Fix lint backlog and set to false
+    ignoreDuringBuilds: process.env.CI !== "true",
   },
   images: {
     formats: ["image/avif", "image/webp"],

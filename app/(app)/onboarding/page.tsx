@@ -165,6 +165,7 @@ export default function OnboardingPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [searchResults, setSearchResults] = useState<{ name: string; npi: string; credential?: string; specialty?: string; fullAddress?: string; phone?: string }[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [lastSearchLocation, setLastSearchLocation] = useState("")
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -282,7 +283,26 @@ export default function OnboardingPage() {
         setIsSearching(true)
         addSystem("Searching NPI Registry...")
         try {
-          const res = await fetch(`/api/providers/search?q=${encodeURIComponent(`${val} internal medicine provider`)}&limit=5`)
+          // Build a smarter query: if user input looks like a location (ZIP or city), search for internal medicine there
+          // If it looks like a name, search by name with the last known location
+          const isZip = /^\d{5}(-\d{4})?$/.test(val.trim())
+          const isShortLocation = val.trim().split(/\s+/).length <= 3 && !val.includes(",") && /^[a-zA-Z\s]+$/.test(val.trim())
+          let searchQuery: string
+          if (isZip) {
+            setLastSearchLocation(val.trim())
+            searchQuery = `internal medicine provider ${val.trim()}`
+          } else if (isShortLocation && !lastSearchLocation) {
+            // Likely a city name — treat as location
+            setLastSearchLocation(val.trim())
+            searchQuery = `internal medicine provider ${val.trim()}`
+          } else if (lastSearchLocation) {
+            // User already gave a location, this is likely a name or refinement
+            searchQuery = `${val} internal medicine provider ${lastSearchLocation}`
+          } else {
+            searchQuery = `${val} internal medicine provider`
+          }
+
+          const res = await fetch(`/api/providers/search?q=${encodeURIComponent(searchQuery)}&limit=5`)
           const data = (await res.json()) as {
             ready?: boolean
             clarificationQuestion?: string
@@ -304,7 +324,7 @@ export default function OnboardingPage() {
             phone: item.phone,
           }))
 
-          if (data.ready === false) {
+          if (data.ready === false && mapped.length === 0) {
             addAgent(data.clarificationQuestion || "Tell me the city/state or ZIP so I can find PCP options.")
             setStep("pcp-search")
             break
@@ -535,7 +555,7 @@ export default function OnboardingPage() {
         addUser(val)
         break
     }
-  }, [input, step, patient, searchResults, addUser, addAgent, addSystem, advanceStep, isConnected, saveToWallet])
+  }, [input, step, patient, searchResults, lastSearchLocation, addUser, addAgent, addSystem, advanceStep, isConnected, saveToWallet])
 
   const handleOption = useCallback((value: string) => {
     handleSubmit(value)
@@ -543,36 +563,32 @@ export default function OnboardingPage() {
 
   return (
     <div className="animate-slide-up max-w-2xl mx-auto">
-      <AppPageHeader
-        align="center"
-        variant="hero"
-        title="Welcome to OpenRx"
-        description="Your AI care team is ready. No forms — just a conversation."
-        className="mb-6 surface-card p-5"
-        leading={
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-teal to-teal-dark">
-            <Sparkles size={24} className="text-white" />
+      {/* Hero header with gradient */}
+      <div className="mb-4 overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-teal-50 via-white to-violet-50 p-6 shadow-card">
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-teal shadow-glow-sm">
+            <Sparkles size={22} className="text-white" />
           </div>
-        }
-        meta={
-          isConnected ? (
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-[10px] font-semibold text-accent">
+          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Welcome to OpenRx</h1>
+          <p className="mt-2 text-sm text-secondary">Your AI care team is ready. No forms — just a conversation.</p>
+          {isConnected && (
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-3 py-1 text-[10px] font-semibold text-accent">
               <WalletIcon size={10} />
               Wallet connected — profile will be saved automatically
             </div>
-          ) : null
-        }
-      />
+          )}
+        </div>
+      </div>
 
       {/* Progress */}
       {step !== "welcome" && step !== "complete" && (() => {
         const { current, total, label } = getStepProgress(step)
         return (
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-3 px-1">
             {stepHistory.length > 0 && (
               <button
                 onClick={goBack}
-                className="flex items-center gap-1 text-xs font-medium text-secondary hover:text-teal transition"
+                className="flex items-center gap-1 text-xs font-medium text-secondary hover:text-teal transition-colors"
                 aria-label="Go back to previous step"
               >
                 <ArrowLeft size={14} />
@@ -580,14 +596,17 @@ export default function OnboardingPage() {
               </button>
             )}
             <div className="flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">{label}</span>
-                <span className="text-[10px] text-muted">{current} / {total}</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-semibold text-teal uppercase tracking-wider">{label}</span>
+                <span className="text-[10px] font-medium text-muted">{current} of {total}</span>
               </div>
-              <div className="h-1 rounded-full bg-border/50 overflow-hidden">
+              <div className="h-1.5 rounded-full bg-border/30 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-teal transition-all duration-500"
-                  style={{ width: `${(current / total) * 100}%` }}
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${(current / total) * 100}%`,
+                    background: "linear-gradient(90deg, #0D9488, #14B8A6)",
+                  }}
                 />
               </div>
             </div>
@@ -596,28 +615,34 @@ export default function OnboardingPage() {
       })()}
 
       {/* Chat */}
-      <div className="bg-surface rounded-2xl border border-border overflow-hidden flex flex-col h-[calc(100vh-320px)] min-h-[500px]">
+      <div className="rounded-2xl border border-border/40 bg-white overflow-hidden flex flex-col h-[calc(100vh-320px)] min-h-[500px] shadow-card">
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {messages.map((msg) => {
             const agentInfo = msg.agent ? AGENT_NAMES[msg.agent] : null
             const Icon = agentInfo?.icon || Bot
 
             return (
-              <div key={msg.id}>
+              <div key={msg.id} className="animate-fade-in">
                 <div className={cn("flex gap-3", msg.role === "user" ? "flex-row-reverse" : "")}>
                   {msg.role !== "system" && (
                     <div className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                      msg.role === "agent" ? "bg-teal/10" : "bg-soft-blue/10"
+                      "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
+                      msg.role === "agent"
+                        ? "bg-gradient-to-br from-teal-50 to-teal-100 border border-teal/10"
+                        : "bg-gradient-to-br from-blue-50 to-blue-100 border border-soft-blue/10"
                     )}>
-                      {msg.role === "user" ? <User size={14} className="text-soft-blue" /> : <Icon size={14} className={agentInfo?.color || "text-teal"} />}
+                      {msg.role === "user"
+                        ? <User size={14} className="text-soft-blue" />
+                        : <Icon size={14} className={agentInfo?.color || "text-teal"} />}
                     </div>
                   )}
                   <div className={cn(
-                    "rounded-xl px-4 py-3 max-w-[85%]",
-                    msg.role === "user" ? "bg-soft-blue/5 border border-soft-blue/10" :
-                    msg.role === "system" ? "bg-surface text-center w-full max-w-full text-xs text-muted py-2" :
-                    "bg-teal/5 border border-teal/10"
+                    "rounded-2xl px-4 py-3 max-w-[85%]",
+                    msg.role === "user"
+                      ? "bg-gradient-to-br from-blue-50/80 to-blue-50/40 border border-soft-blue/10"
+                      : msg.role === "system"
+                      ? "bg-surface text-center w-full max-w-full text-xs text-muted py-2 rounded-lg"
+                      : "bg-gradient-to-br from-teal-50/80 to-teal-50/30 border border-teal/10"
                   )}>
                     {msg.role === "agent" && agentInfo && (
                       <span className={cn("text-[10px] font-bold uppercase tracking-wider mb-1 block", agentInfo.color)}>
@@ -632,12 +657,12 @@ export default function OnboardingPage() {
 
                 {/* Option buttons */}
                 {msg.options && step !== "complete" && msg.id === messages[messages.length - 1]?.id && (
-                  <div className="flex flex-wrap gap-2 mt-2 ml-11">
+                  <div className="flex flex-wrap gap-2 mt-3 ml-12">
                     {msg.options.map((opt) => (
                       <button
                         key={opt.value}
                         onClick={() => handleOption(opt.value)}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-teal/20 bg-teal/5 text-teal hover:bg-teal/10 transition"
+                        className="px-4 py-2 text-xs font-semibold rounded-xl border border-teal/20 bg-white text-teal shadow-sm hover:shadow-md hover:border-teal/40 hover:bg-teal-50/50 transition-all active:scale-95"
                       >
                         {opt.label}
                       </button>
@@ -649,17 +674,24 @@ export default function OnboardingPage() {
           })}
 
           {isTyping && (
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center">
+            <div className="flex gap-3 animate-fade-in">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-50 to-teal-100 border border-teal/10 flex items-center justify-center shadow-sm">
                 <Heart size={14} className="text-teal" />
               </div>
-              <div className="rounded-xl bg-teal/5 border border-teal/10 px-4 py-3">
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+              <div className="rounded-2xl bg-gradient-to-br from-teal-50/80 to-teal-50/30 border border-teal/10 px-4 py-3">
+                <div className="flex gap-1.5">
+                  <span className="w-2 h-2 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-2 h-2 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-2 h-2 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                 </div>
               </div>
+            </div>
+          )}
+
+          {isSearching && (
+            <div className="flex items-center gap-2 text-xs text-teal animate-fade-in ml-12">
+              <div className="h-4 w-4 rounded-full border-2 border-teal/30 border-t-teal animate-spin" />
+              <span>Searching NPI Registry...</span>
             </div>
           )}
 
@@ -668,7 +700,7 @@ export default function OnboardingPage() {
 
         {/* Input */}
         {step !== "complete" && (
-          <div className="px-5 py-3 border-t border-border bg-surface/30">
+          <div className="px-4 py-3 border-t border-border/40 bg-gradient-to-b from-white to-surface/50">
             <div className="flex gap-2">
               <input
                 ref={inputRef}
@@ -679,13 +711,14 @@ export default function OnboardingPage() {
                 placeholder="Type your answer..."
                 disabled={isTyping || isSearching}
                 aria-label="Onboarding chat input"
-                className="flex-1 px-4 py-2.5 rounded-xl border border-border bg-surface text-sm placeholder:text-muted focus:outline-none focus:border-teal/40 focus:ring-1 focus:ring-teal/20 transition disabled:opacity-50"
+                className="flex-1 px-4 py-3 rounded-xl border border-border/60 bg-white text-sm placeholder:text-muted/60 focus:outline-none focus:border-teal/40 focus:ring-2 focus:ring-teal/10 transition-all disabled:opacity-50 shadow-inner-soft"
               />
               <button
                 onClick={() => handleSubmit()}
                 disabled={isTyping || isSearching || !input.trim()}
                 aria-label="Send message"
-                className="px-4 py-2.5 bg-teal text-white rounded-xl hover:bg-teal-dark transition disabled:opacity-50"
+                className="px-4 py-3 rounded-xl text-white transition-all disabled:opacity-40"
+                style={{ background: "linear-gradient(135deg, #0D9488, #0F766E)", boxShadow: "0 1px 2px rgba(0,0,0,0.1), 0 2px 8px rgba(13,148,136,0.25)" }}
               >
                 <ArrowRight size={16} />
               </button>
@@ -695,14 +728,21 @@ export default function OnboardingPage() {
 
         {/* Complete state */}
         {step === "complete" && (
-          <div className="px-5 py-4 border-t border-border bg-accent/5 text-center">
-            <CheckCircle2 size={20} className="text-accent mx-auto mb-1" />
-            <p className="text-sm font-semibold text-accent">Onboarding Complete</p>
+          <div className="px-5 py-6 border-t border-border/40 bg-gradient-to-br from-accent/5 to-teal-50/30 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 mb-3">
+              <CheckCircle2 size={24} className="text-accent" />
+            </div>
+            <p className="text-base font-semibold text-primary">Onboarding Complete!</p>
+            <p className="text-sm text-secondary mt-1">Your care team is ready to go.</p>
             {isConnected && (
-              <p className="text-[10px] text-accent/70 mt-0.5">Profile saved to your wallet identity</p>
+              <p className="text-[11px] text-accent/70 mt-1">Profile saved to your wallet identity</p>
             )}
-            <a href="/dashboard" className="text-xs text-teal font-semibold mt-1 inline-block hover:underline">
-              Go to Dashboard →
+            <a
+              href="/dashboard"
+              className="mt-4 btn-primary inline-flex text-sm px-6 py-2.5"
+            >
+              Go to Dashboard
+              <ArrowRight size={14} />
             </a>
           </div>
         )}

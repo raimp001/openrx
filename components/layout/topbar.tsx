@@ -158,7 +158,7 @@ export default function Topbar() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/60 bg-[rgba(250,250,248,0.95)] backdrop-blur-lg">
+    <header className="sticky top-0 z-30 border-b border-border/40 bg-white/80 backdrop-blur-xl">
       <div className="flex h-14 items-center gap-4 px-4 sm:px-6 lg:px-8">
         {/* Search */}
         <div ref={searchRef} className="relative flex-1 max-w-lg">
@@ -174,7 +174,7 @@ export default function Topbar() {
             aria-expanded={isOpen && !!results}
             aria-activedescendant={activeIndex >= 0 ? `search-result-${activeIndex}` : undefined}
             placeholder="Search..."
-            className="w-full rounded-nav border border-border bg-white py-2 pl-9 pr-12 text-sm text-primary placeholder:text-muted transition focus:border-teal/40 focus:ring-1 focus:ring-teal/20"
+            className="w-full rounded-button border border-border/60 bg-surface py-2 pl-9 pr-12 text-sm text-primary placeholder:text-muted/60 transition focus:border-teal/40 focus:ring-2 focus:ring-teal/10 focus:bg-white"
           />
           {query ? (
             <button
@@ -292,9 +292,9 @@ export default function Topbar() {
           {isConnected ? (
             <Link
               href="/profile"
-              className="flex h-8 items-center gap-2 rounded-full border border-border bg-white pl-1 pr-3 transition hover:border-teal/30"
+              className="flex h-8 items-center gap-2 rounded-full border border-border/60 bg-white pl-1 pr-3 transition hover:border-teal/30 hover:shadow-sm"
             >
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal text-[10px] font-semibold text-white">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: "linear-gradient(135deg, #0D9488, #0F766E)" }}>
                 {displayName ? displayName.charAt(0).toUpperCase() : "?"}
               </div>
               <span className="hidden text-[13px] font-medium text-primary sm:inline">

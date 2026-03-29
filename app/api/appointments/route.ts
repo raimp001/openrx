@@ -2,20 +2,34 @@ import { requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { AppointmentStatus } from '@prisma/client'
+import { resolveClinicSession } from '@/lib/clinic-auth'
+
+const MAX_LIMIT = 100
+const VALID_STATUSES: string[] = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW']
 
 // GET /api/appointments - List appointments with optional filters
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
+    const session = await resolveClinicSession(request)
+    if (session.authSource === 'default' && session.userId === 'anonymous') {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const patientId = searchParams.get('patientId')
     const doctorId = searchParams.get('doctorId')
     const status = searchParams.get('status') as AppointmentStatus | null
     const from = searchParams.get('from')
     const to = searchParams.get('to')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const page = parseInt(searchParams.get('page') || '1')
+    const rawLimit = parseInt(searchParams.get('limit') || '20')
+    const limit = Math.min(Math.max(rawLimit || 20, 1), MAX_LIMIT)
+    const page = Math.max(parseInt(searchParams.get('page') || '1') || 1, 1)
     const skip = (page - 1) * limit
+
+    if (status && !VALID_STATUSES.includes(status)) {
+      return NextResponse.json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` }, { status: 400 })
+    }
 
     const where: Record<string, unknown> = {}
 
@@ -78,7 +92,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
-    const body = await request.json()
+    const session = await resolveClinicSession(request)
+    if (session.authSource === 'default' && session.userId === 'anonymous') {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
     const {
       patientId,
       doctorId,
@@ -89,7 +114,7 @@ export async function POST(request: NextRequest) {
       notes,
       paymentAmount,
       transactionHash,
-    } = body
+    } = body as Record<string, unknown>
 
     // Validate required fields
     if (!patientId || !doctorId || !scheduledAt) {
@@ -167,7 +192,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating appointment:', error)
     return NextResponse.json(
-      { error: 'Failed to create appointment' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -177,8 +202,19 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
-    const body = await request.json()
-    const { id, status, notes, meetingUrl } = body
+    const session = await resolveClinicSession(request)
+    if (session.authSource === 'default' && session.userId === 'anonymous') {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
+    const { id, status, notes, meetingUrl } = body as Record<string, unknown>
 
     if (!id) {
       return NextResponse.json(
@@ -225,7 +261,7 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error('Error updating appointment:', error)
     return NextResponse.json(
-      { error: 'Failed to update appointment' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -235,6 +271,11 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
+    const session = await resolveClinicSession(request)
+    if (session.authSource === 'default' && session.userId === 'anonymous') {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
@@ -254,7 +295,7 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error('Error cancelling appointment:', error)
     return NextResponse.json(
-      { error: 'Failed to cancel appointment' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

@@ -110,6 +110,7 @@ model PatientProfile {
   medicalRecords MedicalRecord[]
   labResults    LabResult[]
   vitalSigns    VitalSign[]
+  reviews       DoctorReview[] @relation("PatientReviews")
 
   @@map("patient_profiles")
 }
@@ -125,7 +126,7 @@ model DoctorProfile {
   licenseNumber    String   @unique
   bio              String?
   yearsExperience  Int?
-  consultationFee  Float?
+  consultationFee  Decimal?  @db.Decimal(10, 2)
   availableSlots   Json?
   rating           Float?   @default(0)
   totalReviews     Int      @default(0)
@@ -159,7 +160,7 @@ model Appointment {
   notes           String?
   meetingUrl      String?
   transactionHash String?
-  paymentAmount   Float?
+  paymentAmount   Decimal?  @db.Decimal(10, 2)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -172,6 +173,8 @@ model Appointment {
   @@index([patientId])
   @@index([doctorId])
   @@index([scheduledAt])
+  @@index([status, scheduledAt])
+  @@index([patientId, scheduledAt])
   @@map("appointments")
 }
 
@@ -195,11 +198,12 @@ model Prescription {
   // Relations
   patient      PatientProfile  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   doctor       DoctorProfile   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  appointment  Appointment?    @relation(fields: [appointmentId], references: [id])
+  appointment  Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   medications  Medication[]
 
   @@index([patientId])
   @@index([doctorId])
+  @@index([patientId, createdAt])
   @@map("prescriptions")
 }
 
@@ -315,6 +319,8 @@ model Message {
 
   @@index([senderId])
   @@index([receiverId])
+  @@index([createdAt])
+  @@index([receiverId, createdAt])
   @@map("messages")
 }
 
@@ -337,6 +343,7 @@ model Notification {
 
   @@index([userId])
   @@index([isRead])
+  @@index([userId, isRead])
   @@map("notifications")
 }
 
@@ -348,7 +355,7 @@ model Payment {
   id              String        @id @default(cuid())
   userId          String
   appointmentId   String?       @unique
-  amount          Float
+  amount          Decimal   @db.Decimal(10, 2)
   currency        String        @default("USDC")
   status          PaymentStatus @default(PENDING)
   transactionHash String?       @unique
@@ -361,10 +368,11 @@ model Payment {
 
   // Relations
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([transactionHash])
+  @@index([status, createdAt])
   @@map("payments")
 }
 
@@ -376,17 +384,19 @@ model DoctorReview {
   id        String   @id @default(cuid())
   doctorId  String
   patientId String
-  rating    Int      // 1-5
+  rating    Int      @db.SmallInt // Constrained 1-5 at application level
   comment   String?
   isVerified Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  doctor DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  doctor  DoctorProfile  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient PatientProfile @relation("PatientReviews", fields: [patientId], references: [id], onDelete: Cascade)
 
   @@unique([doctorId, patientId])
   @@index([doctorId])
+  @@index([patientId])
   @@map("doctor_reviews")
 }
 
@@ -422,7 +432,7 @@ model AuditLog {
   ipAddress  String?
   userAgent  String?
   metadata   Json?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
 
   // Relations
   user User? @relation(fields: [userId], references: [id])

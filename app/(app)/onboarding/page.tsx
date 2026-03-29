@@ -291,8 +291,8 @@ export default function OnboardingPage() {
           if (isZip) {
             setLastSearchLocation(val.trim())
             searchQuery = `internal medicine provider ${val.trim()}`
-          } else if (isShortLocation && !lastSearchLocation) {
-            // Likely a city name — treat as location
+          } else if (isShortLocation) {
+            // Likely a city name — always update stored location (supports retry with new city)
             setLastSearchLocation(val.trim())
             searchQuery = `internal medicine provider ${val.trim()}`
           } else if (lastSearchLocation) {

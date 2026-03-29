@@ -46,9 +46,9 @@ function isRateLimited(ip: string): boolean {
 if (typeof globalThis !== "undefined") {
   setInterval(() => {
     const now = Date.now()
-    for (const [key, val] of rateLimitMap) {
+    rateLimitMap.forEach((val, key) => {
       if (now > val.resetAt) rateLimitMap.delete(key)
-    }
+    })
   }, 300_000)
 }
 

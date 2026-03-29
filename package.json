@@ -19,6 +19,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@base-org/account": "^2.5.2",
+    "@chenglou/pretext": "^0.0.2",
     "@coinbase/onchainkit": "^1.1.2",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@prisma/client": "^6.18.0",

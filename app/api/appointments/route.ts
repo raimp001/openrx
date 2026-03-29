@@ -104,17 +104,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const {
-      patientId,
-      doctorId,
-      scheduledAt,
-      duration = 30,
-      type = 'consultation',
-      reason,
-      notes,
-      paymentAmount,
-      transactionHash,
-    } = body as Record<string, unknown>
+    const b = body as Record<string, unknown>
+    const patientId = typeof b.patientId === "string" ? b.patientId : ""
+    const doctorId = typeof b.doctorId === "string" ? b.doctorId : ""
+    const scheduledAt = b.scheduledAt
+    const duration = typeof b.duration === "number" ? b.duration : 30
+    const type = typeof b.type === "string" ? b.type : "consultation"
+    const reason = typeof b.reason === "string" ? b.reason : undefined
+    const notes = typeof b.notes === "string" ? b.notes : undefined
+    const paymentAmount = typeof b.paymentAmount === "number" ? b.paymentAmount : undefined
+    const transactionHash = typeof b.transactionHash === "string" ? b.transactionHash : undefined
 
     // Validate required fields
     if (!patientId || !doctorId || !scheduledAt) {
@@ -125,7 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for scheduling conflicts
-    const scheduledDate = new Date(scheduledAt)
+    const scheduledDate = new Date(String(scheduledAt))
     const endTime = new Date(scheduledDate.getTime() + duration * 60 * 1000)
 
     const conflict = await prisma.appointment.findFirst({
@@ -136,7 +135,7 @@ export async function POST(request: NextRequest) {
           { scheduledAt: { lt: endTime } },
           {
             scheduledAt: {
-              gte: new Date(scheduledDate.getTime() - duration * 60 * 1000),
+              gte: new Date(scheduledDate.getTime() - (duration as number) * 60 * 1000),
             },
           },
         ],
@@ -214,7 +213,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const { id, status, notes, meetingUrl } = body as Record<string, unknown>
+    const b2 = body as Record<string, unknown>
+    const id = typeof b2.id === "string" ? b2.id : ""
+    const status = typeof b2.status === "string" ? b2.status : undefined
+    const notes = typeof b2.notes === "string" ? b2.notes : undefined
+    const meetingUrl = typeof b2.meetingUrl === "string" ? b2.meetingUrl : undefined
 
     if (!id) {
       return NextResponse.json(
@@ -223,13 +226,14 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
+    const updateData: Record<string, unknown> = {}
+    if (status && VALID_STATUSES.includes(status)) updateData.status = status as AppointmentStatus
+    if (notes) updateData.notes = notes
+    if (meetingUrl) updateData.meetingUrl = meetingUrl
+
     const appointment = await prisma.appointment.update({
-      where: { id },
-      data: {
-        ...(status && { status }),
-        ...(notes && { notes }),
-        ...(meetingUrl && { meetingUrl }),
-      },
+      where: { id: id as string },
+      data: updateData,
       include: {
         patient: {
           include: {

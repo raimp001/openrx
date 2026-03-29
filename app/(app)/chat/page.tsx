@@ -31,6 +31,7 @@ import {
 } from "lucide-react"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { AppPageHeader } from "@/components/layout/app-page"
+import { ShrinkwrapBubble } from "@/components/shrinkwrap-bubble"
 
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
@@ -415,13 +416,14 @@ export default function ChatPage() {
                       )}
                     </div>
                   )}
-                  <div
+                  <ShrinkwrapBubble
+                    text={msg.content}
+                    role={msg.role}
                     className={cn(
-                      "rounded-xl border px-4 py-3 max-w-[80%]",
                       msg.role === "user"
                         ? "bg-soft-blue/5 border-soft-blue/10"
                         : msg.role === "system"
-                        ? "bg-yellow-50 border-yellow-200/50 w-full text-center"
+                        ? "bg-yellow-50 border-yellow-200/50 !w-full text-center"
                         : "bg-teal/5 border-teal/10"
                     )}
                   >
@@ -457,7 +459,7 @@ export default function ChatPage() {
                         {msg.timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                       </span>
                     )}
-                  </div>
+                  </ShrinkwrapBubble>
                 </div>
 
                 {/* Routing info */}

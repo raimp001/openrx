@@ -126,7 +126,7 @@ model DoctorProfile {
   licenseNumber    String   @unique
   bio              String?
   yearsExperience  Int?
-  consultationFee  Decimal?  @db.Decimal(10, 2)
+  consultationFee  Float?
   availableSlots   Json?
   rating           Float?   @default(0)
   totalReviews     Int      @default(0)
@@ -160,7 +160,7 @@ model Appointment {
   notes           String?
   meetingUrl      String?
   transactionHash String?
-  paymentAmount   Decimal?  @db.Decimal(10, 2)
+  paymentAmount   Float?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -355,7 +355,7 @@ model Payment {
   id              String        @id @default(cuid())
   userId          String
   appointmentId   String?       @unique
-  amount          Decimal   @db.Decimal(10, 2)
+  amount          Float
   currency        String        @default("USDC")
   status          PaymentStatus @default(PENDING)
   transactionHash String?       @unique

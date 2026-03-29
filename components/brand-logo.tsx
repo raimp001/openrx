@@ -11,13 +11,14 @@ export function BrandMark({ className, iconClassName, size = "md" }: BrandMarkPr
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-[12px] border border-border bg-white shadow-card",
+        "flex shrink-0 items-center justify-center rounded-[12px] shadow-card",
         size === "sm" ? "h-8 w-8" : "h-9 w-9",
         className
       )}
+      style={{ background: "linear-gradient(135deg, #0D9488, #0F766E)", boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 2px 8px rgba(13,148,136,0.2)" }}
     >
       <svg width={dim} height={dim} viewBox="0 0 24 24" fill="none" className={iconClassName} aria-hidden>
-        <path d="M12 4v16M4 12h16" stroke="#0F5E54" strokeWidth="2.6" strokeLinecap="round" />
+        <path d="M12 4v16M4 12h16" stroke="white" strokeWidth="2.6" strokeLinecap="round" />
       </svg>
     </div>
   )

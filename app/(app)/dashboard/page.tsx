@@ -116,11 +116,14 @@ export default function DashboardPage() {
   if (!loading && !isConnected && !hasData) {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center text-center animate-hero-fade">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-teal shadow-glow-teal">
+          <Heart size={32} className="text-white" strokeWidth={1.5} />
+        </div>
         <h1 className="font-serif text-display-lg text-primary italic">
           Your health, one place.
         </h1>
-        <p className="mt-4 max-w-sm text-base text-secondary">
-          Connect your wallet to unlock your personalized care dashboard.
+        <p className="mt-4 max-w-sm text-base text-secondary leading-relaxed">
+          Connect your wallet to unlock your personalized care dashboard powered by 12 AI agents.
         </p>
         <div className="mt-8">
           <Wallet>
@@ -147,21 +150,19 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Link href="/onboarding" className="surface-card p-6 transition hover:shadow-card-hover group">
-            <Heart size={20} className="text-teal mb-3" strokeWidth={1.5} />
-            <p className="text-[15px] font-semibold text-primary group-hover:text-teal transition">Complete your profile</p>
-            <p className="mt-1 text-sm text-secondary">A 2-minute guided chat to set up your care team.</p>
-          </Link>
-          <Link href="/providers" className="surface-card p-6 transition hover:shadow-card-hover group">
-            <Search size={20} className="text-teal mb-3" strokeWidth={1.5} />
-            <p className="text-[15px] font-semibold text-primary group-hover:text-teal transition">Find a provider</p>
-            <p className="mt-1 text-sm text-secondary">Search for doctors, specialists, and care centers nearby.</p>
-          </Link>
-          <Link href="/chat" className="surface-card p-6 transition hover:shadow-card-hover group">
-            <Bot size={20} className="text-teal mb-3" strokeWidth={1.5} />
-            <p className="text-[15px] font-semibold text-primary group-hover:text-teal transition">Ask the AI concierge</p>
-            <p className="mt-1 text-sm text-secondary">Get answers about care, coverage, or next steps.</p>
-          </Link>
+          {[
+            { href: "/onboarding", icon: Heart, color: "from-teal-50 to-teal-100", iconColor: "text-teal", title: "Complete your profile", desc: "A 2-minute guided chat to set up your care team." },
+            { href: "/providers", icon: Search, color: "from-violet-50 to-violet-50/50", iconColor: "text-violet", title: "Find a provider", desc: "Search for doctors, specialists, and care centers nearby." },
+            { href: "/chat", icon: Bot, color: "from-teal-50 to-blue-50/50", iconColor: "text-teal-dark", title: "Ask the AI concierge", desc: "Get answers about care, coverage, or next steps." },
+          ].map((item) => (
+            <Link key={item.href} href={item.href} className="surface-card-interactive p-6 group">
+              <div className={`h-11 w-11 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-4`}>
+                <item.icon size={18} className={item.iconColor} strokeWidth={1.5} />
+              </div>
+              <p className="text-[15px] font-semibold text-primary group-hover:text-teal transition">{item.title}</p>
+              <p className="mt-1 text-sm text-secondary">{item.desc}</p>
+            </Link>
+          ))}
         </div>
       </div>
     )
@@ -172,7 +173,7 @@ export default function DashboardPage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border border-t-teal" />
+          <div className="mx-auto h-10 w-10 rounded-full border-2 border-teal/20 border-t-teal animate-spin" />
           <p className="mt-4 text-sm text-muted">Loading your dashboard...</p>
         </div>
       </div>
@@ -180,100 +181,160 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="animate-hero-fade space-y-4">
+    <div className="animate-hero-fade space-y-5">
       {/* Greeting */}
-      <div className="pb-2">
+      <div className="pb-1">
         <h1 className="text-2xl font-semibold text-primary tracking-tight">
           {firstName ? `Hi, ${firstName}` : "Dashboard"}
         </h1>
+        <p className="mt-0.5 text-sm text-muted">Here&apos;s what needs your attention.</p>
       </div>
 
-      {/* 3-card grid */}
-      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        {/* Next Action */}
-        <div className="surface-card p-6">
-          <p className="section-title mb-4">Next action</p>
-          {nextAction ? (
-            <Link href={nextAction.href} className="group flex items-center gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-card bg-surface">
-                <nextAction.icon size={18} className={nextAction.color} strokeWidth={1.5} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-medium text-primary">{nextAction.label}</p>
-                <p className="mt-0.5 text-sm text-secondary">{nextAction.detail}</p>
-              </div>
-              <ChevronRight size={16} className="text-muted transition group-hover:text-teal" />
-            </Link>
-          ) : (
-            <div className="flex items-center gap-3">
-              <CheckCircle2 size={20} className="text-accent" />
-              <div>
-                <p className="text-[15px] font-medium text-primary">You&apos;re all caught up</p>
-                <p className="text-sm text-secondary">No urgent items right now.</p>
-              </div>
+      {/* Stats strip */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Medications", value: String(myRx.length), icon: Pill, color: "text-teal" },
+          { label: "Adherence", value: `${avgAdherence}%`, icon: Activity, color: avgAdherence >= 80 ? "text-accent" : "text-amber-600" },
+          { label: "Due vaccines", value: String(dueVaccines.length), icon: Syringe, color: dueVaccines.length > 0 ? "text-amber-600" : "text-accent" },
+          { label: "Open claims", value: String(deniedClaims.length), icon: Receipt, color: deniedClaims.length > 0 ? "text-soft-red" : "text-accent" },
+        ].map((stat) => (
+          <div key={stat.label} className="surface-card p-4">
+            <div className="flex items-center justify-between">
+              <stat.icon size={14} className="text-muted" strokeWidth={1.5} />
+              <span className={cn("text-lg font-bold tabular-nums", stat.color)}>{stat.value}</span>
             </div>
-          )}
+            <p className="mt-1 text-[11px] font-medium text-muted uppercase tracking-wider">{stat.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Main grid */}
+      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        {/* Next Action */}
+        <div className="surface-card overflow-hidden">
+          <div className="px-6 py-4 border-b border-border/40">
+            <p className="section-title">Priority action</p>
+          </div>
+          <div className="p-6">
+            {nextAction ? (
+              <Link href={nextAction.href} className="group flex items-center gap-4">
+                <div className={cn(
+                  "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
+                  nextAction.color === "text-soft-red" ? "bg-red-50" :
+                  nextAction.color === "text-amber-600" ? "bg-amber-50" : "bg-teal-50"
+                )}>
+                  <nextAction.icon size={20} className={nextAction.color} strokeWidth={1.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-semibold text-primary">{nextAction.label}</p>
+                  <p className="mt-0.5 text-sm text-secondary">{nextAction.detail}</p>
+                </div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface group-hover:bg-teal-50 transition">
+                  <ChevronRight size={16} className="text-muted group-hover:text-teal transition" />
+                </div>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
+                  <CheckCircle2 size={20} className="text-accent" />
+                </div>
+                <div>
+                  <p className="text-[15px] font-semibold text-primary">You&apos;re all caught up</p>
+                  <p className="text-sm text-secondary">No urgent items right now.</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Health Summary */}
-        <div className="surface-card p-6">
-          <p className="section-title mb-4">Health score</p>
-          <div className="flex items-center gap-4">
-            <div className="relative shrink-0">
-              <HealthRing score={healthScore} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className={cn(
-                  "text-lg font-semibold",
-                  healthScore >= 80 ? "text-accent" : healthScore >= 60 ? "text-amber-600" : "text-soft-red"
-                )}>{healthScore}</span>
-              </div>
-            </div>
-            <div className="min-w-0 flex-1 space-y-2">
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="text-secondary">Adherence</span>
-                <span className="font-medium text-primary tabular-nums">{avgAdherence}%</span>
-              </div>
-              {latestVital?.systolic && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-secondary">BP</span>
-                  <span className="font-medium text-primary">{latestVital.systolic}/{latestVital.diastolic}</span>
+        <div className="surface-card overflow-hidden">
+          <div className="px-6 py-4 border-b border-border/40">
+            <p className="section-title">Health score</p>
+          </div>
+          <div className="p-6">
+            <div className="flex items-center gap-5">
+              <div className="relative shrink-0">
+                <HealthRing score={healthScore} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className={cn(
+                    "text-xl font-bold tabular-nums",
+                    healthScore >= 80 ? "text-accent" : healthScore >= 60 ? "text-amber-600" : "text-soft-red"
+                  )}>{healthScore}</span>
                 </div>
-              )}
-              {latestVital?.heart_rate && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-secondary">HR</span>
-                  <span className="font-medium text-primary">{latestVital.heart_rate} bpm</span>
+              </div>
+              <div className="min-w-0 flex-1 space-y-2.5">
+                <div className="flex items-center justify-between gap-4 text-sm">
+                  <span className="text-secondary">Adherence</span>
+                  <span className="font-semibold text-primary tabular-nums">{avgAdherence}%</span>
                 </div>
-              )}
+                {latestVital?.systolic && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-secondary">BP</span>
+                    <span className="font-semibold text-primary">{latestVital.systolic}/{latestVital.diastolic}</span>
+                  </div>
+                )}
+                {latestVital?.heart_rate && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-secondary">HR</span>
+                    <span className="font-semibold text-primary">{latestVital.heart_rate} bpm</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Recent Activity */}
-      <div className="surface-card">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/60">
+      <div className="surface-card overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
           <p className="section-title">Recent activity</p>
-          <Link href="/timeline" className="text-xs font-medium text-teal transition hover:text-teal-dark flex items-center gap-1">
+          <Link href="/timeline" className="text-xs font-semibold text-teal transition hover:text-teal-dark flex items-center gap-1">
             View all <ArrowRight size={11} />
           </Link>
         </div>
         {recentActivity.length > 0 ? (
-          <div className="divide-y divide-border/40">
+          <div className="divide-y divide-border/30">
             {recentActivity.map((item, i) => (
-              <Link key={i} href={item.href} className="flex items-center gap-3 px-6 py-3.5 transition hover:bg-surface">
-                <item.icon size={15} className="text-muted shrink-0" strokeWidth={1.5} />
+              <Link key={i} href={item.href} className="flex items-center gap-3 px-6 py-4 transition hover:bg-teal-50/30 group">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface group-hover:bg-white transition">
+                  <item.icon size={14} className="text-muted" strokeWidth={1.5} />
+                </div>
                 <span className="flex-1 text-sm font-medium text-primary">{item.label}</span>
-                <span className="text-xs text-muted font-mono">{formatRelative(item.time)}</span>
+                <span className="text-[11px] text-muted font-mono tabular-nums">{formatRelative(item.time)}</span>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="px-6 py-10 text-center">
-            <p className="text-sm text-secondary">No recent activity yet.</p>
+          <div className="px-6 py-12 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-surface mb-3">
+              <Clock size={20} className="text-muted" strokeWidth={1.5} />
+            </div>
+            <p className="text-sm font-medium text-secondary">No recent activity yet</p>
             <p className="mt-1 text-xs text-muted">Care team updates will appear here.</p>
           </div>
         )}
+      </div>
+
+      {/* Quick links */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { href: "/scheduling", icon: Calendar, label: "Scheduling", color: "text-violet" },
+          { href: "/prescriptions", icon: Pill, label: "Prescriptions", color: "text-teal" },
+          { href: "/lab-results", icon: FlaskConical, label: "Lab Results", color: "text-soft-blue" },
+          { href: "/chat", icon: Bot, label: "AI Concierge", color: "text-teal-dark" },
+        ].map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="surface-card-interactive flex items-center gap-3 p-4 group"
+          >
+            <link.icon size={16} className={cn(link.color, "shrink-0")} strokeWidth={1.5} />
+            <span className="text-sm font-medium text-primary group-hover:text-teal transition">{link.label}</span>
+            <ArrowRight size={12} className="ml-auto text-muted group-hover:text-teal transition" />
+          </Link>
+        ))}
       </div>
     </div>
   )

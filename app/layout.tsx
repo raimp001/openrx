@@ -1,17 +1,8 @@
 import type { Metadata, Viewport } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
-import { Instrument_Serif } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-serif",
-  weight: ["400"],
-  style: ["normal", "italic"],
-})
 
 export const metadata: Metadata = {
   title: "OpenRx — AI Healthcare Agent | Powered by OpenClaw",
@@ -38,7 +29,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${GeistSans.variable} ${GeistMono.variable} ${instrumentSerif.variable} min-h-screen bg-surface text-primary antialiased`}>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} min-h-screen bg-surface text-primary antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

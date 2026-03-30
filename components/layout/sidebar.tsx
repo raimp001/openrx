@@ -153,7 +153,7 @@ export default function Sidebar() {
   const sidebarContent = (
     <>
       {/* Brand */}
-      <div className="flex items-center justify-between border-b border-border/40 px-5 py-4">
+      <div className="flex items-center justify-between border-b border-border/30 px-5 py-4">
         <div className="flex items-center gap-3">
           <BrandMark size="sm" />
           <BrandWordmark
@@ -173,9 +173,9 @@ export default function Sidebar() {
 
       {/* Patient card */}
       {hasPatient && (
-        <div className="border-b border-border/40 px-5 py-4">
+        <div className="border-b border-border/30 px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white" style={{ background: "linear-gradient(135deg, #0D9488, #0F766E)" }}>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-teal text-sm font-bold text-white">
               {patientName.charAt(0) || "?"}
             </div>
             <div className="min-w-0">
@@ -268,11 +268,10 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="border-t border-border/40 px-3 py-3">
+      <div className="border-t border-border/30 px-3 py-3">
         <Link
           href="/chat"
-          className="flex items-center gap-3 rounded-button px-3 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-          style={{ background: "linear-gradient(135deg, #0D9488, #0F766E)", boxShadow: "0 1px 2px rgba(0,0,0,0.08), 0 2px 6px rgba(13,148,136,0.2)" }}
+          className="flex items-center gap-3 rounded-xl bg-gradient-teal px-3 py-2.5 text-sm font-semibold text-white transition hover:shadow-glow-sm"
         >
           <Bot size={16} className="text-white" strokeWidth={1.5} />
           <span className="flex-1">Open concierge</span>
@@ -317,14 +316,14 @@ export default function Sidebar() {
       <aside
         data-mobile-sidebar
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[256px] flex-col border-r border-border/60 bg-white transition-transform duration-200 lg:hidden",
+          "fixed left-0 top-0 z-50 flex h-screen w-[256px] flex-col border-r border-border/30 bg-white transition-transform duration-200 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {sidebarContent}
       </aside>
 
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[256px] flex-col border-r border-border/40 bg-white lg:flex">
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[256px] flex-col border-r border-border/30 bg-white lg:flex">
         {sidebarContent}
       </aside>
     </>

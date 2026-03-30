@@ -563,14 +563,14 @@ export default function OnboardingPage() {
 
   return (
     <div className="animate-slide-up max-w-2xl mx-auto">
-      {/* Hero header with gradient */}
-      <div className="mb-4 overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-teal-50 via-white to-violet-50 p-6 shadow-card">
+      {/* Hero header */}
+      <div className="mb-4 overflow-hidden rounded-2xl border border-border/30 bg-white p-6">
         <div className="flex flex-col items-center text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-teal shadow-glow-sm">
             <Sparkles size={22} className="text-white" />
           </div>
-          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-primary sm:text-3xl">Welcome to OpenRx</h1>
-          <p className="mt-2 text-sm text-secondary">Your AI care team is ready. No forms — just a conversation.</p>
+          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-primary">Set up your care profile</h1>
+          <p className="mt-1.5 text-[14px] text-secondary">A 2-minute conversation — no forms, no passwords.</p>
           {isConnected && (
             <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-3 py-1 text-[10px] font-semibold text-accent">
               <WalletIcon size={10} />
@@ -615,7 +615,7 @@ export default function OnboardingPage() {
       })()}
 
       {/* Chat */}
-      <div className="rounded-2xl border border-border/40 bg-white overflow-hidden flex flex-col h-[calc(100vh-320px)] min-h-[500px] shadow-card">
+      <div className="rounded-2xl border border-border/30 bg-white overflow-hidden flex flex-col h-[calc(100vh-320px)] min-h-[500px]">
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {messages.map((msg) => {
             const agentInfo = msg.agent ? AGENT_NAMES[msg.agent] : null
@@ -626,10 +626,10 @@ export default function OnboardingPage() {
                 <div className={cn("flex gap-3", msg.role === "user" ? "flex-row-reverse" : "")}>
                   {msg.role !== "system" && (
                     <div className={cn(
-                      "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
+                      "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
                       msg.role === "agent"
-                        ? "bg-gradient-to-br from-teal-50 to-teal-100 border border-teal/10"
-                        : "bg-gradient-to-br from-blue-50 to-blue-100 border border-soft-blue/10"
+                        ? "bg-teal-50/60"
+                        : "bg-blue-50/60"
                     )}>
                       {msg.role === "user"
                         ? <User size={14} className="text-soft-blue" />
@@ -639,10 +639,10 @@ export default function OnboardingPage() {
                   <div className={cn(
                     "rounded-2xl px-4 py-3 max-w-[85%]",
                     msg.role === "user"
-                      ? "bg-gradient-to-br from-blue-50/80 to-blue-50/40 border border-soft-blue/10"
+                      ? "chat-bubble-user"
                       : msg.role === "system"
-                      ? "bg-surface text-center w-full max-w-full text-xs text-muted py-2 rounded-lg"
-                      : "bg-gradient-to-br from-teal-50/80 to-teal-50/30 border border-teal/10"
+                      ? "chat-bubble-system w-full max-w-full"
+                      : "chat-bubble-agent"
                   )}>
                     {msg.role === "agent" && agentInfo && (
                       <span className={cn("text-[10px] font-bold uppercase tracking-wider mb-1 block", agentInfo.color)}>
@@ -662,7 +662,7 @@ export default function OnboardingPage() {
                       <button
                         key={opt.value}
                         onClick={() => handleOption(opt.value)}
-                        className="px-4 py-2 text-xs font-semibold rounded-xl border border-teal/20 bg-white text-teal shadow-sm hover:shadow-md hover:border-teal/40 hover:bg-teal-50/50 transition-all active:scale-95"
+                        className="px-4 py-2 text-[12px] font-semibold rounded-full border border-teal/10 bg-white text-teal hover:border-teal/20 hover:bg-teal-50/40 transition-all active:scale-[0.97]"
                       >
                         {opt.label}
                       </button>
@@ -675,10 +675,10 @@ export default function OnboardingPage() {
 
           {isTyping && (
             <div className="flex gap-3 animate-fade-in">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-50 to-teal-100 border border-teal/10 flex items-center justify-center shadow-sm">
-                <Heart size={14} className="text-teal" />
+              <div className="w-8 h-8 rounded-xl bg-teal-50/60 flex items-center justify-center">
+                <Heart size={13} className="text-teal" />
               </div>
-              <div className="rounded-2xl bg-gradient-to-br from-teal-50/80 to-teal-50/30 border border-teal/10 px-4 py-3">
+              <div className="chat-bubble-agent">
                 <div className="flex gap-1.5">
                   <span className="w-2 h-2 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                   <span className="w-2 h-2 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -700,7 +700,7 @@ export default function OnboardingPage() {
 
         {/* Input */}
         {step !== "complete" && (
-          <div className="px-4 py-3 border-t border-border/40 bg-gradient-to-b from-white to-surface/50">
+          <div className="px-4 py-3 border-t border-border/30 bg-white">
             <div className="flex gap-2">
               <input
                 ref={inputRef}
@@ -711,14 +711,13 @@ export default function OnboardingPage() {
                 placeholder="Type your answer..."
                 disabled={isTyping || isSearching}
                 aria-label="Onboarding chat input"
-                className="flex-1 px-4 py-3 rounded-xl border border-border/60 bg-white text-sm placeholder:text-muted/60 focus:outline-none focus:border-teal/40 focus:ring-2 focus:ring-teal/10 transition-all disabled:opacity-50 shadow-inner-soft"
+                className="flex-1 px-4 py-3 rounded-xl border border-border/50 bg-surface text-sm placeholder:text-muted focus:outline-none focus:border-teal/20 focus:ring-2 focus:ring-teal/10 transition-all disabled:opacity-50"
               />
               <button
                 onClick={() => handleSubmit()}
                 disabled={isTyping || isSearching || !input.trim()}
                 aria-label="Send message"
-                className="px-4 py-3 rounded-xl text-white transition-all disabled:opacity-40"
-                style={{ background: "linear-gradient(135deg, #0D9488, #0F766E)", boxShadow: "0 1px 2px rgba(0,0,0,0.1), 0 2px 8px rgba(13,148,136,0.25)" }}
+                className="px-4 py-3 rounded-xl bg-gradient-teal text-white transition-all disabled:opacity-40 hover:shadow-glow-sm"
               >
                 <ArrowRight size={16} />
               </button>
@@ -728,12 +727,12 @@ export default function OnboardingPage() {
 
         {/* Complete state */}
         {step === "complete" && (
-          <div className="px-5 py-6 border-t border-border/40 bg-gradient-to-br from-accent/5 to-teal-50/30 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 mb-3">
-              <CheckCircle2 size={24} className="text-accent" />
+          <div className="px-5 py-6 border-t border-border/30 bg-white text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 mb-3">
+              <CheckCircle2 size={22} className="text-emerald-500" strokeWidth={1.5} />
             </div>
-            <p className="text-base font-semibold text-primary">Onboarding Complete!</p>
-            <p className="text-sm text-secondary mt-1">Your care team is ready to go.</p>
+            <p className="text-[16px] font-semibold text-primary">You&apos;re all set</p>
+            <p className="text-[13px] text-secondary mt-1">Your care team is working for you.</p>
             {isConnected && (
               <p className="text-[11px] text-accent/70 mt-1">Profile saved to your wallet identity</p>
             )}

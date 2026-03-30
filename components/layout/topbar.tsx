@@ -158,7 +158,7 @@ export default function Topbar() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/40 bg-white/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-border/30 bg-white/80 backdrop-blur-xl">
       <div className="flex h-14 items-center gap-4 px-4 sm:px-6 lg:px-8">
         {/* Search */}
         <div ref={searchRef} className="relative flex-1 max-w-lg">
@@ -174,7 +174,7 @@ export default function Topbar() {
             aria-expanded={isOpen && !!results}
             aria-activedescendant={activeIndex >= 0 ? `search-result-${activeIndex}` : undefined}
             placeholder="Search..."
-            className="w-full rounded-button border border-border/60 bg-surface py-2 pl-9 pr-12 text-sm text-primary placeholder:text-muted/60 transition focus:border-teal/40 focus:ring-2 focus:ring-teal/10 focus:bg-white"
+            className="w-full rounded-xl border border-border/40 bg-surface py-2 pl-9 pr-12 text-sm text-primary placeholder:text-muted transition focus:border-teal/20 focus:ring-2 focus:ring-teal/10 focus:bg-white"
           />
           {query ? (
             <button

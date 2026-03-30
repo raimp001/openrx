@@ -28,6 +28,11 @@ import {
   AlertCircle,
   GitBranch,
   Trash2,
+  Activity,
+  Eye,
+  Search,
+  MessageSquare,
+  Sparkles,
 } from "lucide-react"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { AppPageHeader } from "@/components/layout/app-page"
@@ -36,16 +41,18 @@ import { ShrinkwrapBubble } from "@/components/shrinkwrap-bubble"
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
 const QUICK_PROMPTS = [
-  { label: "Next appointment", prompt: "When is my next appointment and what should I bring?", agentId: "scheduling" as AgentId },
-  { label: "Medication refills", prompt: "Which of my medications need refills soon?", agentId: "rx" as AgentId },
-  { label: "Bill questions", prompt: "Do I have any unpaid bills or denied claims I should address?", agentId: "billing" as AgentId },
-  { label: "Prior auth status", prompt: "What is the status of my pending prior authorizations?", agentId: "prior-auth" as AgentId },
-  { label: "Lab results", prompt: "Can you summarize my recent lab results and flag anything abnormal?", agentId: "coordinator" as AgentId },
-  { label: "Wellness tips", prompt: "Based on my health history, what preventive care steps should I take this year?", agentId: "wellness" as AgentId },
-  { label: "Screening risk", prompt: "Run my preventive risk screening and prioritize top actions for this month.", agentId: "screening" as AgentId },
-  { label: "Second opinion", prompt: "Review my diabetes care plan and give me key clinician questions for a second opinion.", agentId: "second-opinion" as AgentId },
-  { label: "Find trials", prompt: "Find recruiting clinical trials relevant to my health profile and explain likely fit.", agentId: "trials" as AgentId },
+  { label: "What should I do next?", prompt: "Based on my health profile, what are the most important things I should do this week?", agentId: "coordinator" as AgentId, icon: CircleDot },
+  { label: "Screening due?", prompt: "Which preventive screenings am I due or overdue for, based on my age and risk factors?", agentId: "screening" as AgentId, icon: Eye },
+  { label: "Refill status", prompt: "Which of my medications need refills soon and are there any adherence issues?", agentId: "rx" as AgentId, icon: Pill },
+  { label: "Explain a bill", prompt: "Do I have any unpaid bills or denied claims? Explain them in plain English.", agentId: "billing" as AgentId, icon: Receipt },
+  { label: "Prior auth status", prompt: "What is the status of my pending prior authorizations?", agentId: "prior-auth" as AgentId, icon: ShieldCheck },
+  { label: "Find a provider", prompt: "Help me find a specialist near me. I need recommendations based on my insurance.", agentId: "coordinator" as AgentId, icon: Search },
+  { label: "Questions for my doctor", prompt: "Based on my recent labs and health history, what questions should I ask at my next appointment?", agentId: "second-opinion" as AgentId, icon: MessageSquare },
+  { label: "Clinical trials", prompt: "Find recruiting clinical trials relevant to my health profile and explain likely fit.", agentId: "trials" as AgentId, icon: FlaskConical },
 ]
+
+// We need CircleDot imported
+import { CircleDot } from "lucide-react"
 
 interface ChatMessage {
   id: string
@@ -57,19 +64,19 @@ interface ChatMessage {
   timestamp: Date
 }
 
-const agentMeta: Record<string, { label: string; icon: typeof Bot; color: string }> = {
-  onboarding: { label: "Sage (Onboarding)", icon: Bot, color: "text-teal" },
-  coordinator: { label: "Atlas (Coordinator)", icon: Bot, color: "text-teal" },
-  triage: { label: "Nova (Triage)", icon: Stethoscope, color: "text-soft-red" },
-  scheduling: { label: "Cal (Scheduler)", icon: Calendar, color: "text-soft-blue" },
-  billing: { label: "Vera (Billing)", icon: Receipt, color: "text-accent" },
-  rx: { label: "Maya (Rx)", icon: Pill, color: "text-yellow-600" },
-  "prior-auth": { label: "Rex (PA)", icon: ShieldCheck, color: "text-teal" },
-  wellness: { label: "Ivy (Wellness)", icon: Stethoscope, color: "text-accent" },
-  screening: { label: "Quinn (Screening)", icon: Heart, color: "text-teal" },
-  "second-opinion": { label: "Orion (Second Opinion)", icon: ShieldCheck, color: "text-soft-blue" },
-  trials: { label: "Lyra (Trials)", icon: FlaskConical, color: "text-accent" },
-  devops: { label: "Bolt (DevOps)", icon: Bot, color: "text-secondary" },
+const agentMeta: Record<string, { label: string; shortName: string; icon: typeof Bot; color: string }> = {
+  onboarding: { label: "Sage", shortName: "Sage", icon: Heart, color: "text-teal" },
+  coordinator: { label: "Atlas", shortName: "Atlas", icon: Bot, color: "text-teal" },
+  triage: { label: "Nova", shortName: "Nova", icon: Stethoscope, color: "text-red-500" },
+  scheduling: { label: "Cal", shortName: "Cal", icon: Calendar, color: "text-violet" },
+  billing: { label: "Vera", shortName: "Vera", icon: Receipt, color: "text-emerald-600" },
+  rx: { label: "Maya", shortName: "Maya", icon: Pill, color: "text-amber-600" },
+  "prior-auth": { label: "Rex", shortName: "Rex", icon: ShieldCheck, color: "text-teal-dark" },
+  wellness: { label: "Ivy", shortName: "Ivy", icon: Activity, color: "text-emerald-600" },
+  screening: { label: "Quinn", shortName: "Quinn", icon: Eye, color: "text-teal" },
+  "second-opinion": { label: "Orion", shortName: "Orion", icon: Stethoscope, color: "text-violet" },
+  trials: { label: "Lyra", shortName: "Lyra", icon: FlaskConical, color: "text-amber" },
+  devops: { label: "Bolt", shortName: "Bolt", icon: Zap, color: "text-secondary" },
 }
 
 export default function ChatPage() {
@@ -79,11 +86,10 @@ export default function ChatPage() {
       id: "welcome",
       role: "agent",
       content:
-        "Welcome to OpenRx AI. I'm Atlas, your healthcare coordination agent powered by OpenClaw.\n\nI orchestrate a team of 9 specialist agents who collaborate to help you:\n\n" +
-        (isConnected
-          ? "Your wallet is connected. I can see your profile and personalize my responses.\n\n"
-          : "") +
-        "How can I help you today?",
+        "Hi, I'm Atlas — your care coordination assistant.\n\n" +
+        "I work with a team of specialist agents to help you navigate appointments, medications, billing, screenings, and more.\n\n" +
+        (isConnected ? "Your wallet is connected. I can see your profile.\n\n" : "") +
+        "What can I help with?",
       agentId: "coordinator",
       timestamp: new Date(),
     },
@@ -92,44 +98,24 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [gatewayStatus, setGatewayStatus] = useState<"checking" | "online" | "offline">("checking")
   const [activeAgent, setActiveAgent] = useState<AgentId>("coordinator")
-  const [showImprovements, setShowImprovements] = useState(false)
-  const [improvementData, setImprovementData] = useState<{
-    metrics: { totalSuggested: number; totalDeployed: number; totalInProgress: number; totalApproved: number }
-    improvements: Array<{ id: string; title: string; status: string; category: string; suggestedBy: string; votes: number }>
-  } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const welcomeMessage: ChatMessage = {
-    id: "welcome",
-    role: "agent",
-    content:
-      "Welcome to OpenRx AI. I'm Atlas, your healthcare coordination agent powered by OpenClaw.\n\nI orchestrate a team of 9 specialist agents who collaborate to help you:\n\n" +
-      (isConnected
-        ? "Your wallet is connected. I can see your profile and personalize my responses.\n\n"
-        : "") +
-      "How can I help you today?",
-    agentId: "coordinator",
-    timestamp: new Date(),
-  }
-
   const clearChat = useCallback(() => {
-    setMessages([welcomeMessage])
+    setMessages([{
+      id: "welcome",
+      role: "agent",
+      content: "Hi, I'm Atlas — your care coordination assistant.\n\nWhat can I help with?",
+      agentId: "coordinator",
+      timestamp: new Date(),
+    }])
     inputRef.current?.focus()
-  }, [isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const sendQuickPrompt = useCallback((prompt: string, agentId: AgentId) => {
     setInput(prompt)
     setActiveAgent(agentId)
-    inputRef.current?.focus()
-  }, [])
-
-  // Fetch improvement pipeline data
-  useEffect(() => {
-    fetch("/api/openclaw/improvements?refresh=1")
-      .then((r) => r.json())
-      .then((d) => setImprovementData(d))
-      .catch(() => {})
+    setTimeout(() => inputRef.current?.focus(), 0)
   }, [])
 
   // Check gateway status
@@ -160,30 +146,24 @@ export default function ChatPage() {
     setInput("")
     setIsLoading(true)
 
-    // Execute orchestrator workflow — route to best agent with collaborators
     const workflow = executeWorkflow(userMsg.content)
 
-    // If the orchestrator routes to a different agent, auto-switch
     if (workflow.route.primaryAgent !== activeAgent) {
       setActiveAgent(workflow.route.primaryAgent)
     }
 
-    // Show routing info as a system message if collaborators are involved
     if (workflow.route.collaborators.length > 0) {
-      const collaboratorNames = workflow.route.collaborators
-        .map((id) => {
-          const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === id)
-          return agent ? agent.name : id
-        })
+      const names = workflow.route.collaborators
+        .map((id) => agentMeta[id]?.shortName || id)
         .join(", ")
-      const primaryAgent = OPENCLAW_CONFIG.agents.find((a) => a.id === workflow.route.primaryAgent)
+      const primary = agentMeta[workflow.route.primaryAgent]?.shortName || "Agent"
 
       setMessages((prev) => [
         ...prev,
         {
           id: `routing-${Date.now()}`,
           role: "system",
-          content: `${primaryAgent?.name || "Agent"} is handling this with support from ${collaboratorNames}`,
+          content: `${primary} is handling this with ${names}`,
           timestamp: new Date(),
         },
       ])
@@ -202,17 +182,18 @@ export default function ChatPage() {
 
       const data = await res.json()
 
-      const agentMsg: ChatMessage = {
-        id: `agent-${Date.now()}`,
-        role: "agent",
-        content: data.response || data.error || "No response received.",
-        agentId: workflow.route.primaryAgent,
-        collaborators: workflow.route.collaborators,
-        routingInfo: workflow.route.reasoning,
-        timestamp: new Date(),
-      }
-
-      setMessages((prev) => [...prev, agentMsg])
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `agent-${Date.now()}`,
+          role: "agent",
+          content: data.response || data.error || "No response received.",
+          agentId: workflow.route.primaryAgent,
+          collaborators: workflow.route.collaborators,
+          routingInfo: workflow.route.reasoning,
+          timestamp: new Date(),
+        },
+      ])
     } catch {
       setInput(savedInput)
       setMessages((prev) => [
@@ -220,7 +201,7 @@ export default function ChatPage() {
         {
           id: `error-${Date.now()}`,
           role: "system",
-          content: "Connection error. Your message has been restored — try sending again.",
+          content: "Connection error. Your message has been restored — try again.",
           timestamp: new Date(),
         },
       ])
@@ -229,156 +210,70 @@ export default function ChatPage() {
     }
   }, [input, isLoading, activeAgent, walletAddress])
 
-  const improvementMetrics = improvementData?.metrics ?? { totalSuggested: 0, totalDeployed: 0, totalInProgress: 0, totalApproved: 0 }
-  const recentImprovements = improvementData?.improvements.slice(0, 5) ?? []
+  const currentAgentMeta = agentMeta[activeAgent]
 
   return (
     <div className="animate-slide-up space-y-4">
+      {/* Header */}
       <AppPageHeader
         leading={
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal to-teal-dark">
-            <Bot size={20} className="text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-teal">
+            <Bot size={18} className="text-white" />
           </div>
         }
         title="AI Concierge"
         meta={
-          <div className="flex flex-wrap items-center gap-2">
-            {gatewayStatus === "checking" ? (
-              <span className="flex items-center gap-1 text-[10px] text-muted">
-                <Loader2 size={10} className="animate-spin" /> Connecting...
+          <div className="flex items-center gap-3">
+            {gatewayStatus === "online" ? (
+              <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-soft" />
+                Connected
               </span>
-            ) : gatewayStatus === "online" ? (
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-accent">
-                <Wifi size={10} /> OpenClaw gateway connected
+            ) : gatewayStatus === "offline" ? (
+              <span className="flex items-center gap-1 text-[10px] font-medium text-muted">
+                <span className="h-1.5 w-1.5 rounded-full bg-zinc-300" />
+                Offline
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-[10px] font-semibold text-teal">
-                <WifiOff size={10} /> Gateway offline
+              <span className="flex items-center gap-1 text-[10px] text-muted">
+                <Loader2 size={9} className="animate-spin" /> Connecting
               </span>
             )}
-            {isConnected ? (
-              <span className="flex items-center gap-1 text-[10px] text-accent">
-                <CheckCircle2 size={8} /> Wallet identity active
+            {currentAgentMeta && (
+              <span className="flex items-center gap-1 text-[10px] font-medium text-secondary">
+                <currentAgentMeta.icon size={10} className={currentAgentMeta.color} />
+                {currentAgentMeta.label}
               </span>
-            ) : null}
+            )}
           </div>
-        }
-        actions={
-          <button
-            type="button"
-            onClick={() => setShowImprovements(!showImprovements)}
-            className={cn(
-              "rounded-lg border px-3 py-1.5 text-xs font-semibold transition",
-              showImprovements
-                ? "border-accent bg-accent text-white"
-                : "border-border text-secondary hover:border-accent/30"
-            )}
-          >
-            <TrendingUp size={12} className="mr-1 inline" />
-            Improvements ({improvementMetrics.totalSuggested})
-          </button>
         }
       />
 
-      {/* Self-Improvement Panel */}
-      {showImprovements && (
-        <div className="bg-surface rounded-2xl border border-border p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp size={14} className="text-accent" />
-            <span className="text-xs font-bold text-primary">
-              Self-Improvement Pipeline
-            </span>
-            <span className="text-[10px] text-muted ml-auto">
-              Agents recursively suggest and vote on improvements
-            </span>
-          </div>
-          <div className="grid grid-cols-4 gap-3 mb-3">
-            <div className="bg-surface/50 rounded-lg p-2.5 text-center">
-              <div className="text-lg font-bold text-primary">{improvementMetrics.totalSuggested}</div>
-              <div className="text-[9px] text-muted">Suggested</div>
-            </div>
-            <div className="bg-surface/50 rounded-lg p-2.5 text-center">
-              <div className="text-lg font-bold text-accent">{improvementMetrics.totalDeployed}</div>
-              <div className="text-[9px] text-muted">Deployed</div>
-            </div>
-            <div className="bg-surface/50 rounded-lg p-2.5 text-center">
-              <div className="text-lg font-bold text-yellow-600">
-                {improvementMetrics.totalInProgress}
-              </div>
-              <div className="text-[9px] text-muted">In Progress</div>
-            </div>
-            <div className="bg-surface/50 rounded-lg p-2.5 text-center">
-              <div className="text-lg font-bold text-soft-blue">
-                {improvementMetrics.totalApproved}
-              </div>
-              <div className="text-[9px] text-muted">Approved</div>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            {recentImprovements.map((imp) => {
-              const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === imp.suggestedBy)
-              return (
-                <div
-                  key={imp.id}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface/30 border border-border/50"
-                >
-                  <div
-                    className={cn(
-                      "w-1.5 h-1.5 rounded-full",
-                      imp.status === "deployed" ? "bg-accent" :
-                      imp.status === "in_progress" ? "bg-yellow-400" :
-                      imp.status === "approved" ? "bg-soft-blue" :
-                      "bg-warm-300"
-                    )}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-semibold text-primary truncate">{imp.title}</p>
-                    <p className="text-[9px] text-muted">
-                      {agent?.name} &middot; {imp.category} &middot; {imp.votes} votes
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                      imp.status === "deployed" ? "bg-accent/10 text-accent" :
-                      imp.status === "in_progress" ? "bg-yellow-100 text-yellow-700" :
-                      imp.status === "approved" ? "bg-blue-100 text-blue-700" :
-                      "bg-warm-100 text-secondary"
-                    )}
-                  >
-                    {imp.status}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Agent Selector */}
-      <div className="flex gap-1.5 flex-wrap">
+      {/* Agent selector — compact pill row */}
+      <div className="flex gap-1 flex-wrap">
         {OPENCLAW_CONFIG.agents.map((agent) => {
           const meta = agentMeta[agent.id]
           const Icon = meta?.icon || Bot
+          const isActive = activeAgent === agent.id
           return (
             <button
               key={agent.id}
               onClick={() => setActiveAgent(agent.id as AgentId)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all border",
-                activeAgent === agent.id
-                  ? "bg-teal/10 text-teal border-teal/20"
-                  : "text-muted border-transparent hover:text-primary hover:bg-surface"
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-medium transition-all border",
+                isActive
+                  ? "bg-teal-50/60 text-teal-700 border-teal/10"
+                  : "text-muted border-transparent hover:text-secondary hover:bg-zinc-50"
               )}
             >
-              <Icon size={12} className={activeAgent === agent.id ? meta?.color : ""} />
+              <Icon size={11} className={isActive ? meta?.color : ""} />
               {agent.name}
             </button>
           )
         })}
       </div>
 
-      {/* Chat Window — input stays at bottom; messages scroll (mobile keyboard friendly) */}
+      {/* Chat window */}
       <div className="surface-card flex min-h-[min(520px,calc(100vh-13rem))] max-h-[calc(100vh-12rem)] flex-col overflow-hidden">
         {/* Messages */}
         <div
@@ -394,25 +289,16 @@ export default function ChatPage() {
 
             return (
               <div key={msg.id}>
-                <div
-                  className={cn(
-                    "flex gap-3",
-                    msg.role === "user" ? "flex-row-reverse" : ""
-                  )}
-                >
+                <div className={cn("flex gap-3", msg.role === "user" ? "flex-row-reverse" : "")}>
                   {msg.role !== "system" && (
-                    <div
-                      className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                        msg.role === "agent"
-                          ? "bg-teal/10"
-                          : "bg-soft-blue/10"
-                      )}
-                    >
+                    <div className={cn(
+                      "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
+                      msg.role === "agent" ? "bg-teal-50/60" : "bg-blue-50/60"
+                    )}>
                       {msg.role === "user" ? (
-                        <User size={14} className="text-soft-blue" />
+                        <User size={13} className="text-blue-500" />
                       ) : (
-                        <Icon size={14} className={meta?.color || "text-teal"} />
+                        <Icon size={13} className={meta?.color || "text-teal"} />
                       )}
                     </div>
                   )}
@@ -421,48 +307,43 @@ export default function ChatPage() {
                     role={msg.role}
                     className={cn(
                       msg.role === "user"
-                        ? "bg-soft-blue/5 border-soft-blue/10"
+                        ? "chat-bubble-user"
                         : msg.role === "system"
-                        ? "bg-yellow-50 border-yellow-200/50 !w-full text-center"
-                        : "bg-teal/5 border-teal/10"
+                        ? "chat-bubble-system !w-full"
+                        : "chat-bubble-agent"
                     )}
                   >
-                    {msg.role === "system" && (
+                    {msg.role === "system" ? (
                       <div className="flex items-center justify-center gap-1.5">
-                        <GitBranch size={10} className="text-yellow-600" />
-                        <span className="text-[10px] text-yellow-700 font-semibold">{msg.content}</span>
+                        <GitBranch size={10} className="text-amber-500" />
+                        <span className="text-[11px] text-amber-700 font-medium">{msg.content}</span>
                       </div>
-                    )}
-                    {msg.role === "agent" && meta && (
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className={cn("text-[10px] font-bold uppercase tracking-wider", meta.color)}>
-                          {meta.label}
+                    ) : (
+                      <>
+                        {msg.role === "agent" && meta && (
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className={cn("text-[10px] font-bold uppercase tracking-wider", meta.color)}>
+                              {meta.label}
+                            </span>
+                            {msg.collaborators && msg.collaborators.length > 0 && (
+                              <span className="flex items-center gap-0.5 text-[9px] text-muted">
+                                <Users size={8} />
+                                +{msg.collaborators.length}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <p className="text-[14px] text-primary leading-relaxed whitespace-pre-line">
+                          {msg.content}
+                        </p>
+                        <span className="text-[10px] text-muted mt-1.5 block">
+                          {msg.timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                         </span>
-                        {gatewayStatus === "online" && (
-                          <Zap size={8} className="text-accent" />
-                        )}
-                        {msg.collaborators && msg.collaborators.length > 0 && (
-                          <span className="flex items-center gap-0.5 text-[9px] text-muted ml-1">
-                            <Users size={8} />
-                            +{msg.collaborators.length} agents
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {msg.role !== "system" && (
-                      <p className="text-sm text-primary leading-relaxed whitespace-pre-line">
-                        {msg.content}
-                      </p>
-                    )}
-                    {msg.role !== "system" && (
-                      <span className="text-[9px] text-muted mt-1 block">
-                        {msg.timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                      </span>
+                      </>
                     )}
                   </ShrinkwrapBubble>
                 </div>
 
-                {/* Routing info */}
                 {msg.routingInfo && (
                   <div className="ml-11 mt-1 flex items-center gap-1.5">
                     <AlertCircle size={8} className="text-muted" />
@@ -475,14 +356,22 @@ export default function ChatPage() {
 
           {isLoading && (
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center">
-                <Bot size={14} className="text-teal" />
+              <div className="w-8 h-8 rounded-xl bg-teal-50/60 flex items-center justify-center">
+                <Bot size={13} className="text-teal" />
               </div>
-              <div className="rounded-xl border bg-teal/5 border-teal/10 px-4 py-3">
+              <div className="chat-bubble-agent">
                 <div className="flex items-center gap-2">
-                  <Loader2 size={14} className="text-teal animate-spin" />
-                  <span className="text-xs text-muted">
-                    Agents collaborating...
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="h-1.5 w-1.5 rounded-full bg-teal/40 animate-pulse-soft"
+                        style={{ animationDelay: `${i * 0.2}s` }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[12px] text-muted">
+                    {currentAgentMeta?.label || "Agent"} is thinking...
                   </span>
                 </div>
               </div>
@@ -492,23 +381,27 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick Prompts */}
+        {/* Quick prompts — show when only welcome message */}
         {messages.length <= 1 && (
-          <div className="px-5 py-3 border-t border-border/50 flex flex-wrap gap-1.5">
-            {QUICK_PROMPTS.map((qp) => (
-              <button
-                key={qp.label}
-                onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
-                className="px-2.5 py-1 text-[10px] font-semibold text-secondary bg-border/30 hover:bg-teal/10 hover:text-teal border border-border/60 hover:border-teal/20 rounded-lg transition"
-              >
-                {qp.label}
-              </button>
-            ))}
+          <div className="px-5 py-3 border-t border-border/30">
+            <p className="text-[10px] font-medium text-muted uppercase tracking-wider mb-2">Try asking</p>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_PROMPTS.map((qp) => (
+                <button
+                  key={qp.label}
+                  onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-secondary bg-surface hover:bg-teal-50/40 hover:text-teal border border-border/40 hover:border-teal/10 rounded-full transition"
+                >
+                  <qp.icon size={10} />
+                  {qp.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Input — sticky within card; safe-area for notched phones */}
-        <div className="sticky bottom-0 z-10 border-t border-border/80 bg-surface/95 px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] backdrop-blur-sm supports-[backdrop-filter]:bg-surface/85">
+        {/* Input */}
+        <div className="sticky bottom-0 z-10 border-t border-border/40 bg-white/95 px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] backdrop-blur-sm">
           <div className="flex items-end gap-2">
             <input
               ref={inputRef}
@@ -516,10 +409,10 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-              placeholder={`Message ${agentMeta[activeAgent]?.label || "AI Agent"}...`}
+              placeholder={`Ask ${currentAgentMeta?.label || "your care team"} anything...`}
               disabled={isLoading}
               aria-label="Message to AI concierge"
-              className="min-h-11 flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm placeholder:text-muted transition focus:border-teal/40 focus:outline-none focus:ring-1 focus:ring-teal/20 disabled:opacity-50"
+              className="min-h-11 flex-1 rounded-xl border border-border/50 bg-surface px-4 py-2.5 text-sm placeholder:text-muted transition focus:border-teal/20 focus:outline-none focus:ring-2 focus:ring-teal/10 disabled:opacity-50"
             />
             {messages.length > 1 && (
               <button
@@ -528,9 +421,9 @@ export default function ChatPage() {
                 disabled={isLoading}
                 title="Clear conversation"
                 aria-label="Clear conversation"
-                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-border/30 hover:text-secondary disabled:opacity-50"
+                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-zinc-50 hover:text-secondary disabled:opacity-50"
               >
-                <Trash2 size={18} className="shrink-0" aria-hidden />
+                <Trash2 size={16} className="shrink-0" />
               </button>
             )}
             <button
@@ -538,39 +431,34 @@ export default function ChatPage() {
               onClick={sendMessage}
               disabled={isLoading || !input.trim()}
               aria-label="Send message"
-              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl bg-teal text-white transition hover:bg-teal-dark disabled:opacity-50 sm:min-w-[4.5rem] sm:gap-2 sm:px-4"
+              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-teal text-white transition hover:shadow-glow-sm disabled:opacity-50 sm:min-w-[4.5rem] sm:gap-2 sm:px-4"
             >
-              <Send size={18} className="shrink-0 sm:hidden" aria-hidden />
-              <span className="hidden text-sm font-semibold sm:inline">Send</span>
+              <Send size={16} className="shrink-0 sm:hidden" />
+              <span className="hidden text-[13px] font-semibold sm:inline">Send</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Automation Status & Agent Activity */}
+      {/* Agent activity footer */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Cron Jobs */}
-        <div className="bg-surface rounded-2xl border border-border p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Zap size={14} className="text-teal" />
-            <span className="text-xs font-bold text-primary">Active Automations</span>
+        <div className="surface-card overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border/30">
+            <Zap size={12} className="text-teal" />
+            <span className="text-[11px] font-semibold text-primary uppercase tracking-wider">Active Automations</span>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+          <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-2">
             {OPENCLAW_CONFIG.cronJobs.slice(0, 6).map((job) => {
               const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === job.agentId)
               const meta = agentMeta[job.agentId]
               const Icon = meta?.icon || Bot
               return (
-                <div
-                  key={job.id}
-                  className="flex items-start gap-2 p-2.5 rounded-lg bg-surface/50 border border-border/50"
-                >
+                <div key={job.id} className="flex items-start gap-2.5 p-2.5 rounded-lg hover:bg-surface/50 transition">
                   <Icon size={12} className={cn("mt-0.5 shrink-0", meta?.color || "text-teal")} />
                   <div>
-                    <p className="text-[11px] font-semibold text-primary">{job.description}</p>
-                    <p className="text-[9px] text-muted mt-0.5">
-                      <Clock size={8} className="inline mr-0.5" />
-                      {job.schedule} &middot; {agent?.name}
+                    <p className="text-[11px] font-medium text-primary">{job.description}</p>
+                    <p className="text-[10px] text-muted mt-0.5">
+                      {job.schedule} · {agent?.name}
                     </p>
                   </div>
                 </div>
@@ -579,16 +467,15 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Inter-Agent Activity */}
-        <div className="bg-surface rounded-2xl border border-border p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <GitBranch size={14} className="text-teal" />
-            <span className="text-xs font-bold text-primary">Agent Collaboration Log</span>
+        <div className="surface-card overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border/30">
+            <GitBranch size={12} className="text-teal" />
+            <span className="text-[11px] font-semibold text-primary uppercase tracking-wider">Agent Activity</span>
           </div>
-          <div className="text-center py-6">
-              <Users size={20} className="text-sand mx-auto mb-2" />
-              <p className="text-[11px] text-muted">Send a message to see agents collaborate</p>
-            </div>
+          <div className="p-8 text-center">
+            <Users size={18} className="text-muted mx-auto mb-2" />
+            <p className="text-[12px] text-muted">Send a message to see agents collaborate</p>
+          </div>
         </div>
       </div>
     </div>

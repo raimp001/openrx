@@ -3,6 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  transpilePackages: ["@chenglou/pretext"],
   eslint: {
     // TODO: Fix lint backlog and set to false
     ignoreDuringBuilds: process.env.CI !== "true",

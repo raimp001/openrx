@@ -125,7 +125,7 @@ export default function WalletPage() {
       />
 
       {/* Connect / Status */}
-      <div className="bg-surface rounded-2xl border border-border p-6">
+      <div className="surface-card p-6">
         {!isConnected ? (
           <div className="text-center py-8">
             <WalletIcon size={32} className="text-teal mx-auto mb-3" />
@@ -250,7 +250,7 @@ export default function WalletPage() {
 
       {/* Payment Options */}
       {isConnected && (
-        <div className="bg-surface rounded-2xl border border-border p-6">
+        <div className="surface-card p-6">
           <h2 className="text-base font-serif text-primary mb-4">Healthcare Payments</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="rounded-xl border border-border bg-surface/30 p-4">
@@ -279,7 +279,7 @@ export default function WalletPage() {
       )}
 
       {isConnected && (
-        <div className="bg-surface rounded-2xl border border-border p-6">
+        <div className="surface-card p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-serif text-primary">Compliance Controls</h2>
@@ -299,7 +299,7 @@ export default function WalletPage() {
       )}
 
       {isConnected && (
-        <div className="bg-surface rounded-2xl border border-border p-6">
+        <div className="surface-card p-6">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div>
               <h2 className="text-base font-serif text-primary">Recent BaseBuilder Transactions</h2>
@@ -383,7 +383,7 @@ export default function WalletPage() {
 
       {/* Agent Auto-Pay */}
       {isConnected && (
-        <div className="bg-surface rounded-2xl border border-border p-6">
+        <div className="surface-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Bot size={18} className="text-teal" />
             <h2 className="text-base font-serif text-primary">Agent Auto-Pay</h2>
@@ -445,7 +445,7 @@ export default function WalletPage() {
       )}
 
       {/* Platform Info */}
-      <div className="bg-surface rounded-2xl border border-border p-6">
+      <div className="surface-card p-6">
         <h3 className="text-xs font-bold text-primary mb-3">Platform Wallets</h3>
         <div className="space-y-2">
           <div className="flex items-center justify-between text-[10px]">

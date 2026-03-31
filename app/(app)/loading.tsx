@@ -12,7 +12,7 @@ export default function Loading() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="bg-surface rounded-2xl border border-border p-5 space-y-3"
+            className="surface-card p-5 space-y-3"
           >
             <div className="w-10 h-10 bg-border/30 rounded-xl" />
             <div className="h-6 w-16 bg-border/50 rounded-lg" />
@@ -24,7 +24,7 @@ export default function Loading() {
 
       {/* Content skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-surface rounded-2xl border border-border">
+        <div className="lg:col-span-2 surface-card">
           <div className="p-5 border-b border-border">
             <div className="h-5 w-40 bg-border/50 rounded-lg" />
           </div>
@@ -45,7 +45,7 @@ export default function Loading() {
           {Array.from({ length: 2 }).map((_, i) => (
             <div
               key={i}
-              className="bg-surface rounded-2xl border border-border p-5 space-y-3"
+              className="surface-card p-5 space-y-3"
             >
               <div className="h-4 w-32 bg-border/40 rounded" />
               <div className="h-3 w-full bg-border/20 rounded" />

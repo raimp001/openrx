@@ -87,13 +87,14 @@ export default function EmergencyCardPage() {
     <div className="animate-slide-up space-y-6 max-w-2xl mx-auto">
       <AppPageHeader
         align="center"
+        eyebrow="Safety"
         leading={
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-soft-red/10">
             <AlertCircle size={28} className="text-soft-red" />
           </div>
         }
         title="Emergency Card"
-        description="Critical medical information for emergency responders."
+        description="Critical medical information for emergency responders. Copy or screenshot this card and save it to your phone's Medical ID."
       />
 
       {/* Emergency Card */}
@@ -254,28 +255,21 @@ export default function EmergencyCardPage() {
         </div>
       </div>
 
-      {/* Copy Button */}
       <div className="flex justify-center">
         <button
           onClick={handleCopy}
           className={cn(
-            "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition",
-            copied
-              ? "bg-accent text-white"
-              : "bg-teal text-white hover:bg-teal-dark"
+            "control-button-primary",
+            copied && "!bg-accent"
           )}
         >
           {copied ? (
-            <><CheckCircle2 size={16} /> Copied!</>
+            <><CheckCircle2 size={16} /> Copied to clipboard</>
           ) : (
             <><Copy size={16} /> Copy Emergency Info</>
           )}
         </button>
       </div>
-
-      <p className="text-center text-[10px] text-muted">
-        Tip: Save this to your phone&apos;s Medical ID for instant access in emergencies.
-      </p>
     </div>
   )
 }

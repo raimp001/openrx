@@ -59,7 +59,7 @@ export default function SchedulingPage() {
         </div>
         <div className="flex gap-2"><Skeleton className="h-7 w-20 rounded-full" /><Skeleton className="h-7 w-20 rounded-full" /></div>
         <Skeleton className="h-10 w-60 rounded-xl" />
-        <div className="bg-surface rounded-2xl border border-border divide-y divide-border/50">
+        <div className="surface-card divide-y divide-border/50">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="flex items-center gap-4 px-5 py-4">
               <Skeleton className="h-10 w-16" />
@@ -149,7 +149,7 @@ export default function SchedulingPage() {
       </div>
 
       {/* Appointment List */}
-      <div className="bg-surface rounded-2xl border border-border divide-y divide-border/50">
+      <div className="surface-card divide-y divide-border/50">
         {activeList.length === 0 && (
           <div className="flex flex-col items-center py-14 gap-3">
             <div className="w-12 h-12 rounded-full bg-border/40 flex items-center justify-center">

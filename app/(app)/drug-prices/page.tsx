@@ -113,7 +113,7 @@ export default function DrugPricesPage() {
         </div>
       </div>
 
-      <div className="bg-surface rounded-2xl border border-border p-5">
+      <div className="surface-card p-5">
         <div className="flex gap-3">
           <div className="relative flex-1">
             <Pill
@@ -149,7 +149,7 @@ export default function DrugPricesPage() {
       {hasSearched && result && !isLoading && (
         <div className="space-y-6">
           {result.drugInfo && result.drugInfo.length > 0 && (
-            <div className="bg-surface rounded-2xl border border-border p-5">
+            <div className="surface-card p-5">
               <div className="flex items-center gap-2 mb-3">
                 <BadgeCheck size={14} className="text-accent" />
                 <span className="text-xs font-bold text-primary">FDA Drug Information</span>
@@ -222,7 +222,7 @@ export default function DrugPricesPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-surface rounded-2xl border border-border p-6 text-center">
+            <div className="surface-card p-6 text-center">
               <DollarSign size={28} className="text-muted mx-auto mb-2" />
               <p className="text-sm text-primary font-semibold">No live price feed available for &ldquo;{result.query}&rdquo;</p>
               <p className="text-xs text-muted mt-1">
@@ -259,7 +259,7 @@ export default function DrugPricesPage() {
 
       {!hasSearched && (
         <div>
-          <div className="text-center py-8 bg-surface rounded-2xl border border-border mb-6">
+          <div className="text-center py-8 surface-card mb-6">
             <div className="w-16 h-16 rounded-2xl bg-teal/10 flex items-center justify-center mx-auto mb-4">
               <DollarSign size={28} className="text-teal" />
             </div>

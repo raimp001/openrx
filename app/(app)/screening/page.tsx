@@ -822,7 +822,7 @@ export default function ScreeningPage() {
 
       {assessment && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-surface rounded-2xl border border-border p-5">
+          <div className="surface-card p-5">
             <div className="flex items-center gap-2 mb-3">
               <ShieldCheck size={14} className="text-teal" />
               <h2 className="text-sm font-bold text-primary">Recommended Screenings</h2>
@@ -851,7 +851,7 @@ export default function ScreeningPage() {
             </div>
           </div>
 
-          <div className="bg-surface rounded-2xl border border-border p-5">
+          <div className="surface-card p-5">
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle size={14} className="text-yellow-500" />
               <h2 className="text-sm font-bold text-primary">Immediate Next Actions</h2>
@@ -868,7 +868,7 @@ export default function ScreeningPage() {
       )}
 
       {assessment && (
-        <div className="bg-surface rounded-2xl border border-border p-5">
+        <div className="surface-card p-5">
           <div className="flex items-center gap-2 mb-3">
             <Activity size={14} className="text-teal" />
             <h2 className="text-sm font-bold text-primary">Recommended Timeline</h2>
@@ -899,7 +899,7 @@ export default function ScreeningPage() {
       )}
 
       {assessment && evidenceCitations.length > 0 && (
-        <div className="bg-surface rounded-2xl border border-border p-5 space-y-3">
+        <div className="surface-card p-5 space-y-3">
           <div className="flex items-center gap-2">
             <Search size={14} className="text-teal" />
             <h2 className="text-sm font-bold text-primary">Evidence Sources</h2>
@@ -937,7 +937,7 @@ export default function ScreeningPage() {
       )}
 
       {assessment && showingDeepResults && (
-        <div className="bg-surface rounded-2xl border border-border p-5 space-y-4">
+        <div className="surface-card p-5 space-y-4">
           <div className="flex items-center gap-2">
             <Search size={14} className="text-teal" />
             <h2 className="text-sm font-bold text-primary">

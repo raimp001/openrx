@@ -133,7 +133,7 @@ export default function PharmacyPage() {
         }
       />
 
-      <div className="bg-surface rounded-2xl border border-border p-5">
+      <div className="surface-card p-5">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
@@ -308,7 +308,7 @@ export default function PharmacyPage() {
           </div>
 
           {results.length === 0 && (
-            <div className="text-center py-12 bg-surface rounded-2xl border border-border mt-3">
+            <div className="text-center py-12 surface-card mt-3">
               <Building2 size={30} className="text-sand mx-auto mb-2" />
               <p className="text-sm text-muted">
                 No pharmacies found. Try a nearby ZIP or a different pharmacy name.
@@ -319,7 +319,7 @@ export default function PharmacyPage() {
       )}
 
       {!hasSearched && (
-        <div className="text-center py-12 bg-surface rounded-2xl border border-border">
+        <div className="text-center py-12 surface-card">
           <div className="w-16 h-16 rounded-2xl bg-accent/5 flex items-center justify-center mx-auto mb-4">
             <Pill size={28} className="text-accent" />
           </div>
@@ -342,7 +342,7 @@ export default function PharmacyPage() {
       )}
 
       {promptImage && (
-        <div className="bg-surface rounded-2xl border border-border p-4">
+        <div className="surface-card p-4">
           <div className="flex items-center gap-2 mb-2">
             <ShieldCheck size={14} className="text-teal" />
             <span className="text-xs font-bold text-primary">Prompt Artifact Used</span>

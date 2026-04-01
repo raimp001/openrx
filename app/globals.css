@@ -370,6 +370,10 @@ a { color: inherit; }
     @apply inline-flex items-center gap-2 rounded-full border border-border/50 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-secondary;
   }
 
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-border/50 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-secondary;
+  }
+
   .metric-chip {
     @apply inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-white px-3 py-1.5 text-[11px] font-medium text-secondary;
   }

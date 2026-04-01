@@ -151,7 +151,7 @@ export default function SecondOpinionPage() {
 
       {result && agreementMeta && (
         <div className="space-y-4">
-          <div className={cn("surface-card border p-5", agreementMeta.style.split(" ").find(s => s.startsWith("border-")))}>
+          <div className="surface-card p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <agreementMeta.icon size={16} />

@@ -30,9 +30,9 @@ export default function VaccinationsPage() {
           <Skeleton className="h-9 w-32" />
         </div>
         <div className="grid grid-cols-3 gap-3">
-          {[...Array(3)].map((_, i) => <div key={i} className="bg-surface rounded-2xl border border-border p-4"><Skeleton className="h-14 w-full" /></div>)}
+          {[...Array(3)].map((_, i) => <div key={i} className="surface-card p-4"><Skeleton className="h-14 w-full" /></div>)}
         </div>
-        <div className="bg-surface rounded-2xl border border-border">
+        <div className="surface-card">
           <div className="p-4 border-b border-border"><Skeleton className="h-4 w-40" /></div>
           <div className="divide-y divide-border/50">
             {[...Array(4)].map((_, i) => (
@@ -143,7 +143,7 @@ export default function VaccinationsPage() {
       )}
 
       {/* Completed Vaccinations */}
-      <div className="bg-surface rounded-2xl border border-border">
+      <div className="surface-card">
         <div className="p-4 border-b border-border">
           <h2 className="text-sm font-bold text-primary">Immunization History</h2>
         </div>

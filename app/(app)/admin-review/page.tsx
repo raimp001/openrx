@@ -9,7 +9,7 @@ export default function AdminReviewPage() {
         description="In-app admin queue is disabled. Application approvals are handled by signed email actions."
       />
 
-      <div className="bg-surface rounded-2xl border border-border p-5">
+      <div className="surface-card p-5">
         <div className="flex items-start gap-3">
           <MailCheck size={18} className="text-teal mt-0.5" />
           <div>

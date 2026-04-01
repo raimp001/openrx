@@ -96,7 +96,7 @@ export default function PAauditPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-surface rounded-2xl border border-border p-4">
+        <div className="surface-card p-4">
           <div className="text-2xl font-bold text-primary">{events.length}</div>
           <div className="text-xs text-muted mt-1">Total Events</div>
         </div>
@@ -119,7 +119,7 @@ export default function PAauditPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+      <div className="surface-card p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Filter size={13} className="text-muted" />
           <span className="text-xs font-bold text-primary">Filter Events</span>
@@ -183,7 +183,7 @@ export default function PAauditPage() {
       </div>
 
       {/* Event timeline */}
-      <div className="bg-surface rounded-2xl border border-border overflow-hidden">
+      <div className="surface-card overflow-hidden">
         <div className="px-5 py-3 bg-border/20 border-b border-border flex items-center justify-between">
           <h2 className="text-xs font-bold text-primary">Event Log</h2>
           <div className="flex items-center gap-1.5 text-[10px] text-muted">
@@ -288,7 +288,7 @@ export default function PAauditPage() {
       </div>
 
       {/* HIPAA compliance note */}
-      <div className="bg-surface rounded-2xl border border-border p-4">
+      <div className="surface-card p-4">
         <div className="flex items-start gap-3">
           <ShieldCheck size={16} className="text-accent shrink-0 mt-0.5" />
           <div>

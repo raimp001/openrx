@@ -104,7 +104,7 @@ export default function JoinNetworkPage() {
         description="Providers and caregivers can apply here. Review happens through signed admin email actions."
       />
 
-      <div className="bg-surface rounded-2xl border border-border p-5 space-y-4">
+      <div className="surface-card p-5 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <label className="text-xs text-secondary">
             Role

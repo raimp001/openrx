@@ -32,10 +32,10 @@ export default function ReferralsPage() {
           <Skeleton className="h-9 w-36" />
         </div>
         <div className="grid grid-cols-3 gap-3">
-          {[...Array(3)].map((_, i) => <div key={i} className="bg-surface rounded-2xl border border-border p-4"><Skeleton className="h-14 w-full" /></div>)}
+          {[...Array(3)].map((_, i) => <div key={i} className="surface-card p-4"><Skeleton className="h-14 w-full" /></div>)}
         </div>
         <div className="space-y-3">
-          {[...Array(3)].map((_, i) => <div key={i} className="bg-surface rounded-2xl border border-border p-5"><Skeleton className="h-20 w-full" /></div>)}
+          {[...Array(3)].map((_, i) => <div key={i} className="surface-card p-5"><Skeleton className="h-20 w-full" /></div>)}
         </div>
       </div>
     )
@@ -115,7 +115,7 @@ export default function ReferralsPage() {
       {/* Referral Cards */}
       <div className="space-y-3">
         {referrals.length === 0 && (
-          <div className="bg-surface rounded-2xl border border-border flex flex-col items-center justify-center py-16 text-center gap-3">
+          <div className="surface-card flex flex-col items-center justify-center py-16 text-center gap-3">
             <ArrowRightCircle size={32} className="text-muted" />
             <p className="text-sm font-semibold text-secondary">No referrals on file</p>
             <p className="text-xs text-muted max-w-xs">When your doctor refers you to a specialist, it will appear here.</p>
@@ -127,7 +127,7 @@ export default function ReferralsPage() {
           return (
             <div
               key={ref.id}
-              className="bg-surface rounded-2xl border border-border p-5"
+              className="surface-card p-5"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">

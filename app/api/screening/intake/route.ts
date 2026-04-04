@@ -1,7 +1,9 @@
+import { requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { parseScreeningIntakeNarrative } from "@/lib/screening-intake"
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as { narrative?: string }
     const narrative = (body.narrative || "").trim()

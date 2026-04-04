@@ -244,12 +244,6 @@ export default function DashboardPage() {
     return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" })
   }
 
-  // ── Disconnected ──
-  if (!loading && !isConnected && !hasData) return <DisconnectedHero />
-
-  // ── Connected but no data ──
-  if (!loading && isConnected && !hasData) return <NewUserOnboarding firstName={firstName} />
-
   // ── Loading ──
   if (loading) {
     return (
@@ -261,6 +255,12 @@ export default function DashboardPage() {
       </div>
     )
   }
+
+  // ── Disconnected ──
+  if (!isConnected && !hasData) return <DisconnectedHero />
+
+  // ── Connected but no data ──
+  if (isConnected && !hasData) return <NewUserOnboarding firstName={firstName} />
 
   // ── Full dashboard ──
   return (

@@ -12,7 +12,7 @@ const SECURITY_HEADERS: [string, string][] = [
   [
     "Content-Security-Policy",
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+    "script-src 'self' 'unsafe-inline'; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
     "img-src 'self' data: blob: https:; " +
     "font-src 'self' data: https://fonts.gstatic.com; " +
@@ -23,7 +23,7 @@ const SECURITY_HEADERS: [string, string][] = [
 
 /** Allowed origins for CORS */
 const ALLOWED_ORIGINS = [
-  "http://localhost:3000",
+  ...(process.env.NODE_ENV !== "production" ? ["http://localhost:3000"] : []),
   "https://openrx.vercel.app",
   "https://openrx.health",
 ]
@@ -43,17 +43,17 @@ export function middleware(request: NextRequest) {
     response.headers.set("Access-Control-Max-Age", "86400")
   }
 
+  // Apply security headers to all responses (including preflight)
+  for (let i = 0; i < SECURITY_HEADERS.length; i++) {
+    response.headers.set(SECURITY_HEADERS[i][0], SECURITY_HEADERS[i][1])
+  }
+
   // Handle preflight
   if (isApiRoute && request.method === "OPTIONS") {
     return new NextResponse(null, {
       status: 204,
       headers: response.headers,
     })
-  }
-
-  // Apply security headers to all responses
-  for (let i = 0; i < SECURITY_HEADERS.length; i++) {
-    response.headers.set(SECURITY_HEADERS[i][0], SECURITY_HEADERS[i][1])
   }
 
   return response

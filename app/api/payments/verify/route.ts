@@ -22,6 +22,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!/^0x[a-fA-F0-9]{40}$/.test(body.walletAddress)) {
+      return NextResponse.json({ error: "Invalid wallet address format." }, { status: 400 })
+    }
+
+    if (auth.session.walletAddress && body.walletAddress.toLowerCase() !== auth.session.walletAddress.toLowerCase()) {
+      return NextResponse.json({ error: "Wallet address does not match authenticated session." }, { status: 403 })
+    }
+
     const result = await verifyAndRecordPayment({
       paymentId: body.paymentId,
       intentId: body.intentId,

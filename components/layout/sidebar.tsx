@@ -82,15 +82,14 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { snapshot } = useLiveSnapshot()
   const { isConnected, profile } = useWalletIdentity()
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
-    if (typeof window === "undefined") return {}
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem("openrx:sidebar-sections")
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
-  })
+      if (saved) setOpenSections(JSON.parse(saved))
+    } catch { /* ignore corrupted storage */ }
+  }, [])
 
   const patientName = isConnected ? (profile?.fullName || snapshot.patient?.full_name || "") : ""
   const hasPatient = isConnected && !!patientName
@@ -117,6 +116,12 @@ export default function Sidebar() {
   useEffect(() => {
     setMobileOpen(false)
   }, [pathname])
+
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : ""
+    return () => { document.body.style.overflow = "" }
+  }, [mobileOpen])
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -224,6 +229,7 @@ export default function Sidebar() {
             <div key={section.label} className="mt-3">
               <button
                 onClick={() => toggleSection(section.label)}
+                aria-expanded={isOpen || hasActiveChild}
                 className="flex w-full items-center justify-between rounded-nav px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted transition hover:text-secondary"
               >
                 {section.label}

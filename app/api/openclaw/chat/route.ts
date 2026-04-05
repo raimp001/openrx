@@ -56,6 +56,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (walletAddress && !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+      return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 })
+    }
+
     // Use coordinator routing for the coordinator agent
     const result = agentId === "coordinator"
       ? await runCoordinator(message, sessionId, walletAddress)

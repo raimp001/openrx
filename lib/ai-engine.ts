@@ -6,7 +6,7 @@ import { getLiveSnapshotByWallet } from "./live-data.server"
 // ── AI Clients ────────────────────────────────────────────
 const getClaudeClient = () =>
   process.env.ANTHROPIC_API_KEY
-    ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 30_000 })
     : null
 
 const openai = new OpenAI({
@@ -91,7 +91,7 @@ const contextCache = new Map<string, CachedContext>()
 const CONTEXT_TTL_MS = 30_000 // 30 s — covers a full MoE fan-out round-trip
 
 async function getPatientContext(walletAddress?: string): Promise<string> {
-  const cacheKey = walletAddress || "__anonymous__"
+  const cacheKey = walletAddress || `__anonymous_${Date.now()}__`
   const cached = contextCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now()) {
     return cached.text

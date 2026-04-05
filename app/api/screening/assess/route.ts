@@ -523,7 +523,11 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const patientId = searchParams.get("patientId") || undefined
-    const walletAddress = searchParams.get("walletAddress") || undefined
+    const walletAddress = searchParams.get("walletAddress") || auth.session.walletAddress || undefined
+
+    if (walletAddress && auth.session.walletAddress && walletAddress.toLowerCase() !== auth.session.walletAddress.toLowerCase()) {
+      return NextResponse.json({ error: "Access denied." }, { status: 403 })
+    }
     const paymentId = searchParams.get("paymentId") || undefined
     const analysisLevel = resolveAnalysisLevel(searchParams.get("analysisLevel"))
 

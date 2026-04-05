@@ -454,7 +454,7 @@ export default function LandingPage() {
               <div className="p-8 sm:p-12 text-center">
                 <div className="flex justify-center gap-0.5 mb-5">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={14} className="text-amber fill-amber" />
+                    <Star key={i} size={14} className="text-amber-400 fill-amber-400" />
                   ))}
                 </div>
                 <blockquote className="text-[17px] font-medium leading-relaxed text-primary">

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Bell,
@@ -36,6 +37,7 @@ function shortenAddress(address: string): string {
 }
 
 export default function Topbar() {
+  const router = useRouter()
   const { snapshot, getPhysician } = useLiveSnapshot()
   const { isConnected, profile, walletAddress } = useWalletIdentity()
   const displayName = isConnected ? (profile?.fullName || snapshot.patient?.full_name || (walletAddress ? shortenAddress(walletAddress) : "")) : ""
@@ -144,7 +146,7 @@ export default function Topbar() {
     } else if (e.key === "Enter" && activeIndex >= 0) {
       e.preventDefault()
       const item = flatResults[activeIndex]
-      if (item) { window.location.href = item.href; closeSearch() }
+      if (item) { router.push(item.href); closeSearch() }
     }
   }, [isOpen, flatResults, activeIndex])
 
@@ -171,6 +173,8 @@ export default function Topbar() {
             onFocus={() => query.length >= 2 && setIsOpen(true)}
             onKeyDown={handleSearchKeyDown}
             role="combobox"
+            aria-controls="search-results-listbox"
+            aria-label="Search OpenRx"
             aria-expanded={isOpen && !!results}
             aria-activedescendant={activeIndex >= 0 ? `search-result-${activeIndex}` : undefined}
             placeholder="Search..."
@@ -195,7 +199,7 @@ export default function Topbar() {
               {results.total === 0 ? (
                 <div className="px-4 py-3 text-sm text-secondary">No results for &ldquo;{query}&rdquo;</div>
               ) : (
-                <div className="max-h-80 overflow-y-auto py-1" role="listbox">
+                <div id="search-results-listbox" className="max-h-80 overflow-y-auto py-1" role="listbox">
                   {(() => {
                     let idx = 0
                     return (

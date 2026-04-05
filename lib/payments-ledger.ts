@@ -529,13 +529,7 @@ async function verifyAndRecordPaymentInFileStore(input: VerifyPaymentInput): Pro
     (input.intentId ? store.payments.find((candidate) => candidate.intentId === input.intentId) : undefined)
 
   if (!payment) {
-    payment = createPaymentIntentInFileStore({
-      walletAddress,
-      amount: input.expectedAmount || "0.01",
-      description: "Ad-hoc verification",
-      category: "other",
-      recipientAddress: input.expectedRecipient,
-    })
+    throw new Error("No matching payment intent found. Create a payment intent before verifying.")
   }
 
   if (payment.status === "verified" && payment.txHash === input.txHash) {

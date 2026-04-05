@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const snapshot = await getLiveSnapshotByWallet(walletAddress)
-    return NextResponse.json(snapshot)
+    return NextResponse.json(snapshot, {
+      headers: { "Cache-Control": "no-store, private" },
+    })
   } catch (error) {
     console.error("Failed to load live patient snapshot:", error)
     return NextResponse.json(

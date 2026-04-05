@@ -188,9 +188,10 @@ export default function DashboardPage() {
   const lowAdherenceRx = myRx.filter((p) => p.adherence_pct < 80)
 
   const healthScore = useMemo(() => {
+    if (myRx.length === 0 && abnormalLabCount === 0 && overdueVaccines.length === 0) return null
     const deductions = (abnormalLabCount * 5) + (overdueVaccines.length * 8) + (lowAdherenceRx.length * 10)
     return Math.max(0, Math.min(100, avgAdherence - deductions))
-  }, [avgAdherence, abnormalLabCount, overdueVaccines, lowAdherenceRx])
+  }, [myRx.length, avgAdherence, abnormalLabCount, overdueVaccines, lowAdherenceRx])
 
   const latestVital = snapshot.vitals[0]
 
@@ -224,8 +225,8 @@ export default function DashboardPage() {
     for (const lab of snapshot.labResults.filter(l => l.status !== "pending").slice(0, 1)) {
       items.push({ icon: FlaskConical, label: `${lab.test_name} result ready`, time: lab.resulted_at || lab.ordered_at, href: "/lab-results" })
     }
-    for (const apt of upcomingApts.slice(0, 1)) {
-      items.push({ icon: Calendar, label: `${apt.reason || "Visit"} confirmed`, time: apt.scheduled_at, href: "/scheduling" })
+    for (const apt of snapshot.appointments.filter(a => new Date(a.scheduled_at).getTime() <= Date.now()).slice(0, 1)) {
+      items.push({ icon: Calendar, label: `${apt.reason || "Visit"} completed`, time: apt.scheduled_at, href: "/scheduling" })
     }
     for (const claim of deniedClaims.slice(0, 1)) {
       items.push({ icon: Receipt, label: `Claim denied — ${claim.claim_number}`, time: claim.submitted_at, href: "/billing" })
@@ -317,6 +318,13 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
+          {actionItems.length > 5 && (
+            <div className="border-t border-border/20 px-5 py-3 text-center">
+              <Link href="/dashboard" className="text-[12px] font-medium text-teal hover:text-teal/80 transition">
+                View all {actionItems.length} items
+              </Link>
+            </div>
+          )}
         </div>
       )}
 
@@ -356,12 +364,12 @@ export default function DashboardPage() {
 
         <div className="surface-card p-5 flex items-center gap-4 min-w-[200px]">
           <div className="relative shrink-0">
-            <HealthRing score={healthScore} />
+            <HealthRing score={healthScore ?? 0} />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className={cn(
                 "text-xl font-bold tabular-nums",
-                healthScore >= 80 ? "text-emerald-600" : healthScore >= 60 ? "text-amber-600" : "text-red-500"
-              )}>{healthScore}</span>
+                healthScore === null ? "text-muted" : healthScore >= 80 ? "text-emerald-600" : healthScore >= 60 ? "text-amber-600" : "text-red-500"
+              )}>{healthScore ?? "—"}</span>
             </div>
           </div>
           <div className="min-w-0 space-y-1.5">

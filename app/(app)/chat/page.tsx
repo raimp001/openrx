@@ -115,7 +115,16 @@ export default function ChatPage() {
   const sendQuickPrompt = useCallback((prompt: string, agentId: AgentId) => {
     setInput(prompt)
     setActiveAgent(agentId)
-    setTimeout(() => inputRef.current?.focus(), 0)
+    // Auto-send after a tick so React state settles
+    setTimeout(() => {
+      setInput((current) => {
+        if (current === prompt) {
+          // Trigger send via form ref or direct call
+          inputRef.current?.form?.requestSubmit()
+        }
+        return current
+      })
+    }, 0)
   }, [])
 
   // Check gateway status
@@ -230,9 +239,9 @@ export default function ChatPage() {
                 Connected
               </span>
             ) : gatewayStatus === "offline" ? (
-              <span className="flex items-center gap-1 text-[10px] font-medium text-muted">
-                <span className="h-1.5 w-1.5 rounded-full bg-zinc-300" />
-                Offline
+              <span className="flex items-center gap-1 text-[10px] font-medium text-red-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                Offline — responses may fail
               </span>
             ) : (
               <span className="flex items-center gap-1 text-[10px] text-muted">
@@ -334,7 +343,7 @@ export default function ChatPage() {
                           </div>
                         )}
                         <p className="text-[14px] text-primary leading-relaxed whitespace-pre-line">
-                          {msg.content}
+                          {msg.content.replace(/\*\*(.*?)\*\*/g, "$1")}
                         </p>
                         <span className="text-[10px] text-muted mt-1.5 block">
                           {msg.timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}

@@ -117,6 +117,12 @@ export default function Sidebar() {
     setMobileOpen(false)
   }, [pathname])
 
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : ""
+    return () => { document.body.style.overflow = "" }
+  }, [mobileOpen])
+
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMobileOpen(false)

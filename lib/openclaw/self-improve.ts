@@ -1,6 +1,11 @@
 // ── Self-Improvement Engine ────────────────────────────────
-// Agents can recursively suggest improvements to the app,
-// track improvement history, and report on their status.
+// Inspired by karpathy/autoresearch: agents iteratively propose,
+// score, validate, and deploy improvements. Each candidate is
+// evaluated against an objective before promotion — matching
+// how autoresearch validates strategy candidates via backtest
+// before promoting them to paper/live.
+//
+// Loop: Agent suggests → peers vote → objective score → validate → deploy
 // Bolt (DevOps) coordinates the improvement pipeline.
 
 import fs from "fs"
@@ -19,6 +24,12 @@ export interface Improvement {
   createdAt: string
   resolvedAt?: string
   votes: AgentId[]
+  // Autoresearch-inspired objective scoring
+  objectiveScore?: number        // 0-100, computed from impact dimensions
+  validationResult?: "pass" | "fail" | "pending"
+  validationNotes?: string       // Why it passed or failed
+  experimentCost?: "cheap" | "moderate" | "expensive"  // Prefer cheap experiments
+  iterationCount?: number        // How many refinement cycles
 }
 
 export interface ImprovementMetrics {
@@ -26,6 +37,8 @@ export interface ImprovementMetrics {
   totalDeployed: number
   totalRejected: number
   averageResolutionDays: number
+  averageObjectiveScore: number
+  validationPassRate: number
   topContributors: { agentId: AgentId; count: number }[]
   recentImprovements: Improvement[]
 }
@@ -159,14 +172,105 @@ export function getImprovementMetrics(): ImprovementMetrics {
     .map(([agentId, count]) => ({ agentId: agentId as AgentId, count }))
     .sort((a, b) => b.count - a.count)
 
+  // Autoresearch-inspired metrics
+  const scored = improvements.filter((i) => i.objectiveScore !== undefined)
+  const avgScore = scored.length > 0
+    ? scored.reduce((sum, i) => sum + (i.objectiveScore || 0), 0) / scored.length
+    : 0
+  const validated = improvements.filter((i) => i.validationResult && i.validationResult !== "pending")
+  const passRate = validated.length > 0
+    ? validated.filter((i) => i.validationResult === "pass").length / validated.length
+    : 0
+
   return {
     totalSuggested: improvements.length,
     totalDeployed: deployed.length,
     totalRejected: rejected.length,
     averageResolutionDays: Math.round(avgDays * 10) / 10,
+    averageObjectiveScore: Math.round(avgScore * 10) / 10,
+    validationPassRate: Math.round(passRate * 100),
     topContributors,
     recentImprovements: improvements.slice(-5).reverse(),
   }
+}
+
+// ── Autoresearch-inspired objective scoring ────────────────
+// Like karpathy/autoresearch validates strategy candidates against
+// an objective before promotion, we score improvements on multiple
+// dimensions and only promote those that beat the threshold.
+
+/** Score an improvement on a 0-100 scale across impact dimensions */
+export function scoreImprovement(imp: Improvement): number {
+  let score = 0
+
+  // Priority weight (30 points max)
+  const priorityScores = { critical: 30, high: 22, medium: 14, low: 6 }
+  score += priorityScores[imp.priority]
+
+  // Category weight — security/bugfix get bonus (20 points max)
+  const categoryScores = { security: 20, bugfix: 18, performance: 14, ux: 12, feature: 10, integration: 8 }
+  score += categoryScores[imp.category]
+
+  // Consensus signal — more votes = more confidence (25 points max)
+  score += Math.min(25, imp.votes.length * 5)
+
+  // Prefer cheap experiments (15 points max) — Karpathy: "keep each experiment cheap"
+  const costScores = { cheap: 15, moderate: 10, expensive: 5, undefined: 10 }
+  score += costScores[imp.experimentCost || "undefined"]
+
+  // Iteration refinement bonus (10 points max) — more iterations = better refined
+  score += Math.min(10, (imp.iterationCount || 0) * 2)
+
+  return Math.min(100, score)
+}
+
+/** Validate an improvement candidate before deployment.
+ *  Like autoresearch backtesting: only promote if it beats the threshold. */
+export function validateImprovement(improvementId: string, result: "pass" | "fail", notes?: string): Improvement | null {
+  const imp = improvements.find((i) => i.id === improvementId)
+  if (!imp) return null
+  imp.validationResult = result
+  imp.validationNotes = notes || ""
+  imp.objectiveScore = scoreImprovement(imp)
+
+  // Auto-approve validated improvements with high scores (like autoresearch promoting winners)
+  if (result === "pass" && imp.objectiveScore >= 60 && imp.status === "suggested") {
+    imp.status = "approved"
+  }
+  // Reject failed validations
+  if (result === "fail") {
+    imp.status = "rejected"
+    imp.resolvedAt = new Date().toISOString()
+  }
+
+  persistImprovements(improvements)
+  return imp
+}
+
+/** Refine an improvement (increment iteration count, update description).
+ *  Like autoresearch: modify train.py, re-run, keep only improvements. */
+export function refineImprovement(improvementId: string, updates: { description?: string; impact?: string }): Improvement | null {
+  const imp = improvements.find((i) => i.id === improvementId)
+  if (!imp || imp.status === "deployed" || imp.status === "rejected") return null
+  imp.iterationCount = (imp.iterationCount || 0) + 1
+  if (updates.description) imp.description = updates.description
+  if (updates.impact) imp.impact = updates.impact
+  // Reset validation on refinement — needs re-evaluation
+  imp.validationResult = "pending"
+  imp.objectiveScore = scoreImprovement(imp)
+  persistImprovements(improvements)
+  return imp
+}
+
+/** Get improvements ranked by objective score (highest first) */
+export function getRankedImprovements(filter?: { status?: Improvement["status"] }): Improvement[] {
+  let result = [...improvements]
+  if (filter?.status) result = result.filter((i) => i.status === filter.status)
+  // Score any unscored improvements
+  for (const imp of result) {
+    if (imp.objectiveScore === undefined) imp.objectiveScore = scoreImprovement(imp)
+  }
+  return result.sort((a, b) => (b.objectiveScore || 0) - (a.objectiveScore || 0))
 }
 
 /** Agents proactively generate improvements based on usage patterns */

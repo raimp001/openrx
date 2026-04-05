@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import Link from "next/link"
 import {
   Activity,
@@ -94,28 +94,35 @@ export default function VitalsPage() {
   const [range, setRange] = useState<TimeRange>("14d")
 
   const rangeDays = range === "7d" ? 7 : range === "14d" ? 14 : 30
-  const cutoff = new Date()
-  cutoff.setDate(cutoff.getDate() - rangeDays)
-  const filteredVitals = vitals.filter((vital) => new Date(vital.recorded_at) >= cutoff)
 
-  const bpReadings = filteredVitals.filter((vital) => vital.systolic && vital.diastolic)
-  const glucoseReadings = filteredVitals.filter((vital) => vital.blood_glucose)
-  const weightReadings = filteredVitals.filter((vital) => vital.weight_lbs)
+  const filteredVitals = useMemo(() => {
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - rangeDays)
+    return vitals.filter((vital) => new Date(vital.recorded_at) >= cutoff)
+  }, [vitals, rangeDays])
 
-  const avgSystolic = bpReadings.length
-    ? Math.round(bpReadings.reduce((sum, vital) => sum + (vital.systolic || 0), 0) / bpReadings.length)
-    : null
-  const avgDiastolic = bpReadings.length
-    ? Math.round(bpReadings.reduce((sum, vital) => sum + (vital.diastolic || 0), 0) / bpReadings.length)
-    : null
-  const avgGlucose = glucoseReadings.length
-    ? Math.round(glucoseReadings.reduce((sum, vital) => sum + (vital.blood_glucose || 0), 0) / glucoseReadings.length)
-    : null
-  const latestWeight = weightReadings.length ? weightReadings[0].weight_lbs : null
-  const latestHR = filteredVitals.find((vital) => vital.heart_rate)?.heart_rate || null
-  const latestVital = filteredVitals[0] || null
+  const { bpReadings, glucoseReadings, weightReadings } = useMemo(() => ({
+    bpReadings: filteredVitals.filter((vital) => vital.systolic && vital.diastolic),
+    glucoseReadings: filteredVitals.filter((vital) => vital.blood_glucose),
+    weightReadings: filteredVitals.filter((vital) => vital.weight_lbs),
+  }), [filteredVitals])
 
-  const trend = (values: number[]): "up" | "down" | "stable" => {
+  const { avgSystolic, avgDiastolic, avgGlucose, latestWeight, latestHR, latestVital } = useMemo(() => ({
+    avgSystolic: bpReadings.length
+      ? Math.round(bpReadings.reduce((sum, vital) => sum + (vital.systolic || 0), 0) / bpReadings.length)
+      : null,
+    avgDiastolic: bpReadings.length
+      ? Math.round(bpReadings.reduce((sum, vital) => sum + (vital.diastolic || 0), 0) / bpReadings.length)
+      : null,
+    avgGlucose: glucoseReadings.length
+      ? Math.round(glucoseReadings.reduce((sum, vital) => sum + (vital.blood_glucose || 0), 0) / glucoseReadings.length)
+      : null,
+    latestWeight: weightReadings.length ? weightReadings[0].weight_lbs : null,
+    latestHR: filteredVitals.find((vital) => vital.heart_rate)?.heart_rate || null,
+    latestVital: filteredVitals[0] || null,
+  }), [bpReadings, glucoseReadings, weightReadings, filteredVitals])
+
+  const trend = useCallback((values: number[]): "up" | "down" | "stable" => {
     if (values.length < 2) return "stable"
     const half = Math.ceil(values.length / 2)
     const recent = values.slice(0, half)
@@ -125,12 +132,12 @@ export default function VitalsPage() {
     const diff = recentAvg - olderAvg
     if (Math.abs(diff) < 3) return "stable"
     return diff > 0 ? "up" : "down"
-  }
+  }, [])
 
-  const bpTrend = trend(bpReadings.map((vital) => vital.systolic || 0))
-  const glucoseTrend = trend(glucoseReadings.map((vital) => vital.blood_glucose || 0))
+  const bpTrend = useMemo(() => trend(bpReadings.map((vital) => vital.systolic || 0)), [bpReadings, trend])
+  const glucoseTrend = useMemo(() => trend(glucoseReadings.map((vital) => vital.blood_glucose || 0)), [glucoseReadings, trend])
 
-  const chartData = [...filteredVitals]
+  const chartData = useMemo(() => [...filteredVitals]
     .sort((left, right) => new Date(left.recorded_at).getTime() - new Date(right.recorded_at).getTime())
     .map((vital) => ({
       date: new Date(vital.recorded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
@@ -139,13 +146,15 @@ export default function VitalsPage() {
       glucose: vital.blood_glucose || null,
       hr: vital.heart_rate || null,
       weight: vital.weight_lbs || null,
-    }))
+    })), [filteredVitals])
 
   const highBP = Boolean(avgSystolic && avgSystolic >= 140)
   const highGlucose = Boolean(avgGlucose && avgGlucose > 130)
-  const homeCount = filteredVitals.filter((vital) => vital.source === "home").length
-  const clinicCount = filteredVitals.filter((vital) => vital.source === "clinic").length
-  const deviceCount = filteredVitals.filter((vital) => vital.source === "device").length
+  const { homeCount, clinicCount, deviceCount } = useMemo(() => ({
+    homeCount: filteredVitals.filter((vital) => vital.source === "home").length,
+    clinicCount: filteredVitals.filter((vital) => vital.source === "clinic").length,
+    deviceCount: filteredVitals.filter((vital) => vital.source === "device").length,
+  }), [filteredVitals])
 
   if (loading) {
     return (

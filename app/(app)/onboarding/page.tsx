@@ -47,6 +47,7 @@ interface PatientData {
 
 type Step =
   | "welcome"
+  | "dob"
   | "has-pcp" | "pcp-search" | "pcp-confirm"
   | "has-dentist" | "dentist-search"
   | "pharmacy-search"
@@ -56,12 +57,13 @@ type Step =
   | "summary" | "complete"
 
 const STEP_ORDER: Step[] = [
-  "welcome", "has-pcp", "pcp-search", "pcp-confirm",
+  "welcome", "dob", "has-pcp", "pcp-search", "pcp-confirm",
   "has-dentist", "dentist-search", "pharmacy-search",
   "medications", "med-more", "devices", "screenings", "summary", "complete",
 ]
 
 const STEP_LABELS: Partial<Record<Step, string>> = {
+  "dob": "About You",
   "has-pcp": "Primary Care",
   "pcp-search": "Primary Care",
   "pcp-confirm": "Primary Care",
@@ -226,14 +228,10 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (step === "welcome" && messages.length === 0) {
       addAgent(
-        `Hi! I'm Sage. Let's set up your care team — takes about 2 minutes.\n\nDo you have a primary care physician?`,
-        "sage",
-        [
-          { label: "Yes, I have one", value: "yes" },
-          { label: "No, I need one", value: "no" },
-        ]
+        `Hi! I'm Sage. Let's set up your care team — takes about 2 minutes.\n\nFirst, what's your full name?`,
+        "sage"
       )
-      setStep("has-pcp")
+      setStep("dob")
     }
   }, [step, messages.length, addAgent, isConnected])
 
@@ -265,6 +263,32 @@ export default function OnboardingPage() {
     if (directValue === undefined) setInput("")
 
     switch (step) {
+      case "dob": {
+        addUser(val)
+        // First response is the name, second is DOB
+        if (!patient.fullName) {
+          setPatient(p => ({ ...p, fullName: val }))
+          addAgent(`Nice to meet you, ${val.split(" ")[0]}! What's your date of birth? (e.g. 03/15/1990)`)
+        } else {
+          // Parse DOB
+          const parsed = new Date(val)
+          if (!isNaN(parsed.getTime()) && parsed.getTime() < Date.now()) {
+            setPatient(p => ({ ...p, dob: parsed.toISOString().slice(0, 10) }))
+            addAgent(
+              `Got it. Do you have a primary care physician?`,
+              "sage",
+              [
+                { label: "Yes, I have one", value: "yes" },
+                { label: "No, I need one", value: "no" },
+              ]
+            )
+            advanceStep("has-pcp")
+          } else {
+            addAgent("I didn't catch that. Please enter your date of birth like MM/DD/YYYY.")
+          }
+        }
+        break
+      }
       case "has-pcp":
         addUser(val)
         if (val.toLowerCase().includes("yes")) {
@@ -489,10 +513,12 @@ export default function OnboardingPage() {
         addAgent("Last step — Ivy will set up your preventive screenings.", "sage")
         setTimeout(async () => {
           let age = 40
-          try {
-            const dob = new Date(patient.dob || "")
-            age = Math.floor((Date.now() - dob.getTime()) / 31557600000)
-          } catch {}
+          if (patient.dob) {
+            const dob = new Date(patient.dob)
+            if (!isNaN(dob.getTime())) {
+              age = Math.floor((Date.now() - dob.getTime()) / 31557600000)
+            }
+          }
 
           try {
             const res = await fetch("/api/onboarding", {

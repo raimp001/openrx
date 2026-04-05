@@ -100,6 +100,7 @@ export default function ChatPage() {
   const [activeAgent, setActiveAgent] = useState<AgentId>("coordinator")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [agentActions, setAgentActions] = useState<{ id: string; agentName: string; action: string; detail: string; timestamp: string }[]>([])
 
   const clearChat = useCallback(() => {
     setMessages([{
@@ -112,21 +113,6 @@ export default function ChatPage() {
     inputRef.current?.focus()
   }, [])
 
-  const sendQuickPrompt = useCallback((prompt: string, agentId: AgentId) => {
-    setInput(prompt)
-    setActiveAgent(agentId)
-    // Auto-send after a tick so React state settles
-    setTimeout(() => {
-      setInput((current) => {
-        if (current === prompt) {
-          // Trigger send via form ref or direct call
-          inputRef.current?.form?.requestSubmit()
-        }
-        return current
-      })
-    }, 0)
-  }, [])
-
   // Check gateway status
   useEffect(() => {
     fetch("/api/openclaw/status")
@@ -135,22 +121,34 @@ export default function ChatPage() {
       .catch(() => setGatewayStatus("offline"))
   }, [])
 
+  // Fetch agent activity after each message send
+  useEffect(() => {
+    if (messages.length <= 1) return
+    fetch("/api/openclaw/status")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.recentActions?.length) setAgentActions(d.recentActions.slice(0, 6))
+      })
+      .catch(() => {})
+  }, [messages.length])
+
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  const sendMessage = useCallback(async () => {
-    if (!input.trim() || isLoading) return
+  const sendMessage = useCallback(async (overrideText?: string) => {
+    const text = (overrideText || input).trim()
+    if (!text || isLoading) return
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      content: input.trim(),
+      content: text,
       timestamp: new Date(),
     }
 
-    const savedInput = input.trim()
+    const savedInput = text
     setMessages((prev) => [...prev, userMsg])
     setInput("")
     setIsLoading(true)
@@ -218,6 +216,11 @@ export default function ChatPage() {
       setIsLoading(false)
     }
   }, [input, isLoading, activeAgent, walletAddress])
+
+  const sendQuickPrompt = useCallback((prompt: string, agentId: AgentId) => {
+    setActiveAgent(agentId)
+    sendMessage(prompt)
+  }, [sendMessage])
 
   const currentAgentMeta = agentMeta[activeAgent]
 
@@ -437,7 +440,7 @@ export default function ChatPage() {
             )}
             <button
               type="button"
-              onClick={sendMessage}
+              onClick={() => sendMessage()}
               disabled={isLoading || !input.trim()}
               aria-label="Send message"
               className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-teal text-white transition hover:shadow-glow-sm disabled:opacity-50 sm:min-w-[4.5rem] sm:gap-2 sm:px-4"
@@ -481,10 +484,30 @@ export default function ChatPage() {
             <GitBranch size={12} className="text-teal" />
             <span className="text-[11px] font-semibold text-primary uppercase tracking-wider">Agent Activity</span>
           </div>
-          <div className="p-8 text-center">
-            <Users size={18} className="text-muted mx-auto mb-2" />
-            <p className="text-[12px] text-muted">Send a message to see agents collaborate</p>
-          </div>
+          {agentActions.length > 0 ? (
+            <div className="divide-y divide-border/20">
+              {agentActions.map((action) => {
+                const meta = agentMeta[action.agentName?.toLowerCase()] || agentMeta.coordinator
+                return (
+                  <div key={action.id} className="flex items-start gap-2.5 px-4 py-2.5">
+                    <meta.icon size={12} className={cn("mt-0.5 shrink-0", meta.color)} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold text-primary truncate">{action.agentName}: {action.action}</p>
+                      <p className="text-[10px] text-muted truncate">{action.detail}</p>
+                    </div>
+                    <span className="text-[9px] text-muted shrink-0">
+                      {new Date(action.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="p-8 text-center">
+              <Users size={18} className="text-muted mx-auto mb-2" />
+              <p className="text-[12px] text-muted">Send a message to see agents collaborate</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -341,34 +341,45 @@ export async function runCoordinator(
   agentId: string
   handoff?: string
 }> {
-  const result = await runAgent({
+  const MAX_HANDOFF_DEPTH = 3
+  const visited = new Set<string>()
+  let current = await runAgent({
     agentId: "coordinator",
     message,
     sessionId,
     walletAddress,
   })
 
-  // If coordinator hands off, run the target agent
-  if (result.handoff) {
-    const targetAgent = OPENCLAW_CONFIG.agents.find((a) => a.id === result.handoff)
-    if (targetAgent) {
-      logAction("coordinator", "routed", `→ ${targetAgent.name}: ${message.slice(0, 40)}...`)
+  let combinedResponse = current.response
+  let finalAgentId = current.agentId
 
-      const followUp = await runAgent({
-        agentId: result.handoff,
-        message,
-        sessionId: sessionId ? `${sessionId}-${result.handoff}` : undefined,
-        walletAddress,
-      })
-
-      // Combine coordinator's intro with specialist's response
-      return {
-        response: `${result.response}\n\n---\n\n**${targetAgent.name}:** ${followUp.response}`,
-        agentId: result.handoff,
-        handoff: followUp.handoff,
-      }
+  // Follow handoff chain with depth limit and cycle detection
+  while (current.handoff && visited.size < MAX_HANDOFF_DEPTH) {
+    if (visited.has(current.handoff)) {
+      console.warn(`[OpenClaw] Handoff cycle detected: ${[...visited].join(" → ")} → ${current.handoff}. Stopping.`)
+      break
     }
+    visited.add(current.handoff)
+
+    const targetAgent = OPENCLAW_CONFIG.agents.find((a) => a.id === current.handoff)
+    if (!targetAgent) break
+
+    logAction(finalAgentId, "routed", `→ ${targetAgent.name}: ${message.slice(0, 40)}...`)
+
+    current = await runAgent({
+      agentId: current.handoff,
+      message,
+      sessionId: sessionId ? `${sessionId}-${current.handoff}` : undefined,
+      walletAddress,
+    })
+
+    combinedResponse += `\n\n---\n\n**${targetAgent.name}:** ${current.response}`
+    finalAgentId = current.agentId
   }
 
-  return result
+  return {
+    response: combinedResponse,
+    agentId: finalAgentId,
+    handoff: current.handoff,
+  }
 }

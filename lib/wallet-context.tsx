@@ -168,6 +168,7 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-wallet-address": address,
       },
       body: JSON.stringify(payload),
     })

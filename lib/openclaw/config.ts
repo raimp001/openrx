@@ -1,4 +1,4 @@
-// ── OpenClaw Agent Configuration for OpenRx ──────────────
+// ── Care automation agent configuration for OpenRx ────────
 // 12 autonomous agents with distinct personalities that
 // communicate with each other and drive the platform.
 

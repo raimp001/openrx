@@ -50,15 +50,15 @@ test("pharmacy finder works with natural-language and ZIP-only inputs", async ({
   })
 
   await page.goto("/pharmacy")
-  const input = page.getByPlaceholder("Example: Find CVS pharmacy near Seattle WA 98101")
+  const input = page.getByPlaceholder("Find CVS pharmacy near Seattle WA 98101")
   const searchButton = page.getByRole("button", { name: "Search", exact: true })
 
   await input.fill("Find pharmacy near Hillsboro OR")
   await searchButton.click({ force: true })
-  await expect(page.getByText("Hillsboro Pharmacy (Find pharmacy near Hillsboro OR)")).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Hillsboro Pharmacy (Find pharmacy near Hillsboro OR)" })).toBeVisible()
 
   await input.fill("97123")
   await searchButton.click({ force: true })
-  await expect(page.getByText("Hillsboro Pharmacy (97123)")).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Hillsboro Pharmacy (97123)" })).toBeVisible()
   await expect(page.getByText("Need one more detail before search")).toHaveCount(0)
 })

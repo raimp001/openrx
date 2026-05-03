@@ -12,6 +12,7 @@ type CronFailureReason =
   | "unknown_agent"
   | "missing_model_credentials"
   | "provider_auth_failed"
+  | "provider_rate_limited"
   | "provider_unavailable"
   | "empty_or_fallback_response"
   | "side_effect_failed"
@@ -63,9 +64,16 @@ const RESPONSE_FAILURE_MARKERS: Array<{
   },
   {
     match: (value) =>
-      value === "AI service authentication failed. Verify ANTHROPIC_API_KEY.",
+      value === "AI service authentication failed. Verify the configured provider API key.",
     failureReason: "provider_auth_failed",
     httpStatus: 502,
+  },
+  {
+    match: (value) =>
+      value ===
+      "AI provider quota or rate limit exceeded. Verify OPENAI_API_KEY billing, quota, and model access.",
+    failureReason: "provider_rate_limited",
+    httpStatus: 429,
   },
   {
     match: (value) =>

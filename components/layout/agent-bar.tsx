@@ -102,7 +102,7 @@ export default function AgentBar() {
               <div className="surface-muted p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Active specialists</p>
-                  <span className="text-[11px] font-semibold text-secondary">Atlas routes the handoffs</span>
+                  <span className="text-[11px] font-semibold text-secondary">Help is routed by topic</span>
                 </div>
                 <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                   {OPENCLAW_CONFIG.agents.map((agent) => (

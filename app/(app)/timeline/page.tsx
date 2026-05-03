@@ -3,19 +3,36 @@
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { cn, formatTime } from "@/lib/utils"
 import { AppPageHeader } from "@/components/layout/app-page"
+import { OpsBadge, OpsBriefCard, OpsEmptyState, OpsTabButton } from "@/components/ui/ops-primitives"
 import Link from "next/link"
-import { useState, useMemo } from "react"
+import { useMemo, useState } from "react"
 import {
-  Calendar, Pill, FlaskConical, Activity, MessageSquare,
-  Syringe, ArrowRightCircle, Receipt,
-  Clock, ChevronRight,
+  Calendar,
+  Pill,
+  FlaskConical,
+  Activity,
+  MessageSquare,
+  Syringe,
+  ArrowRightCircle,
+  Receipt,
+  Clock,
+  ChevronRight,
 } from "lucide-react"
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
-type EventCategory = "all" | "appointments" | "medications" | "labs" | "vitals" | "messages" | "vaccinations" | "referrals" | "billing"
+type EventCategory =
+  | "all"
+  | "appointments"
+  | "medications"
+  | "labs"
+  | "vitals"
+  | "messages"
+  | "vaccinations"
+  | "referrals"
+  | "billing"
 
 interface TimelineEvent {
   id: string
@@ -29,15 +46,18 @@ interface TimelineEvent {
   urgent?: boolean
 }
 
-const CATEGORY_META: Record<Exclude<EventCategory, "all">, { label: string; icon: React.ElementType; color: string; bg: string; border: string }> = {
+const CATEGORY_META: Record<
+  Exclude<EventCategory, "all">,
+  { label: string; icon: React.ElementType; color: string; bg: string; border: string }
+> = {
   appointments: { label: "Appointments", icon: Calendar, color: "text-teal", bg: "bg-teal/10", border: "border-teal/20" },
-  medications:  { label: "Medications",  icon: Pill, color: "text-accent", bg: "bg-accent/10", border: "border-accent/20" },
-  labs:         { label: "Labs",         icon: FlaskConical, color: "text-soft-blue", bg: "bg-soft-blue/10", border: "border-soft-blue/20" },
-  vitals:       { label: "Vitals",       icon: Activity, color: "text-accent", bg: "bg-accent/8", border: "border-accent/15" },
-  messages:     { label: "Messages",     icon: MessageSquare, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200/50" },
+  medications: { label: "Medications", icon: Pill, color: "text-accent", bg: "bg-accent/10", border: "border-accent/20" },
+  labs: { label: "Labs", icon: FlaskConical, color: "text-soft-blue", bg: "bg-soft-blue/10", border: "border-soft-blue/20" },
+  vitals: { label: "Vitals", icon: Activity, color: "text-accent", bg: "bg-accent/8", border: "border-accent/15" },
+  messages: { label: "Messages", icon: MessageSquare, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200/50" },
   vaccinations: { label: "Vaccinations", icon: Syringe, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200/50" },
-  referrals:    { label: "Referrals",    icon: ArrowRightCircle, color: "text-soft-blue", bg: "bg-soft-blue/8", border: "border-soft-blue/15" },
-  billing:      { label: "Billing",      icon: Receipt, color: "text-secondary", bg: "bg-border/40", border: "border-border/80" },
+  referrals: { label: "Referrals", icon: ArrowRightCircle, color: "text-soft-blue", bg: "bg-soft-blue/8", border: "border-soft-blue/15" },
+  billing: { label: "Billing", icon: Receipt, color: "text-secondary", bg: "bg-border/40", border: "border-border/80" },
 }
 
 const FILTER_TABS: { key: EventCategory; label: string }[] = [
@@ -59,7 +79,6 @@ export default function TimelinePage() {
   const events = useMemo<TimelineEvent[]>(() => {
     const all: TimelineEvent[] = []
 
-    // Appointments
     for (const apt of snapshot.appointments) {
       const physician = getPhysician(apt.physician_id)
       all.push({
@@ -75,7 +94,6 @@ export default function TimelinePage() {
       })
     }
 
-    // Medications (use start_date)
     for (const rx of snapshot.prescriptions) {
       all.push({
         id: `rx-${rx.id}`,
@@ -90,7 +108,6 @@ export default function TimelinePage() {
       })
     }
 
-    // Labs
     for (const lab of snapshot.labResults) {
       const hasAbnormal = lab.results.some((r) => r.flag !== "normal")
       all.push({
@@ -106,7 +123,6 @@ export default function TimelinePage() {
       })
     }
 
-    // Vitals
     for (const vital of snapshot.vitals) {
       const parts: string[] = []
       if (vital.systolic) parts.push(`BP ${vital.systolic}/${vital.diastolic}`)
@@ -125,14 +141,13 @@ export default function TimelinePage() {
       })
     }
 
-    // Messages
     for (const msg of snapshot.messages) {
       all.push({
         id: `msg-${msg.id}`,
         date: msg.created_at,
         category: "messages",
         title: msg.sender_type === "patient" ? "You sent a message" : "Message received",
-        subtitle: msg.content.length > 80 ? msg.content.slice(0, 80) + "…" : msg.content,
+        subtitle: msg.content.length > 80 ? `${msg.content.slice(0, 80)}…` : msg.content,
         detail: `via ${msg.channel}`,
         status: msg.read ? "read" : "unread",
         href: "/messages",
@@ -140,7 +155,6 @@ export default function TimelinePage() {
       })
     }
 
-    // Vaccinations
     for (const vax of snapshot.vaccinations) {
       const date = vax.administered_at || vax.due_at || vax.next_due
       if (!date) continue
@@ -149,17 +163,14 @@ export default function TimelinePage() {
         date,
         category: "vaccinations",
         title: vax.vaccine_name,
-        subtitle: vax.administered_at
-          ? `Dose ${vax.dose_number}/${vax.total_doses} · ${vax.facility}`
-          : `Due — ${vax.status}`,
-        detail: vax.administered_at ? undefined : `Contact your provider to schedule`,
+        subtitle: vax.administered_at ? `Dose ${vax.dose_number}/${vax.total_doses} · ${vax.facility}` : `Due — ${vax.status}`,
+        detail: vax.administered_at ? undefined : "Contact your provider to schedule",
         status: vax.status,
         href: "/vaccinations",
         urgent: vax.status === "overdue",
       })
     }
 
-    // Referrals
     for (const ref of snapshot.referrals) {
       all.push({
         id: `ref-${ref.id}`,
@@ -174,7 +185,6 @@ export default function TimelinePage() {
       })
     }
 
-    // Billing claims
     for (const claim of snapshot.claims) {
       all.push({
         id: `claim-${claim.id}`,
@@ -193,46 +203,68 @@ export default function TimelinePage() {
   }, [snapshot, getPhysician])
 
   const filtered = useMemo(
-    () => activeFilter === "all" ? events : events.filter((e) => e.category === activeFilter),
+    () => (activeFilter === "all" ? events : events.filter((event) => event.category === activeFilter)),
     [events, activeFilter]
   )
 
-  // Group by month
   const grouped = useMemo(() => {
     const groups: { label: string; events: TimelineEvent[] }[] = []
     let current: { label: string; events: TimelineEvent[] } | null = null
-    for (const ev of filtered) {
-      const d = new Date(ev.date)
-      const label = Number.isNaN(d.getTime())
+
+    for (const event of filtered) {
+      const date = new Date(event.date)
+      const label = Number.isNaN(date.getTime())
         ? "Unknown"
-        : d.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+        : date.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+
       if (!current || current.label !== label) {
         current = { label, events: [] }
         groups.push(current)
       }
-      current.events.push(ev)
+
+      current.events.push(event)
     }
+
     return groups
   }, [filtered])
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { all: events.length }
-    for (const ev of events) counts[ev.category] = (counts[ev.category] || 0) + 1
+    for (const event of events) counts[event.category] = (counts[event.category] || 0) + 1
     return counts
   }, [events])
+
+  const urgentCount = events.filter((event) => event.urgent).length
+  const latestUrgent = events.find((event) => event.urgent) || null
+  const latestEvent = events[0] || null
 
   if (loading) {
     return (
       <div className="animate-slide-up space-y-6">
-        <div className="space-y-2"><Skeleton className="h-8 w-44" /><Skeleton className="h-4 w-80" /></div>
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-44" />
+          <Skeleton className="h-4 w-80" />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="rounded-2xl border border-border bg-surface p-4">
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ))}
+        </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {[...Array(5)].map((_, i) => <Skeleton key={i} className="shrink-0 h-8 w-24 rounded-full" />)}
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-8 w-24 shrink-0 rounded-full" />
+          ))}
         </div>
         <div className="space-y-3">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="flex items-start gap-4 rounded-2xl border border-border/70 bg-white/60 p-4">
               <Skeleton className="h-9 w-9 rounded-xl" />
-              <div className="flex-1 space-y-1.5"><Skeleton className="h-4 w-48" /><Skeleton className="h-3 w-64" /></div>
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-64" />
+              </div>
               <Skeleton className="h-8 w-16" />
             </div>
           ))}
@@ -244,129 +276,144 @@ export default function TimelinePage() {
   return (
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
+        eyebrow="Longitudinal record"
         title="Health Timeline"
-        description="Every health event, chronologically — appointments, labs, medications, vitals, and more."
+        description="One chronological record across appointments, medications, labs, vitals, referrals, billing, and messages so the care story stays coherent."
         className="surface-card p-4 sm:p-5"
         leading={
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal/10">
             <Clock size={18} className="text-teal" />
           </div>
         }
+        meta={
+          <>
+            <OpsBadge tone="terra">{urgentCount} attention item{urgentCount !== 1 ? "s" : ""}</OpsBadge>
+            <OpsBadge tone="blue">{events.length} total event{events.length !== 1 ? "s" : ""}</OpsBadge>
+          </>
+        }
       />
 
-      {/* Filter tabs */}
+      <div className="grid gap-3 md:grid-cols-3">
+        <OpsBriefCard
+          label="Latest urgent signal"
+          title={latestUrgent ? latestUrgent.title : "No urgent event currently surfaced"}
+          detail={
+            latestUrgent
+              ? `${latestUrgent.subtitle} · ${latestUrgent.detail || "Open the linked workflow for details."}`
+              : "The timeline does not currently have an urgent event flag."
+          }
+          tone="terra"
+        />
+        <OpsBriefCard
+          label="Most recent record"
+          title={latestEvent ? latestEvent.title : "No event history yet"}
+          detail={latestEvent ? `${latestEvent.subtitle} · ${latestEvent.status || "No status label"}` : "Health activity will populate here as records sync in."}
+          tone="blue"
+        />
+        <OpsBriefCard
+          label="Filter strategy"
+          title={activeFilter === "all" ? "Use category filters to reduce noise" : `Focused on ${activeFilter}`}
+          detail="The timeline stays chronological, but the category tabs let you isolate one care stream when you are investigating a specific issue."
+          tone="accent"
+        />
+      </div>
+
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
         {FILTER_TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setActiveFilter(key)}
-            className={cn(
-              "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition",
-              activeFilter === key
-                ? "bg-teal text-white shadow-sm"
-                : "border border-border/80 bg-surface/80 text-secondary hover:border-teal/30 hover:text-teal"
-            )}
-          >
+          <OpsTabButton key={key} active={activeFilter === key} onClick={() => setActiveFilter(key)}>
             {label}
-            {categoryCounts[key] !== undefined && (
+            {categoryCounts[key] !== undefined ? (
               <span className={cn("ml-1.5 text-[10px]", activeFilter === key ? "text-white/70" : "text-muted")}>
                 {categoryCounts[key]}
               </span>
-            )}
-          </button>
+            ) : null}
+          </OpsTabButton>
         ))}
       </div>
 
-      {/* Timeline */}
       {grouped.length === 0 ? (
-        <div className="surface-card p-12 text-center">
-          <Clock size={32} className="text-sand mx-auto mb-3" />
-          <p className="text-sm text-muted">No events found</p>
-          <p className="text-xs text-muted mt-1">Your health history will appear here as data is added.</p>
-        </div>
+        <OpsEmptyState
+          icon={Clock}
+          title="No events found"
+          description="Your cross-cutting health history will appear here as appointments, labs, medications, and messages are added."
+        />
       ) : (
         <div className="space-y-8">
           {grouped.map((group) => (
             <div key={group.label}>
-              {/* Month label */}
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-xs font-bold text-muted uppercase tracking-wider">{group.label}</span>
-                <div className="flex-1 h-px bg-border/60" />
-                <span className="text-[10px] text-muted">{group.events.length} event{group.events.length !== 1 ? "s" : ""}</span>
+              <div className="mb-4 flex items-center gap-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted">{group.label}</span>
+                <div className="h-px flex-1 bg-border/60" />
+                <span className="text-[10px] text-muted">
+                  {group.events.length} event{group.events.length !== 1 ? "s" : ""}
+                </span>
               </div>
 
-              {/* Events in this month */}
               <div className="relative">
-                {/* Vertical line */}
-                <div className="absolute left-[18px] top-4 bottom-4 w-px bg-border/60" />
+                <div className="absolute bottom-4 left-[18px] top-4 w-px bg-border/60" />
 
                 <div className="space-y-3">
-                  {group.events.map((ev) => {
-                    const meta = CATEGORY_META[ev.category]
+                  {group.events.map((event) => {
+                    const meta = CATEGORY_META[event.category]
                     const Icon = meta.icon
-                    const d = new Date(ev.date)
-                    const isValidDate = !Number.isNaN(d.getTime())
+                    const date = new Date(event.date)
+                    const isValidDate = !Number.isNaN(date.getTime())
+
                     return (
                       <Link
-                        key={ev.id}
-                        href={ev.href}
+                        key={event.id}
+                        href={event.href}
                         className={cn(
                           "relative flex items-start gap-4 rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-sm",
-                          ev.urgent
+                          event.urgent
                             ? "border-soft-red/15 bg-soft-red/3 hover:border-soft-red/25"
                             : "border-border/70 bg-white/60 hover:border-teal/20 hover:bg-white/80"
                         )}
                       >
-                        {/* Dot on timeline */}
-                        <div className={cn(
-                          "relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border",
-                          meta.bg, meta.border
-                        )}>
+                        <div className={cn("relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", meta.bg, meta.border)}>
                           <Icon size={14} className={meta.color} />
                         </div>
 
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-semibold text-primary leading-tight">{ev.title}</span>
-                                {ev.urgent && (
-                                  <span className="text-[9px] font-bold text-soft-red bg-soft-red/10 px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-semibold leading-tight text-primary">{event.title}</span>
+                                {event.urgent ? (
+                                  <span className="rounded-full bg-soft-red/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-soft-red">
                                     Needs attention
                                   </span>
-                                )}
-                                {ev.status && (
-                                  <span className={cn(
-                                    "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide",
-                                    ev.status === "completed" || ev.status === "paid" || ev.status === "active"
-                                      ? "bg-accent/10 text-accent"
-                                      : ev.status === "denied" || ev.status === "overdue"
-                                      ? "bg-soft-red/10 text-soft-red"
-                                      : ev.status === "pending" || ev.status === "submitted"
-                                      ? "bg-yellow-100 text-yellow-700"
-                                      : "bg-border/60 text-secondary"
-                                  )}>
-                                    {ev.status}
+                                ) : null}
+                                {event.status ? (
+                                  <span
+                                    className={cn(
+                                      "rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                                      event.status === "completed" || event.status === "paid" || event.status === "active"
+                                        ? "bg-accent/10 text-accent"
+                                        : event.status === "denied" || event.status === "overdue"
+                                          ? "bg-soft-red/10 text-soft-red"
+                                          : event.status === "pending" || event.status === "submitted"
+                                            ? "bg-yellow-100 text-yellow-700"
+                                            : "bg-border/60 text-secondary"
+                                    )}
+                                  >
+                                    {event.status}
                                   </span>
-                                )}
+                                ) : null}
                               </div>
-                              <p className="text-xs text-muted mt-0.5 truncate">{ev.subtitle}</p>
-                              {ev.detail && (
-                                <p className="text-[11px] text-muted mt-0.5">{ev.detail}</p>
-                              )}
+                              <p className="mt-0.5 truncate text-xs text-muted">{event.subtitle}</p>
+                              {event.detail ? <p className="mt-0.5 text-[11px] text-muted">{event.detail}</p> : null}
                             </div>
                             <div className="shrink-0 text-right">
-                              <p className="text-[10px] text-muted font-medium">
-                                {isValidDate ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+                              <p className="text-[10px] font-medium text-muted">
+                                {isValidDate ? date.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
                               </p>
-                              <p className="text-[10px] text-muted">
-                                {isValidDate ? formatTime(ev.date) : ""}
-                              </p>
+                              <p className="text-[10px] text-muted">{isValidDate ? formatTime(event.date) : ""}</p>
                             </div>
                           </div>
                         </div>
 
-                        <ChevronRight size={14} className="text-muted shrink-0 self-center" />
+                        <ChevronRight size={14} className="shrink-0 self-center text-muted" />
                       </Link>
                     )
                   })}
@@ -377,11 +424,11 @@ export default function TimelinePage() {
         </div>
       )}
 
-      {filtered.length > 0 && (
-        <p className="text-center text-xs text-muted pb-4">
+      {filtered.length > 0 ? (
+        <p className="pb-4 text-center text-xs text-muted">
           Showing {filtered.length} event{filtered.length !== 1 ? "s" : ""} across your health history
         </p>
-      )}
+      ) : null}
     </div>
   )
 }

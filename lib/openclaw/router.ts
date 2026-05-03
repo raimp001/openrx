@@ -36,7 +36,6 @@ export async function routeUserMessageLLM(message: string): Promise<{
   collaborators: AgentId[]
   reasoning: string
   urgency: "low" | "medium" | "high" | "emergency"
-  usedFallback?: boolean
 }> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (apiKey) {
@@ -64,11 +63,11 @@ export async function routeUserMessageLLM(message: string): Promise<{
         ? (json.urgency as "low" | "medium" | "high" | "emergency")
         : "medium"
       return { primaryAgent: primary, collaborators: collabs, reasoning: json.reasoning || "", urgency }
-    } catch (error) {
-      console.warn("[OpenClaw Router] LLM routing failed, falling back to keywords:", error instanceof Error ? error.message : error)
+    } catch {
+      // fall through to keyword routing
     }
   }
 
   const kw = routeUserMessage(message)
-  return { ...kw, urgency: "medium", usedFallback: true }
+  return { ...kw, urgency: "medium" }
 }

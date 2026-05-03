@@ -114,9 +114,6 @@ export function sendAgentMessage(params: {
   // Deliver message
   msg.status = "delivered"
   state.messageLog.push(msg)
-  if (state.messageLog.length > 500) {
-    state.messageLog = state.messageLog.slice(-300)
-  }
 
   // Notify listeners
   const targetHandlers = listeners.get(params.to) || []
@@ -144,9 +141,6 @@ export function startCollaboration(params: {
   }
 
   state.activeSessions.push(session)
-  if (state.activeSessions.length > 100) {
-    state.activeSessions = state.activeSessions.filter((s) => s.status === "active").slice(-50)
-  }
 
   // Notify all participants
   params.participants.forEach((agentId) => {
@@ -181,9 +175,6 @@ export function delegateTask(params: {
   }
 
   state.taskQueue.push(task)
-  if (state.taskQueue.length > 500) {
-    state.taskQueue = state.taskQueue.filter((t) => t.status === "queued" || t.status === "in_progress").slice(-300)
-  }
   state.agentStatuses[params.to] = "busy"
 
   // If part of a session, attach to it
@@ -423,40 +414,41 @@ export function executeWorkflow(userMessage: string): {
   let session: CollaborationSession | null = null
   const tasks: AgentTask[] = []
 
-  // Sanitize: never store raw user messages in task descriptions (PHI risk)
-  const sanitizedPurpose = `${route.primaryAgent} handling ${route.reasoning}`
-
+  // If collaborators are needed, start a session
   if (route.collaborators.length > 0) {
     session = startCollaboration({
       initiator: route.primaryAgent,
       participants: route.collaborators,
-      purpose: sanitizedPurpose,
+      purpose: `Process user request: "${userMessage.slice(0, 100)}"`,
     })
 
+    // Create primary task
     const primaryTask = delegateTask({
       from: "user",
       to: route.primaryAgent,
-      description: sanitizedPurpose,
+      description: `Handle user message: "${userMessage.slice(0, 200)}"`,
       priority: "high",
       sessionId: session.id,
     })
     tasks.push(primaryTask)
 
+    // Create supporting tasks for collaborators
     route.collaborators.forEach((collaborator) => {
       const supportTask = delegateTask({
         from: route.primaryAgent,
         to: collaborator,
-        description: `Support ${route.primaryAgent}: ${route.reasoning}`,
+        description: `Support ${route.primaryAgent} with: "${userMessage.slice(0, 100)}"`,
         priority: "medium",
         sessionId: session!.id,
       })
       tasks.push(supportTask)
     })
   } else {
+    // Single agent, no session needed
     const task = delegateTask({
       from: "user",
       to: route.primaryAgent,
-      description: sanitizedPurpose,
+      description: `Handle user message: "${userMessage.slice(0, 200)}"`,
       priority: "high",
     })
     tasks.push(task)

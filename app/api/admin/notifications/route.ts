@@ -7,7 +7,7 @@ import {
 
 function isAuthorizedAdminRequest(request: NextRequest): boolean {
   const required = process.env.OPENRX_ADMIN_API_KEY
-  if (!required) return true
+  if (!required) return false
   const received = request.headers.get("x-admin-api-key") || ""
   return received === required
 }
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   }
   const { searchParams } = new URL(request.url)
   const adminId = searchParams.get("adminId") || OPENRX_ADMIN_ID
-  const notifications = listAdminNotifications(adminId)
+  const notifications = await listAdminNotifications(adminId)
   const unreadCount = notifications.filter((item) => !item.isRead).length
   return NextResponse.json({
     notifications,
@@ -40,7 +40,7 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       )
     }
-    const notification = markAdminNotificationRead(body.notificationId)
+    const notification = await markAdminNotificationRead(body.notificationId)
     return NextResponse.json({ notification })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update notification."

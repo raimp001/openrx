@@ -50,9 +50,11 @@ function getScreenings(age: number, gender: string, riskFactors: string[]) {
     screenings.push({ name: "Lipid Panel (Cholesterol)", frequency: "Every 5 years", due: true, reason: `Recommended for ${gender === "male" ? "men 35+" : "women 45+"}` })
   }
 
-  // Colorectal — 45+
-  if (age >= 45) {
-    screenings.push({ name: "Colorectal Cancer Screening", frequency: "Every 10 years (colonoscopy) or alternatives", due: true, reason: "Recommended for adults 45+" })
+  // Colorectal — 45-75 routine, 76-85 individualized
+  if (age >= 45 && age <= 75) {
+    screenings.push({ name: "Colorectal Cancer Screening", frequency: "Every 10 years (colonoscopy) or alternatives", due: true, reason: "Recommended for adults 45-75" })
+  } else if (age >= 76 && age <= 85) {
+    screenings.push({ name: "Colorectal Cancer Screening Review", frequency: "Shared decision", due: true, reason: "Individualize based on prior screening and health status" })
   }
 
   // Mammogram — women 40+
@@ -65,9 +67,9 @@ function getScreenings(age: number, gender: string, riskFactors: string[]) {
     screenings.push({ name: "Cervical Cancer Screening (Pap/HPV)", frequency: "Every 3-5 years", due: true, reason: "Recommended for women 21-65" })
   }
 
-  // Lung cancer — 50-80 with smoking history
+  // Lung cancer — 50-80 with qualifying smoking history
   if (age >= 50 && age <= 80 && riskFactors.includes("smoking")) {
-    screenings.push({ name: "Low-Dose CT Lung Cancer Screening", frequency: "Annually", due: true, reason: "Recommended for adults 50-80 with smoking history" })
+    screenings.push({ name: "Low-Dose CT Lung Cancer Screening", frequency: "Annually if pack-year criteria are met", due: true, reason: "Recommended for adults 50-80 with heavy smoking history who currently smoke or quit within 15 years" })
   }
 
   // Osteoporosis — women 65+

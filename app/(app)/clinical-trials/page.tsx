@@ -1,18 +1,16 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
-import { ExternalLink, FlaskConical, Loader2, MapPin, Search, Sparkles } from "lucide-react"
+import { useCallback, useMemo, useState } from "react"
+import { ExternalLink, FlaskConical, Loader2, MapPin, Search, ShieldCheck, Sparkles } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
-import { OpsEmptyState } from "@/components/ui/ops-primitives"
-import { cn } from "@/lib/utils"
+import { ChoiceChip, ClinicalField, ClinicalInput, ClinicalSection, FieldsetCard } from "@/components/ui/clinical-forms"
 import type { TrialMatch } from "@/lib/basehealth"
 
-const EXAMPLE_SEARCHES = [
-  { condition: "Type 2 diabetes", location: "" },
-  { condition: "Breast cancer", location: "New York" },
-  { condition: "COPD", location: "San Francisco" },
-  { condition: "Alzheimer's", location: "" },
+const SEARCH_EXAMPLES = [
+  { condition: "prostate cancer", location: "Seattle" },
+  { condition: "breast cancer", location: "Portland" },
+  { condition: "colon cancer", location: "San Francisco" },
 ]
 
 export default function ClinicalTrialsPage() {
@@ -22,7 +20,6 @@ export default function ClinicalTrialsPage() {
   const [matches, setMatches] = useState<TrialMatch[]>([])
   const [hasSearched, setHasSearched] = useState(false)
   const [error, setError] = useState("")
-  const abortRef = useRef<AbortController | null>(null)
 
   const searchTrials = useCallback(async (nextCondition = condition, nextLocation = location) => {
     if (!nextCondition.trim() && !nextLocation.trim()) {
@@ -32,228 +29,282 @@ export default function ClinicalTrialsPage() {
       return
     }
 
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-
     setError("")
     setLoading(true)
     setHasSearched(true)
-    if (nextCondition !== condition) setCondition(nextCondition)
-    if (nextLocation !== location) setLocation(nextLocation)
     try {
       const params = new URLSearchParams()
       if (nextCondition.trim()) params.set("condition", nextCondition.trim())
       if (nextLocation.trim()) params.set("location", nextLocation.trim())
-      const response = await fetch(`/api/clinical-trials/match?${params}`, { signal: controller.signal })
+      const response = await fetch(`/api/clinical-trials/match?${params}`)
       const data = (await response.json()) as { matches?: TrialMatch[]; error?: string }
       if (!response.ok || data.error) {
         throw new Error(data.error || "Failed to match trials.")
       }
       setMatches(data.matches || [])
     } catch (issue) {
-      if (issue instanceof DOMException && issue.name === "AbortError") return
       setMatches([])
       setError(issue instanceof Error ? issue.message : "Failed to match trials.")
     } finally {
-      if (!controller.signal.aborted) setLoading(false)
+      setLoading(false)
     }
   }, [condition, location])
+
+  const searchSummary = useMemo(() => {
+    if (!hasSearched) return "Search by condition, geography, or both."
+    if (loading) return "Looking for trials that match the current request."
+    if (!matches.length) return "No strong study matches surfaced for this request."
+    return `${matches.length} study match${matches.length === 1 ? "" : "es"} surfaced for this request.`
+  }, [hasSearched, loading, matches.length])
 
   return (
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
-        eyebrow="Research"
-        title="Clinical Trial Matching"
-        description="Lyra searches active clinical studies and scores them against your health profile. Results are directional — final eligibility is confirmed by the study site."
+        eyebrow="Clinical research"
+        title="Clinical trial matching"
+        description="Search for studies by condition and geography, then keep the eligibility caveats visible. This page is for credible triage, not marketing-style trial discovery."
+        meta={
+          <>
+            <span className="chip">CT.gov-backed search</span>
+            <span className="chip">City, state, or ZIP aware</span>
+            <span className="chip">Ranked by fit and location</span>
+          </>
+        }
         actions={
           <AIAction
             agentId="trials"
-            label="Lyra: Trial Strategy"
+            label="Trial strategy"
             prompt="Find clinical trial opportunities that match my conditions and explain what to ask before enrolling."
           />
         }
       />
 
-      <section className="surface-card p-5 sm:p-6">
-        <div className="space-y-4">
-          <div>
-            <p className="section-title">Search criteria</p>
-            <p className="mt-1 text-sm text-muted">Enter a condition, location, or both. Lyra handles the matching.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3">
-            <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Condition</span>
-              <div className="relative mt-1.5">
-                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                <input
-                  value={condition}
-                  onChange={(event) => setCondition(event.target.value)}
-                  onKeyDown={(event) => event.key === "Enter" && searchTrials()}
-                  placeholder="e.g. Type 2 diabetes, breast cancer"
-                  className="control-input mt-0 w-full pl-9"
-                />
-              </div>
-            </label>
-            <label className="block">
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Location</span>
-              <div className="relative mt-1.5">
-                <MapPin size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                <input
-                  value={location}
-                  onChange={(event) => setLocation(event.target.value)}
-                  onKeyDown={(event) => event.key === "Enter" && searchTrials()}
-                  placeholder="City, state, or leave blank"
-                  className="control-input mt-0 w-full pl-9"
-                />
-              </div>
-            </label>
-            <div className="flex items-end">
-              <button
-                onClick={() => searchTrials()}
-                disabled={loading}
-                className="control-button-primary w-full md:w-auto"
-              >
-                {loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-                Match Trials
-              </button>
+      <ClinicalSection
+        kicker="Match request"
+        title="Search studies by disease and geography"
+        description="Use a real condition name and a place the patient can actually travel to. The system will prefer local sites and explain why a study looks relevant."
+        aside={
+          <div className="space-y-4">
+            <div>
+              <div className="section-title">How ranking works</div>
+              <p className="mt-2 text-sm leading-6 text-secondary">
+                We weight condition fit first, then geography, then practical flags like remote eligibility. Final eligibility still belongs to the study site.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <ChoiceChip>
+                <ShieldCheck size={12} />
+                Trust first
+              </ChoiceChip>
+              <ChoiceChip>
+                <MapPin size={12} />
+                Location-sensitive
+              </ChoiceChip>
             </div>
           </div>
+        }
+      >
+        <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+          <ClinicalField
+            label="Condition"
+            hint="Use the disease or tumor type you want to search. Examples: prostate cancer, breast cancer, colon cancer."
+            htmlFor="trial-condition"
+          >
+            <ClinicalInput
+              id="trial-condition"
+              value={condition}
+              onChange={(event) => setCondition(event.target.value)}
+              placeholder="Prostate cancer"
+            />
+          </ClinicalField>
 
-          <div className="flex flex-wrap gap-2">
-            {EXAMPLE_SEARCHES.map((example) => (
-              <button
-                key={example.condition}
-                onClick={() => searchTrials(example.condition, example.location)}
-                className="chip transition hover:border-teal/30 hover:text-teal"
-              >
-                {example.condition}{example.location ? ` · ${example.location}` : ""}
-              </button>
-            ))}
+          <ClinicalField
+            label="Location"
+            hint="Use a city, state, or ZIP code. The matcher now prefers true local sites instead of loosely related geographies."
+            htmlFor="trial-location"
+          >
+            <ClinicalInput
+              id="trial-location"
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              placeholder="Seattle, WA or 98101"
+            />
+          </ClinicalField>
+
+          <button
+            type="button"
+            onClick={() => void searchTrials()}
+            disabled={loading}
+            className="control-button-primary min-h-[52px] px-5"
+          >
+            {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+            Match trials
+          </button>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {SEARCH_EXAMPLES.map((example) => (
+            <button
+              key={`${example.condition}-${example.location}`}
+              type="button"
+              onClick={() => {
+                setCondition(example.condition)
+                setLocation(example.location)
+                void searchTrials(example.condition, example.location)
+              }}
+              className="control-button-secondary px-4 py-2"
+            >
+              {example.condition} · {example.location}
+            </button>
+          ))}
+        </div>
+
+        {error ? <p className="mt-4 text-sm text-soft-red">{error}</p> : null}
+      </ClinicalSection>
+
+      <section className="surface-card p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="shell-kicker">Search readout</p>
+            <h2 className="mt-3 font-serif text-[1.75rem] text-primary">{searchSummary}</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-secondary">
+              {hasSearched
+                ? "Use the reasons below to decide whether the patient should call the site, ask for an oncology referral, or widen the search to a nearby metro area."
+                : "Once you run a search, the study list will appear here with fit reasons and the questions worth asking before enrollment."}
+            </p>
           </div>
-
-          {error && <p className="text-xs text-soft-red">{error}</p>}
+          {(condition || location) && hasSearched ? (
+            <div className="flex flex-wrap gap-2">
+              {condition ? <span className="chip">{condition}</span> : null}
+              {location ? <span className="chip">{location}</span> : null}
+            </div>
+          ) : null}
         </div>
       </section>
 
-      {loading && (
-        <div className="surface-card p-8 text-center text-sm text-muted">
-          <Loader2 size={16} className="animate-spin inline mr-2" />
-          Matching eligible clinical studies...
-        </div>
-      )}
+      {loading ? (
+        <section className="surface-card flex items-center gap-3 p-6 text-sm text-secondary">
+          <Loader2 size={16} className="animate-spin text-teal" />
+          Matching studies and ranking nearby sites...
+        </section>
+      ) : null}
 
-      {!loading && hasSearched && (
-        <>
-          {matches.length > 0 ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <p className="text-sm font-semibold text-primary">{matches.length} trial{matches.length !== 1 ? "s" : ""} matched</p>
-                <span className="text-[11px] text-muted">Sorted by fit score</span>
-              </div>
-              {matches.map((trial) => (
-                <article
-                  key={trial.id}
-                  className="surface-card p-5 transition hover:border-teal/30"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-base font-semibold text-primary">{trial.title}</h2>
-                        <span
-                          className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase",
-                            trial.fit === "strong"
-                              ? "bg-accent/10 text-accent"
-                              : "bg-yellow-100/20 text-yellow-500"
-                          )}
-                        >
-                          {trial.fit} fit
+      {!loading && hasSearched ? (
+        matches.length > 0 ? (
+          <div className="space-y-4">
+            {matches.map((trial) => (
+              <article key={trial.id} className="surface-card p-5 sm:p-6">
+                <div className="grid gap-4 lg:grid-cols-[1.2fr_0.4fr]">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${trial.fit === "strong" ? "bg-teal/10 text-teal" : "bg-amber-100 text-amber-700"}`}>
+                        {trial.fit} fit
+                      </span>
+                      {trial.remoteEligible ? (
+                        <span className="rounded-full bg-soft-blue/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-soft-blue">
+                          Remote eligible
                         </span>
-                      </div>
-                      <p className="text-sm text-secondary mt-1 leading-relaxed">{trial.summary}</p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <span className="chip">{trial.phase}</span>
-                        <span className="chip">{trial.condition}</span>
-                        <span className="chip">{trial.location}</span>
-                        <span className="chip">{trial.sponsor}</span>
-                        {trial.remoteEligible && (
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-teal/10 text-teal border border-teal/20">
-                            Remote eligible
-                          </span>
-                        )}
-                      </div>
+                      ) : null}
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-2xl font-bold text-teal">{trial.matchScore}</div>
-                      <div className="text-[10px] font-bold uppercase tracking-wide text-muted">score</div>
+                    <h2 className="mt-4 text-[1.45rem] font-semibold leading-tight text-primary">{trial.title}</h2>
+                    <p className="mt-3 text-sm leading-7 text-secondary">{trial.summary}</p>
+
+                    <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-secondary">
+                      <span className="chip">{trial.phase}</span>
+                      <span className="chip">{trial.condition}</span>
+                      <span className="chip">{trial.location}</span>
+                      <span className="chip">{trial.sponsor}</span>
                     </div>
                   </div>
 
-                  {trial.reasons.length > 0 && (
-                    <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-2">
+                  <div className="surface-muted flex flex-col items-center justify-center px-4 py-5 text-center">
+                    <div className="section-title">Fit score</div>
+                    <div className="mt-3 text-4xl font-semibold leading-none text-teal">{trial.matchScore}</div>
+                    <p className="mt-2 text-xs leading-5 text-secondary">Directional score only. The study team makes the final eligibility call.</p>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1fr]">
+                  <FieldsetCard legend="Why this looks relevant" className="h-full">
+                    <div className="grid gap-2">
                       {trial.reasons.map((reason) => (
-                        <div key={reason} className="surface-muted px-3 py-2.5 text-xs text-secondary leading-5">
+                        <div key={reason} className="rounded-[18px] border border-white/78 bg-white/74 px-4 py-3 text-sm leading-6 text-secondary shadow-sm">
                           {reason}
                         </div>
                       ))}
                     </div>
-                  )}
+                  </FieldsetCard>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <a
-                      href={trial.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="control-button-secondary text-[11px]"
-                    >
-                      View study details <ExternalLink size={11} />
-                    </a>
-                    <AIAction
-                      agentId="trials"
-                      label="Assess fit"
-                      prompt={`Assess my eligibility for "${trial.title}" (${trial.condition}, ${trial.phase}) and list questions I should ask the study coordinator.`}
-                      context={`Trial: ${trial.title}, Phase: ${trial.phase}, Condition: ${trial.condition}, Fit: ${trial.fit}, Score: ${trial.matchScore}`}
-                      variant="compact"
-                    />
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="surface-card py-12">
-              <OpsEmptyState
-                icon={FlaskConical}
-                title="No strong trial matches"
-                description="Try broader condition terms or a nearby metro area."
-              />
-            </div>
-          )}
-        </>
-      )}
+                  <FieldsetCard legend="Questions to ask before calling" className="h-full">
+                    <div className="grid gap-2">
+                      {buildTrialQuestions(trial).map((question) => (
+                        <div key={question} className="rounded-[18px] border border-white/78 bg-white/74 px-4 py-3 text-sm leading-6 text-secondary shadow-sm">
+                          {question}
+                        </div>
+                      ))}
+                    </div>
+                  </FieldsetCard>
+                </div>
 
-      {!hasSearched && !loading && (
-        <div className="surface-card py-12 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] bg-teal/8">
-            <FlaskConical size={28} className="text-teal" />
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs leading-6 text-secondary">
+                    Verify travel expectations, inclusion criteria, and whether local labs or imaging can be done near the patient before enrollment.
+                  </p>
+                  <a
+                    href={trial.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="control-button-secondary px-4 py-2"
+                  >
+                    View study details
+                    <ExternalLink size={14} />
+                  </a>
+                </div>
+              </article>
+            ))}
           </div>
-          <h3 className="text-lg font-serif text-primary">Find trials that fit your profile</h3>
-          <p className="text-sm text-muted mt-2 max-w-md mx-auto">
-            Enter a condition above and Lyra will match active clinical studies scored against your health context.
-          </p>
-        </div>
-      )}
+        ) : (
+          <section className="surface-card p-8 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-teal/10 text-teal">
+              <FlaskConical size={22} />
+            </div>
+            <h2 className="mt-4 text-xl font-semibold text-primary">No strong study matches surfaced</h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-secondary">
+              Try a broader disease term, a nearby metro area, or search the primary disease first and then tighten to geography.
+            </p>
+          </section>
+        )
+      ) : null}
 
-      <div className="surface-card border-teal/20 bg-teal/5 p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles size={14} className="text-teal" />
-          <span className="text-xs font-bold text-teal">Enrollment Reminder</span>
+      <section className="surface-muted p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/80 text-teal shadow-sm">
+            <Sparkles size={16} />
+          </div>
+          <div>
+            <div className="section-title">Enrollment reminder</div>
+            <p className="mt-2 text-sm leading-6 text-secondary">
+              Trial matching is directional. Use it to narrow the field, then confirm eligibility, timing, and travel burden directly with the study coordinator or referring oncologist.
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-secondary leading-5">
-          Trial matching is directional. Final eligibility must be confirmed directly with the study site. OpenRx does not enroll patients — it surfaces options and questions.
-        </p>
-      </div>
+      </section>
     </div>
   )
+}
+
+function buildTrialQuestions(trial: TrialMatch) {
+  const questions = [
+    `Does ${trial.location} reflect the actual enrollment site, or is screening done elsewhere?`,
+    `Which inclusion and exclusion criteria matter most for this ${trial.phase.toLowerCase()} study?`,
+  ]
+
+  if (trial.remoteEligible) {
+    questions.push("Which visits can be remote, and which still require travel to the study site?")
+  } else {
+    questions.push("How often would the patient need to travel to the site during screening and treatment?")
+  }
+
+  questions.push("Can labs, imaging, or follow-up visits be coordinated closer to home if the patient enrolls?")
+  return questions
 }

@@ -1,5 +1,6 @@
 import { encodeFunctionData, isAddress, parseEther, parseUnits, toHex } from "viem"
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
+import { fromCents, toCents } from "@/lib/money"
 import { listTreasuryActions, recordTreasuryAction, type TreasuryActionRecord } from "@/lib/payments-ledger"
 
 const PRIVY_API_ROOT = "https://api.privy.io/v1"
@@ -87,7 +88,6 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
 }
 
 function normalizeAmount(value: string): string {
-  const { toCents, fromCents } = require("@/lib/money") as typeof import("@/lib/money")
   const cents = toCents(value)
   if (cents <= 0) {
     throw new Error("Amount must be a positive decimal value.")

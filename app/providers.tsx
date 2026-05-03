@@ -8,10 +8,6 @@ import { base } from "wagmi/chains"
 import { getConfig } from "@/lib/wagmi"
 import { WalletIdentityProvider } from "@/lib/wallet-context"
 
-// Platform wallet — OpenRx treasury on Base
-export const PLATFORM_WALLET = "0x09aeac8822F72AD49676c4DfA38519C98484730c" as const
-export const DEVELOPER_WALLET = process.env.NEXT_PUBLIC_DEVELOPER_WALLET || PLATFORM_WALLET
-
 export function Providers({
   children,
   initialState,

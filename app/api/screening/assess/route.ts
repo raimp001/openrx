@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/api-auth"
+import { canUseWalletScopedData, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import {
   assessHealthScreening,
@@ -279,7 +279,11 @@ function inferServiceTypes(rec: ScreeningRecommendation): CareSearchType[] {
     text.includes("panel") ||
     text.includes("microalbumin") ||
     text.includes("blood") ||
-    text.includes("urine")
+    text.includes("urine") ||
+    text.includes("hepatitis") ||
+    text.includes("hiv") ||
+    text.includes("diabetes screening") ||
+    text.includes("lipid")
   ) {
     serviceTypes.add("lab")
   }
@@ -289,6 +293,9 @@ function inferServiceTypes(rec: ScreeningRecommendation): CareSearchType[] {
     text.includes("radiology") ||
     text.includes("imaging") ||
     text.includes("mammography") ||
+    text.includes("mammogram") ||
+    text.includes("ultrasound") ||
+    text.includes("ldct") ||
     text.includes("x-ray") ||
     text.includes("xray")
   ) {
@@ -300,7 +307,9 @@ function inferServiceTypes(rec: ScreeningRecommendation): CareSearchType[] {
     text.includes("exam") ||
     text.includes("screening") ||
     text.includes("vaccine") ||
-    text.includes("clinician")
+    text.includes("clinician") ||
+    text.includes("cervical") ||
+    text.includes("brca")
   ) {
     serviceTypes.add("provider")
   }
@@ -322,6 +331,10 @@ function inferSpecialtyHint(rec: ScreeningRecommendation): string | undefined {
   if (text.includes("retinal") || text.includes("eye")) return "Ophthalmology"
   if (text.includes("lung")) return "Pulmonary Disease"
   if (text.includes("colon")) return "Gastroenterology"
+  if (text.includes("mammogram") || text.includes("mammography")) return "Radiology"
+  if (text.includes("cervical")) return "Obstetrics & Gynecology"
+  if (text.includes("abdominal aortic") || text.includes("ultrasound")) return "Radiology"
+  if (text.includes("hepatitis") || text.includes("hiv")) return "Internal Medicine"
   if (text.includes("hypertension") || text.includes("blood pressure")) return "Cardiology"
   if (text.includes("vaccine")) return "Family Medicine"
   return undefined
@@ -441,6 +454,7 @@ async function buildAssessmentPayload(
 
   const assessment = assessHealthScreening({
     ...screeningInput,
+    gender: screeningInput.gender || livePatient?.gender || undefined,
     patient: livePatient
       ? {
           id: livePatient.id,
@@ -482,7 +496,7 @@ async function buildAssessmentPayload(
     options.analysisLevel === "preview"
       ? withAction(
           enrichedAssessment.nextActions,
-          "Unlock the deep-dive for genetics-aware intervals, paper-backed evidence, and nearby care routing."
+          "Add advanced review for genetics-aware intervals, evidence citations, and nearby care routing."
         )
       : enrichedAssessment.nextActions
   return {
@@ -519,20 +533,23 @@ function paymentRequiredResponse(input: {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const patientId = searchParams.get("patientId") || undefined
-    const walletAddress = searchParams.get("walletAddress") || auth.session.walletAddress || undefined
-
-    if (walletAddress && auth.session.walletAddress && walletAddress.toLowerCase() !== auth.session.walletAddress.toLowerCase()) {
-      return NextResponse.json({ error: "Access denied." }, { status: 403 })
-    }
+    const walletAddress = searchParams.get("walletAddress") || undefined
     const paymentId = searchParams.get("paymentId") || undefined
     const analysisLevel = resolveAnalysisLevel(searchParams.get("analysisLevel"))
+    const auth = await requireAuth(request, { allowPublic: analysisLevel !== "deep" })
+    if ("response" in auth) return auth.response
+    const effectiveWalletAddress = canUseWalletScopedData(auth.session, walletAddress)
+      ? walletAddress
+      : undefined
+    const effectivePatientId = effectiveWalletAddress || auth.session.authSource !== "default"
+      ? patientId
+      : undefined
 
     if (analysisLevel === "deep") {
-      const access = await verifyScreeningAccess({ walletAddress, paymentId })
+      const access = await verifyScreeningAccess({ walletAddress: effectiveWalletAddress, paymentId })
       if (!access.ok) {
         return paymentRequiredResponse({
           reason: access.reason,
@@ -543,7 +560,7 @@ export async function GET(request: NextRequest) {
     }
 
     const assessment = await buildAssessmentPayload(
-      { patientId, walletAddress },
+      { patientId: effectivePatientId, walletAddress: effectiveWalletAddress },
       { analysisLevel }
     )
     return NextResponse.json(assessment)
@@ -559,7 +576,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as ScreeningInput & {
       walletAddress?: string
@@ -567,9 +583,18 @@ export async function POST(request: NextRequest) {
       analysisLevel?: ScreeningAnalysisLevel
     }
     const analysisLevel = resolveAnalysisLevel(body.analysisLevel)
+    const auth = await requireAuth(request, { allowPublic: analysisLevel !== "deep" })
+    if ("response" in auth) return auth.response
+    const effectiveWalletAddress = canUseWalletScopedData(auth.session, body.walletAddress)
+      ? body.walletAddress
+      : undefined
+    const effectivePatientId = effectiveWalletAddress || auth.session.authSource !== "default"
+      ? body.patientId
+      : undefined
+
     if (analysisLevel === "deep") {
       const access = await verifyScreeningAccess({
-        walletAddress: body.walletAddress,
+        walletAddress: effectiveWalletAddress,
         paymentId: body.paymentId,
       })
       if (!access.ok) {
@@ -580,7 +605,10 @@ export async function POST(request: NextRequest) {
         })
       }
     }
-    const assessment = await buildAssessmentPayload(body, { analysisLevel })
+    const assessment = await buildAssessmentPayload(
+      { ...body, patientId: effectivePatientId, walletAddress: effectiveWalletAddress },
+      { analysisLevel }
+    )
     return NextResponse.json(assessment)
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to compute screening assessment."

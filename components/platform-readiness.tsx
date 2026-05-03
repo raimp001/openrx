@@ -2,8 +2,18 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import { CheckCircle2, Clock3, Loader2, RefreshCcw, ShieldAlert, Sparkles } from "lucide-react"
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  Database,
+  Loader2,
+  RefreshCcw,
+  Sparkles,
+  WalletCards,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
+import { OpsBadge, OpsEmptyState } from "@/components/ui/ops-primitives"
 
 interface ReadinessCheck {
   id: string
@@ -48,6 +58,12 @@ function defaultPayload(): ReadinessPayload {
   }
 }
 
+function scoreLabel(score: number) {
+  if (score >= 90) return "Demo ready"
+  if (score >= 70) return "Needs review"
+  return "Operational risk"
+}
+
 export default function PlatformReadiness() {
   const [payload, setPayload] = useState<ReadinessPayload>(defaultPayload())
   const [loading, setLoading] = useState(true)
@@ -58,6 +74,10 @@ export default function PlatformReadiness() {
     () => payload.checks.filter((item) => item.status === "ready").length,
     [payload.checks]
   )
+  const attentionCount = payload.checks.length - readyCount
+  const generatedAt = payload.generatedAt && payload.generatedAt !== new Date(0).toISOString()
+    ? new Date(payload.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : "not loaded"
 
   async function load(isRefresh?: boolean) {
     if (isRefresh) setRefreshing(true)
@@ -82,109 +102,152 @@ export default function PlatformReadiness() {
 
   if (loading) {
     return (
-      <div className="bg-surface rounded-2xl border border-border p-5 text-sm text-muted">
-        <Loader2 size={14} className="animate-spin inline mr-2" />
-        Loading readiness checks...
-      </div>
+      <section className="surface-card overflow-hidden">
+        <div className="flex items-center gap-3 p-5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-white/80 text-teal">
+            <Loader2 size={18} className="animate-spin" />
+          </div>
+          <div>
+            <div className="section-title">Platform readiness</div>
+            <p className="mt-1 text-sm text-secondary">Loading live production checks...</p>
+          </div>
+        </div>
+      </section>
     )
   }
 
   return (
-    <div className="bg-surface rounded-2xl border border-border p-5 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-teal" />
-            <h2 className="text-sm font-bold text-primary">Platform Readiness</h2>
-          </div>
-          <p className="text-xs text-muted mt-1">
-            Coverage status across care search, onboarding, screening, and payment compliance.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "text-xs font-bold px-3 py-1 rounded-full border",
-              payload.readinessScore >= 90
-                ? "bg-accent/10 border-accent/20 text-accent"
-                : "bg-yellow-100/20 border-yellow-300/30 text-yellow-600"
-            )}
-          >
-            Score {payload.readinessScore}%
-          </span>
-          <button
-            onClick={() => void load(true)}
-            disabled={refreshing}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border text-[11px] font-semibold text-primary hover:border-teal/30 transition disabled:opacity-60"
-          >
-            {refreshing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCcw size={11} />}
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="rounded-xl border border-soft-red/20 bg-soft-red/5 p-3 text-xs text-soft-red">
-          {error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {payload.checks.map((check) => (
-          <Link
-            key={check.id}
-            href={check.href}
-            className="rounded-xl border border-border/70 bg-surface/30 p-3 hover:border-teal/25 transition"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-primary">{check.title}</p>
-              <span
-                className={cn(
-                  "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
-                  check.status === "ready"
-                    ? "bg-accent/10 text-accent"
-                    : "bg-yellow-100/20 text-yellow-600"
-                )}
-              >
-                {check.status}
-              </span>
+    <section className="surface-card overflow-hidden">
+      <div className="grid gap-0 lg:grid-cols-[0.92fr_1.08fr]">
+        <div className="border-b border-[rgba(82,108,139,0.12)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] p-5 text-white lg:border-b-0 lg:border-r">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="section-title text-white/55">Platform readiness</div>
+              <div className="mt-4 flex items-end gap-3">
+                <div className="text-5xl font-semibold tracking-[-0.06em]">{payload.readinessScore}%</div>
+                <div className="pb-2 text-sm font-medium text-white/60">{scoreLabel(payload.readinessScore)}</div>
+              </div>
             </div>
-            <p className="text-xs text-muted mt-1">{check.description}</p>
-            <p className="text-[10px] font-semibold text-teal mt-2">{check.metric}</p>
-          </Link>
-        ))}
-      </div>
+            <button
+              onClick={() => void load(true)}
+              disabled={refreshing}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-[11px] font-semibold text-white/72 transition hover:bg-white/[0.1] disabled:opacity-60"
+            >
+              {refreshing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCcw size={12} />}
+              Refresh
+            </button>
+          </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <OpsStat label="Pending Applications" value={String(payload.operations.pendingApplications)} />
-        <OpsStat label="Unread Admin Alerts" value={String(payload.operations.unreadNotifications)} />
-        <OpsStat label="Pending Verification" value={String(payload.operations.pendingVerification)} />
-        <OpsStat label="Open Refunds" value={String(payload.operations.openRefunds)} />
-      </div>
+          <p className="mt-4 max-w-md text-sm leading-7 text-white/68">
+            Live health across care search, onboarding, screening, payments, and database runtime. Check this before
+            a demo or production walkthrough.
+          </p>
 
-      <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted">
-        <span className="inline-flex items-center gap-1">
-          <CheckCircle2 size={11} className="text-accent" />
-          Ready checks: {readyCount}/{payload.checks.length}
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <ShieldAlert size={11} className="text-teal" />
-          Verified volume ${payload.operations.verifiedVolume}
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <Clock3 size={11} className="text-muted" />
-          Updated {new Date(payload.generatedAt).toLocaleTimeString()}
-        </span>
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <ReadinessMiniStat label="Ready checks" value={`${readyCount}/${payload.checks.length}`} icon={CheckCircle2} />
+            <ReadinessMiniStat label="Needs attention" value={String(attentionCount)} icon={AlertTriangle} />
+            <ReadinessMiniStat label="Pending verify" value={String(payload.operations.pendingVerification)} icon={WalletCards} />
+            <ReadinessMiniStat label="Updated" value={generatedAt} icon={Clock3} />
+          </div>
+        </div>
+
+        <div className="p-5">
+          {error ? (
+            <div className="mb-4 rounded-[20px] border border-soft-red/20 bg-soft-red/5 p-4 text-sm leading-6 text-soft-red">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles size={15} className="text-teal" />
+                <h2 className="text-lg font-semibold text-primary">Readiness lanes</h2>
+              </div>
+              <p className="mt-1 text-sm leading-6 text-secondary">
+                Click a lane to inspect the workflow behind the check.
+              </p>
+            </div>
+            <OpsBadge tone={payload.readinessScore >= 90 ? "accent" : "gold"}>
+              {payload.readinessScore >= 90 ? "ready" : "review"}
+            </OpsBadge>
+          </div>
+
+          {payload.checks.length === 0 ? (
+            <OpsEmptyState
+              icon={Database}
+              title="No readiness checks returned"
+              description="The readiness endpoint responded, but it did not provide workflow checks."
+              className="mt-5"
+            />
+          ) : (
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              {payload.checks.map((check) => (
+                <Link
+                  key={check.id}
+                  href={check.href}
+                  className="group rounded-[22px] border border-[rgba(82,108,139,0.12)] bg-white/78 p-4 transition hover:-translate-y-0.5 hover:border-teal/18 hover:shadow-[0_16px_32px_rgba(8,24,46,0.06)]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-primary">{check.title}</p>
+                      <p className="mt-2 text-xs leading-5 text-secondary">{check.description}</p>
+                    </div>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
+                        check.status === "ready" ? "bg-accent/9 text-accent" : "bg-amber-100 text-amber-700"
+                      )}
+                    >
+                      {check.status}
+                    </span>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between gap-3 border-t border-[rgba(82,108,139,0.10)] pt-3">
+                    <span className="text-[11px] font-semibold text-teal">{check.metric}</span>
+                    <span className="text-[11px] font-medium text-muted transition group-hover:text-primary">Open lane</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4">
+            <OpsStat label="Applications" value={String(payload.operations.pendingApplications)} />
+            <OpsStat label="Admin alerts" value={String(payload.operations.unreadNotifications)} />
+            <OpsStat label="Open refunds" value={String(payload.operations.openRefunds)} />
+            <OpsStat label="Verified $" value={payload.operations.verifiedVolume} />
+          </div>
+        </div>
       </div>
+    </section>
+  )
+}
+
+function ReadinessMiniStat({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string
+  value: string
+  icon: typeof CheckCircle2
+}) {
+  return (
+    <div className="rounded-[20px] border border-white/10 bg-white/[0.05] p-3">
+      <div className="flex items-center gap-2 text-white/55">
+        <Icon size={13} />
+        <span className="text-[10px] font-semibold uppercase tracking-[0.16em]">{label}</span>
+      </div>
+      <p className="mt-3 text-lg font-semibold tracking-[-0.03em] text-white">{value}</p>
     </div>
   )
 }
 
 function OpsStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border/70 bg-surface px-3 py-2">
-      <p className="text-[10px] text-muted">{label}</p>
-      <p className="text-sm font-semibold text-primary">{value}</p>
+    <div className="rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-[rgba(239,246,255,0.72)] px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-primary">{value}</p>
     </div>
   )
 }

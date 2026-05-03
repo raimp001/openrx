@@ -63,6 +63,19 @@ export default function PriorAuthPage() {
     if (!statusFilter) return myAuths
     return myAuths.filter((auth) => auth.status === statusFilter)
   }, [myAuths, statusFilter])
+  const prioritizedAuths = useMemo(
+    () =>
+      [...filteredAuths].sort((left, right) => {
+        const score = (auth: (typeof filteredAuths)[number]) =>
+          (auth.status === "denied" ? 5 : 0) +
+          ((auth.urgency === "stat" || auth.urgency === "urgent") ? 4 : 0) +
+          (auth.status === "pending" || auth.status === "submitted" ? 2 : 0) +
+          (auth.denial_reason ? 1 : 0)
+        return score(right) - score(left)
+      }),
+    [filteredAuths]
+  )
+  const topAuth = prioritizedAuths[0] || null
 
   if (loading) {
     return (
@@ -113,9 +126,9 @@ export default function PriorAuthPage() {
   return (
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
-        eyebrow="Utilization review"
+        eyebrow="Coverage approvals"
         title="Prior authorization board"
-        description="Rex keeps the queue readable: what is waiting on payer review, what is already cleared, and what is blocked by a denial that needs a real appeal."
+        description="See what is waiting on insurance review, what is already cleared, and what is blocked by a denial that needs an appeal."
         meta={
           <div className="flex flex-wrap items-center gap-2">
             <OpsBadge tone={pending.length ? "gold" : "accent"}>{pending.length} in motion</OpsBadge>
@@ -169,6 +182,51 @@ export default function PriorAuthPage() {
         />
       </div>
 
+      <div className="grid gap-4 lg:grid-cols-3">
+        <BriefingCard
+          eyebrow="Case to move first"
+          title={topAuth ? topAuth.procedure_name : "No urgent case"}
+          detail={
+            topAuth
+              ? `${statusLabel(topAuth.status)} · ${topAuth.insurance_provider} · ${topAuth.reference_number || topAuth.procedure_code}`
+              : "The current authorization queue has no immediate denial or urgent request leading it."
+          }
+          tone={topAuth?.status === "denied" ? "red" : topAuth?.urgency === "urgent" || topAuth?.urgency === "stat" ? "blue" : pending.length ? "gold" : "accent"}
+        />
+        <BriefingCard
+          eyebrow="Appeal pressure"
+          title={`${readyToAppeal.length} case${readyToAppeal.length === 1 ? "" : "s"}`}
+          detail={
+            readyToAppeal.length
+              ? "These requests already have a denial or explanation attached and should be translated into action fast."
+              : "No cases are currently sitting in an appeal-ready state."
+          }
+          tone={readyToAppeal.length ? "red" : "accent"}
+        />
+        <BriefingCard
+          eyebrow="Queue posture"
+          title={
+            denied.length
+              ? "Blocked by denials"
+              : pending.length
+              ? "Mostly waiting on payers"
+              : approved.length
+              ? "Clear to schedule"
+              : "Quiet queue"
+          }
+          detail={
+            denied.length
+              ? "A denial will usually delay care more than a pending case, so resolve those first."
+              : pending.length
+              ? "Pending and submitted cases should be monitored for turnaround before they age into denials."
+              : approved.length
+              ? "Approved cases should now be converted into actual appointments or treatment starts."
+              : "No strong utilization bottleneck is visible right now."
+          }
+          tone={denied.length ? "red" : pending.length ? "gold" : approved.length ? "accent" : "blue"}
+        />
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
         <OpsPanel
           eyebrow="Authorization lane"
@@ -197,7 +255,7 @@ export default function PriorAuthPage() {
             />
           ) : (
             <div className="space-y-3">
-              {filteredAuths.map((auth) => {
+              {prioritizedAuths.map((auth) => {
                 const physician = getPhysician(auth.physician_id)
                 const urgentLabel = auth.urgency === "stat" ? "STAT" : auth.urgency === "urgent" ? "URGENT" : null
 
@@ -224,7 +282,7 @@ export default function PriorAuthPage() {
 
                         {auth.denial_reason ? (
                           <div className="rounded-2xl border border-soft-red/20 bg-soft-red/5 px-4 py-3 text-sm leading-6 text-soft-red">
-                            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-soft-red/80">Denial reason</div>
+                            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-soft-red">Denial reason</div>
                             <div className="mt-1">{auth.denial_reason}</div>
                           </div>
                         ) : null}
@@ -277,7 +335,7 @@ export default function PriorAuthPage() {
 
         <div className="space-y-4">
           <OpsPanel
-            eyebrow="Rex focus"
+            eyebrow="Approval focus"
             title="What needs attention first"
             description="A quick read on what should move next instead of forcing the patient to infer the workflow from insurer language."
           >
@@ -328,7 +386,7 @@ export default function PriorAuthPage() {
               </p>
               <p>
                 {pending.length
-                  ? `${pending.length} request${pending.length === 1 ? " is" : "s are"} still in motion. Use Rex to decide whether the next step is submission cleanup, payer follow-up, or documentation support.`
+                  ? `${pending.length} request${pending.length === 1 ? " is" : "s are"} still in motion. Decide whether the next step is submission cleanup, payer follow-up, or documentation support.`
                   : "There is no live payer queue right now, which means the next priority is confirming already-approved care gets scheduled."}
               </p>
             </div>
@@ -342,7 +400,7 @@ export default function PriorAuthPage() {
 function MetaCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 shadow-sm">
-      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted/80">{label}</div>
+      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-secondary">{label}</div>
       <div className="mt-2 text-sm font-semibold text-primary">{value}</div>
     </div>
   )
@@ -366,6 +424,31 @@ function FocusItem({
         <div className="mt-1 text-xs leading-5 text-muted">{detail}</div>
       </div>
       <OpsBadge tone={tone} className="shrink-0">{value}</OpsBadge>
+    </div>
+  )
+}
+
+function BriefingCard({
+  eyebrow,
+  title,
+  detail,
+  tone,
+}: {
+  eyebrow: string
+  title: string
+  detail: string
+  tone: "terra" | "accent" | "blue" | "gold" | "red"
+}) {
+  return (
+    <div className="surface-card px-5 py-5">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{eyebrow}</div>
+      <div className="mt-3 flex items-start justify-between gap-3">
+        <div>
+          <div className="text-lg font-serif leading-tight text-primary">{title}</div>
+          <div className="mt-2 text-sm leading-6 text-secondary">{detail}</div>
+        </div>
+        <OpsBadge tone={tone} className="shrink-0">{tone === "accent" ? "stable" : tone === "blue" ? "watch" : tone === "gold" ? "review" : tone === "red" ? "urgent" : "active"}</OpsBadge>
+      </div>
     </div>
   )
 }

@@ -61,6 +61,36 @@ const USPSTF_SCREENING_LINKS: Array<{
     url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening",
     summary: "Routine colorectal screening recommendations and intervals for adults.",
   },
+  {
+    id: "uspstf-breast",
+    title: "USPSTF Breast Cancer Screening",
+    url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/breast-cancer-screening",
+    summary: "Biennial mammography recommendations for women in the screening age range.",
+  },
+  {
+    id: "uspstf-cervical",
+    title: "USPSTF Cervical Cancer Screening",
+    url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/cervical-cancer-screening",
+    summary: "Pap and HPV-based cervical cancer screening interval guidance.",
+  },
+  {
+    id: "uspstf-lung",
+    title: "USPSTF Lung Cancer Screening",
+    url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/lung-cancer-screening",
+    summary: "Annual LDCT screening criteria for eligible adults with significant smoking history.",
+  },
+  {
+    id: "uspstf-aaa",
+    title: "USPSTF Abdominal Aortic Aneurysm Screening",
+    url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/abdominal-aortic-aneurysm-screening",
+    summary: "One-time ultrasonography screening guidance for eligible men who have ever smoked.",
+  },
+  {
+    id: "cdc-cancer-screening",
+    title: "CDC Cancer Screening Overview",
+    url: "https://www.cdc.gov/cancer/prevention/screening.html",
+    summary: "Patient-friendly overview of breast, cervical, colorectal, and lung cancer screening.",
+  },
 ]
 
 export function buildUspstfGuidelineCitations(): ScreeningEvidenceCitation[] {

@@ -10,22 +10,33 @@ function renderHtml(params: {
   tone: "success" | "error"
 }): string {
   const color = params.tone === "success" ? "#047857" : "#b91c1c"
+  const title = escapeHtml(params.title)
+  const message = escapeHtml(params.message)
   return `
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${params.title}</title>
+    <title>${title}</title>
   </head>
   <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f7f6f2; color: #111827; margin: 0; padding: 28px;">
     <div style="max-width: 620px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px;">
-      <h1 style="margin: 0 0 10px; font-size: 22px; color: ${color};">${params.title}</h1>
-      <p style="margin: 0; font-size: 14px; line-height: 1.5;">${params.message}</p>
+      <h1 style="margin: 0 0 10px; font-size: 22px; color: ${color};">${title}</h1>
+      <p style="margin: 0; font-size: 14px; line-height: 1.5;">${message}</p>
     </div>
   </body>
 </html>
 `.trim()
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
 }
 
 export async function GET(request: NextRequest) {
@@ -43,7 +54,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const payload = verifyAdminReviewToken(token)
-    const application = reviewNetworkApplication({
+    const application = await reviewNetworkApplication({
       applicationId: payload.applicationId,
       decision: payload.decision,
       reviewer: "email-admin",

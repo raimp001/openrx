@@ -83,5 +83,8 @@ for job_id in "${due_jobs[@]}"; do
   export OPENRX_CRON_IDEMPOTENCY_KEY="${job_id}-$(date -u +"%Y%m%d%H%M")"
   export OPENRX_WORKER_ID="$worker_id"
   export OPENRX_WORKER_TYPE="$worker_type"
+  unset OPENRX_CRON_JOB_ID
+  unset OPENRX_CRON_MESSAGE
+  unset OPENRX_WALLET_ADDRESS
   "$script_dir/run-openrx-cron.sh" "$job_id"
 done

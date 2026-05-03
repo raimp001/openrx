@@ -110,7 +110,6 @@ model PatientProfile {
   medicalRecords MedicalRecord[]
   labResults    LabResult[]
   vitalSigns    VitalSign[]
-  reviews       DoctorReview[] @relation("PatientReviews")
 
   @@map("patient_profiles")
 }
@@ -126,7 +125,7 @@ model DoctorProfile {
   licenseNumber    String   @unique
   bio              String?
   yearsExperience  Int?
-  consultationFee  Decimal?  @db.Decimal(10, 2)
+  consultationFee  Float?
   availableSlots   Json?
   rating           Float?   @default(0)
   totalReviews     Int      @default(0)
@@ -160,7 +159,7 @@ model Appointment {
   notes           String?
   meetingUrl      String?
   transactionHash String?
-  paymentAmount   Decimal?  @db.Decimal(10, 2)
+  paymentAmount   Float?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -173,8 +172,6 @@ model Appointment {
   @@index([patientId])
   @@index([doctorId])
   @@index([scheduledAt])
-  @@index([status, scheduledAt])
-  @@index([patientId, scheduledAt])
   @@map("appointments")
 }
 
@@ -198,12 +195,11 @@ model Prescription {
   // Relations
   patient      PatientProfile  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   doctor       DoctorProfile   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  appointment  Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  appointment  Appointment?    @relation(fields: [appointmentId], references: [id])
   medications  Medication[]
 
   @@index([patientId])
   @@index([doctorId])
-  @@index([patientId, createdAt])
   @@map("prescriptions")
 }
 
@@ -319,8 +315,6 @@ model Message {
 
   @@index([senderId])
   @@index([receiverId])
-  @@index([createdAt])
-  @@index([receiverId, createdAt])
   @@map("messages")
 }
 
@@ -343,7 +337,6 @@ model Notification {
 
   @@index([userId])
   @@index([isRead])
-  @@index([userId, isRead])
   @@map("notifications")
 }
 
@@ -355,7 +348,7 @@ model Payment {
   id              String        @id @default(cuid())
   userId          String
   appointmentId   String?       @unique
-  amount          Decimal   @db.Decimal(10, 2)
+  amount          Float
   currency        String        @default("USDC")
   status          PaymentStatus @default(PENDING)
   transactionHash String?       @unique
@@ -368,11 +361,10 @@ model Payment {
 
   // Relations
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
 
   @@index([userId])
   @@index([transactionHash])
-  @@index([status, createdAt])
   @@map("payments")
 }
 
@@ -384,19 +376,17 @@ model DoctorReview {
   id        String   @id @default(cuid())
   doctorId  String
   patientId String
-  rating    Int      @db.SmallInt // Constrained 1-5 at application level
+  rating    Int      // 1-5
   comment   String?
   isVerified Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  doctor  DoctorProfile  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  patient PatientProfile @relation("PatientReviews", fields: [patientId], references: [id], onDelete: Cascade)
+  doctor DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
   @@unique([doctorId, patientId])
   @@index([doctorId])
-  @@index([patientId])
   @@map("doctor_reviews")
 }
 
@@ -432,7 +422,7 @@ model AuditLog {
   ipAddress  String?
   userAgent  String?
   metadata   Json?
-  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  createdAt  DateTime @default(now())
 
   // Relations
   user User? @relation(fields: [userId], references: [id])
@@ -676,4 +666,58 @@ model TreasuryActionRecord {
   @@index([status, createdAt])
   @@index([createdAt])
   @@map("treasury_actions")
+}
+
+// ============================================================
+// NETWORK APPLICATIONS / ADMIN REVIEW
+// ============================================================
+
+model NetworkApplicationRecord {
+  id                            String   @id
+  role                          String
+  fullName                      String
+  email                         String
+  phone                         String
+  npi                           String?
+  licenseNumber                 String?
+  licenseState                  String?
+  licensedStates                String[]
+  orderingCertifyingStatus      String?
+  malpracticeCoverage           String?
+  stateLicensureAttestation     Boolean  @default(false)
+  orderingScopeAttestation      Boolean  @default(false)
+  noAutoPrescriptionAttestation Boolean  @default(false)
+  malpracticeAttestation        Boolean  @default(false)
+  specialtyOrRole               String
+  servicesSummary               String
+  city                          String
+  state                         String
+  zip                           String
+  status                        String
+  submittedAt                   DateTime
+  reviewedAt                    DateTime?
+  reviewedBy                    String?
+  reviewNotes                   String?
+  notifications                 AdminNotificationRecord[]
+
+  @@index([status, submittedAt])
+  @@index([role, status])
+  @@index([state, zip])
+  @@map("network_applications")
+}
+
+model AdminNotificationRecord {
+  id            String   @id
+  adminId       String
+  title         String
+  message       String
+  applicationId String
+  type          String
+  isRead        Boolean  @default(false)
+  createdAt     DateTime
+  application   NetworkApplicationRecord @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, isRead, createdAt])
+  @@index([applicationId])
+  @@map("admin_notifications")
 }

@@ -9,9 +9,6 @@ export function useScrollReveal(threshold = 0.15) {
     const container = containerRef.current
     if (!container) return
 
-    // Mark container as JS-ready so CSS can hide .reveal elements
-    container.classList.add("reveal-ready")
-
     const elements = container.querySelectorAll(".reveal")
     if (elements.length === 0) return
 

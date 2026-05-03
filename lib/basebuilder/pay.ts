@@ -1,3 +1,5 @@
+import { fromCents, toCents } from "@/lib/money"
+
 interface LaunchBaseBuilderPayInput {
   amount: string
   recipientAddress: string
@@ -10,7 +12,6 @@ interface LaunchBaseBuilderPayResult {
 }
 
 function normalizeUsdcAmount(raw: string): string {
-  const { toCents, fromCents } = require("@/lib/money") as typeof import("@/lib/money")
   const cents = toCents(raw)
   if (cents <= 0) {
     throw new Error("Amount must be a positive number.")

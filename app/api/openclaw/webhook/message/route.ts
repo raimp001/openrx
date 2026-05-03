@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { openclawClient } from "@/lib/openclaw/client"
 
 // Webhook endpoint for incoming patient messages from any channel
-// OpenClaw Gateway routes WhatsApp/SMS/Telegram messages here
+// Care automation gateway routes WhatsApp/SMS/Telegram messages here
 export async function POST(req: NextRequest) {
   try {
     const webhookSecret = process.env.OPENCLAW_WEBHOOK_SECRET
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Log incoming message for audit trail
-    console.log(`[webhook/message] ${channel}:${sender} — ${message.slice(0, 100)}`)
+    console.info(`[webhook/message] ${channel}:${sender} — ${message.slice(0, 100)}`)
 
     // Route through the coordinator agent to determine intent
     const result = await openclawClient.sendMessage({

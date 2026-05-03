@@ -22,13 +22,6 @@ const MAX_EXPERTS = 5
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req); if ("response" in auth) return auth.response;
   try {
-    if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: "AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY." },
-        { status: 503 }
-      )
-    }
-
     const body = await req.json()
     const { message, expertIds, sessionId, walletAddress } = body as {
       message: string

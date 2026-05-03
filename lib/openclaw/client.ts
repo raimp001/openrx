@@ -1,5 +1,5 @@
-// ── OpenClaw Gateway Client ────────────────────────────────
-// Typed client for communicating with the OpenClaw Gateway
+// ── Care automation gateway client ─────────────────────────
+// Typed client for communicating with the care automation gateway
 // from the Next.js application layer.
 
 import { OPENCLAW_CONFIG, type AgentId } from "./config"

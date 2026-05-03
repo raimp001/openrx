@@ -43,6 +43,15 @@ function buildActionUrl(params: {
   return url.toString()
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
 function buildMessage(params: {
   application: NetworkApplication
   approveUrl: string
@@ -50,6 +59,26 @@ function buildMessage(params: {
 }) {
   const { application, approveUrl, rejectUrl } = params
   const subject = `OpenRx application review: ${application.fullName} (${application.role})`
+  const applicant = {
+    role: escapeHtml(application.role),
+    fullName: escapeHtml(application.fullName),
+    email: escapeHtml(application.email),
+    phone: escapeHtml(application.phone),
+    npi: escapeHtml(application.npi || "N/A"),
+    licenseNumber: escapeHtml(application.licenseNumber || "N/A"),
+    licenseState: escapeHtml(application.licenseState || "N/A"),
+    licensedStates: escapeHtml((application.licensedStates || []).join(", ") || "N/A"),
+    orderingCertifyingStatus: escapeHtml(application.orderingCertifyingStatus || "N/A"),
+    malpracticeCoverage: escapeHtml(application.malpracticeCoverage || "N/A"),
+    specialtyOrRole: escapeHtml(application.specialtyOrRole),
+    city: escapeHtml(application.city),
+    state: escapeHtml(application.state),
+    zip: escapeHtml(application.zip),
+    servicesSummary: escapeHtml(application.servicesSummary),
+    id: escapeHtml(application.id),
+    approveUrl: escapeHtml(approveUrl),
+    rejectUrl: escapeHtml(rejectUrl),
+  }
   const text = [
     `A new ${application.role} application requires review.`,
     "",
@@ -58,6 +87,11 @@ function buildMessage(params: {
     `Phone: ${application.phone}`,
     `NPI: ${application.npi || "N/A"}`,
     `License: ${application.licenseNumber || "N/A"}`,
+    `Primary license state: ${application.licenseState || "N/A"}`,
+    `All licensed states: ${(application.licensedStates || []).join(", ") || "N/A"}`,
+    `Ordering/certifying status: ${application.orderingCertifyingStatus || "N/A"}`,
+    `Professional liability coverage: ${application.malpracticeCoverage || "N/A"}`,
+    `Attestations: state licensure=${application.stateLicensureAttestation ? "yes" : "no"}, ordering scope=${application.orderingScopeAttestation ? "yes" : "no"}, human review=${application.noAutoPrescriptionAttestation ? "yes" : "no"}, liability coverage=${application.malpracticeAttestation ? "yes" : "no"}`,
     `Specialty/Role: ${application.specialtyOrRole}`,
     `Location: ${application.city}, ${application.state} ${application.zip}`,
     `Summary: ${application.servicesSummary}`,
@@ -71,21 +105,26 @@ function buildMessage(params: {
   const html = `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.5; color: #1f2937;">
   <h2 style="margin: 0 0 12px;">OpenRx application review required</h2>
-  <p style="margin: 0 0 16px;">A new <strong>${application.role}</strong> application has been submitted.</p>
+  <p style="margin: 0 0 16px;">A new <strong>${applicant.role}</strong> application has been submitted.</p>
   <table cellpadding="6" cellspacing="0" style="border-collapse: collapse; font-size: 14px;">
-    <tr><td><strong>Applicant</strong></td><td>${application.fullName}</td></tr>
-    <tr><td><strong>Email</strong></td><td>${application.email}</td></tr>
-    <tr><td><strong>Phone</strong></td><td>${application.phone}</td></tr>
-    <tr><td><strong>NPI</strong></td><td>${application.npi || "N/A"}</td></tr>
-    <tr><td><strong>License</strong></td><td>${application.licenseNumber || "N/A"}</td></tr>
-    <tr><td><strong>Specialty / Role</strong></td><td>${application.specialtyOrRole}</td></tr>
-    <tr><td><strong>Location</strong></td><td>${application.city}, ${application.state} ${application.zip}</td></tr>
-    <tr><td><strong>Summary</strong></td><td>${application.servicesSummary}</td></tr>
-    <tr><td><strong>Application ID</strong></td><td><code>${application.id}</code></td></tr>
+    <tr><td><strong>Applicant</strong></td><td>${applicant.fullName}</td></tr>
+    <tr><td><strong>Email</strong></td><td>${applicant.email}</td></tr>
+    <tr><td><strong>Phone</strong></td><td>${applicant.phone}</td></tr>
+    <tr><td><strong>NPI</strong></td><td>${applicant.npi}</td></tr>
+    <tr><td><strong>License</strong></td><td>${applicant.licenseNumber}</td></tr>
+    <tr><td><strong>Primary license state</strong></td><td>${applicant.licenseState}</td></tr>
+    <tr><td><strong>All licensed states</strong></td><td>${applicant.licensedStates}</td></tr>
+    <tr><td><strong>Ordering / certifying</strong></td><td>${applicant.orderingCertifyingStatus}</td></tr>
+    <tr><td><strong>Liability coverage</strong></td><td>${applicant.malpracticeCoverage}</td></tr>
+    <tr><td><strong>Attestations</strong></td><td>State licensure: ${application.stateLicensureAttestation ? "yes" : "no"} · Ordering scope: ${application.orderingScopeAttestation ? "yes" : "no"} · Human review: ${application.noAutoPrescriptionAttestation ? "yes" : "no"} · Liability: ${application.malpracticeAttestation ? "yes" : "no"}</td></tr>
+    <tr><td><strong>Specialty / Role</strong></td><td>${applicant.specialtyOrRole}</td></tr>
+    <tr><td><strong>Location</strong></td><td>${applicant.city}, ${applicant.state} ${applicant.zip}</td></tr>
+    <tr><td><strong>Summary</strong></td><td>${applicant.servicesSummary}</td></tr>
+    <tr><td><strong>Application ID</strong></td><td><code>${applicant.id}</code></td></tr>
   </table>
   <div style="margin-top: 20px;">
-    <a href="${approveUrl}" style="display:inline-block; padding:10px 14px; background:#047857; color:#fff; text-decoration:none; border-radius:8px; margin-right:8px;">Approve</a>
-    <a href="${rejectUrl}" style="display:inline-block; padding:10px 14px; background:#b91c1c; color:#fff; text-decoration:none; border-radius:8px;">Reject</a>
+    <a href="${applicant.approveUrl}" style="display:inline-block; padding:10px 14px; background:#047857; color:#fff; text-decoration:none; border-radius:8px; margin-right:8px;">Approve</a>
+    <a href="${applicant.rejectUrl}" style="display:inline-block; padding:10px 14px; background:#b91c1c; color:#fff; text-decoration:none; border-radius:8px;">Reject</a>
   </div>
 </div>
 `.trim()

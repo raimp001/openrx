@@ -19,39 +19,27 @@ import {
 } from "@modelcontextprotocol/sdk/types.js"
 
 const BASE_URL = process.env.OPENCLAW_BASE_URL || "http://localhost:3000"
-const MCP_AUTH_TOKEN = process.env.OPENCLAW_MCP_TOKEN || ""
 
 // ── HTTP helpers ─────────────────────────────────────────────────────────────
-
-function authHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" }
-  if (MCP_AUTH_TOKEN) {
-    headers["Authorization"] = `Bearer ${MCP_AUTH_TOKEN}`
-  }
-  return headers
-}
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   })
   if (!res.ok) {
-    // Sanitize error — don't leak full response body to external consumers
-    const status = res.status
-    const statusText = res.statusText
-    throw new Error(`OpenClaw ${path} failed (${status} ${statusText})`)
+    const text = await res.text().catch(() => res.statusText)
+    throw new Error(`OpenClaw ${path} → ${res.status}: ${text}`)
   }
   return res.json() as Promise<T>
 }
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, { headers: authHeaders() })
+  const res = await fetch(`${BASE_URL}${path}`)
   if (!res.ok) {
-    const status = res.status
-    const statusText = res.statusText
-    throw new Error(`OpenClaw ${path} failed (${status} ${statusText})`)
+    const text = await res.text().catch(() => res.statusText)
+    throw new Error(`OpenClaw ${path} → ${res.status}: ${text}`)
   }
   return res.json() as Promise<T>
 }

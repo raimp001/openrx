@@ -13,6 +13,7 @@ export interface ScreeningInput {
   patientId?: string
   patient?: BasePatientProfile
   age?: number
+  gender?: string
   bmi?: number
   smoker?: boolean
   familyHistory?: string[]
@@ -299,9 +300,19 @@ function parseLabValue(value: string): number | null {
   return numeric
 }
 
+function normalizeGender(value?: string): "female" | "male" | "unknown" {
+  const normalized = (value || "").toLowerCase()
+  if (/\bfemale\b|\bwoman\b|\bwomen\b|\blady\b/.test(normalized)) return "female"
+  if (/\bmale\b|\bman\b|\bmen\b|\bgentleman\b/.test(normalized)) return "male"
+  return "unknown"
+}
+
 export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAssessment {
   const patient = resolvePatient(input.patient)
   const age = input.age ?? calcAge(patient.date_of_birth)
+  const gender = normalizeGender(input.gender)
+  const isFemale = gender === "female"
+  const isMale = gender === "male"
   const vitals = input.vitals || []
   const labs = input.labs || []
   const vaccines = input.vaccinations || []
@@ -314,6 +325,7 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
   )
   const symptoms = (input.symptoms || []).map((item) => item.toLowerCase())
   const familyHistory = (input.familyHistory || []).map((item) => item.toLowerCase())
+  const riskText = [...Array.from(conditionSet), ...symptoms, ...familyHistory].join(" ")
 
   const factors: ScreeningFactor[] = []
   let score = 10
@@ -394,7 +406,79 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
   const recommendations: ScreeningRecommendation[] = []
 
   function addRecommendation(rec: ScreeningRecommendation) {
+    if (recommendations.some((item) => item.id === rec.id)) return
     recommendations.push(rec)
+  }
+
+  if (age >= 18) {
+    addRecommendation({
+      id: "blood-pressure-screening",
+      name: "Blood pressure screening",
+      priority: latestVital?.systolic && latestVital.systolic >= 130 ? "medium" : "low",
+      ownerAgent: "screening",
+      reason: "Adults should stay current on blood pressure screening, with confirmation outside clinic when elevated.",
+    })
+    addRecommendation({
+      id: "depression-screening",
+      name: "Depression screening",
+      priority: "low",
+      ownerAgent: "wellness",
+      reason: "Adults should be screened when systems exist for accurate diagnosis, treatment, and follow-up.",
+    })
+    addRecommendation({
+      id: "unhealthy-alcohol-drug-screening",
+      name: "Alcohol and unhealthy drug use screening",
+      priority: "low",
+      ownerAgent: "wellness",
+      reason: "Routine behavioral screening can identify risks that affect preventive care and medication safety.",
+    })
+  }
+
+  if (age >= 18 && age <= 79) {
+    addRecommendation({
+      id: "hepatitis-c-screening",
+      name: "Hepatitis C screening",
+      priority: "low",
+      ownerAgent: "screening",
+      reason: "Adults 18 to 79 should have hepatitis C screening at least once, with repeat testing based on risk.",
+    })
+  }
+
+  if (age >= 15 && age <= 65) {
+    addRecommendation({
+      id: "hiv-screening",
+      name: "HIV screening",
+      priority: "low",
+      ownerAgent: "screening",
+      reason: "Adolescents and adults 15 to 65 should be screened for HIV, with additional testing when risk is higher.",
+    })
+  }
+
+  if (age >= 35 && age <= 70 && (typeof input.bmi !== "number" || input.bmi >= 25)) {
+    addRecommendation({
+      id: "diabetes-screening",
+      name: "Prediabetes and type 2 diabetes screening",
+      priority: input.bmi && input.bmi >= 30 ? "medium" : "low",
+      ownerAgent: "screening",
+      reason: "Adults 35 to 70 with overweight or obesity should be screened and offered preventive intervention when indicated.",
+    })
+  }
+
+  if (
+    age >= 40 &&
+    age <= 75 &&
+    (input.smoker ||
+      Array.from(conditionSet).some((item) =>
+        item.includes("diabetes") || item.includes("hypertension") || item.includes("hyperlipidemia")
+      ))
+  ) {
+    addRecommendation({
+      id: "cardiovascular-risk-statin-review",
+      name: "Cardiovascular risk and lipid review",
+      priority: "medium",
+      ownerAgent: "screening",
+      reason: "Adults 40 to 75 with cardiovascular risk factors should have risk-based lipid/statin discussion.",
+    })
   }
 
   if (Array.from(conditionSet).some((item) => item.includes("diabetes"))) {
@@ -421,23 +505,87 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
     })
   }
 
-  if (age >= 45) {
+  if (age >= 45 && age <= 75) {
     addRecommendation({
       id: "colon-screening",
       name: "Colorectal cancer screening",
       priority: "medium",
       ownerAgent: "scheduling",
-      reason: "Adults over 45 should stay current on colon cancer screening cadence.",
+      reason: "Adults 45 to 75 should stay current on colorectal cancer screening; colonoscopy is one option among several.",
+    })
+  } else if (age >= 76 && age <= 85) {
+    addRecommendation({
+      id: "colon-screening-shared-decision",
+      name: "Colorectal cancer screening shared decision",
+      priority: "low",
+      ownerAgent: "scheduling",
+      reason: "Adults 76 to 85 should individualize colorectal screening based on prior screening, health, and preferences.",
     })
   }
 
-  if (age >= 50 && (input.smoker || Array.from(conditionSet).some((item) => item.includes("copd")))) {
+  if (isFemale && age >= 40 && age <= 74) {
+    addRecommendation({
+      id: "breast-cancer-screening",
+      name: "Breast cancer screening mammogram",
+      priority: "medium",
+      ownerAgent: "scheduling",
+      reason: "Women 40 to 74 should receive biennial screening mammography.",
+    })
+  }
+
+  if (isFemale && age >= 21 && age <= 65) {
+    addRecommendation({
+      id: "cervical-cancer-screening",
+      name: "Cervical cancer screening",
+      priority: "medium",
+      ownerAgent: "scheduling",
+      reason: "Women 21 to 65 should stay current on Pap and/or HPV-based cervical cancer screening intervals.",
+    })
+  }
+
+  if (
+    isFemale &&
+    (riskText.includes("breast cancer") ||
+      riskText.includes("ovarian cancer") ||
+      riskText.includes("brca1") ||
+      riskText.includes("brca2"))
+  ) {
+    addRecommendation({
+      id: "brca-risk-assessment",
+      name: "BRCA-related cancer risk assessment",
+      priority: "high",
+      ownerAgent: "screening",
+      reason: "Personal or family breast/ovarian cancer history or BRCA signal should trigger formal familial risk assessment and counseling referral when positive.",
+    })
+  }
+
+  if (age >= 50 && age <= 80 && (input.smoker || Array.from(conditionSet).some((item) => item.includes("copd")))) {
     addRecommendation({
       id: "lung-screen",
-      name: "Low-dose CT lung screening",
+      name: "Low-dose CT lung cancer screening",
       priority: "medium",
       ownerAgent: "screening",
-      reason: "Age plus smoking risk profile can warrant annual lung screening.",
+      reason: "Adults 50 to 80 with qualifying 20 pack-year smoking history who currently smoke or quit within 15 years should discuss annual LDCT eligibility.",
+    })
+  }
+
+  if (isMale && age >= 65 && age <= 75 && input.smoker) {
+    addRecommendation({
+      id: "aaa-ultrasound",
+      name: "Abdominal aortic aneurysm ultrasound",
+      priority: "medium",
+      ownerAgent: "scheduling",
+      reason: "Men 65 to 75 who have ever smoked should receive one-time AAA screening with ultrasonography.",
+    })
+  }
+
+  if (isFemale && age >= 65) {
+    addRecommendation({
+      id: "osteoporosis-screening",
+      name: "Osteoporosis screening",
+      priority: "medium",
+      ownerAgent: "scheduling",
+      reason: "Women 65 years or older should be screened for osteoporosis to prevent fractures.",
     })
   }
 

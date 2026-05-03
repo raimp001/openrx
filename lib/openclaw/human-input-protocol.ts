@@ -85,7 +85,7 @@ export async function requestHumanInput(params: {
   }
 
   if (!payload.request) {
-    throw new Error("Missing request payload from command center.")
+    throw new Error("Missing request payload from care automation console.")
   }
 
   return {

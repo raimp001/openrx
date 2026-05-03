@@ -157,16 +157,16 @@ export default function AIAction({
           onClick={runAction}
           disabled={isLoading}
           aria-label={label}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal/5 border border-teal/10 text-[10px] font-bold text-teal hover:bg-teal/10 transition disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-full border border-accent/15 bg-accent/7 px-3 py-1.5 text-[10px] font-bold text-accent transition hover:bg-accent/10 disabled:opacity-50"
         >
           {isLoading ? <Loader2 size={10} className="animate-spin" /> : <Bot size={10} />}
           {label}
         </button>
 
         {isOpen && (response || error) && (
-          <div className="mt-2 p-3 rounded-lg bg-teal/5 border border-teal/10 animate-fade-in">
+          <div className="mt-2 animate-fade-in rounded-[18px] border border-[rgba(82,108,139,0.14)] bg-white/78 p-3 shadow-[0_14px_34px_rgba(8,24,46,0.06)]">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[9px] font-bold text-teal uppercase tracking-wider">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-accent">
                 {AGENT_NAMES[agentId] ?? "AI"} · {model?.includes("claude") ? "Claude" : "AI"}
               </span>
               <button onClick={() => setIsOpen(false)} className="text-muted hover:text-secondary transition">
@@ -194,7 +194,7 @@ export default function AIAction({
         disabled={isLoading}
         aria-label={label}
         className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-xl bg-teal/5 border border-teal/10 text-xs font-semibold text-teal hover:bg-teal/10 transition disabled:opacity-50",
+          "inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/7 px-3.5 py-2 text-xs font-semibold text-accent transition hover:bg-accent/10 disabled:opacity-50",
           className
         )}
       >
@@ -246,19 +246,19 @@ function AIResponsePanel({
     : null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
-      <div className="bg-surface rounded-2xl border border-border shadow-xl max-w-lg w-full max-h-[70vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-primary/24 p-4 backdrop-blur-sm">
+      <div className="surface-card flex max-h-[70vh] w-full max-w-lg flex-col overflow-hidden rounded-[30px] bg-[rgba(255,255,255,0.94)]">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-b border-[rgba(82,108,139,0.12)] px-5 py-3">
           <div className="flex items-center gap-2">
-            <Bot size={16} className="text-teal" />
+            <Bot size={16} className="text-accent" />
             <span className="text-sm font-bold text-primary">{agentName}</span>
             {modelLabel ? (
-              <span className="flex items-center gap-0.5 text-[9px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+              <span className="flex items-center gap-0.5 rounded-full bg-accent/10 px-2 py-0.5 text-[9px] font-bold text-accent">
                 <Cpu size={7} /> {modelLabel}
               </span>
             ) : (
-              <span className="text-[9px] font-bold text-teal bg-teal/10 px-1.5 py-0.5 rounded">
+              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[9px] font-bold text-accent">
                 AI AGENT
               </span>
             )}
@@ -267,7 +267,7 @@ function AIResponsePanel({
             {response && !isLoading && (
               <button
                 onClick={onCopy}
-                className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-muted hover:text-primary bg-border/30 hover:bg-border rounded-lg transition"
+                className="flex items-center gap-1 rounded-full bg-white/74 px-2.5 py-1 text-[10px] font-semibold text-muted transition hover:text-primary"
               >
                 {copied ? <Check size={10} className="text-accent" /> : <Copy size={10} />}
                 {copied ? "Copied" : "Copy"}
@@ -276,7 +276,7 @@ function AIResponsePanel({
             <button
               onClick={onClose}
               aria-label="Close AI response"
-              className="p-1 hover:bg-border/30 rounded-lg transition"
+              className="rounded-full p-1.5 transition hover:bg-white"
             >
               <X size={16} className="text-muted" />
             </button>
@@ -310,13 +310,13 @@ function AIResponsePanel({
 
         {/* Footer */}
         {!isLoading && (response || error) && (
-          <div className="px-5 py-3 border-t border-border/50 shrink-0 flex items-center justify-between">
+          <div className="flex shrink-0 items-center justify-between border-t border-[rgba(82,108,139,0.12)] px-5 py-3">
             <p className="text-[10px] text-muted">
               {modelLabel ? `Powered by ${modelLabel}` : "Powered by OpenRx AI"}
             </p>
             <button
               onClick={onClose}
-              className="text-xs font-semibold text-secondary hover:text-primary px-3 py-1.5 rounded-lg bg-border/40 hover:bg-border transition"
+              className="rounded-full bg-white/74 px-3 py-1.5 text-xs font-semibold text-secondary transition hover:bg-white hover:text-primary"
             >
               Close
             </button>

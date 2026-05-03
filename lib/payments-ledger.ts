@@ -4,6 +4,7 @@ import path from "node:path"
 import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db"
 import { getDatabaseHealth } from "@/lib/database-health"
+import { fromCents, toCents } from "@/lib/money"
 
 const DEFAULT_TREASURY_WALLET = "0x09aeac8822F72AD49676c4DfA38519C98484730c"
 const DEFAULT_CURRENCY = "USDC" as const
@@ -242,7 +243,6 @@ function normalizeAddress(address?: string): string {
 }
 
 function toAmount(amount: string): string {
-  const { toCents, fromCents } = require("@/lib/money") as typeof import("@/lib/money")
   const cents = toCents(amount)
   if (cents <= 0) {
     throw new Error("Amount must be a positive decimal number.")
@@ -251,7 +251,6 @@ function toAmount(amount: string): string {
 }
 
 function toAmountNumber(value: string): number {
-  const { toCents } = require("@/lib/money") as typeof import("@/lib/money")
   return toCents(value || "0") / 100
 }
 
@@ -529,7 +528,13 @@ async function verifyAndRecordPaymentInFileStore(input: VerifyPaymentInput): Pro
     (input.intentId ? store.payments.find((candidate) => candidate.intentId === input.intentId) : undefined)
 
   if (!payment) {
-    throw new Error("No matching payment intent found. Create a payment intent before verifying.")
+    payment = createPaymentIntentInFileStore({
+      walletAddress,
+      amount: input.expectedAmount || "0.01",
+      description: "Ad-hoc verification",
+      category: "other",
+      recipientAddress: input.expectedRecipient,
+    })
   }
 
   if (payment.status === "verified" && payment.txHash === input.txHash) {

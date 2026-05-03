@@ -52,10 +52,8 @@ test("supports provider lookup for specialty and city/ZIP-only variants", async 
 
   await page.goto("/providers")
 
-  const searchInput = page.getByPlaceholder(
-    "Example: find caregiver + radiology center near Seattle WA 98101"
-  )
-  const searchButton = page.getByRole("button", { name: "Search", exact: true })
+  const searchInput = page.getByLabel("Care need or location")
+  const searchButton = page.getByRole("button", { name: "Search network", exact: true })
 
   const queries = [
     "hillsboro internal medicine provider",
@@ -67,9 +65,9 @@ test("supports provider lookup for specialty and city/ZIP-only variants", async 
     await searchInput.fill(query)
     await searchButton.click()
 
-    await expect(page.getByText(`${query})`, { exact: false })).toBeVisible()
+    await expect(page.locator("h3", { hasText: `${query})` }).first()).toBeVisible()
     await expect(page.locator("p", { hasText: "Internal Medicine" }).first()).toBeVisible()
-    await expect(page.getByText(/care options found/)).toBeVisible()
+    await expect(page.getByText(/care option[s]? ready/)).toBeVisible()
     await expect(page.getByText("Need one more detail before search")).toHaveCount(0)
   }
 

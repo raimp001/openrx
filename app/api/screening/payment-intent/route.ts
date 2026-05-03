@@ -1,4 +1,9 @@
-import { requireAuth } from "@/lib/api-auth"
+import {
+  canUseWalletScopedData,
+  isDemoWalletAddress,
+  requestWalletMatches,
+  requireAuth,
+} from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import {
   createScreeningPaymentIntent,
@@ -11,7 +16,6 @@ function isWalletAddress(value: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as { walletAddress?: string }
     const walletAddress = (body.walletAddress || "").trim()
@@ -21,6 +25,17 @@ export async function POST(request: NextRequest) {
     }
     if (!isWalletAddress(walletAddress)) {
       return NextResponse.json({ error: "walletAddress must be a valid EVM address." }, { status: 400 })
+    }
+
+    const auth = await requireAuth(request, {
+      allowPublic: isDemoWalletAddress(walletAddress) || requestWalletMatches(request, walletAddress),
+    })
+    if ("response" in auth) return auth.response
+    if (
+      !canUseWalletScopedData(auth.session, walletAddress) &&
+      !requestWalletMatches(request, walletAddress)
+    ) {
+      return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
     }
 
     const payment = await createScreeningPaymentIntent(walletAddress)

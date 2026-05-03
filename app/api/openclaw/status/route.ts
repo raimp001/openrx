@@ -7,15 +7,29 @@ type WorkerRecord = Awaited<ReturnType<typeof listWorkerHeartbeats>>[number]
 
 export const dynamic = "force-dynamic"
 
-const ACTIVE_WORKER_WINDOW_MS = 12 * 60 * 60 * 1000
+const LIVE_SCHEDULER_WINDOW_MS = 15 * 60 * 1000
+const MANUAL_WORKER_WINDOW_MS = 60 * 60 * 1000
+const DEFAULT_VERCEL_WORKER_WINDOW_MS = 60 * 1000
 
 function toEpoch(value: Date | string | null | undefined): number {
   if (!value) return 0
   return new Date(value).getTime()
 }
 
+function activeWindowForWorker(worker: WorkerRecord): number {
+  if (worker.workerType === "manual") return MANUAL_WORKER_WINDOW_MS
+  if (worker.workerType === "vercel-cron" && worker.workerId.startsWith("vercel-cron-")) {
+    return DEFAULT_VERCEL_WORKER_WINDOW_MS
+  }
+
+  // Scheduler status should describe who is driving runs now, not stale history.
+  // The AWS worker heartbeats every minute; Vercel cron should disappear shortly
+  // after its deployment config is removed instead of warning for half a day.
+  return LIVE_SCHEDULER_WINDOW_MS
+}
+
 function isActiveWorker(worker: WorkerRecord): boolean {
-  return Date.now() - toEpoch(worker.lastSeenAt) <= ACTIVE_WORKER_WINDOW_MS
+  return Date.now() - toEpoch(worker.lastSeenAt) <= activeWindowForWorker(worker)
 }
 
 function workerPriority(worker: WorkerRecord): number {

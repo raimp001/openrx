@@ -2,9 +2,10 @@
 
 import { cn, formatTime, formatDate, getStatusColor } from "@/lib/utils"
 import { Video, AlertTriangle, Stethoscope, Bot, Calendar, ChevronDown, MapPin, Clock } from "lucide-react"
-import { useState, useMemo } from "react"
+import { useMemo, useState } from "react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
+import { OpsBadge, OpsBriefCard, OpsEmptyState, OpsTabButton } from "@/components/ui/ops-primitives"
 import Link from "next/link"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 
@@ -16,6 +17,7 @@ function Skeleton({ className }: { className?: string }) {
 
 export default function SchedulingPage() {
   const [view, setView] = useState<ViewMode>("today")
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const { snapshot, getPhysician, loading } = useLiveSnapshot()
 
   const hasData = !!snapshot.patient
@@ -39,8 +41,10 @@ export default function SchedulingPage() {
     }
   }, [today, myAppointments])
 
-  const [expandedId, setExpandedId] = useState<string | null>(null)
   const activeList = view === "today" ? todayApts : view === "upcoming" ? upcomingApts : pastApts
+  const nextAppointment = todayApts[0] || upcomingApts[0] || null
+  const telehealthCount = myAppointments.filter((apt) => apt.type === "telehealth").length
+  const todaysAttention = todayApts.filter((apt) => ["pending", "checked-in", "in-progress"].includes(apt.status)).length
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -54,17 +58,36 @@ export default function SchedulingPage() {
     return (
       <div className="animate-slide-up space-y-6">
         <div className="flex items-center justify-between">
-          <div className="space-y-2"><Skeleton className="h-8 w-44" /><Skeleton className="h-4 w-56" /></div>
-          <div className="flex gap-2"><Skeleton className="h-9 w-32" /><Skeleton className="h-9 w-36" /></div>
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-44" />
+            <Skeleton className="h-4 w-56" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-32" />
+            <Skeleton className="h-9 w-36" />
+          </div>
         </div>
-        <div className="flex gap-2"><Skeleton className="h-7 w-20 rounded-full" /><Skeleton className="h-7 w-20 rounded-full" /></div>
-        <Skeleton className="h-10 w-60 rounded-xl" />
-        <div className="surface-card divide-y divide-border/50">
+        <div className="grid grid-cols-3 gap-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="rounded-2xl border border-border bg-surface p-4">
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Skeleton className="h-7 w-20 rounded-full" />
+          <Skeleton className="h-7 w-24 rounded-full" />
+          <Skeleton className="h-7 w-16 rounded-full" />
+        </div>
+        <div className="rounded-2xl border border-border bg-surface">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="flex items-center gap-4 px-5 py-4">
+            <div key={i} className="flex items-center gap-4 border-b border-border/50 px-5 py-4 last:border-b-0">
               <Skeleton className="h-10 w-16" />
-              <Skeleton className="w-1.5 h-10 rounded-full" />
-              <div className="flex-1 space-y-1.5"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-40" /></div>
+              <Skeleton className="h-10 w-1.5 rounded-full" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-48" />
+              </div>
               <Skeleton className="h-8 w-24" />
             </div>
           ))}
@@ -75,15 +98,15 @@ export default function SchedulingPage() {
 
   if (!loading && !hasData) {
     return (
-      <div className="animate-slide-up flex flex-col items-center justify-center min-h-[50vh] text-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-teal/5 flex items-center justify-center">
+      <div className="animate-slide-up flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-teal/5">
           <Calendar size={28} className="text-teal" />
         </div>
         <div>
           <h1 className="text-2xl font-serif text-primary">My Appointments</h1>
-          <p className="text-muted mt-1 max-w-sm">Connect your health record to view and manage your appointments.</p>
+          <p className="mt-1 max-w-sm text-muted">Connect your health record to view and manage your appointments.</p>
         </div>
-        <Link href="/onboarding" className="px-5 py-2.5 bg-teal text-white text-sm font-semibold rounded-xl hover:bg-teal-dark transition">
+        <Link href="/onboarding" className="rounded-xl bg-teal px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-dark">
           Get Started
         </Link>
       </div>
@@ -93,8 +116,16 @@ export default function SchedulingPage() {
   return (
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
+        eyebrow="Visit coordination"
         title="My Appointments"
-        description={`${todayApts.length} appointments today · ${upcomingApts.length} upcoming`}
+        description="See what is happening today, what comes next, and which visits still need preparation or a scheduling decision."
+        meta={
+          <>
+            <OpsBadge tone="blue">{todayApts.length} today</OpsBadge>
+            <OpsBadge tone="accent">{upcomingApts.length} upcoming</OpsBadge>
+            <OpsBadge tone="terra">{telehealthCount} telehealth</OpsBadge>
+          </>
+        }
         actions={
           <>
             <AIAction
@@ -113,13 +144,37 @@ export default function SchedulingPage() {
         }
       />
 
-      {/* Today Status Summary */}
-      <div className="flex gap-3 flex-wrap">
+      <div className="grid gap-3 md:grid-cols-3">
+        <OpsBriefCard
+          label="Next on deck"
+          title={nextAppointment ? `${formatDate(nextAppointment.scheduled_at)} · ${formatTime(nextAppointment.scheduled_at)}` : "No upcoming visit scheduled"}
+          detail={
+            nextAppointment
+              ? `${nextAppointment.reason} · ${getPhysician(nextAppointment.physician_id)?.full_name || "Provider pending"}`
+              : "Use provider search or AI scheduling to book the next step."
+          }
+          tone="blue"
+        />
+        <OpsBriefCard
+          label="Today’s visits"
+          title={`${todaysAttention} visit${todaysAttention !== 1 ? "s" : ""} need active management`}
+          detail="Pending, checked-in, and in-progress visits are grouped here so it is clear what still needs attention."
+          tone="terra"
+        />
+        <OpsBriefCard
+          label="Visit history"
+          title={`${pastApts.length} past visit${pastApts.length !== 1 ? "s" : ""} captured in the record`}
+          detail="Use past visits and details to prepare follow-up rather than treating each appointment as an isolated card."
+          tone="accent"
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-3">
         {Object.entries(statusCounts).map(([status, count]) => (
           <div
             key={status}
             className={cn(
-              "text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide",
+              "rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wide",
               getStatusColor(status)
             )}
           >
@@ -128,155 +183,131 @@ export default function SchedulingPage() {
         ))}
       </div>
 
-      {/* Tabs */}
       <div className="flex items-center justify-between">
-        <div className="flex bg-surface border border-border rounded-xl overflow-hidden">
-          {(["today", "upcoming", "past"] as ViewMode[]).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={cn(
-                "px-4 py-2 text-sm font-semibold transition-all capitalize",
-                view === v
-                  ? "bg-teal text-white"
-                  : "text-secondary hover:text-primary hover:bg-border/30"
-              )}
-            >
-              {v}
-            </button>
+        <div className="flex flex-wrap gap-2">
+          {(["today", "upcoming", "past"] as ViewMode[]).map((value) => (
+            <OpsTabButton key={value} active={view === value} onClick={() => setView(value)}>
+              {value}
+            </OpsTabButton>
           ))}
         </div>
       </div>
 
-      {/* Appointment List */}
-      <div className="surface-card divide-y divide-border/50">
-        {activeList.length === 0 && (
-          <div className="flex flex-col items-center py-14 gap-3">
-            <div className="w-12 h-12 rounded-full bg-border/40 flex items-center justify-center">
-              <Calendar size={22} className="text-muted" />
-            </div>
-            <p className="text-sm font-semibold text-secondary">
-              {view === "today" ? "No appointments today" : view === "upcoming" ? "No upcoming appointments" : "No past appointments"}
-            </p>
-            {view !== "past" && (
-              <div className="flex gap-2 mt-1">
+      <div className="rounded-2xl border border-border bg-surface">
+        {activeList.length === 0 ? (
+          <div className="px-4 py-4">
+            <OpsEmptyState
+              icon={Calendar}
+              title={view === "today" ? "No appointments today" : view === "upcoming" ? "No upcoming appointments" : "No past appointments"}
+              description={
+                view === "past"
+                  ? "Past visits will appear here as your record fills in."
+                  : "Use provider search or AI scheduling to line up the next care step."
+              }
+            />
+            {view !== "past" ? (
+              <div className="mt-3 flex gap-2">
                 <Link
                   href="/providers"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-teal border border-teal/20 hover:bg-teal/5 transition"
+                  className="flex items-center gap-1.5 rounded-xl border border-teal/20 px-3 py-2 text-xs font-semibold text-teal transition hover:bg-teal/5"
                 >
                   <Stethoscope size={13} />
                   Find a Doctor
                 </Link>
                 <Link
                   href="/chat"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-secondary border border-border hover:bg-border/30 transition"
+                  className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-secondary transition hover:bg-border/30"
                 >
                   <Bot size={13} />
                   Ask AI to Schedule
                 </Link>
               </div>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
+
         {activeList.map((apt) => {
           const physician = getPhysician(apt.physician_id)
           const isExpanded = expandedId === apt.id
+
           return (
-            <div key={apt.id}>
+            <div key={apt.id} className="border-b border-border/50 last:border-b-0">
               <button
                 onClick={() => setExpandedId(isExpanded ? null : apt.id)}
-                className="flex w-full items-center gap-4 px-5 py-4 hover:bg-border/20 transition text-left"
+                className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-border/20"
                 aria-expanded={isExpanded}
               >
-                {/* Time */}
                 <div className="w-20 shrink-0 text-center">
-                  <div className="text-sm font-bold text-primary">
-                    {formatTime(apt.scheduled_at)}
-                  </div>
-                  <div className="text-[10px] text-muted">
-                    {apt.duration_minutes}min
-                  </div>
+                  <div className="text-sm font-bold text-primary">{formatTime(apt.scheduled_at)}</div>
+                  <div className="text-[10px] text-muted">{apt.duration_minutes}min</div>
                 </div>
 
-                {/* Status bar */}
                 <div
                   className={cn(
-                    "w-1.5 h-10 rounded-full shrink-0",
+                    "h-10 w-1.5 shrink-0 rounded-full",
                     apt.status === "completed"
                       ? "bg-accent"
                       : apt.status === "in-progress"
-                      ? "bg-teal"
-                      : apt.status === "checked-in"
-                      ? "bg-yellow-400"
-                      : apt.status === "no-show"
-                      ? "bg-soft-red"
-                      : "bg-border"
+                        ? "bg-teal"
+                        : apt.status === "checked-in"
+                          ? "bg-yellow-400"
+                          : apt.status === "no-show"
+                            ? "bg-soft-red"
+                            : "bg-border"
                   )}
                 />
 
-                {/* Main info */}
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
-                        "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide",
+                        "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
                         getStatusColor(apt.status)
                       )}
                     >
                       {apt.status}
                     </span>
-                    {apt.type === "urgent" && (
+                    {apt.type === "urgent" ? (
                       <span className="flex items-center gap-0.5 text-[10px] font-bold text-soft-red">
                         <AlertTriangle size={10} />
                         URGENT
                       </span>
-                    )}
-                    {apt.type === "telehealth" && (
+                    ) : null}
+                    {apt.type === "telehealth" ? (
                       <span className="flex items-center gap-0.5 text-[10px] font-bold text-soft-blue">
                         <Video size={10} />
                         TELEHEALTH
                       </span>
-                    )}
-                    {apt.type === "new-patient" && (
-                      <span className="text-[10px] font-bold text-accent">NEW</span>
-                    )}
+                    ) : null}
+                    {apt.type === "new-patient" ? <span className="text-[10px] font-bold text-accent">NEW</span> : null}
                   </div>
-                  <p className="text-xs text-muted mt-0.5 truncate">
-                    {apt.reason}
-                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted">{apt.reason}</p>
                 </div>
 
-                {/* Physician */}
-                <div className="text-right shrink-0">
-                  <p className="text-xs font-medium text-primary">
-                    {physician?.full_name}
-                  </p>
+                <div className="shrink-0 text-right">
+                  <p className="text-xs font-medium text-primary">{physician?.full_name}</p>
                   <p className="text-[10px] text-muted">{physician?.specialty}</p>
                 </div>
 
-                {/* Date (for non-today) */}
-                {view !== "today" && (
-                  <div className="text-xs text-muted shrink-0 w-24 text-right">
-                    {formatDate(apt.scheduled_at)}
-                  </div>
-                )}
+                {view !== "today" ? (
+                  <div className="w-24 shrink-0 text-right text-xs text-muted">{formatDate(apt.scheduled_at)}</div>
+                ) : null}
 
-                <ChevronDown size={14} className={cn("text-muted shrink-0 transition-transform", isExpanded && "rotate-180")} />
+                <ChevronDown size={14} className={cn("shrink-0 text-muted transition-transform", isExpanded && "rotate-180")} />
               </button>
 
-              {/* Expanded details */}
-              {isExpanded && (
-                <div className="px-5 pb-4 pt-0 ml-[6.5rem] border-t border-border/30 animate-fade-in">
-                  <div className="grid gap-3 sm:grid-cols-3 py-3">
+              {isExpanded ? (
+                <div className="ml-[6.5rem] border-t border-border/30 px-5 pb-4 pt-0 animate-fade-in">
+                  <div className="grid gap-3 py-3 sm:grid-cols-3">
                     <div className="flex items-start gap-2">
-                      <Clock size={13} className="text-muted mt-0.5 shrink-0" />
+                      <Clock size={13} className="mt-0.5 shrink-0 text-muted" />
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Duration</p>
                         <p className="text-sm text-primary">{apt.duration_minutes} minutes</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Stethoscope size={13} className="text-muted mt-0.5 shrink-0" />
+                      <Stethoscope size={13} className="mt-0.5 shrink-0 text-muted" />
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Provider</p>
                         <p className="text-sm text-primary">{physician?.full_name}</p>
@@ -284,17 +315,15 @@ export default function SchedulingPage() {
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <MapPin size={13} className="text-muted mt-0.5 shrink-0" />
+                      <MapPin size={13} className="mt-0.5 shrink-0 text-muted" />
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Type</p>
-                        <p className="text-sm text-primary capitalize">{apt.type || "In-person"}</p>
+                        <p className="text-sm capitalize text-primary">{apt.type || "In-person"}</p>
                       </div>
                     </div>
                   </div>
-                  {apt.notes && (
-                    <p className="text-xs text-secondary leading-5 mt-1 italic">{apt.notes}</p>
-                  )}
-                  <div className="flex gap-2 mt-3">
+                  {apt.notes ? <p className="mt-1 text-xs italic leading-5 text-secondary">{apt.notes}</p> : null}
+                  <div className="mt-3 flex gap-2">
                     <AIAction
                       agentId="scheduling"
                       label="Reschedule"
@@ -309,7 +338,7 @@ export default function SchedulingPage() {
                     />
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           )
         })}

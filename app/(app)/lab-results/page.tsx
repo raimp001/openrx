@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   AlertTriangle,
   CheckCircle2,
@@ -43,7 +43,7 @@ function RangeBar({
   const valuePct = Math.max(2, Math.min(98, ((numericValue - minScale) / scale) * 100))
   const normalStart = ((low - minScale) / scale) * 100
   const normalWidth = ((high - low) / scale) * 100
-  const dotColor = flag === "normal" ? "#1FA971" : flag === "critical" ? "#DC2626" : "#D1495B"
+  const dotColor = flag === "normal" ? "#047857" : flag === "critical" ? "#B91C1C" : "#B91C1C"
 
   return (
     <div className="relative mt-2 h-1.5 w-full max-w-[9rem] rounded-full bg-border/30" role="img" aria-label={`Value ${value}, range ${referenceRange}`}>
@@ -94,7 +94,6 @@ export default function LabResultsPage() {
   const { snapshot, getPhysician, loading } = useLiveSnapshot()
   const labs = snapshot.labResults
   const hasData = Boolean(snapshot.patient)
-  const [expandedLab, setExpandedLab] = useState<string | null>(labs[0]?.id || null)
 
   const pendingLabs = useMemo(() => labs.filter((lab) => lab.status === "pending"), [labs])
   const resultedLabs = useMemo(() => labs.filter((lab) => lab.status !== "pending"), [labs])
@@ -114,6 +113,24 @@ export default function LabResultsPage() {
     () => resultedLabs.filter((lab) => lab.results.some((result) => result.flag !== "normal")),
     [resultedLabs]
   )
+  const prioritizedLab = useMemo(
+    () =>
+      [...resultedLabs].sort((left, right) => {
+        const score = (lab: (typeof resultedLabs)[number]) =>
+          (lab.results.some((result) => result.flag === "critical") ? 5 : 0) +
+          (lab.results.some((result) => result.flag !== "normal") ? 3 : 0) +
+          (lab.status === "reviewed" ? 0 : 1)
+        return score(right) - score(left)
+      })[0] || null,
+    [resultedLabs]
+  )
+  const [expandedLab, setExpandedLab] = useState<string | null>(prioritizedLab?.id || labs[0]?.id || null)
+
+  useEffect(() => {
+    if (!expandedLab && prioritizedLab?.id) {
+      setExpandedLab(prioritizedLab.id)
+    }
+  }, [expandedLab, prioritizedLab])
 
   if (loading) {
     return (
@@ -142,14 +159,14 @@ export default function LabResultsPage() {
       <div className="animate-slide-up space-y-6">
         <AppPageHeader
           eyebrow="Diagnostics"
-          title="Lab results board"
+          title="Diagnostics board"
           description="Keep pending tests, abnormal values, and clinician notes in one place instead of forcing patients to decode isolated PDFs."
         />
         <div className="surface-card p-6">
           <OpsEmptyState
             icon={FlaskConical}
             title="No lab data is connected yet"
-            description="Connect your health record first, then Atlas will organize pending tests, abnormal values, and clinician notes here."
+            description="Connect your health record first, then OpenRx will organize pending tests, abnormal values, and clinician notes here."
           />
           <div className="mt-5 flex justify-center">
             <Link href="/onboarding" className="control-button-primary">
@@ -165,8 +182,8 @@ export default function LabResultsPage() {
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
         eyebrow="Diagnostics"
-        title="Lab results board"
-        description="Atlas turns the result feed into a readable clinical board: what is still processing, what is abnormal, and what deserves a focused discussion with a clinician."
+        title="Diagnostics board"
+        description="See what is still processing, what is abnormal, and what deserves a focused discussion with a clinician."
         meta={
           <div className="flex flex-wrap items-center gap-2">
             <OpsBadge tone="blue">{labs.length} total tests</OpsBadge>
@@ -227,6 +244,63 @@ export default function LabResultsPage() {
           detail="Result sets already marked as reviewed by a clinician."
           icon={CheckCircle2}
           tone="accent"
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
+        <div className="overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(8,24,46,0.16)]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Open this result first</p>
+              <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-white">
+                {prioritizedLab ? prioritizedLab.test_name : "No resulted labs yet"}
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-white/72">
+                {prioritizedLab
+                  ? `${prioritizedLab.results.filter((result) => result.flag !== "normal").length || 0} abnormal values · ${prioritizedLab.lab_facility}`
+                  : "The board has no resulted panels to prioritize yet."}
+              </p>
+            </div>
+            <OpsBadge tone={prioritizedLab?.results.some((result) => result.flag === "critical") ? "red" : prioritizedLab?.results.some((result) => result.flag !== "normal") ? "gold" : "accent"} className="!border-white/12 !bg-white/10 !text-white">
+              {prioritizedLab?.results.some((result) => result.flag === "critical") ? "urgent" : prioritizedLab?.results.some((result) => result.flag !== "normal") ? "review" : "stable"}
+            </OpsBadge>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Pending work</p>
+              <p className="mt-2 text-lg font-semibold text-white">{pendingLabs.length} test{pendingLabs.length === 1 ? "" : "s"}</p>
+              <p className="mt-1 text-[12px] leading-6 text-white/64">
+                {pendingLabs.length
+                  ? "The board is still incomplete while pending orders are processing."
+                  : "There are no pending tests, so this board reflects the full diagnostic set on file."}
+              </p>
+            </div>
+            <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Clinical posture</p>
+              <p className="mt-2 text-lg font-semibold text-white">
+                {criticalCount ? "Escalate now" : abnormalCount ? "Review abnormal values" : "Stable result set"}
+              </p>
+              <p className="mt-1 text-[12px] leading-6 text-white/64">
+                {criticalCount
+                  ? "Critical values should trigger direct follow-up, not passive portal review."
+                  : abnormalCount
+                  ? "Abnormal values are present, but the board does not currently show a critical signal."
+                  : "No out-of-range values are visible in the current resulted set."}
+              </p>
+            </div>
+          </div>
+        </div>
+        <BriefingCard
+          eyebrow="Critical values"
+          title={`${criticalCount} flagged`}
+          detail={criticalCount ? "These results should trigger direct follow-up, not a normal portal delay." : "No critical values are visible in the current feed."}
+          tone={criticalCount ? "red" : "accent"}
+        />
+        <BriefingCard
+          eyebrow="Abnormal panels"
+          title={`${abnormalLabs.length} panels`}
+          detail={abnormalLabs.length ? "Use the board to inspect the full panel, not just isolated numbers." : "No abnormal panels are visible right now."}
+          tone={abnormalLabs.length ? "gold" : "accent"}
         />
       </div>
 
@@ -326,7 +400,7 @@ export default function LabResultsPage() {
                             <div className="flex items-start gap-2">
                               <FileText size={13} className="mt-0.5 shrink-0 text-teal" />
                               <div>
-                                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted/80">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-secondary">
                                   {physician?.full_name || "Clinician"} note
                                 </div>
                                 <div className="mt-1 text-sm leading-6 text-primary">{lab.notes}</div>
@@ -426,7 +500,7 @@ export default function LabResultsPage() {
                 {criticalCount
                   ? `${criticalCount} value${criticalCount === 1 ? " is" : "s are"} critical. That should trigger direct clinical follow-up rather than a normal message thread.`
                   : abnormalCount
-                  ? `${abnormalCount} value${abnormalCount === 1 ? " is" : "s are"} outside the reference range. Review those panels first, then use Atlas for a plain-language explanation.`
+                  ? `${abnormalCount} value${abnormalCount === 1 ? " is" : "s are"} outside the reference range. Review those panels first, then use the plain-language explanation.`
                   : "The current lab feed is stable, with no out-of-range values visible in the resulted panels."}
               </p>
               <p>
@@ -454,12 +528,59 @@ function FocusItem({
   tone: "terra" | "accent" | "blue" | "gold" | "red"
 }) {
   return (
-    <div className="surface-muted flex items-start justify-between gap-3 px-4 py-3">
+    <div
+      className={cn(
+        "flex items-start justify-between gap-3 rounded-[22px] border px-4 py-3",
+        tone === "red"
+          ? "border-red-200/45 bg-[linear-gradient(180deg,rgba(255,247,246,0.96),rgba(255,239,237,0.92))]"
+          : tone === "gold"
+            ? "border-amber-300/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,246,255,0.90))]"
+            : tone === "blue"
+              ? "border-[rgba(59,130,246,0.18)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
+              : "border-[rgba(82,108,139,0.12)] bg-white/90"
+      )}
+    >
       <div>
         <div className="text-sm font-semibold text-primary">{label}</div>
         <div className="mt-1 text-xs leading-5 text-muted">{detail}</div>
       </div>
       <OpsBadge tone={tone} className="shrink-0">{value}</OpsBadge>
+    </div>
+  )
+}
+
+function BriefingCard({
+  eyebrow,
+  title,
+  detail,
+  tone,
+}: {
+  eyebrow: string
+  title: string
+  detail: string
+  tone: "terra" | "accent" | "blue" | "gold" | "red"
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[24px] border px-5 py-5",
+        tone === "red"
+          ? "border-red-200/45 bg-[linear-gradient(180deg,rgba(255,247,246,0.96),rgba(255,239,237,0.92))]"
+          : tone === "gold"
+            ? "border-amber-300/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,246,255,0.90))]"
+            : tone === "blue"
+              ? "border-[rgba(59,130,246,0.18)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
+              : "border-[rgba(82,108,139,0.12)] bg-white/90"
+      )}
+    >
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{eyebrow}</div>
+      <div className="mt-3 flex items-start justify-between gap-3">
+        <div>
+          <div className="text-lg font-serif leading-tight text-primary">{title}</div>
+          <div className="mt-2 text-sm leading-6 text-secondary">{detail}</div>
+        </div>
+        <OpsBadge tone={tone} className="shrink-0">{tone === "accent" ? "stable" : tone === "blue" ? "watch" : tone === "gold" ? "review" : tone === "red" ? "urgent" : "active"}</OpsBadge>
+      </div>
     </div>
   )
 }

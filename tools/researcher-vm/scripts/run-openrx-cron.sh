@@ -3,6 +3,7 @@ set -euo pipefail
 umask 077
 
 job_id="${1:-${OPENRX_CRON_JOB_ID:-}}"
+explicit_job_id="${1:-}"
 base_url="${OPENRX_BASE_URL:-}"
 admin_key="${OPENRX_ADMIN_API_KEY:-}"
 agent_token="${OPENRX_AGENT_NOTIFY_TOKEN:-}"
@@ -13,6 +14,14 @@ wallet_address="${OPENRX_WALLET_ADDRESS:-}"
 triggered_at="${OPENRX_CRON_TRIGGERED_AT:-}"
 idempotency_key="${OPENRX_CRON_IDEMPOTENCY_KEY:-}"
 session_id="cron-${job_id:-job}-$(date +%s)"
+
+# Scheduled runner calls this script with an explicit job id.
+# In that mode, ignore global message/wallet overrides so one stale env file
+# cannot force every cron job to reuse the same screening payload.
+if [[ -n "$explicit_job_id" ]]; then
+  message=""
+  wallet_address=""
+fi
 
 if [[ -z "$job_id" ]]; then
   printf '%s\n' "Set OPENRX_CRON_JOB_ID or pass a job id as the first argument." >&2

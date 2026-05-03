@@ -12,7 +12,7 @@ export async function GET() {
     paths: {
       "/api/agent-notify": {
         post: {
-          summary: "OpenClaw agent status + HITL request signal",
+          summary: "Care automation status and human-review signal",
           requestBody: {
             required: true,
             content: {

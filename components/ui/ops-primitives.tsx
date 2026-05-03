@@ -67,6 +67,31 @@ export function OpsMetricCard({
   )
 }
 
+export function OpsBriefCard({
+  label,
+  title,
+  detail,
+  tone = "terra",
+  className,
+}: {
+  label: string
+  title: string
+  detail?: string
+  tone?: Tone
+  className?: string
+}) {
+  const styles = toneStyles[tone]
+
+  return (
+    <div className={cn("surface-card relative overflow-hidden p-5", className)}>
+      <div className={cn("stat-card-accent", styles.bar)} />
+      <div className="section-title">{label}</div>
+      <p className="mt-3 text-sm font-semibold leading-6 text-primary">{title}</p>
+      {detail ? <p className="mt-2 text-xs leading-5 text-secondary">{detail}</p> : null}
+    </div>
+  )
+}
+
 export function OpsPanel({
   title,
   description,

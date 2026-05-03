@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import Link from "next/link"
 import {
   Activity,
@@ -12,16 +12,6 @@ import {
   TrendingUp,
   Weight,
 } from "lucide-react"
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
 import { OpsBadge, OpsEmptyState, OpsMetricCard, OpsPanel, OpsTabButton } from "@/components/ui/ops-primitives"
@@ -29,6 +19,17 @@ import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { cn } from "@/lib/utils"
 
 type TimeRange = "7d" | "14d" | "30d"
+
+type TrendPoint = {
+  label: string
+  values: Record<string, number | null>
+}
+
+type TrendLine = {
+  key: string
+  label: string
+  color: string
+}
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
@@ -65,24 +66,136 @@ function TrendBadge({
   )
 }
 
-function ChartTooltip({
-  active,
-  payload,
-  label,
+function SparklineChart({
+  data,
+  lines,
+  threshold,
+  thresholdLabel,
   unit,
 }: {
-  active?: boolean
-  payload?: { value: number }[]
-  label?: string
-  unit?: string
+  data: TrendPoint[]
+  lines: TrendLine[]
+  threshold?: number
+  thresholdLabel?: string
+  unit: string
 }) {
-  if (!active || !payload?.length) return null
+  const width = 1000
+  const height = 220
+  const topPadding = 18
+  const bottomPadding = 34
+  const leftPadding = 20
+  const rightPadding = 16
+  const plotWidth = width - leftPadding - rightPadding
+  const plotHeight = height - topPadding - bottomPadding
+
+  const numericValues = data.flatMap((point) =>
+    lines.flatMap((line) => {
+      const value = point.values[line.key]
+      return typeof value === "number" ? [value] : []
+    })
+  )
+
+  if (data.length < 2 || numericValues.length < 2) {
+    return (
+      <div className="rounded-[22px] border border-border/60 bg-white/72 px-4 py-5 text-sm text-muted">
+        More readings are needed before OpenRx can draw a reliable trend.
+      </div>
+    )
+  }
+
+  const minValue = Math.min(...numericValues)
+  const maxValue = Math.max(...numericValues)
+  const span = Math.max(maxValue - minValue, 12)
+  const chartMin = Math.max(0, minValue - span * 0.18)
+  const chartMax = maxValue + span * 0.18
+  const valueRange = Math.max(chartMax - chartMin, 1)
+
+  const toX = (index: number) => leftPadding + (plotWidth * index) / Math.max(data.length - 1, 1)
+  const toY = (value: number) => topPadding + plotHeight - ((value - chartMin) / valueRange) * plotHeight
+
+  const pathFor = (line: TrendLine) => {
+    const points = data
+      .map((point, index) => {
+        const value = point.values[line.key]
+        return typeof value === "number" ? `${index === 0 ? "M" : "L"}${toX(index)} ${toY(value)}` : null
+      })
+      .filter(Boolean)
+      .join(" ")
+    return points
+  }
+
+  const lastValues = lines.map((line) => {
+    const lastPoint = [...data].reverse().find((point) => typeof point.values[line.key] === "number")
+    return {
+      ...line,
+      value: lastPoint?.values[line.key] ?? null,
+    }
+  })
+
   return (
-    <div className="rounded-2xl border border-border bg-white/95 px-3 py-2 text-xs shadow-soft-card backdrop-blur">
-      <p className="text-muted">{label}</p>
-      <p className="font-semibold text-primary">
-        {payload[0].value} {unit}
-      </p>
+    <div className="rounded-[24px] border border-border/60 bg-white/72 px-3 py-3">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[220px] w-full" role="img" aria-label={`Trend chart in ${unit}`}>
+        {[0.25, 0.5, 0.75].map((ratio) => {
+          const y = topPadding + plotHeight * ratio
+          return <line key={ratio} x1={leftPadding} y1={y} x2={width - rightPadding} y2={y} stroke="rgba(20,35,31,0.08)" strokeDasharray="4 8" />
+        })}
+        {threshold !== undefined ? (
+          <line
+            x1={leftPadding}
+            y1={toY(threshold)}
+            x2={width - rightPadding}
+            y2={toY(threshold)}
+            stroke="rgba(185,28,28,0.92)"
+            strokeDasharray="8 8"
+            strokeWidth="2"
+          />
+        ) : null}
+        {lines.map((line) => (
+          <path
+            key={line.key}
+            d={pathFor(line)}
+            fill="none"
+            stroke={line.color}
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))}
+        {lines.flatMap((line) =>
+          data.flatMap((point, index) => {
+            const value = point.values[line.key]
+            if (typeof value !== "number") return []
+            return [
+              <circle key={`${line.key}-${index}`} cx={toX(index)} cy={toY(value)} r="4.5" fill={line.color} stroke="white" strokeWidth="2" />,
+            ]
+          })
+        )}
+        {[0, Math.floor((data.length - 1) / 2), data.length - 1].map((index) => (
+          <text
+            key={index}
+            x={toX(index)}
+            y={height - 8}
+            textAnchor={index === 0 ? "start" : index === data.length - 1 ? "end" : "middle"}
+            fontSize="12"
+            fill="#526173"
+          >
+            {data[index]?.label}
+          </text>
+        ))}
+        {threshold !== undefined && thresholdLabel ? (
+          <text x={width - rightPadding} y={toY(threshold) - 8} textAnchor="end" fontSize="11" fill="#B91C1C">
+            {thresholdLabel}
+          </text>
+        ) : null}
+      </svg>
+      <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-muted">
+        {lastValues.map((line) => (
+          <span key={line.key} className="inline-flex items-center gap-2">
+            <span className="h-2 w-5 rounded-full" style={{ backgroundColor: line.color }} />
+            {line.label} · {line.value ?? "—"} {unit}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
@@ -94,75 +207,71 @@ export default function VitalsPage() {
   const [range, setRange] = useState<TimeRange>("14d")
 
   const rangeDays = range === "7d" ? 7 : range === "14d" ? 14 : 30
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - rangeDays)
+  const filteredVitals = vitals.filter((vital) => new Date(vital.recorded_at) >= cutoff)
 
-  const filteredVitals = useMemo(() => {
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - rangeDays)
-    return vitals.filter((vital) => new Date(vital.recorded_at) >= cutoff)
-  }, [vitals, rangeDays])
+  const bpReadings = filteredVitals.filter((vital) => vital.systolic && vital.diastolic)
+  const glucoseReadings = filteredVitals.filter((vital) => vital.blood_glucose)
+  const weightReadings = filteredVitals.filter((vital) => vital.weight_lbs)
 
-  const { bpReadings, glucoseReadings, weightReadings } = useMemo(() => ({
-    bpReadings: filteredVitals.filter((vital) => vital.systolic && vital.diastolic),
-    glucoseReadings: filteredVitals.filter((vital) => vital.blood_glucose),
-    weightReadings: filteredVitals.filter((vital) => vital.weight_lbs),
-  }), [filteredVitals])
+  const avgSystolic = bpReadings.length
+    ? Math.round(bpReadings.reduce((sum, vital) => sum + (vital.systolic || 0), 0) / bpReadings.length)
+    : null
+  const avgDiastolic = bpReadings.length
+    ? Math.round(bpReadings.reduce((sum, vital) => sum + (vital.diastolic || 0), 0) / bpReadings.length)
+    : null
+  const avgGlucose = glucoseReadings.length
+    ? Math.round(glucoseReadings.reduce((sum, vital) => sum + (vital.blood_glucose || 0), 0) / glucoseReadings.length)
+    : null
+  const latestWeight = weightReadings.length ? weightReadings[0].weight_lbs : null
+  const latestHR = filteredVitals.find((vital) => vital.heart_rate)?.heart_rate || null
+  const latestVital = filteredVitals[0] || null
 
-  const { avgSystolic, avgDiastolic, avgGlucose, latestWeight, latestHR, latestVital } = useMemo(() => ({
-    avgSystolic: bpReadings.length
-      ? Math.round(bpReadings.reduce((sum, vital) => sum + (vital.systolic || 0), 0) / bpReadings.length)
-      : null,
-    avgDiastolic: bpReadings.length
-      ? Math.round(bpReadings.reduce((sum, vital) => sum + (vital.diastolic || 0), 0) / bpReadings.length)
-      : null,
-    avgGlucose: glucoseReadings.length
-      ? Math.round(glucoseReadings.reduce((sum, vital) => sum + (vital.blood_glucose || 0), 0) / glucoseReadings.length)
-      : null,
-    latestWeight: weightReadings.length ? weightReadings[0].weight_lbs : null,
-    latestHR: filteredVitals.find((vital) => vital.heart_rate)?.heart_rate || null,
-    latestVital: filteredVitals[0] || null,
-  }), [bpReadings, glucoseReadings, weightReadings, filteredVitals])
-
-  const trend = useCallback((values: number[]): "up" | "down" | "stable" => {
-    if (values.length < 3) return "stable"
+  const trend = (values: number[]): "up" | "down" | "stable" => {
+    if (values.length < 2) return "stable"
     const half = Math.ceil(values.length / 2)
     const recent = values.slice(0, half)
     const older = values.slice(half)
-    if (recent.length === 0 || older.length === 0) return "stable"
     const recentAvg = recent.reduce((sum, value) => sum + value, 0) / recent.length
     const olderAvg = older.reduce((sum, value) => sum + value, 0) / older.length
     const diff = recentAvg - olderAvg
     if (Math.abs(diff) < 3) return "stable"
     return diff > 0 ? "up" : "down"
-  }, [])
+  }
 
-  const bpTrend = useMemo(() => trend(bpReadings.map((vital) => vital.systolic || 0)), [bpReadings, trend])
-  const glucoseTrend = useMemo(() => trend(glucoseReadings.map((vital) => vital.blood_glucose || 0)), [glucoseReadings, trend])
+  const bpTrend = trend(bpReadings.map((vital) => vital.systolic || 0))
+  const glucoseTrend = trend(glucoseReadings.map((vital) => vital.blood_glucose || 0))
 
-  const chartData = useMemo(() => [...filteredVitals]
-    .sort((left, right) => new Date(left.recorded_at).getTime() - new Date(right.recorded_at).getTime())
-    .map((vital) => ({
-      date: new Date(vital.recorded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-      systolic: vital.systolic || null,
-      diastolic: vital.diastolic || null,
-      glucose: vital.blood_glucose || null,
-      hr: vital.heart_rate || null,
-      weight: vital.weight_lbs || null,
-    })), [filteredVitals])
+  const chartData = useMemo(
+    () =>
+      [...filteredVitals]
+        .sort((left, right) => new Date(left.recorded_at).getTime() - new Date(right.recorded_at).getTime())
+        .map((vital) => ({
+          label: new Date(vital.recorded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+          values: {
+            systolic: vital.systolic || null,
+            diastolic: vital.diastolic || null,
+            glucose: vital.blood_glucose || null,
+            hr: vital.heart_rate || null,
+            weight: vital.weight_lbs || null,
+          },
+        })),
+    [filteredVitals]
+  )
 
   const highBP = Boolean(avgSystolic && avgSystolic >= 140)
   const highGlucose = Boolean(avgGlucose && avgGlucose > 130)
-  const { homeCount, clinicCount, deviceCount } = useMemo(() => ({
-    homeCount: filteredVitals.filter((vital) => vital.source === "home").length,
-    clinicCount: filteredVitals.filter((vital) => vital.source === "clinic").length,
-    deviceCount: filteredVitals.filter((vital) => vital.source === "device").length,
-  }), [filteredVitals])
+  const homeCount = filteredVitals.filter((vital) => vital.source === "home").length
+  const clinicCount = filteredVitals.filter((vital) => vital.source === "clinic").length
+  const deviceCount = filteredVitals.filter((vital) => vital.source === "device").length
 
   if (loading) {
     return (
       <div className="animate-slide-up space-y-6">
         <AppPageHeader
           eyebrow="Preventive monitoring"
-          title="Vitals cockpit"
+          title="Vitals"
           description="Trend lines, out-of-range alerts, and source confidence in one view so the patient knows what changed and what to act on next."
           meta={
             <div className="flex flex-wrap items-center gap-2">
@@ -188,15 +297,22 @@ export default function VitalsPage() {
 
   if (!hasData) {
     return (
-      <div className="animate-slide-up flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
-        <OpsEmptyState
-          icon={Activity}
-          title="Vital history starts after record sync"
+      <div className="animate-slide-up space-y-6">
+        <AppPageHeader
+          eyebrow="Preventive monitoring"
+          title="Vitals"
           description="Connect your health record to track blood pressure, glucose, heart rate, oxygen, and weight trends over time."
         />
-        <Link href="/onboarding" className="control-button-primary">
-          Get started
-        </Link>
+        <div className="flex min-h-[36vh] flex-col items-center justify-center gap-4 text-center">
+          <OpsEmptyState
+            icon={Activity}
+            title="Vital history starts after record sync"
+            description="Once records are connected, this page shows trend lines, out-of-range alerts, and source confidence."
+          />
+          <Link href="/onboarding" className="control-button-primary">
+            Get started
+          </Link>
+        </div>
       </div>
     )
   }
@@ -205,7 +321,7 @@ export default function VitalsPage() {
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
         eyebrow="Preventive monitoring"
-        title="Vitals cockpit"
+        title="Vitals"
         description="Trend lines, out-of-range alerts, and source confidence in one view so the patient knows what changed and what to act on next."
         meta={
           <div className="flex flex-wrap items-center gap-2">
@@ -252,7 +368,7 @@ export default function VitalsPage() {
         <OpsMetricCard
           label="Weight"
           value={latestWeight ? `${latestWeight}` : "--"}
-          detail="Most recent pounds logged." 
+          detail="Most recent pounds logged."
           icon={Weight}
           tone="blue"
         />
@@ -277,25 +393,19 @@ export default function VitalsPage() {
             <OpsPanel
               eyebrow="Trend"
               title="Blood pressure"
-              description="Systolic and diastolic stay on the same timeline, with the threshold shown directly on the chart."
+              description="Systolic and diastolic stay on the same timeline, with the target shown directly on the chart."
               actions={<TrendBadge trend={bpTrend} goodDirection="down" />}
             >
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(20,35,31,0.05)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#6C7D75" }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#6C7D75" }} tickLine={false} axisLine={false} />
-                  <Tooltip content={<ChartTooltip unit="mmHg" />} />
-                  <ReferenceLine y={130} stroke="#D1495B" strokeDasharray="4 4" strokeWidth={1} />
-                  <Line type="monotone" dataKey="systolic" stroke="#D1495B" strokeWidth={2.5} dot={{ r: 3, fill: "#D1495B" }} activeDot={{ r: 5 }} connectNulls />
-                  <Line type="monotone" dataKey="diastolic" stroke="#1E88B6" strokeWidth={2.5} dot={{ r: 3, fill: "#1E88B6" }} activeDot={{ r: 5 }} connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
-              <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-muted">
-                <span className="inline-flex items-center gap-2"><span className="h-2 w-5 rounded-full bg-soft-red/80" /> Systolic</span>
-                <span className="inline-flex items-center gap-2"><span className="h-2 w-5 rounded-full bg-soft-blue/80" /> Diastolic</span>
-                <span>Dashed line = 130 mmHg target</span>
-              </div>
+              <SparklineChart
+                data={chartData}
+                lines={[
+                  { key: "systolic", label: "Systolic", color: "#B91C1C" },
+                  { key: "diastolic", label: "Diastolic", color: "#1D4ED8" },
+                ]}
+                threshold={130}
+                thresholdLabel="130 target"
+                unit="mmHg"
+              />
             </OpsPanel>
           )}
 
@@ -303,19 +413,16 @@ export default function VitalsPage() {
             <OpsPanel
               eyebrow="Trend"
               title="Fasting glucose"
-              description="The glucose trend is separated from BP so the patient can read it without mixed scales."
+              description="Glucose is separated from BP so the patient can read it without mixed scales or extra chart chrome."
               actions={<TrendBadge trend={glucoseTrend} goodDirection="down" />}
             >
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(20,35,31,0.05)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#6C7D75" }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#6C7D75" }} tickLine={false} axisLine={false} />
-                  <Tooltip content={<ChartTooltip unit="mg/dL" />} />
-                  <ReferenceLine y={130} stroke="#D97706" strokeDasharray="4 4" strokeWidth={1} />
-                  <Line type="monotone" dataKey="glucose" stroke="#D97706" strokeWidth={2.5} dot={{ r: 3, fill: "#D97706" }} activeDot={{ r: 5 }} connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
+              <SparklineChart
+                data={chartData}
+                lines={[{ key: "glucose", label: "Glucose", color: "#B45309" }]}
+                threshold={130}
+                thresholdLabel="130 target"
+                unit="mg/dL"
+              />
             </OpsPanel>
           )}
 
@@ -377,7 +484,7 @@ export default function VitalsPage() {
         </div>
 
         <div className="space-y-4">
-          <OpsPanel eyebrow="Signal summary" title="What changed" description="A patient-facing synopsis that explains the numbers without needing chart literacy.">
+          <OpsPanel eyebrow="Signal summary" title="What changed" description="A patient-facing synopsis that explains the numbers without requiring chart literacy.">
             <div className="space-y-3 text-sm leading-6 text-secondary">
               <div className="surface-muted px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
@@ -404,10 +511,10 @@ export default function VitalsPage() {
             </div>
           </OpsPanel>
 
-          <OpsPanel eyebrow="Ivy assist" title="Guided interpretation" description="Use Ivy when the patient wants help understanding the full pattern, not just the latest reading.">
+          <OpsPanel eyebrow="Guided review" title="Explain these trends" description="Use this when the patient wants help understanding the full pattern, not just the latest reading.">
             <AIAction
               agentId="wellness"
-              label="Ivy: analyze vitals"
+              label="Analyze vitals"
               prompt={`Analyze my vital signs over the last ${range}. BP avg: ${avgSystolic ?? "--"}/${avgDiastolic ?? "--"} mmHg (trend: ${bpTrend}), glucose avg: ${avgGlucose ?? "--"} mg/dL (trend: ${glucoseTrend}), HR: ${latestHR ?? "--"} bpm, weight: ${latestVital?.weight_lbs ?? "--"} lbs. What's improving, what needs attention, and what are 3 specific actions I should take?`}
               context={`${filteredVitals.length} readings, ${range} window`}
             />

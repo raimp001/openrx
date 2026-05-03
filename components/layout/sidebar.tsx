@@ -230,6 +230,7 @@ export default function Sidebar() {
               <button
                 onClick={() => toggleSection(section.label)}
                 aria-expanded={isOpen || hasActiveChild}
+                aria-label={`Toggle ${section.label} section`}
                 className="flex w-full items-center justify-between rounded-nav px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted transition hover:text-secondary"
               >
                 {section.label}

@@ -317,7 +317,7 @@ export async function runParallelExperts(params: {
   // Fetch patient context once — shared across all expert calls (GQA cache hit)
   const sharedContext = await getPatientContext(params.walletAddress)
 
-  const results = await Promise.all(
+  const settled = await Promise.allSettled(
     params.expertIds.map((agentId) =>
       runAgent({
         agentId,
@@ -328,7 +328,11 @@ export async function runParallelExperts(params: {
       }).then((r) => ({ agentId: r.agentId, response: r.response }))
     )
   )
-  return results
+  return settled.map((result, i) =>
+    result.status === "fulfilled"
+      ? result.value
+      : { agentId: params.expertIds[i], response: "This expert is temporarily unavailable." }
+  )
 }
 
 // ── Coordinator with Real Routing ────────────────────────

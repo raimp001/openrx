@@ -123,10 +123,11 @@ export default function VitalsPage() {
   }), [bpReadings, glucoseReadings, weightReadings, filteredVitals])
 
   const trend = useCallback((values: number[]): "up" | "down" | "stable" => {
-    if (values.length < 2) return "stable"
+    if (values.length < 3) return "stable"
     const half = Math.ceil(values.length / 2)
     const recent = values.slice(0, half)
     const older = values.slice(half)
+    if (recent.length === 0 || older.length === 0) return "stable"
     const recentAvg = recent.reduce((sum, value) => sum + value, 0) / recent.length
     const olderAvg = older.reduce((sum, value) => sum + value, 0) / older.length
     const diff = recentAvg - olderAvg

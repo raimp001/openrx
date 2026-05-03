@@ -33,6 +33,7 @@ import {
   Search,
   MessageSquare,
   Sparkles,
+  CircleDot,
 } from "lucide-react"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { AppPageHeader } from "@/components/layout/app-page"
@@ -51,8 +52,6 @@ const QUICK_PROMPTS = [
   { label: "Clinical trials", prompt: "Find recruiting clinical trials relevant to my health profile and explain likely fit.", agentId: "trials" as AgentId, icon: FlaskConical },
 ]
 
-// We need CircleDot imported
-import { CircleDot } from "lucide-react"
 
 interface ChatMessage {
   id: string
@@ -187,6 +186,11 @@ export default function ChatPage() {
         }),
       })
 
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null)
+        throw new Error(errData?.error || `Request failed (${res.status})`)
+      }
+
       const data = await res.json()
 
       setMessages((prev) => [
@@ -271,6 +275,8 @@ export default function ChatPage() {
             <button
               key={agent.id}
               onClick={() => setActiveAgent(agent.id as AgentId)}
+              aria-pressed={isActive}
+              aria-label={`${agent.name} agent`}
               className={cn(
                 "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-medium transition-all border",
                 isActive

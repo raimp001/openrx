@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   Activity,
   AlertTriangle,
@@ -27,6 +27,11 @@ import {
 } from "@/components/ui/clinical-forms"
 import { cn } from "@/lib/utils"
 import type { ScreeningAssessment } from "@/lib/basehealth"
+import { nextStepLabel } from "@/lib/screening/recommend"
+import type {
+  ScreeningNextStep,
+  ScreeningRecommendation as StructuredScreeningRecommendation,
+} from "@/lib/screening/types"
 import type { CareDirectoryMatch, CareSearchType } from "@/lib/npi-care-search"
 import type { ScreeningEvidenceCitation } from "@/lib/screening-evidence"
 import type { ScreeningIntakeResult } from "@/lib/screening-intake"
@@ -132,7 +137,7 @@ function toAgeFromDob(value?: string): string {
 
 export default function ScreeningPage() {
   const { snapshot } = useLiveSnapshot()
-  const { walletAddress, isConnected, profile } = useWalletIdentity()
+  const { walletAddress, isConnected, profile, getWalletAuthHeaders } = useWalletIdentity()
   const scrollRef = useScrollReveal()
   const [assessment, setAssessment] = useState<ScreeningResponse | null>(null)
   const [localCareConnections, setLocalCareConnections] = useState<LocalCareConnection[]>([])
@@ -153,6 +158,7 @@ export default function ScreeningPage() {
   const [paymentIntent, setPaymentIntent] = useState<PaymentRecord | null>(null)
   const [paymentId, setPaymentId] = useState("")
   const [verifyTxHash, setVerifyTxHash] = useState("")
+  const [nextStepStatus, setNextStepStatus] = useState<Record<string, string>>({})
   const [fee, setFee] = useState("0.50")
   const [recipientAddress, setRecipientAddress] = useState("")
   const [showPaymentGate, setShowPaymentGate] = useState(false)
@@ -180,10 +186,10 @@ export default function ScreeningPage() {
   const showingDeepResults = accessLevel === "deep"
   const paymentGateVisible = showPaymentGate
   const connectedWalletLabel = useMemo(() => formatWallet(walletAddress), [walletAddress])
-  const walletHeaders = useMemo<Record<string, string>>(
-    (): Record<string, string> => (walletAddress ? { "x-wallet-address": walletAddress } : {}),
-    [walletAddress]
-  )
+  const getJsonHeaders = useCallback(async () => ({
+    "Content-Type": "application/json",
+    ...(walletAddress ? await getWalletAuthHeaders() : {}),
+  }), [getWalletAuthHeaders, walletAddress])
   const connectedPatientName = useMemo(
     () => profile?.fullName || snapshot.patient?.full_name || "",
     [profile?.fullName, snapshot.patient?.full_name]
@@ -197,6 +203,7 @@ export default function ScreeningPage() {
     age.trim().length > 0 ||
     familyHistory.trim().length > 0 ||
     conditions.trim().length > 0
+  const structuredRecommendations = assessment?.structuredRecommendations || []
 
   const urgentScreeningCount = assessment?.recommendedScreenings.filter((item) => item.priority === "high").length || 0
 
@@ -266,7 +273,7 @@ export default function ScreeningPage() {
     try {
       const response = await fetch("/api/screening/payment-intent", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...walletHeaders },
+        headers: await getJsonHeaders(),
         body: JSON.stringify({ walletAddress }),
       })
       const data = (await response.json()) as {
@@ -344,7 +351,7 @@ export default function ScreeningPage() {
     try {
       const response = await fetch("/api/payments/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...walletHeaders },
+        headers: await getJsonHeaders(),
         body: JSON.stringify({
           paymentId: resolvedPaymentId,
           txHash: verifyTxHash.trim(),
@@ -450,7 +457,7 @@ export default function ScreeningPage() {
 
       const response = await fetch("/api/screening/assess", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...walletHeaders },
+        headers: await getJsonHeaders(),
         body: JSON.stringify({
           patientId: snapshot.patient?.id,
           walletAddress,
@@ -492,6 +499,40 @@ export default function ScreeningPage() {
       }
     } finally {
       setRunning(false)
+    }
+  }
+
+  async function requestScreeningNextStep(rec: StructuredScreeningRecommendation, action: ScreeningNextStep) {
+    const key = `${rec.id}:${action}`
+    setNextStepStatus((current) => ({ ...current, [key]: "Sending request..." }))
+    try {
+      const response = await fetch("/api/screening/next-step", {
+        method: "POST",
+        headers: await getJsonHeaders(),
+        body: JSON.stringify({
+          walletAddress,
+          patientId: snapshot.patient?.id,
+          recommendationId: rec.id,
+          screeningName: rec.screeningName,
+          requestedAction: action,
+          clinicianSummary: rec.clinicianSummary,
+          locationZip: snapshot.patient?.address,
+          demoMode: !walletAddress,
+        }),
+      })
+      const data = (await response.json()) as { error?: string; message?: string; request?: { id: string; status: string } }
+      if (!response.ok && !data.request) {
+        throw new Error(data.error || "Could not create the next-step request.")
+      }
+      setNextStepStatus((current) => ({
+        ...current,
+        [key]: data.message || `Request ${data.request?.id || ""} is ${data.request?.status || "requested"}.`,
+      }))
+    } catch (issue) {
+      setNextStepStatus((current) => ({
+        ...current,
+        [key]: issue instanceof Error ? issue.message : "Could not create the next-step request.",
+      }))
     }
   }
 
@@ -956,26 +997,69 @@ export default function ScreeningPage() {
               <h2 className="text-sm font-bold text-primary">Recommended Screenings</h2>
             </div>
             <div className="space-y-2">
-              {assessment.recommendedScreenings.map((rec) => (
-                <div key={rec.id} className="rounded-[20px] border border-white/78 bg-white/74 p-4 shadow-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-primary">{rec.name}</p>
-                    <span
-                      className={cn(
-                        "text-[9px] px-2 py-0.5 rounded-full font-bold uppercase",
-                        rec.priority === "high"
-                          ? "bg-soft-red/10 text-soft-red"
-                          : rec.priority === "medium"
+              {structuredRecommendations.length > 0
+                ? structuredRecommendations.map((rec) => {
+                    const primaryAction = rec.nextSteps.find((step) => step !== "download_clinician_summary") || rec.nextSteps[0]
+                    const statusTone =
+                      rec.status === "urgent_clinician_review" || rec.status === "high_risk" || rec.status === "surveillance_or_follow_up"
+                        ? "bg-soft-red/10 text-soft-red"
+                        : rec.status === "due" || rec.status === "needs_clinician_review"
                           ? "bg-yellow-100 text-yellow-800"
                           : "bg-accent/10 text-accent"
-                      )}
-                    >
-                      {rec.priority}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-secondary">{rec.reason}</p>
-                </div>
-              ))}
+                    const requestKey = primaryAction ? `${rec.id}:${primaryAction}` : ""
+                    return (
+                      <div key={rec.id} className="rounded-[20px] border border-white/78 bg-white/74 p-4 shadow-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-primary">{rec.screeningName}</p>
+                          <span className={cn("text-[9px] px-2 py-0.5 rounded-full font-bold uppercase", statusTone)}>
+                            {rec.status.replaceAll("_", " ")}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <span className="chip">{rec.riskCategory.replaceAll("_", " ")}</span>
+                          <span className="chip">{rec.sourceSystem}</span>
+                          {rec.suggestedTiming ? <span className="chip">{rec.suggestedTiming}</span> : null}
+                          {rec.requiresClinicianReview ? <span className="chip">clinician review</span> : null}
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-secondary">{rec.patientFriendlyExplanation}</p>
+                        <p className="mt-2 text-xs leading-5 text-muted">{rec.rationale}</p>
+                        {primaryAction ? (
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void requestScreeningNextStep(rec, primaryAction)}
+                              className="rounded-2xl bg-midnight px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#12211d]"
+                            >
+                              {nextStepLabel(primaryAction)}
+                            </button>
+                            {requestKey && nextStepStatus[requestKey] ? (
+                              <span className="text-[11px] text-muted">{nextStepStatus[requestKey]}</span>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    )
+                  })
+                : assessment.recommendedScreenings.map((rec) => (
+                    <div key={rec.id} className="rounded-[20px] border border-white/78 bg-white/74 p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-primary">{rec.name}</p>
+                        <span
+                          className={cn(
+                            "text-[9px] px-2 py-0.5 rounded-full font-bold uppercase",
+                            rec.priority === "high"
+                              ? "bg-soft-red/10 text-soft-red"
+                              : rec.priority === "medium"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-accent/10 text-accent"
+                          )}
+                        >
+                          {rec.priority}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-secondary">{rec.reason}</p>
+                    </div>
+                  ))}
             </div>
           </div>
 

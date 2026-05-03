@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test"
-import { allowsUnsignedWalletHeader, requestWalletMatches } from "@/lib/api-auth"
+import { allowsUnsignedWalletHeader, requestWalletMatches, requestWalletProofMatches } from "@/lib/api-auth"
+import { buildWalletAuthMessage, walletAuthMessageMatches } from "@/lib/wallet-auth-message"
 import {
   allowsCronRequestOverrides,
   canRunCronSideEffectsAfterAgentFailure,
@@ -37,6 +38,37 @@ test("production does not trust unsigned wallet headers by default", () => {
     process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER = "true"
     expect(allowsUnsignedWalletHeader()).toBe(true)
     expect(requestWalletMatches(fakeRequest, wallet)).toBe(true)
+  } finally {
+    process.env.NODE_ENV = originalNodeEnv
+    if (originalAllowUnsigned === undefined) {
+      delete process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER
+    } else {
+      process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER = originalAllowUnsigned
+    }
+  }
+})
+
+test("wallet proof messages are bound to one wallet", async () => {
+  const originalNodeEnv = process.env.NODE_ENV
+  const originalAllowUnsigned = process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER
+  const wallet = "0x0000000000000000000000000000000000000001"
+  const otherWallet = "0x0000000000000000000000000000000000000002"
+  const message = buildWalletAuthMessage(wallet)
+  const fakeRequest = {
+    headers: new Headers({
+      "x-wallet-address": wallet,
+      "x-wallet-message": message,
+      "x-wallet-signature": "not-a-signature",
+    }),
+  } as Parameters<typeof requestWalletMatches>[0]
+
+  try {
+    process.env.NODE_ENV = "production"
+    delete process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER
+
+    expect(walletAuthMessageMatches(message, wallet)).toBe(true)
+    expect(walletAuthMessageMatches(message, otherWallet)).toBe(false)
+    expect(await requestWalletProofMatches(fakeRequest, wallet)).toBe(false)
   } finally {
     process.env.NODE_ENV = originalNodeEnv
     if (originalAllowUnsigned === undefined) {

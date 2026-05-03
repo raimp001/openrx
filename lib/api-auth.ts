@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createPublicClient, http, type Address, type Hex } from "viem"
+import { base } from "viem/chains"
 import { resolveClinicSession, type ClinicSession } from "@/lib/clinic-auth"
+import { walletAuthMessageMatches } from "@/lib/wallet-auth-message"
 
 const PUBLIC_PATIENT_API_PATHS = new Set([
   "/api/ai/chat",
@@ -42,6 +45,53 @@ export function requestWalletMatches(request: NextRequest, walletAddress?: strin
   const requestedWallet = normalizeWalletAddress(walletAddress)
   const headerWallet = getRequestWalletAddress(request)
   return !!requestedWallet && !!headerWallet && requestedWallet === headerWallet
+}
+
+type WalletProofClient = {
+  verifyMessage: (params: {
+    address: Address
+    message: string
+    signature: Hex
+  }) => Promise<boolean>
+}
+
+let walletProofClient: WalletProofClient | null = null
+
+function getWalletProofClient() {
+  if (!walletProofClient) {
+    walletProofClient = createPublicClient({
+      chain: base,
+      transport: http(process.env.OPENRX_BASE_RPC_URL || undefined),
+    }) as WalletProofClient
+  }
+  return walletProofClient
+}
+
+export async function requestWalletProofMatches(
+  request: NextRequest,
+  walletAddress?: string | null
+): Promise<boolean> {
+  if (requestWalletMatches(request, walletAddress)) return true
+
+  const requestedWallet = normalizeWalletAddress(walletAddress)
+  const headerWallet = getRequestWalletAddress(request)
+  const signature = request.headers.get("x-wallet-signature") || ""
+  const message = request.headers.get("x-wallet-message") || ""
+
+  if (!isEvmWalletAddress(requestedWallet)) return false
+  if (headerWallet !== requestedWallet) return false
+  if (!/^0x[a-fA-F0-9]+$/.test(signature)) return false
+  if (!walletAuthMessageMatches(message, requestedWallet)) return false
+
+  try {
+    return await getWalletProofClient().verifyMessage({
+      address: requestedWallet as Address,
+      message,
+      signature: signature as Hex,
+    })
+  } catch {
+    return false
+  }
 }
 
 export function isDemoWalletAddress(walletAddress?: string | null): boolean {

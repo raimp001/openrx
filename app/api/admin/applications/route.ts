@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import {
-  deleteNetworkApplication,
   listNetworkApplications,
   reviewNetworkApplication,
   submitNetworkApplication,
@@ -214,21 +213,21 @@ export async function POST(request: NextRequest) {
       state: normalizedState,
       zip: normalizedZip,
     })
+    let emailWarning: string | undefined
     try {
       await sendAdminApplicationEmail({
         application,
         origin: new URL(request.url).origin,
       })
     } catch (issue) {
-      await deleteNetworkApplication(application.id)
-      throw new Error(
+      emailWarning =
         issue instanceof Error
-          ? `Application was not submitted because admin email delivery failed: ${issue.message}`
-          : "Application was not submitted because admin email delivery failed."
-      )
+          ? `Application was saved, but admin email delivery failed: ${issue.message}`
+          : "Application was saved, but admin email delivery failed."
+      console.warn(emailWarning)
     }
 
-    return NextResponse.json({ application }, { status: 201 })
+    return NextResponse.json({ application, emailWarning }, { status: emailWarning ? 202 : 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to submit application."
     return NextResponse.json({ error: message }, { status: 400 })

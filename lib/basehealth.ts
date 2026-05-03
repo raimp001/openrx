@@ -1,4 +1,10 @@
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
+import {
+  recommendScreenings,
+  screeningIntakeFromLegacy,
+  type LegacyScreeningInput,
+} from "@/lib/screening/recommend"
+import type { ScreeningRecommendation as StructuredScreeningRecommendation } from "@/lib/screening/types"
 
 interface BasePatientProfile {
   id: string
@@ -57,6 +63,9 @@ export interface ScreeningAssessment {
   factors: ScreeningFactor[]
   recommendedScreenings: ScreeningRecommendation[]
   nextActions: string[]
+  structuredRecommendations?: StructuredScreeningRecommendation[]
+  screeningIntakeCompleteness?: "minimal" | "partial" | "actionable"
+  safetyMessages?: string[]
 }
 
 export interface SecondOpinionInput {
@@ -305,6 +314,50 @@ function normalizeGender(value?: string): "female" | "male" | "unknown" {
   if (/\bfemale\b|\bwoman\b|\bwomen\b|\blady\b/.test(normalized)) return "female"
   if (/\bmale\b|\bman\b|\bmen\b|\bgentleman\b/.test(normalized)) return "male"
   return "unknown"
+}
+
+function structuredPriority(rec: StructuredScreeningRecommendation): ScreeningRecommendation["priority"] {
+  if (
+    rec.status === "urgent_clinician_review" ||
+    rec.status === "high_risk" ||
+    rec.status === "surveillance_or_follow_up" ||
+    rec.status === "needs_clinician_review"
+  ) {
+    return "high"
+  }
+  if (rec.status === "due" || rec.status === "discuss") return "medium"
+  return "low"
+}
+
+function structuredOwner(rec: StructuredScreeningRecommendation): ScreeningRecommendation["ownerAgent"] {
+  if (rec.nextSteps.some((step) => step.includes("genetic") || step.includes("specialist"))) return "screening"
+  if (rec.nextSteps.some((step) => step.includes("colonoscopy") || step.includes("mammogram") || step.includes("ldct") || step.includes("referral"))) return "scheduling"
+  return "screening"
+}
+
+function toLegacyScreeningRecommendation(rec: StructuredScreeningRecommendation): ScreeningRecommendation {
+  return {
+    id: `engine-${rec.id}`,
+    name: rec.screeningName,
+    priority: structuredPriority(rec),
+    ownerAgent: structuredOwner(rec),
+    reason: rec.patientFriendlyExplanation,
+  }
+}
+
+function buildScreeningEngineInput(input: ScreeningInput, patient: BasePatientProfile, age: number): LegacyScreeningInput {
+  return {
+    patientId: input.patientId || patient.id,
+    age,
+    gender: input.gender,
+    smoker: input.smoker,
+    familyHistory: input.familyHistory,
+    symptoms: input.symptoms,
+    conditions: [
+      ...(input.conditions || []),
+      ...patient.medical_history.map((item) => item.condition),
+    ],
+  }
 }
 
 export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAssessment {
@@ -633,6 +686,27 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
     "Share any new symptoms immediately with the triage or screening agent.",
     "Track adherence and blood pressure readings to improve trend confidence.",
   ]
+  const screeningEngine = recommendScreenings(screeningIntakeFromLegacy(buildScreeningEngineInput(input, patient, age)))
+  const engineRecommendations = screeningEngine.recommendations
+    .filter((rec) =>
+      rec.status === "urgent_clinician_review" ||
+      rec.status === "high_risk" ||
+      rec.status === "surveillance_or_follow_up" ||
+      rec.status === "needs_clinician_review" ||
+      rec.status === "unknown"
+    )
+    .map(toLegacyScreeningRecommendation)
+  const mergedLegacyRecommendations = [...orderedRecommendations]
+  for (const rec of engineRecommendations) {
+    if (!mergedLegacyRecommendations.some((item) => item.id === rec.id || item.name === rec.name)) {
+      mergedLegacyRecommendations.push(rec)
+    }
+  }
+  const safetyNextActions = screeningEngine.recommendations
+    .filter((rec) => rec.requiresClinicianReview)
+    .slice(0, 3)
+    .map((rec) => rec.recommendedNextStep)
+  const mergedNextActions = Array.from(new Set([...safetyNextActions, ...nextActions]))
 
   return {
     patientId: patient.id,
@@ -640,8 +714,11 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
     overallRiskScore: score,
     riskTier,
     factors: factors.sort((a, b) => b.scoreDelta - a.scoreDelta),
-    recommendedScreenings: orderedRecommendations,
-    nextActions,
+    recommendedScreenings: mergedLegacyRecommendations.sort((a, b) => priorityWeight(b.priority) - priorityWeight(a.priority)),
+    nextActions: mergedNextActions,
+    structuredRecommendations: screeningEngine.recommendations,
+    screeningIntakeCompleteness: screeningEngine.intakeCompleteness,
+    safetyMessages: screeningEngine.safetyMessages,
   }
 }
 

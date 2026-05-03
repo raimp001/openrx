@@ -1,14 +1,15 @@
-import { canUseWalletScopedData, requireAuth } from "@/lib/api-auth"
+import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { createAttestation, getLedgerSnapshot } from "@/lib/payments-ledger"
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   const { searchParams } = new URL(request.url)
   const walletAddress = searchParams.get("walletAddress") || undefined
   const subjectType = searchParams.get("subjectType") || undefined
   const subjectId = searchParams.get("subjectId") || undefined
-  if (walletAddress && !canUseWalletScopedData(auth.session, walletAddress)) {
+  const walletProofMatches = walletAddress ? await requestWalletProofMatches(request, walletAddress) : false
+  const auth = await requireAuth(request, { allowPublic: walletProofMatches }); if ("response" in auth) return auth.response;
+  if (walletAddress && !canUseWalletScopedData(auth.session, walletAddress) && !walletProofMatches) {
     return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
   }
 
@@ -21,7 +22,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as {
       schema?: string
@@ -37,6 +37,11 @@ export async function POST(request: NextRequest) {
         { error: "schema, subjectType, subjectId, attestor, and payload are required." },
         { status: 400 }
       )
+    }
+    const walletProofMatches = await requestWalletProofMatches(request, body.attestor)
+    const auth = await requireAuth(request, { allowPublic: walletProofMatches }); if ("response" in auth) return auth.response;
+    if (!canUseWalletScopedData(auth.session, body.attestor) && !walletProofMatches) {
+      return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
     }
 
     const attestation = await createAttestation({

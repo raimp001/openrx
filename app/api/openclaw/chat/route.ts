@@ -1,4 +1,4 @@
-import { canUseWalletScopedData, requireAuth } from "@/lib/api-auth"
+import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { runAgent, runCoordinator } from "@/lib/ai-engine"
 
@@ -50,7 +50,10 @@ export async function POST(req: NextRequest) {
 
     const auth = await requireAuth(req, { allowPublic: true })
     if ("response" in auth) return auth.response
-    const effectiveWalletAddress = canUseWalletScopedData(auth.session, walletAddress)
+    const walletProofMatches = walletAddress
+      ? await requestWalletProofMatches(req, walletAddress)
+      : false
+    const effectiveWalletAddress = canUseWalletScopedData(auth.session, walletAddress) || walletProofMatches
       ? walletAddress
       : undefined
 

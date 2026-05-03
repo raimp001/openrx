@@ -79,6 +79,7 @@ export default function WalletPage() {
     databaseSyncMessage,
     setAgentAutoPay,
     setAgentRxAutoPay,
+    getWalletAuthHeaders,
   } = useWalletIdentity()
   const baseBuilderNetwork = getBaseBuilderNetwork()
   const baseBuilderChainId = getBaseBuilderChainId()
@@ -101,10 +102,11 @@ export default function WalletPage() {
     setLoadingPayments(true)
     setPaymentsError("")
 
-    fetch(`/api/payments/ledger?walletAddress=${encodeURIComponent(walletAddress)}`, {
-      cache: "no-store",
-      headers: { "x-wallet-address": walletAddress },
-    })
+    getWalletAuthHeaders()
+      .then((headers) => fetch(`/api/payments/ledger?walletAddress=${encodeURIComponent(walletAddress)}`, {
+        cache: "no-store",
+        headers,
+      }))
       .then(async (response) => {
         if (!response.ok) {
           throw new Error("Failed to load payment records.")
@@ -128,7 +130,7 @@ export default function WalletPage() {
     return () => {
       active = false
     }
-  }, [walletAddress])
+  }, [getWalletAuthHeaders, walletAddress])
 
   const paymentsWithTx = useMemo(
     () => recentPayments.filter((payment) => txHashLooksValid(payment.txHash)),

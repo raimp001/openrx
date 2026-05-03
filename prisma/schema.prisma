@@ -721,3 +721,60 @@ model AdminNotificationRecord {
   @@index([applicationId])
   @@map("admin_notifications")
 }
+
+// ============================================================
+// SCREENING NAVIGATION / CARE TIMELINE
+// ============================================================
+
+model ScreeningNextStepRequestRecord {
+  id               String   @id
+  internalUserId   String
+  walletHash       String?
+  patientId        String?
+  recommendationId String
+  screeningName    String
+  requestedAction  String
+  status           String
+  patientNote      String?
+  locationZip      String?
+  clinicianSummary String?
+  source           String
+  createdAt        DateTime
+  updatedAt        DateTime
+
+  @@index([internalUserId, createdAt])
+  @@index([status, createdAt])
+  @@index([recommendationId])
+  @@map("screening_next_step_requests")
+}
+
+model CareTimelineEventRecord {
+  id             String   @id
+  internalUserId String
+  patientId      String?
+  eventType      String
+  title          String
+  status         String
+  referenceType  String?
+  referenceId    String?
+  metadata       Json?
+  createdAt      DateTime
+
+  @@index([internalUserId, createdAt])
+  @@index([referenceType, referenceId])
+  @@map("care_timeline_events")
+}
+
+model AdminReviewActionRecord {
+  id            String   @id
+  applicationId String
+  reviewer      String
+  decision      String
+  notes         String?
+  metadata      Json?
+  createdAt     DateTime
+
+  @@index([applicationId, createdAt])
+  @@index([reviewer, createdAt])
+  @@map("admin_review_actions")
+}

@@ -6,7 +6,7 @@
 // user profiles when wallet connects/disconnects.
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from "react"
-import { useAccount } from "wagmi"
+import { useAccount, useSignMessage } from "wagmi"
 import {
   type WalletProfile,
   loadWalletProfile,
@@ -15,6 +15,7 @@ import {
   profileToPatient,
 } from "./wallet-identity"
 import type { LivePatient } from "./live-data-types"
+import { buildWalletAuthMessage } from "./wallet-auth-message"
 
 const EMPTY_PATIENT: LivePatient = {
   id: "",
@@ -52,6 +53,7 @@ interface WalletIdentityState {
   completeOnboarding: () => void
   setAgentAutoPay: (enabled: boolean, limit?: number) => void
   setAgentRxAutoPay: (enabled: boolean) => void
+  getWalletAuthHeaders: () => Promise<Record<string, string>>
 }
 
 const WalletIdentityContext = createContext<WalletIdentityState>({
@@ -67,16 +69,23 @@ const WalletIdentityContext = createContext<WalletIdentityState>({
   completeOnboarding: () => {},
   setAgentAutoPay: () => {},
   setAgentRxAutoPay: () => {},
+  getWalletAuthHeaders: async () => ({}),
 })
 
 export function WalletIdentityProvider({ children }: { children: ReactNode }) {
   const { address, isConnected } = useAccount()
+  const { signMessageAsync } = useSignMessage()
   const [profile, setProfile] = useState<WalletProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isNewUser, setIsNewUser] = useState(false)
   const [databaseSyncStatus, setDatabaseSyncStatus] = useState<WalletIdentityState["databaseSyncStatus"]>("idle")
   const [databaseSyncMessage, setDatabaseSyncMessage] = useState("")
   const lastSyncedFingerprintRef = useRef("")
+  const walletProofRef = useRef<{
+    walletAddress: string
+    message: string
+    signature: string
+  } | null>(null)
 
   // Load profile when wallet connects
   useEffect(() => {
@@ -140,6 +149,30 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
     [updateProfile]
   )
 
+  const getWalletAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
+    if (!address) return {}
+
+    const walletAddress = address.toLowerCase()
+    const cached = walletProofRef.current
+    if (cached?.walletAddress === walletAddress) {
+      return {
+        "x-wallet-address": walletAddress,
+        "x-wallet-message": cached.message,
+        "x-wallet-signature": cached.signature,
+      }
+    }
+
+    const message = buildWalletAuthMessage(walletAddress)
+    const signature = await signMessageAsync({ message })
+    walletProofRef.current = { walletAddress, message, signature }
+
+    return {
+      "x-wallet-address": walletAddress,
+      "x-wallet-message": message,
+      "x-wallet-signature": signature,
+    }
+  }, [address, signMessageAsync])
+
   const currentPatient: LivePatient =
     profile && profile.onboardingComplete
       ? profileToPatient(profile)
@@ -164,14 +197,14 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
     setDatabaseSyncStatus("syncing")
     setDatabaseSyncMessage("Syncing live records...")
 
-    fetch("/api/profile/sync", {
+    getWalletAuthHeaders().then((walletHeaders) => fetch("/api/profile/sync", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-wallet-address": address,
+        ...walletHeaders,
       },
       body: JSON.stringify(payload),
-    })
+    }))
       .then(async (response) => {
         const result = (await response.json().catch(() => null)) as { error?: string; message?: string } | null
 
@@ -203,7 +236,7 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false
     }
-  }, [address, isConnected, profile])
+  }, [address, getWalletAuthHeaders, isConnected, profile])
 
   return (
     <WalletIdentityContext.Provider
@@ -220,6 +253,7 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
         completeOnboarding,
         setAgentAutoPay,
         setAgentRxAutoPay,
+        getWalletAuthHeaders,
       }}
     >
       {children}

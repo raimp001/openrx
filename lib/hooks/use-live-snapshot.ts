@@ -13,7 +13,7 @@ interface UseLiveSnapshotResult {
 }
 
 export function useLiveSnapshot(): UseLiveSnapshotResult {
-  const { walletAddress } = useWalletIdentity()
+  const { walletAddress, getWalletAuthHeaders } = useWalletIdentity()
   const demoWalletAddress = process.env.NEXT_PUBLIC_DEVELOPER_WALLET || undefined
   const activeWalletAddress = walletAddress || demoWalletAddress
   const [snapshot, setSnapshot] = useState<LiveSnapshot>(() => createEmptyLiveSnapshot(activeWalletAddress || null))
@@ -37,10 +37,16 @@ export function useLiveSnapshot(): UseLiveSnapshotResult {
       const params = new URLSearchParams()
       if (activeWalletAddress) params.set("walletAddress", activeWalletAddress)
 
+      const headers = activeWalletAddress
+        ? activeWalletAddress === walletAddress
+          ? await getWalletAuthHeaders()
+          : { "x-wallet-address": activeWalletAddress }
+        : undefined
+
       const response = await fetch(`/api/live/patient-snapshot?${params.toString()}`, {
         cache: "no-store",
         signal: controller.signal,
-        headers: activeWalletAddress ? { "x-wallet-address": activeWalletAddress } : undefined,
+        headers,
       })
 
       if (!response.ok) {
@@ -56,7 +62,7 @@ export function useLiveSnapshot(): UseLiveSnapshotResult {
       window.clearTimeout(timeout)
       setLoading(false)
     }
-  }, [activeWalletAddress])
+  }, [activeWalletAddress, getWalletAuthHeaders, walletAddress])
 
   useEffect(() => {
     void load()

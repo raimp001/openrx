@@ -14,7 +14,7 @@ AI-powered healthcare clinic management platform — powered by [OpenClaw](https
 - **Prior Authorization** — Status tracking, AI form submission, appeal preparation
 - **Care Network Search** — Live NPI Registry search (provider/caregiver/lab/radiology) with natural-language gating
 - **Pharmacy Finder** — Natural-language pharmacy search with clarification-first flow before query execution
-- **AI Screening** — Preventive risk scoring and prioritized screening plans
+- **AI Screening** — Source-tagged screening engine with USPSTF average-risk baseline, high-risk routing, red-flag escalation, and trackable next-step requests
 - **Network Onboarding + Email Admin Review** — Provider/caregiver applications with signed email approval/rejection actions
 - **Second Opinion** — Structured diagnosis and treatment-plan review
 - **Clinical Trials** — Condition-aware trial matching with fit scoring
@@ -149,7 +149,7 @@ app/
 │   ├── prior-auth/
 │   ├── providers/    # Live NPI provider search
 │   ├── pharmacy/     # Natural-language pharmacy finder
-│   ├── screening/    # AI preventive risk scoring
+│   ├── screening/    # Screening intake, safety-ranked recommendations, and next-step requests
 │   ├── join-network/ # Provider/caregiver onboarding
 │   ├── admin-review/ # Admin queue + release actions
 │   ├── second-opinion/
@@ -162,7 +162,7 @@ app/
 │   ├── providers/    # NPI provider search proxy
 │   ├── pharmacy/     # NPI pharmacy search proxy
 │   ├── admin/        # Network application and notification review APIs
-│   ├── screening/    # Screening assessment + nearby care routing
+│   ├── screening/    # Screening assessment, next-step requests, and nearby care routing
 │   └── payments/     # Intents, verify, refunds, receipts, attestations, ledger
 ├── page.tsx          # Landing page
 └── layout.tsx        # Root layout (fonts, metadata, SEO)

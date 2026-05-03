@@ -1,4 +1,4 @@
-import { canUseWalletScopedData, requestWalletMatches, requireAuth } from "@/lib/api-auth"
+import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import {
   finalizeRefund,
@@ -8,11 +8,12 @@ import {
 } from "@/lib/payments-ledger"
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   const { searchParams } = new URL(request.url)
   const walletAddress = searchParams.get("walletAddress") || undefined
   const paymentId = searchParams.get("paymentId") || undefined
-  if (walletAddress && !canUseWalletScopedData(auth.session, walletAddress)) {
+  const walletProofMatches = walletAddress ? await requestWalletProofMatches(request, walletAddress) : false
+  const auth = await requireAuth(request, { allowPublic: walletProofMatches }); if ("response" in auth) return auth.response;
+  if (walletAddress && !canUseWalletScopedData(auth.session, walletAddress) && !walletProofMatches) {
     return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
   }
 
@@ -25,7 +26,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as {
       paymentId?: string
@@ -40,9 +40,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    const walletProofMatches = await requestWalletProofMatches(request, body.requestedBy)
+    const auth = await requireAuth(request, { allowPublic: walletProofMatches }); if ("response" in auth) return auth.response;
     if (
       !canUseWalletScopedData(auth.session, body.requestedBy) &&
-      !requestWalletMatches(request, body.requestedBy)
+      !walletProofMatches
     ) {
       return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
     }
@@ -61,7 +63,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as {
       action?: "approve" | "finalize"
@@ -85,9 +86,11 @@ export async function PATCH(request: NextRequest) {
           { status: 400 }
         )
       }
+      const walletProofMatches = await requestWalletProofMatches(request, body.approvedBy)
+      const auth = await requireAuth(request, { allowPublic: walletProofMatches }); if ("response" in auth) return auth.response;
       if (
         !canUseWalletScopedData(auth.session, body.approvedBy) &&
-        !requestWalletMatches(request, body.approvedBy)
+        !walletProofMatches
       ) {
         return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
       }
@@ -101,9 +104,11 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       )
     }
+    const walletProofMatches = await requestWalletProofMatches(request, body.approvedBy)
+    const auth = await requireAuth(request, { allowPublic: walletProofMatches }); if ("response" in auth) return auth.response;
     if (
       !canUseWalletScopedData(auth.session, body.approvedBy) &&
-      !requestWalletMatches(request, body.approvedBy)
+      !walletProofMatches
     ) {
       return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
     }

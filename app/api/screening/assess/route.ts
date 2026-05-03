@@ -1,4 +1,4 @@
-import { canUseWalletScopedData, requireAuth } from "@/lib/api-auth"
+import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import {
   assessHealthScreening,
@@ -539,9 +539,12 @@ export async function GET(request: NextRequest) {
     const walletAddress = searchParams.get("walletAddress") || undefined
     const paymentId = searchParams.get("paymentId") || undefined
     const analysisLevel = resolveAnalysisLevel(searchParams.get("analysisLevel"))
-    const auth = await requireAuth(request, { allowPublic: analysisLevel !== "deep" })
+    const walletProofMatches = walletAddress
+      ? await requestWalletProofMatches(request, walletAddress)
+      : false
+    const auth = await requireAuth(request, { allowPublic: analysisLevel !== "deep" || walletProofMatches })
     if ("response" in auth) return auth.response
-    const effectiveWalletAddress = canUseWalletScopedData(auth.session, walletAddress)
+    const effectiveWalletAddress = canUseWalletScopedData(auth.session, walletAddress) || walletProofMatches
       ? walletAddress
       : undefined
     const effectivePatientId = effectiveWalletAddress || auth.session.authSource !== "default"
@@ -583,9 +586,12 @@ export async function POST(request: NextRequest) {
       analysisLevel?: ScreeningAnalysisLevel
     }
     const analysisLevel = resolveAnalysisLevel(body.analysisLevel)
-    const auth = await requireAuth(request, { allowPublic: analysisLevel !== "deep" })
+    const walletProofMatches = body.walletAddress
+      ? await requestWalletProofMatches(request, body.walletAddress)
+      : false
+    const auth = await requireAuth(request, { allowPublic: analysisLevel !== "deep" || walletProofMatches })
     if ("response" in auth) return auth.response
-    const effectiveWalletAddress = canUseWalletScopedData(auth.session, body.walletAddress)
+    const effectiveWalletAddress = canUseWalletScopedData(auth.session, body.walletAddress) || walletProofMatches
       ? body.walletAddress
       : undefined
     const effectivePatientId = effectiveWalletAddress || auth.session.authSource !== "default"

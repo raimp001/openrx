@@ -70,7 +70,7 @@ const agentMeta: Record<string, { label: string; icon: typeof Bot; color: string
 }
 
 export default function ChatPage() {
-  const { isConnected, walletAddress } = useWalletIdentity()
+  const { isConnected, walletAddress, getWalletAuthHeaders } = useWalletIdentity()
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
@@ -194,7 +194,7 @@ export default function ChatPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(walletAddress ? { "x-wallet-address": walletAddress } : {}),
+          ...(walletAddress ? await getWalletAuthHeaders() : {}),
         },
         body: JSON.stringify({
           message: userMsg.content,
@@ -230,7 +230,7 @@ export default function ChatPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [input, isLoading, activeAgent, walletAddress])
+  }, [input, isLoading, activeAgent, walletAddress, getWalletAuthHeaders])
 
   const activeMeta = agentMeta[activeAgent] ?? agentMeta.coordinator
 

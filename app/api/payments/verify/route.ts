@@ -2,7 +2,7 @@ import {
   canUseWalletScopedData,
   isDemoWalletAddress,
   isEvmWalletAddress,
-  requestWalletMatches,
+  requestWalletProofMatches,
   requireAuth,
 } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
@@ -30,13 +30,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "walletAddress must be a valid EVM address." }, { status: 400 })
     }
 
+    const walletProofMatches = await requestWalletProofMatches(request, body.walletAddress)
     const auth = await requireAuth(request, {
-      allowPublic: isDemoWalletAddress(body.walletAddress) || requestWalletMatches(request, body.walletAddress),
+      allowPublic: isDemoWalletAddress(body.walletAddress) || walletProofMatches,
     })
     if ("response" in auth) return auth.response
     if (
       !canUseWalletScopedData(auth.session, body.walletAddress) &&
-      !requestWalletMatches(request, body.walletAddress)
+      !walletProofMatches
     ) {
       return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
     }

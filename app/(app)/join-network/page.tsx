@@ -31,6 +31,7 @@ export default function JoinNetworkPage() {
   const [zip, setZip] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [submittedId, setSubmittedId] = useState("")
+  const [emailWarning, setEmailWarning] = useState("")
   const [error, setError] = useState("")
 
   const requiredFieldCount = useMemo(() => {
@@ -149,6 +150,7 @@ export default function JoinNetworkPage() {
     setSubmitting(true)
     setError("")
     setSubmittedId("")
+    setEmailWarning("")
     try {
       const response = await fetch("/api/admin/applications", {
         method: "POST",
@@ -175,12 +177,15 @@ export default function JoinNetworkPage() {
           zip: normalizedZip,
         }),
       })
-      const data = (await response.json()) as { error?: string; application?: { id: string } }
+      const data = (await response.json()) as { error?: string; emailWarning?: string; application?: { id: string } }
       if (!response.ok || data.error) {
         throw new Error(data.error || "Failed to submit application.")
       }
       if (data.application?.id) {
         setSubmittedId(data.application.id)
+      }
+      if (data.emailWarning) {
+        setEmailWarning(data.emailWarning)
       }
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : "Failed to submit application.")
@@ -422,6 +427,11 @@ export default function JoinNetworkPage() {
                   <p className="mt-1 text-xs leading-6 text-secondary">
                     Reference ID: <span className="font-mono">{submittedId}</span>
                   </p>
+                  {emailWarning ? (
+                    <p className="mt-2 text-xs leading-6 text-yellow-800">
+                      Saved in the review queue, but email notification needs attention: {emailWarning}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>

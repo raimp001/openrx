@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/api-auth"
+import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
 // ── Parallel Expert Fan-out — MoE-inspired endpoint ───────
 // Inspired by Sparse MoE architecture (DeepSeek V3, Llama 4 Maverick, etc.)
 // from Sebastian Raschka's LLM Architecture Gallery:
@@ -20,7 +20,6 @@ const VALID_EXPERT_IDS = new Set<string>(OPENCLAW_CONFIG.agents.map((a) => a.id)
 const MAX_EXPERTS = 5
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(req); if ("response" in auth) return auth.response;
   try {
     const body = await req.json()
     const { message, expertIds, sessionId, walletAddress } = body as {
@@ -51,7 +50,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const results = await runParallelExperts({ expertIds, message, sessionId, walletAddress })
+    const walletProofMatches = walletAddress
+      ? await requestWalletProofMatches(req, walletAddress)
+      : false
+    const auth = await requireAuth(req, { allowPublic: walletProofMatches }); if ("response" in auth) return auth.response;
+    const effectiveWalletAddress = canUseWalletScopedData(auth.session, walletAddress) || walletProofMatches
+      ? walletAddress
+      : undefined
+
+    const results = await runParallelExperts({ expertIds, message, sessionId, walletAddress: effectiveWalletAddress })
 
     return NextResponse.json({
       sessionId: sessionId || `session-${Date.now()}`,

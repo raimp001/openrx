@@ -84,12 +84,15 @@ function defaultSnapshot(): SnapshotPayload {
 }
 
 export default function ComplianceLedgerPage() {
-  const { walletAddress, isConnected } = useWalletIdentity()
+  const { walletAddress, isConnected, getWalletAuthHeaders } = useWalletIdentity()
   const activeWallet = walletAddress || ""
-  const walletHeaders = useMemo<Record<string, string>>(
-    (): Record<string, string> => (activeWallet ? { "x-wallet-address": activeWallet } : {}),
-    [activeWallet]
-  )
+  const getJsonHeaders = useCallback(async () => ({
+    "Content-Type": "application/json",
+    ...(activeWallet ? await getWalletAuthHeaders() : {}),
+  }), [activeWallet, getWalletAuthHeaders])
+  const getWalletHeaders = useCallback(async () => (
+    activeWallet ? await getWalletAuthHeaders() : {}
+  ), [activeWallet, getWalletAuthHeaders])
   const [snapshot, setSnapshot] = useState<SnapshotPayload>(defaultSnapshot())
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -153,7 +156,7 @@ export default function ComplianceLedgerPage() {
     setError("")
     try {
       const response = await fetch(`/api/payments/ledger?walletAddress=${encodeURIComponent(activeWallet)}`, {
-        headers: walletHeaders,
+        headers: await getWalletHeaders(),
       })
       const data = (await response.json()) as SnapshotPayload
       setSnapshot(data)
@@ -164,7 +167,7 @@ export default function ComplianceLedgerPage() {
     } finally {
       setLoading(false)
     }
-  }, [activeWallet, walletHeaders])
+  }, [activeWallet, getWalletHeaders])
 
   useEffect(() => {
     void loadSnapshot()
@@ -180,7 +183,7 @@ export default function ComplianceLedgerPage() {
     try {
       const response = await fetch("/api/payments/intent", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...walletHeaders },
+        headers: await getJsonHeaders(),
         body: JSON.stringify({ walletAddress: activeWallet, amount, category, description }),
       })
       const data = (await response.json()) as { error?: string; payment?: PaymentRecord }
@@ -227,7 +230,7 @@ export default function ComplianceLedgerPage() {
     try {
       const response = await fetch("/api/payments/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...walletHeaders },
+        headers: await getJsonHeaders(),
         body: JSON.stringify({
           paymentId: selectedPaymentId,
           txHash: verifyTxHash.trim(),
@@ -257,7 +260,7 @@ export default function ComplianceLedgerPage() {
     try {
       const response = await fetch("/api/payments/refunds", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...walletHeaders },
+        headers: await getJsonHeaders(),
         body: JSON.stringify({
           paymentId: selectedPaymentId,
           amount: refundAmount,
@@ -287,7 +290,7 @@ export default function ComplianceLedgerPage() {
     try {
       const response = await fetch("/api/payments/refunds", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...walletHeaders },
+        headers: await getJsonHeaders(),
         body: JSON.stringify({ action: "approve", refundId: selectedRefundId, approvedBy: activeWallet }),
       })
       const data = (await response.json()) as { error?: string }
@@ -311,7 +314,7 @@ export default function ComplianceLedgerPage() {
     try {
       const response = await fetch("/api/payments/refunds", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...walletHeaders },
+        headers: await getJsonHeaders(),
         body: JSON.stringify({
           action: "finalize",
           refundId: selectedRefundId,

@@ -81,7 +81,7 @@ lib/openclaw/
 | `/api/providers` | NPPES NPI registry search (free, no auth) |
 | `/api/pharmacy` | Pharmacy NPI search by name/location |
 | `/api/payments/*` | USDC payment intents, verify, refunds, receipts |
-| `/api/screening` | Risk assessment (requires USDC fee) |
+| `/api/screening` | Free screening preview, optional advanced review payment, and trackable next-step requests |
 
 ## Cron Jobs (10 automated jobs)
 

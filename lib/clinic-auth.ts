@@ -44,6 +44,13 @@ function getHeader(headers: Headers, key: string): string {
 }
 
 async function resolveRoleFromWallet(headers: Headers): Promise<{ userId?: string; role?: ClinicRole; walletAddress?: string }> {
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER !== "true"
+  ) {
+    return {}
+  }
+
   const wallet =
     getHeader(headers, "x-wallet-address") ||
     getHeader(headers, "x-openrx-wallet") ||

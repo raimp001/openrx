@@ -363,7 +363,18 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
     else if (input.bmi < 25) addFactor("BMI under 25", -3, "protective", "Healthy weight range lowers baseline risk.")
   }
 
-  const urgentSymptoms = ["chest pain", "shortness of breath", "fainting", "vision loss"]
+  const urgentSymptoms = [
+    "chest pain", "chest discomfort", "chest tightness", "chest pressure",
+    "shortness of breath", "difficulty breathing", "can't breathe", "trouble breathing",
+    "fainting", "syncope", "passed out", "blacked out", "lost consciousness",
+    "vision loss", "sudden blindness", "blurred vision",
+    "stroke", "facial drooping", "slurred speech", "sudden numbness",
+    "severe headache", "worst headache",
+    "coughing blood", "vomiting blood", "blood in stool",
+    "suicidal", "self-harm", "want to die",
+    "seizure", "convulsion",
+    "anaphylaxis", "throat closing", "severe allergic",
+  ]
   if (symptoms.some((symptom) => urgentSymptoms.some((urgent) => symptom.includes(urgent)))) {
     addFactor("Urgent symptom pattern", 22, "urgent", "Immediate triage escalation recommended.")
   }

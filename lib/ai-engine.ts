@@ -170,6 +170,25 @@ async function createCompletionWithRetry(params: {
   throw lastError
 }
 
+function friendlyAIError(status?: number, rawMessage?: string): string {
+  if (status === 401) {
+    return "Our AI service needs a configuration update. The care team has been notified — please try again shortly."
+  }
+  if (status === 429 || (rawMessage && rawMessage.includes("rate_limit"))) {
+    return "Our AI assistant is handling a high volume of requests right now. Please wait a moment and try again."
+  }
+  if (status === 529 || (rawMessage && rawMessage.includes("overloaded"))) {
+    return "Our AI assistant is temporarily at capacity. Please try again in a few minutes."
+  }
+  if (typeof status === "number" && status >= 500) {
+    return "Our AI service experienced a temporary issue. Please try again in a moment."
+  }
+  if (rawMessage && (rawMessage.includes("timeout") || rawMessage.includes("ETIMEDOUT"))) {
+    return "The request took longer than expected. Please try again — shorter questions tend to get faster responses."
+  }
+  return "Something went wrong while processing your request. Please try again, and if the issue continues, contact your care team."
+}
+
 // ── Core Agent Engine ────────────────────────────────────
 export async function runAgent(params: {
   agentId: string
@@ -295,11 +314,7 @@ IMPORTANT RULES:
       : undefined
     console.error(`Agent ${agentId} error:`, errMsg || error)
 
-    if (status === 401) {
-      return { response: "AI service authentication failed. Verify ANTHROPIC_API_KEY.", agentId }
-    }
-
-    return { response: "AI service is temporarily unavailable. Please retry shortly.", agentId }
+    return { response: friendlyAIError(status, errMsg), agentId }
   }
 }
 

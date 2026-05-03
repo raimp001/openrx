@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server"
+import crypto from "crypto"
 import { prisma } from "@/lib/db"
 
 export type ClinicRole = "admin" | "staff" | "service" | "patient"
@@ -93,7 +94,8 @@ export async function resolveClinicSession(request: NextRequest): Promise<Clinic
   const headers = request.headers
 
   const adminKey = process.env.OPENRX_ADMIN_API_KEY || ""
-  if (adminKey && getHeader(headers, "x-admin-api-key") === adminKey) {
+  const headerAdminKey = getHeader(headers, "x-admin-api-key")
+  if (adminKey && headerAdminKey && adminKey.length === headerAdminKey.length && crypto.timingSafeEqual(Buffer.from(adminKey), Buffer.from(headerAdminKey))) {
     return {
       userId: getHeader(headers, "x-openrx-user-id") || "admin-api",
       role: "admin",
@@ -104,7 +106,7 @@ export async function resolveClinicSession(request: NextRequest): Promise<Clinic
 
   const agentToken = process.env.OPENRX_AGENT_NOTIFY_TOKEN || ""
   const bearer = getHeader(headers, "authorization").replace(/^Bearer\s+/i, "")
-  if (agentToken && bearer && bearer === agentToken) {
+  if (agentToken && bearer && agentToken.length === bearer.length && crypto.timingSafeEqual(Buffer.from(agentToken), Buffer.from(bearer))) {
     return {
       userId: "openclaw-service",
       role: "service",

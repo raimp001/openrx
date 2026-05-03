@@ -181,11 +181,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "messages array is required" }, { status: 400 })
     }
 
+    const validRoles = new Set(["user", "assistant"])
+    const sanitizedMessages = messages
+      .filter((m) => validRoles.has(m.role) && typeof m.content === "string")
+      .slice(-40)
+      .map((m) => ({ role: m.role, content: m.content.slice(0, 12000) }))
+
+    if (sanitizedMessages.length === 0) {
+      return NextResponse.json({ error: "At least one user message is required" }, { status: 400 })
+    }
+
     const systemPrompt = (SYSTEM_PROMPTS[agentType] ?? SYSTEM_PROMPTS.general) + buildContextBlock(patientContext)
 
     const claudeKey = process.env.ANTHROPIC_API_KEY
     const openaiKey = process.env.OPENAI_API_KEY
-    const fallbackMessage = buildFallbackChatMessage(agentType, messages)
+    const fallbackMessage = buildFallbackChatMessage(agentType, sanitizedMessages)
 
     if (!claudeKey && !openaiKey) {
       return fallbackResponse({ message: fallbackMessage, sessionId, stream: wantsStream })
@@ -195,7 +205,7 @@ export async function POST(request: NextRequest) {
     if (claudeKey) {
       const claude = new Anthropic({ apiKey: claudeKey })
 
-      const anthropicMessages = messages.map((m) => ({
+      const anthropicMessages = sanitizedMessages.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       }))
@@ -289,7 +299,7 @@ export async function POST(request: NextRequest) {
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
-          ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+          ...sanitizedMessages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
         ],
         max_tokens: 1024,
         temperature: 0.7,
@@ -344,12 +354,16 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("[AI chat]", error)
-    if (error instanceof Anthropic.APIError) {
-      return NextResponse.json({ error: `Claude error: ${error.message}` }, { status: error.status ?? 500 })
-    }
-    if (error instanceof OpenAI.APIError) {
-      return NextResponse.json({ error: `AI error: ${error.message}` }, { status: error.status ?? 500 })
-    }
-    return NextResponse.json({ error: "Failed to process AI request" }, { status: 500 })
+    const status = (error instanceof Anthropic.APIError || error instanceof OpenAI.APIError)
+      ? (error.status ?? 500)
+      : 500
+    const isRateLimit = status === 429
+    const isOverloaded = status === 529
+    const friendlyMessage = isRateLimit
+      ? "Our AI assistant is handling a high volume of requests. Please wait a moment and try again."
+      : isOverloaded
+      ? "Our AI assistant is temporarily at capacity. Please try again in a few minutes."
+      : "Something went wrong. Please try again, and if the issue continues, contact your care team."
+    return NextResponse.json({ error: friendlyMessage }, { status })
   }
 }

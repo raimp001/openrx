@@ -1,7 +1,48 @@
 import fs from "node:fs"
 import path from "node:path"
-import type { AdminNotificationRecord, NetworkApplicationRecord } from "@prisma/client"
 import { getDatabaseHealth } from "@/lib/database-health"
+
+interface NetworkApplicationRecord {
+  id: string
+  role: string
+  fullName: string
+  email: string
+  phone: string
+  npi: string | null
+  licenseNumber: string | null
+  licenseState: string | null
+  licensedStates: string[]
+  orderingCertifyingStatus: string | null
+  malpracticeCoverage: string | null
+  stateLicensureAttestation: boolean
+  orderingScopeAttestation: boolean
+  noAutoPrescriptionAttestation: boolean
+  malpracticeAttestation: boolean
+  specialtyOrRole: string
+  servicesSummary: string
+  city: string
+  state: string
+  zip: string
+  status: string
+  submittedAt: Date
+  reviewedAt: Date | null
+  reviewedBy: string | null
+  reviewNotes: string | null
+}
+
+interface AdminNotificationRecord {
+  id: string
+  adminId: string
+  title: string
+  message: string
+  applicationId: string
+  type: string
+  isRead: boolean
+  createdAt: Date
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const prismaAny = prisma as any
 import { prisma } from "@/lib/db"
 
 export const OPENRX_ADMIN_ID = "admin-openrx" as const
@@ -178,7 +219,7 @@ async function canUseDatabaseStore(): Promise<boolean> {
   const health = await getDatabaseHealth()
   if (!health.reachable) return false
   try {
-    await prisma.networkApplicationRecord.count()
+    await prismaAny.networkApplicationRecord.count()
     return true
   } catch (error) {
     if (isMissingTableError(error)) return false
@@ -244,7 +285,7 @@ export async function submitNetworkApplication(input: {
     const now = new Date()
     const applicationId = createId("app")
     const [application] = await prisma.$transaction([
-      prisma.networkApplicationRecord.create({
+      prismaAny.networkApplicationRecord.create({
         data: {
           id: applicationId,
           role: input.role,
@@ -270,7 +311,7 @@ export async function submitNetworkApplication(input: {
           submittedAt: now,
         },
       }),
-      prisma.adminNotificationRecord.create({
+      prismaAny.adminNotificationRecord.create({
         data: {
           id: createId("ntf"),
           adminId: OPENRX_ADMIN_ID,
@@ -327,7 +368,7 @@ export async function submitNetworkApplication(input: {
 
 export async function deleteNetworkApplication(applicationId: string): Promise<void> {
   if (await canUseDatabaseStore()) {
-    await prisma.networkApplicationRecord.delete({ where: { id: applicationId } }).catch(() => undefined)
+    await prismaAny.networkApplicationRecord.delete({ where: { id: applicationId } }).catch(() => undefined)
     return
   }
 
@@ -342,7 +383,7 @@ export async function listNetworkApplications(params?: {
   role?: ApplicantRole
 }): Promise<NetworkApplication[]> {
   if (await canUseDatabaseStore()) {
-    const records = await prisma.networkApplicationRecord.findMany({
+    const records = await prismaAny.networkApplicationRecord.findMany({
       where: {
         ...(params?.status ? { status: params.status } : {}),
         ...(params?.role ? { role: params.role } : {}),
@@ -366,7 +407,7 @@ export async function reviewNetworkApplication(input: {
   notes?: string
 }): Promise<NetworkApplication> {
   if (await canUseDatabaseStore()) {
-    const existing = await prisma.networkApplicationRecord.findUnique({
+    const existing = await prismaAny.networkApplicationRecord.findUnique({
       where: { id: input.applicationId },
     })
     if (!existing) throw new Error("Application not found.")
@@ -377,7 +418,7 @@ export async function reviewNetworkApplication(input: {
 
     const now = new Date()
     const [application] = await prisma.$transaction([
-      prisma.networkApplicationRecord.update({
+      prismaAny.networkApplicationRecord.update({
         where: { id: input.applicationId },
         data: {
           status: input.decision,
@@ -386,7 +427,7 @@ export async function reviewNetworkApplication(input: {
           reviewNotes: input.notes,
         },
       }),
-      prisma.adminNotificationRecord.create({
+      prismaAny.adminNotificationRecord.create({
         data: {
           id: createId("ntf"),
           adminId: OPENRX_ADMIN_ID,
@@ -429,7 +470,7 @@ export async function reviewNetworkApplication(input: {
 
 export async function listAdminNotifications(adminId: string = OPENRX_ADMIN_ID): Promise<AdminNotification[]> {
   if (await canUseDatabaseStore()) {
-    const records = await prisma.adminNotificationRecord.findMany({
+    const records = await prismaAny.adminNotificationRecord.findMany({
       where: { adminId },
       orderBy: { createdAt: "desc" },
     })
@@ -442,7 +483,7 @@ export async function listAdminNotifications(adminId: string = OPENRX_ADMIN_ID):
 
 export async function markAdminNotificationRead(notificationId: string): Promise<AdminNotification> {
   if (await canUseDatabaseStore()) {
-    const notification = await prisma.adminNotificationRecord.update({
+    const notification = await prismaAny.adminNotificationRecord.update({
       where: { id: notificationId },
       data: { isRead: true },
     })

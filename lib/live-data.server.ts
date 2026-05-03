@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db"
 import { getDatabaseHealth } from "@/lib/database-health"
-import { createEmptyLiveSnapshot, type LiveClaim, type LiveLabResult, type LiveSnapshot, type LiveVital } from "@/lib/live-data-types"
+import { createEmptyLiveSnapshot, type LiveClaim, type LiveLabResult, type LivePriorAuth, type LiveSnapshot, type LiveVital } from "@/lib/live-data-types"
 
 let hasWarnedMissingDatabaseUrl = false
 
@@ -62,6 +62,12 @@ function parseLabRows(raw: unknown, isAbnormal: boolean): LiveLabResult["results
   }
 
   return []
+}
+
+function extractPharmacy(notes?: string | null): string {
+  if (!notes) return ""
+  const match = notes.match(/(?:pharmacy|pharm|rx at|filled at|pick up at)[:\s]+([^;\n]+)/i)
+  return match ? match[1].trim() : ""
 }
 
 function mapPaymentClaims(params: {
@@ -199,6 +205,41 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
 
   const primaryPhysicianId = patient.appointments[0]?.doctorId || patient.prescriptions[0]?.doctorId || ""
 
+  const preferredPharmacy = patient.medicalRecords
+    .filter((r) => r.metadata && typeof r.metadata === "object")
+    .reduce((found: string, r) => {
+      if (found) return found
+      const meta = r.metadata as Record<string, unknown>
+      if (typeof meta.pharmacy === "string" && meta.pharmacy) return meta.pharmacy
+      if (typeof meta.preferredPharmacy === "string" && meta.preferredPharmacy) return meta.preferredPharmacy
+      return ""
+    }, "")
+
+  const priorAuths: LivePriorAuth[] = patient.medicalRecords
+    .filter((r) => {
+      const rt = r.recordType.toLowerCase()
+      return rt.includes("prior") || rt.includes("authorization") || rt.includes("pre-auth") || rt.includes("preauth")
+    })
+    .map((r) => {
+      const meta = r.metadata && typeof r.metadata === "object" ? (r.metadata as Record<string, unknown>) : {}
+      return {
+        id: r.id,
+        patient_id: patient.id,
+        physician_id: primaryPhysicianId,
+        insurance_provider: patient.insuranceProvider || "",
+        procedure_code: typeof meta.procedure_code === "string" ? meta.procedure_code : "",
+        procedure_name: r.title,
+        icd_codes: Array.isArray(meta.icd_codes) ? meta.icd_codes.map(String) : [],
+        status: typeof meta.status === "string" ? meta.status : "pending",
+        urgency: typeof meta.urgency === "string" ? meta.urgency : "routine",
+        reference_number: typeof meta.reference_number === "string" ? meta.reference_number : null,
+        submitted_at: r.recordDate.toISOString(),
+        resolved_at: typeof meta.resolved_at === "string" ? meta.resolved_at : null,
+        denial_reason: typeof meta.denial_reason === "string" ? meta.denial_reason : null,
+        clinical_notes: r.description || "",
+      }
+    })
+
   const mergedMessages = [
     ...user.sentMessages.map((message) => ({ ...message, direction: "outbound" as const })),
     ...user.receivedMessages.map((message) => ({ ...message, direction: "inbound" as const })),
@@ -287,7 +328,7 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
       email: user.email,
       address: patient.address || "",
       insurance_provider: patient.insuranceProvider || "",
-      insurance_plan: "",
+      insurance_plan: patient.insuranceProvider || "",
       insurance_id: patient.insuranceId || "",
       emergency_contact_name: patient.emergencyContact || "",
       emergency_contact_phone: "",
@@ -313,14 +354,14 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
       status: appointment.status.toLowerCase().replaceAll("_", "-"),
       reason: appointment.reason || "",
       notes: appointment.notes || "",
-      copay: appointment.paymentAmount || 0,
+      copay: Number(appointment.paymentAmount) || 0,
     })),
     claims: mapPaymentClaims({
       patientId: patient.id,
       payments: user.payments.map((payment) => ({
         id: payment.id,
         appointmentId: payment.appointmentId,
-        amount: payment.amount,
+        amount: Number(payment.amount),
         status: payment.status,
         createdAt: payment.createdAt,
         updatedAt: payment.updatedAt,
@@ -353,14 +394,14 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
         start_date: prescription.issuedAt.toISOString(),
         end_date: prescription.expiresAt ? prescription.expiresAt.toISOString() : null,
         refills_remaining: medication.refills,
-        pharmacy: "",
+        pharmacy: extractPharmacy(prescription.notes) || preferredPharmacy,
         status,
         adherence_pct: 100,
         last_filled: medication.createdAt.toISOString(),
         notes: prescription.notes || medication.instructions || "",
       }))
     }),
-    priorAuths: [],
+    priorAuths,
     messages: mergedMessages.map((message) => {
       const counterpart = message.direction === "inbound" ? message.sender : message.receiver
       const physicianId = counterpart?.doctorProfile?.id || null

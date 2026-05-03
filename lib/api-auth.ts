@@ -33,7 +33,12 @@ export function getRequestWalletAddress(request: NextRequest): string {
   )
 }
 
+export function allowsUnsignedWalletHeader(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER === "true"
+}
+
 export function requestWalletMatches(request: NextRequest, walletAddress?: string | null): boolean {
+  if (!allowsUnsignedWalletHeader()) return false
   const requestedWallet = normalizeWalletAddress(walletAddress)
   const headerWallet = getRequestWalletAddress(request)
   return !!requestedWallet && !!headerWallet && requestedWallet === headerWallet

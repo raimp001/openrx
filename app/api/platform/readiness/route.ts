@@ -8,6 +8,7 @@ import {
   listNetworkApplications,
 } from "@/lib/provider-applications"
 import { listWorkerHeartbeats } from "@/lib/openclaw/runtime-persistence"
+import { allowsUnsignedWalletHeader } from "@/lib/api-auth"
 
 export const dynamic = "force-dynamic"
 
@@ -134,6 +135,7 @@ export async function GET() {
   const adminApiKeyConfigured = !!(process.env.OPENRX_ADMIN_API_KEY || "").trim()
   const agentNotifyTokenConfigured = !!(process.env.OPENRX_AGENT_NOTIFY_TOKEN || "").trim()
   const trustedRoleHeaderDisabled = (process.env.OPENRX_TRUST_ROLE_HEADER || "false").toLowerCase() !== "true"
+  const unsignedWalletHeaderDisabled = !allowsUnsignedWalletHeader()
   const applicationStoreConfigured = !!(process.env.OPENRX_APPLICATIONS_PATH || "").trim()
   const publicBaseUrlConfigured = !!(process.env.OPENRX_APP_BASE_URL || process.env.VERCEL_URL || "").trim()
   const liveModelConfigured = !!(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY)
@@ -163,11 +165,11 @@ export async function GET() {
     {
       id: "admin-security",
       title: "Admin and service auth",
-      description: "Admin APIs require OPENRX_ADMIN_API_KEY, workers require OPENRX_AGENT_NOTIFY_TOKEN, and trusted role headers stay disabled in production.",
-      status: toStatus(adminApiKeyConfigured && agentNotifyTokenConfigured && trustedRoleHeaderDisabled),
-      metric: adminApiKeyConfigured && agentNotifyTokenConfigured && trustedRoleHeaderDisabled
+      description: "Admin APIs require OPENRX_ADMIN_API_KEY, workers require OPENRX_AGENT_NOTIFY_TOKEN, trusted role headers stay disabled, and unsigned wallet headers are not trusted in production.",
+      status: toStatus(adminApiKeyConfigured && agentNotifyTokenConfigured && trustedRoleHeaderDisabled && unsignedWalletHeaderDisabled),
+      metric: adminApiKeyConfigured && agentNotifyTokenConfigured && trustedRoleHeaderDisabled && unsignedWalletHeaderDisabled
         ? "Locked"
-        : "Missing launch secret or trusted header enabled",
+        : "Missing launch secret or unsafe header trust enabled",
       href: "/admin-review",
     },
     {

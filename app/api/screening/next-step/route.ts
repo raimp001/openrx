@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
   }
 
-  const requests = listScreeningNextStepRequests(internalUserIdFromWallet(walletAddress))
+  const requests = await listScreeningNextStepRequests(internalUserIdFromWallet(walletAddress))
   return NextResponse.json({ requests, total: requests.length })
 }
 
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.demoMode && !walletAddress) {
-      const requestRecord = createScreeningNextStepRequest({
+      const requestRecord = await createScreeningNextStepRequest({
         recommendationId: body.recommendationId,
         screeningName: body.screeningName,
         requestedAction: body.requestedAction,
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
     }
 
-    const requestRecord = createScreeningNextStepRequest({
+    const requestRecord = await createScreeningNextStepRequest({
       walletAddress,
       patientId: body.patientId,
       recommendationId: body.recommendationId,

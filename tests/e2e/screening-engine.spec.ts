@@ -120,10 +120,10 @@ test("patient-facing recommendation language avoids unsafe certainty", () => {
   expect(text).not.toContain("replaces your doctor")
 })
 
-test("screening next-step requests use internal IDs and do not store raw wallet addresses", () => {
+test("screening next-step requests use internal IDs and do not store raw wallet addresses", async () => {
   process.env.OPENRX_SCREENING_REQUESTS_PATH = `/tmp/openrx-next-step-${Date.now()}.json`
   const walletAddress = "0x55826e51751c49e6e2a2D9840745787f7fd977Bd"
-  const request = createScreeningNextStepRequest({
+  const request = await createScreeningNextStepRequest({
     walletAddress,
     patientId: "patient-demo",
     recommendationId: "uspstf-average-risk-colorectal",

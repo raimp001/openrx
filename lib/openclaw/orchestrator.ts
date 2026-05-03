@@ -423,41 +423,40 @@ export function executeWorkflow(userMessage: string): {
   let session: CollaborationSession | null = null
   const tasks: AgentTask[] = []
 
-  // If collaborators are needed, start a session
+  // Sanitize: never store raw user messages in task descriptions (PHI risk)
+  const sanitizedPurpose = `${route.primaryAgent} handling ${route.reasoning}`
+
   if (route.collaborators.length > 0) {
     session = startCollaboration({
       initiator: route.primaryAgent,
       participants: route.collaborators,
-      purpose: `Process user request: "${userMessage.slice(0, 100)}"`,
+      purpose: sanitizedPurpose,
     })
 
-    // Create primary task
     const primaryTask = delegateTask({
       from: "user",
       to: route.primaryAgent,
-      description: `Handle user message: "${userMessage.slice(0, 200)}"`,
+      description: sanitizedPurpose,
       priority: "high",
       sessionId: session.id,
     })
     tasks.push(primaryTask)
 
-    // Create supporting tasks for collaborators
     route.collaborators.forEach((collaborator) => {
       const supportTask = delegateTask({
         from: route.primaryAgent,
         to: collaborator,
-        description: `Support ${route.primaryAgent} with: "${userMessage.slice(0, 100)}"`,
+        description: `Support ${route.primaryAgent}: ${route.reasoning}`,
         priority: "medium",
         sessionId: session!.id,
       })
       tasks.push(supportTask)
     })
   } else {
-    // Single agent, no session needed
     const task = delegateTask({
       from: "user",
       to: route.primaryAgent,
-      description: `Handle user message: "${userMessage.slice(0, 200)}"`,
+      description: sanitizedPurpose,
       priority: "high",
     })
     tasks.push(task)

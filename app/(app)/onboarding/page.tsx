@@ -272,7 +272,8 @@ export default function OnboardingPage() {
         } else {
           // Parse DOB
           const parsed = new Date(val)
-          if (!isNaN(parsed.getTime()) && parsed.getTime() < Date.now()) {
+          const ageYears = parsed.getTime() ? Math.floor((Date.now() - parsed.getTime()) / 31557600000) : NaN
+          if (!isNaN(parsed.getTime()) && parsed.getTime() < Date.now() && ageYears >= 0 && ageYears <= 120) {
             setPatient(p => ({ ...p, dob: parsed.toISOString().slice(0, 10) }))
             addAgent(
               `Got it. Do you have a primary care physician?`,
@@ -284,7 +285,7 @@ export default function OnboardingPage() {
             )
             advanceStep("has-pcp")
           } else {
-            addAgent("I didn't catch that. Please enter your date of birth like MM/DD/YYYY.")
+            addAgent("I didn't catch that. Please enter a valid date of birth like MM/DD/YYYY (age must be 0-120).")
           }
         }
         break
@@ -423,7 +424,27 @@ export default function OnboardingPage() {
 
       case "dentist-search":
         addUser(val)
-          addAgent("Noted. What pharmacy do you use?")
+        setIsSearching(true)
+        addSystem("Searching dentists...")
+        try {
+          const res = await fetch(`/api/providers/search?q=${encodeURIComponent(`dentist ${val}`)}&limit=3`)
+          const data = (await res.json()) as {
+            ready?: boolean
+            clarificationQuestion?: string
+            matches?: Array<{ name: string; npi: string; specialty?: string; fullAddress?: string; phone?: string }>
+          }
+          const dentists = (data.matches || []).filter((item) => !("kind" in item) || (item as Record<string, unknown>).kind !== "lab")
+          if (dentists.length > 0) {
+            const d = dentists[0]
+            setPatient(p => ({ ...p, hasDentist: true, dentistName: d.name }))
+            addAgent(`Found **${d.name}**${d.fullAddress ? `\n${d.fullAddress}` : ""}${d.phone ? `\n${d.phone}` : ""}\n\nI've noted this as your dentist. What pharmacy do you use?`)
+          } else {
+            addAgent("Couldn't find dentists there. We can set this up later.\n\nWhat pharmacy do you use?")
+          }
+        } catch {
+          addAgent("Had trouble searching — we can add a dentist later.\n\nWhat pharmacy do you use?")
+        }
+        setIsSearching(false)
         advanceStep("pharmacy-search")
         break
 
@@ -478,7 +499,14 @@ export default function OnboardingPage() {
           }, 800)
         } else {
           const parts = val.split(/\s+/)
-          const med = { name: parts.slice(0, -2).join(" ") || val, dose: parts[parts.length - 2] || "", frequency: parts[parts.length - 1] || "" }
+          let med: { name: string; dose: string; frequency: string }
+          if (parts.length >= 3) {
+            med = { name: parts.slice(0, -2).join(" "), dose: parts[parts.length - 2], frequency: parts[parts.length - 1] }
+          } else if (parts.length === 2) {
+            med = { name: parts[0], dose: parts[1], frequency: "" }
+          } else {
+            med = { name: val, dose: "", frequency: "" }
+          }
           setPatient(p => ({ ...p, medications: [...(p.medications || []), med] }))
           addAgent(`Got it — **${val}** added to your list.\n\nI'll check for interactions once we have everything.\n\nAny other medications? (Say 'done' when you're finished)`, "maya")
           advanceStep("med-more")

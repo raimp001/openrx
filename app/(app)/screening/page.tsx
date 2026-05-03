@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo } from "react"
 import Image from "next/image"
 import {
   Activity,
@@ -122,35 +122,109 @@ function toAgeFromDob(value?: string): string {
   return age > 0 ? String(age) : ""
 }
 
+interface ScreeningState {
+  assessment: ScreeningResponse | null
+  localCareConnections: LocalCareConnection[]
+  evidenceCitations: ScreeningEvidenceCitation[]
+  running: boolean
+  age: string
+  symptoms: string
+  familyHistory: string
+  conditions: string
+  bmi: string
+  showManualFields: boolean
+  smoker: boolean
+  smokerTouched: boolean
+  narrative: string
+  intakeFeedback: string
+  paymentIntent: PaymentRecord | null
+  paymentId: string
+  verifyTxHash: string
+  fee: string
+  recipientAddress: string
+  showPaymentGate: boolean
+  paymentReady: boolean
+  creatingIntent: boolean
+  launchingPay: boolean
+  verifyingPayment: boolean
+  error: string
+}
+
+type ScreeningAction =
+  | { type: "SET_FIELD"; field: keyof ScreeningState; value: ScreeningState[keyof ScreeningState] }
+  | { type: "SET_ASSESSMENT"; assessment: ScreeningResponse }
+  | { type: "RESET_PAYMENT" }
+  | { type: "APPLY_PAYMENT_REQUIRED"; data: ScreeningResponse }
+
+const initialScreeningState: ScreeningState = {
+  assessment: null,
+  localCareConnections: [],
+  evidenceCitations: [],
+  running: false,
+  age: "",
+  symptoms: "",
+  familyHistory: "",
+  conditions: "",
+  bmi: "",
+  showManualFields: false,
+  smoker: false,
+  smokerTouched: false,
+  narrative: "",
+  intakeFeedback: "",
+  paymentIntent: null,
+  paymentId: "",
+  verifyTxHash: "",
+  fee: "0.50",
+  recipientAddress: "",
+  showPaymentGate: false,
+  paymentReady: false,
+  creatingIntent: false,
+  launchingPay: false,
+  verifyingPayment: false,
+  error: "",
+}
+
+function screeningReducer(state: ScreeningState, action: ScreeningAction): ScreeningState {
+  switch (action.type) {
+    case "SET_FIELD":
+      return { ...state, [action.field]: action.value }
+    case "SET_ASSESSMENT":
+      return {
+        ...state,
+        assessment: action.assessment,
+        localCareConnections: action.assessment.localCareConnections || [],
+        evidenceCitations: action.assessment.evidenceCitations || [],
+        showPaymentGate: action.assessment.accessLevel === "deep" ? false : state.showPaymentGate,
+      }
+    case "RESET_PAYMENT":
+      return { ...state, paymentIntent: null, paymentId: "", verifyTxHash: "", paymentReady: false, showPaymentGate: false }
+    case "APPLY_PAYMENT_REQUIRED":
+      return {
+        ...state,
+        paymentReady: false,
+        showPaymentGate: true,
+        fee: action.data.fee || state.fee,
+        recipientAddress: action.data.recipientAddress || state.recipientAddress,
+        error: action.data.error || "Payment is required before personalized recommendations are generated.",
+      }
+    default:
+      return state
+  }
+}
+
 export default function ScreeningPage() {
   const { snapshot } = useLiveSnapshot()
   const { walletAddress, isConnected, profile } = useWalletIdentity()
-  const [assessment, setAssessment] = useState<ScreeningResponse | null>(null)
-  const [localCareConnections, setLocalCareConnections] = useState<LocalCareConnection[]>([])
-  const [evidenceCitations, setEvidenceCitations] = useState<ScreeningEvidenceCitation[]>([])
-  const [running, setRunning] = useState(false)
-  const [age, setAge] = useState("")
-  const [symptoms, setSymptoms] = useState("")
-  const [familyHistory, setFamilyHistory] = useState("")
-  const [conditions, setConditions] = useState("")
-  const [bmi, setBmi] = useState("")
-  const [showManualFields, setShowManualFields] = useState(false)
-  const [smoker, setSmoker] = useState(false)
-  const [smokerTouched, setSmokerTouched] = useState(false)
-  const [narrative, setNarrative] = useState("")
-  const [intakeFeedback, setIntakeFeedback] = useState("")
-
-  const [paymentIntent, setPaymentIntent] = useState<PaymentRecord | null>(null)
-  const [paymentId, setPaymentId] = useState("")
-  const [verifyTxHash, setVerifyTxHash] = useState("")
-  const [fee, setFee] = useState("0.50")
-  const [recipientAddress, setRecipientAddress] = useState("")
-  const [showPaymentGate, setShowPaymentGate] = useState(false)
-  const [paymentReady, setPaymentReady] = useState(false)
-  const [creatingIntent, setCreatingIntent] = useState(false)
-  const [launchingPay, setLaunchingPay] = useState(false)
-  const [verifyingPayment, setVerifyingPayment] = useState(false)
-  const [error, setError] = useState("")
+  const [state, dispatch] = React.useReducer(screeningReducer, initialScreeningState)
+  const {
+    assessment, localCareConnections, evidenceCitations, running,
+    age, symptoms, familyHistory, conditions, bmi, showManualFields,
+    smoker, smokerTouched, narrative, intakeFeedback,
+    paymentIntent, paymentId, verifyTxHash, fee, recipientAddress,
+    showPaymentGate, paymentReady, creatingIntent, launchingPay, verifyingPayment, error,
+  } = state
+  const set = (field: keyof ScreeningState, value: ScreeningState[keyof ScreeningState]) =>
+    dispatch({ type: "SET_FIELD", field, value })
 
   const riskStyle = useMemo(() => {
     if (!assessment) return "bg-border text-muted"
@@ -192,7 +266,7 @@ export default function ScreeningPage() {
     if (!walletAddress) return
     if (!age) {
       const inferredAge = toAgeFromDob(profile?.dateOfBirth || snapshot.patient?.date_of_birth)
-      if (inferredAge) setAge(inferredAge)
+      if (inferredAge) set("age", inferredAge)
     }
     if (!conditions) {
       const fromProfile = (profile?.medicalHistory || [])
@@ -203,7 +277,7 @@ export default function ScreeningPage() {
         .filter((item): item is string => !!item)
       const combined = Array.from(new Set([...fromProfile, ...fromSnapshot]))
       if (combined.length > 0) {
-        setConditions(combined.join(", "))
+        set("conditions", combined.join(", "))
       }
     }
   }, [
@@ -217,19 +291,11 @@ export default function ScreeningPage() {
   ])
 
   useEffect(() => {
-    setPaymentIntent(null)
-    setPaymentId("")
-    setVerifyTxHash("")
-    setPaymentReady(false)
-    setShowPaymentGate(false)
+    dispatch({ type: "RESET_PAYMENT" })
   }, [walletAddress])
 
   function applyPaymentRequired(data: ScreeningResponse) {
-    setPaymentReady(false)
-    setShowPaymentGate(true)
-    if (data.fee) setFee(data.fee)
-    if (data.recipientAddress) setRecipientAddress(data.recipientAddress)
-    setError(data.error || "Payment is required before personalized recommendations are generated.")
+    dispatch({ type: "APPLY_PAYMENT_REQUIRED", data })
   }
 
   async function ensureScreeningPaymentIntent(): Promise<PaymentRecord | null> {
@@ -237,13 +303,13 @@ export default function ScreeningPage() {
       return paymentIntent
     }
     if (!walletAddress) {
-      setError("Connect your wallet before starting Base Pay.")
+      set("error", "Connect your wallet before starting Base Pay.")
       return null
     }
 
-    setCreatingIntent(true)
-    setShowPaymentGate(true)
-    setError("")
+    set("creatingIntent", true)
+    set("showPaymentGate", true)
+    set("error", "")
     try {
       const response = await fetch("/api/screening/payment-intent", {
         method: "POST",
@@ -260,28 +326,28 @@ export default function ScreeningPage() {
         throw new Error(data.error || "Failed to create screening payment intent.")
       }
 
-      setPaymentIntent(data.payment)
-      setPaymentId(data.payment.id)
-      setFee(data.fee || fee)
-      setRecipientAddress(data.recipientAddress || data.payment.recipientAddress)
-      setVerifyTxHash("")
-      setPaymentReady(false)
+      set("paymentIntent", data.payment)
+      set("paymentId", data.payment.id)
+      set("fee", data.fee || fee)
+      set("recipientAddress", data.recipientAddress || data.payment.recipientAddress)
+      set("verifyTxHash", "")
+      set("paymentReady", false)
       return data.payment
     } catch (issue) {
-      setError(issue instanceof Error ? issue.message : "Failed to create screening payment intent.")
+      set("error", issue instanceof Error ? issue.message : "Failed to create screening payment intent.")
       return null
     } finally {
-      setCreatingIntent(false)
+      set("creatingIntent", false)
     }
   }
 
   async function openDeepDiveCheckout() {
     if (!walletAddress) {
-      setShowPaymentGate(true)
-      setError("Connect your wallet to unlock the paid deep-dive recommendation.")
+      set("showPaymentGate", true)
+      set("error", "Connect your wallet to unlock the paid deep-dive recommendation.")
       return
     }
-    setShowPaymentGate(true)
+    set("showPaymentGate", true)
     await ensureScreeningPaymentIntent()
   }
 
@@ -289,39 +355,39 @@ export default function ScreeningPage() {
     const intent = paymentIntent || (await ensureScreeningPaymentIntent())
     if (!intent) return
 
-    setLaunchingPay(true)
-    setError("")
+    set("launchingPay", true)
+    set("error", "")
     try {
       const result = await launchBaseBuilderPay({
         amount: intent.expectedAmount,
         recipientAddress: intent.recipientAddress,
       })
-      setVerifyTxHash(result.paymentId)
+      set("verifyTxHash", result.paymentId)
     } catch (issue) {
-      setError(issue instanceof Error ? issue.message : "Failed to launch Base Pay.")
+      set("error", issue instanceof Error ? issue.message : "Failed to launch Base Pay.")
     } finally {
-      setLaunchingPay(false)
+      set("launchingPay", false)
     }
   }
 
   async function verifyScreeningPayment() {
     if (!walletAddress) {
-      setError("Connect your wallet before verification.")
+      set("error", "Connect your wallet before verification.")
       return
     }
     const intent = paymentIntent || (await ensureScreeningPaymentIntent())
     const resolvedPaymentId = paymentId || intent?.id
     if (!intent || !resolvedPaymentId) {
-      setError("Start Base Pay first so I can verify the payment.")
+      set("error", "Start Base Pay first so I can verify the payment.")
       return
     }
     if (!verifyTxHash.trim()) {
-      setError("Paste a transaction hash to verify payment.")
+      set("error", "Paste a transaction hash to verify payment.")
       return
     }
 
-    setVerifyingPayment(true)
-    setError("")
+    set("verifyingPayment", true)
+    set("error", "")
     try {
       const response = await fetch("/api/payments/verify", {
         method: "POST",
@@ -338,13 +404,13 @@ export default function ScreeningPage() {
       if (!response.ok || data.error) {
         throw new Error(data.error || "Payment verification failed.")
       }
-      setPaymentId(resolvedPaymentId)
-      setPaymentReady(true)
+      set("paymentId", resolvedPaymentId)
+      set("paymentReady", true)
     } catch (issue) {
-      setPaymentReady(false)
-      setError(issue instanceof Error ? issue.message : "Payment verification failed.")
+      set("paymentReady", false)
+      set("error", issue instanceof Error ? issue.message : "Payment verification failed.")
     } finally {
-      setVerifyingPayment(false)
+      set("verifyingPayment", false)
     }
   }
 
@@ -363,7 +429,7 @@ export default function ScreeningPage() {
 
   async function parseNarrativeIntakeIfPresent(): Promise<ScreeningIntakeResult["extracted"] | null> {
     if (!narrative.trim()) {
-      setIntakeFeedback("")
+      set("intakeFeedback", "")
       return null
     }
 
@@ -379,7 +445,7 @@ export default function ScreeningPage() {
       }
       const inheritedRiskDetected = [...(data.extracted.familyHistory || []), ...(data.extracted.conditions || [])]
         .some((item) => /\b(brca|lynch|apc|mutyh|germline|prostate|colon|colorectal|polyposis)\b/i.test(item))
-      setIntakeFeedback(
+      set("intakeFeedback",
         data.ready
           ? inheritedRiskDetected
             ? "Captured inherited-risk details from your message and will personalize accordingly."
@@ -389,31 +455,31 @@ export default function ScreeningPage() {
       )
       return data.extracted
     } catch {
-      setIntakeFeedback("Could not auto-parse that message. You can still continue with what was entered.")
+      set("intakeFeedback", "Could not auto-parse that message. You can still continue with what was entered.")
       return null
     }
   }
 
   async function runScreening(level: ScreeningAnalysisLevel) {
     if (!canRunPreview) {
-      setError("Share one short sentence about your age and family/genetic history to start.")
+      set("error", "Share one short sentence about your age and family/genetic history to start.")
       return
     }
 
     if (level === "deep" && !walletAddress) {
-      setShowPaymentGate(true)
-      setError("Connect your wallet to unlock the paid deep-dive recommendation.")
+      set("showPaymentGate", true)
+      set("error", "Connect your wallet to unlock the paid deep-dive recommendation.")
       return
     }
 
     if (level === "deep" && (!paymentReady || !paymentId)) {
       await openDeepDiveCheckout()
-      setError("Complete Base Pay verification to release deep personalized/genetics recommendations.")
+      set("error", "Complete Base Pay verification to release deep personalized/genetics recommendations.")
       return
     }
 
-    setRunning(true)
-    setError("")
+    set("running", true)
+    set("error", "")
     try {
       const extracted = await parseNarrativeIntakeIfPresent()
       const manualSymptoms = parseTerms(symptoms)
@@ -454,23 +520,18 @@ export default function ScreeningPage() {
         throw new Error(data.error || "Failed to compute screening assessment.")
       }
 
-      setAssessment(data)
-      setLocalCareConnections(data.localCareConnections || [])
-      setEvidenceCitations(data.evidenceCitations || [])
-      if (data.accessLevel === "deep") {
-        setShowPaymentGate(false)
-      }
+      dispatch({ type: "SET_ASSESSMENT", assessment: data })
     } catch (issue) {
       const message = issue instanceof Error ? issue.message : ""
       if (!message || message.toLowerCase().includes("failed to compute screening assessment")) {
-        setError(
-          "Couldn’t generate recommendations yet. Try a short summary like: 'I am 58, father had prostate cancer at 52, BRCA2 mutation, former smoker.'"
+        set("error",
+          "Couldn’t generate recommendations yet. Try a short summary like: ‘I am 58, father had prostate cancer at 52, BRCA2 mutation, former smoker.’"
         )
       } else {
-        setError(message)
+        set("error", message)
       }
     } finally {
-      setRunning(false)
+      set("running", false)
     }
   }
 
@@ -548,7 +609,7 @@ export default function ScreeningPage() {
               <h2 className="text-sm font-bold text-primary">Complete Base Pay Before Deep Recommendation</h2>
             </div>
             <button
-              onClick={() => setShowPaymentGate(false)}
+              onClick={() => set("showPaymentGate", false)}
               className="text-[11px] font-semibold text-muted hover:text-teal transition"
             >
               Close
@@ -585,7 +646,7 @@ export default function ScreeningPage() {
             <div className="space-y-2">
               <input
                 value={verifyTxHash}
-                onChange={(event) => setVerifyTxHash(event.target.value)}
+                onChange={(event) => set("verifyTxHash", event.target.value)}
                 placeholder="Paste transaction hash"
                 className="w-full rounded-[18px] border border-border bg-white/70 px-3 py-3 text-xs text-primary focus:outline-none focus:border-teal/40"
               />
@@ -640,7 +701,7 @@ export default function ScreeningPage() {
               <textarea
                 aria-label="Tell us your history in plain English"
                 value={narrative}
-                onChange={(event) => setNarrative(event.target.value)}
+                onChange={(event) => set("narrative", event.target.value)}
                 rows={4}
                 placeholder="I am 58, father had prostate cancer at 52, BRCA2 mutation carrier, former smoker."
                 className="mt-1 w-full rounded-[18px] border border-white/80 bg-white/80 px-3 py-3 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40 resize-y"
@@ -652,7 +713,7 @@ export default function ScreeningPage() {
                 <button
                   key={starter}
                   type="button"
-                  onClick={() => setNarrative(starter)}
+                  onClick={() => set("narrative", starter)}
                   className="chip transition hover:border-teal/30 hover:text-teal"
                 >
                   Example {index + 1}
@@ -674,7 +735,7 @@ export default function ScreeningPage() {
           <div className="surface-muted p-4">
             <button
               type="button"
-              onClick={() => setShowManualFields((value) => !value)}
+              onClick={() => set("showManualFields", !showManualFields)}
               className="text-xs font-semibold text-primary hover:text-teal transition"
             >
               {showManualFields ? "Hide optional details" : "Add optional details (if needed)"}
@@ -685,7 +746,7 @@ export default function ScreeningPage() {
                   Age
                   <input
                     value={age}
-                    onChange={(event) => setAge(event.target.value)}
+                    onChange={(event) => set("age", event.target.value)}
                     inputMode="numeric"
                     placeholder="58"
                     className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40"
@@ -695,7 +756,7 @@ export default function ScreeningPage() {
                   Family history
                   <input
                     value={familyHistory}
-                    onChange={(event) => setFamilyHistory(event.target.value)}
+                    onChange={(event) => set("familyHistory", event.target.value)}
                     placeholder="father prostate cancer at 52"
                     className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40"
                   />
@@ -704,7 +765,7 @@ export default function ScreeningPage() {
                   Conditions / mutations
                   <input
                     value={conditions}
-                    onChange={(event) => setConditions(event.target.value)}
+                    onChange={(event) => set("conditions", event.target.value)}
                     placeholder="BRCA2 carrier, hypertension"
                     className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40"
                   />
@@ -713,7 +774,7 @@ export default function ScreeningPage() {
                   Symptoms (optional)
                   <input
                     value={symptoms}
-                    onChange={(event) => setSymptoms(event.target.value)}
+                    onChange={(event) => set("symptoms", event.target.value)}
                     placeholder="fatigue, abdominal pain"
                     className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40"
                   />
@@ -722,7 +783,7 @@ export default function ScreeningPage() {
                   BMI (optional)
                   <input
                     value={bmi}
-                    onChange={(event) => setBmi(event.target.value)}
+                    onChange={(event) => set("bmi", event.target.value)}
                     inputMode="decimal"
                     placeholder="29.4"
                     className="mt-1 w-full rounded-[18px] border border-white/70 bg-white/72 px-3 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:border-teal/40"
@@ -733,8 +794,8 @@ export default function ScreeningPage() {
                     <input
                       checked={smoker}
                       onChange={(event) => {
-                        setSmoker(event.target.checked)
-                        setSmokerTouched(true)
+                        set("smoker", event.target.checked)
+                        set("smokerTouched", true)
                       }}
                       type="checkbox"
                       className="accent-terra"

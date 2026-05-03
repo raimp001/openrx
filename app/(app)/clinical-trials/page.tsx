@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { ExternalLink, FlaskConical, Loader2, MapPin, Search, Sparkles } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
@@ -22,6 +22,7 @@ export default function ClinicalTrialsPage() {
   const [matches, setMatches] = useState<TrialMatch[]>([])
   const [hasSearched, setHasSearched] = useState(false)
   const [error, setError] = useState("")
+  const abortRef = useRef<AbortController | null>(null)
 
   const searchTrials = useCallback(async (nextCondition = condition, nextLocation = location) => {
     if (!nextCondition.trim() && !nextLocation.trim()) {
@@ -30,6 +31,10 @@ export default function ClinicalTrialsPage() {
       setMatches([])
       return
     }
+
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
 
     setError("")
     setLoading(true)
@@ -40,17 +45,18 @@ export default function ClinicalTrialsPage() {
       const params = new URLSearchParams()
       if (nextCondition.trim()) params.set("condition", nextCondition.trim())
       if (nextLocation.trim()) params.set("location", nextLocation.trim())
-      const response = await fetch(`/api/clinical-trials/match?${params}`)
+      const response = await fetch(`/api/clinical-trials/match?${params}`, { signal: controller.signal })
       const data = (await response.json()) as { matches?: TrialMatch[]; error?: string }
       if (!response.ok || data.error) {
         throw new Error(data.error || "Failed to match trials.")
       }
       setMatches(data.matches || [])
     } catch (issue) {
+      if (issue instanceof DOMException && issue.name === "AbortError") return
       setMatches([])
       setError(issue instanceof Error ? issue.message : "Failed to match trials.")
     } finally {
-      setLoading(false)
+      if (!controller.signal.aborted) setLoading(false)
     }
   }, [condition, location])
 

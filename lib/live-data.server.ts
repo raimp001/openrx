@@ -328,7 +328,7 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
       email: user.email,
       address: patient.address || "",
       insurance_provider: patient.insuranceProvider || "",
-      insurance_plan: patient.insuranceProvider || "",
+      insurance_plan: "",
       insurance_id: patient.insuranceId || "",
       emergency_contact_name: patient.emergencyContact || "",
       emergency_contact_phone: "",

@@ -89,6 +89,12 @@ export function suggestImprovement(params: {
   }
 
   improvements.push(improvement)
+  if (improvements.length > 200) {
+    const active = improvements.filter((i) => i.status === "suggested" || i.status === "approved")
+    const completed = improvements.filter((i) => i.status !== "suggested" && i.status !== "approved")
+    improvements.length = 0
+    improvements.push(...active.slice(-100), ...completed.slice(-50))
+  }
   persistImprovements(improvements)
   return improvement
 }

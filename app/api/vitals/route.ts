@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   const respiratoryRate = typeof b.respiratoryRate === "number" ? b.respiratoryRate : null
   const notes = typeof b.notes === "string" ? b.notes.slice(0, 500) : null
 
-  const hasAnyVital = systolic || diastolic || heartRate || temperatureF || weightLbs || oxygenSaturation || bloodGlucose || respiratoryRate
+  const hasAnyVital = systolic != null || diastolic != null || heartRate != null || temperatureF != null || weightLbs != null || oxygenSaturation != null || bloodGlucose != null || respiratoryRate != null
   if (!hasAnyVital) {
     return NextResponse.json({ error: "At least one vital sign measurement is required" }, { status: 400 })
   }
@@ -88,6 +88,11 @@ export async function POST(request: NextRequest) {
 
     const bmi = weightKg && heightCm ? Math.round((weightKg / ((heightCm / 100) ** 2)) * 10) / 10 : null
 
+    const combinedNotes = [
+      notes,
+      bloodGlucose != null ? `Blood glucose: ${bloodGlucose} mg/dL` : null,
+    ].filter(Boolean).join("; ") || null
+
     const vital = await prisma.vitalSign.create({
       data: {
         patientId,
@@ -98,7 +103,7 @@ export async function POST(request: NextRequest) {
         oxygenSaturation,
         weight: weightKg,
         bmi,
-        notes,
+        notes: combinedNotes,
       },
     })
 

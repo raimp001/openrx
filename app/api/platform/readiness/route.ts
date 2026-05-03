@@ -7,8 +7,9 @@ import {
   listAdminNotifications,
   listNetworkApplications,
 } from "@/lib/provider-applications"
-import { listWorkerHeartbeats } from "@/lib/openclaw/runtime-persistence"
+import { listRecentCronRuns, listWorkerHeartbeats } from "@/lib/openclaw/runtime-persistence"
 import { allowsUnsignedWalletHeader } from "@/lib/api-auth"
+import { allowsCronRequestOverrides } from "@/lib/openclaw/cron-dispatch"
 
 export const dynamic = "force-dynamic"
 
@@ -21,6 +22,7 @@ type EmailDeliveryHealth = {
 }
 
 const LIVE_SCHEDULER_WINDOW_MS = 15 * 60 * 1000
+const RECENT_CRON_HEALTH_WINDOW_MS = 24 * 60 * 60 * 1000
 const RESEND_DOMAIN_CHECK_TIMEOUT_MS = 3500
 
 function toStatus(ok: boolean): ReadinessStatus {
@@ -122,11 +124,12 @@ async function getEmailDeliveryHealth(): Promise<EmailDeliveryHealth> {
 export async function GET() {
   const databaseHealth = await getDatabaseHealth()
   const screening = assessHealthScreening()
-  const [applications, notifications, ledger, workers, emailDelivery] = await Promise.all([
+  const [applications, notifications, ledger, workers, recentCronRuns, emailDelivery] = await Promise.all([
     listNetworkApplications(),
     listAdminNotifications(OPENRX_ADMIN_ID),
     getLedgerSnapshot(),
     listWorkerHeartbeats(10),
+    listRecentCronRuns(10),
     getEmailDeliveryHealth(),
   ])
   const awsWorker = workers.find(isRecentAwsWorker)
@@ -136,9 +139,23 @@ export async function GET() {
   const agentNotifyTokenConfigured = !!(process.env.OPENRX_AGENT_NOTIFY_TOKEN || "").trim()
   const trustedRoleHeaderDisabled = (process.env.OPENRX_TRUST_ROLE_HEADER || "false").toLowerCase() !== "true"
   const unsignedWalletHeaderDisabled = !allowsUnsignedWalletHeader()
+  const cronRequestOverridesDisabled = !allowsCronRequestOverrides({
+    authSource: "admin_api_key",
+    dryRun: false,
+  })
   const applicationStoreConfigured = !!(process.env.OPENRX_APPLICATIONS_PATH || "").trim()
   const publicBaseUrlConfigured = !!(process.env.OPENRX_APP_BASE_URL || process.env.VERCEL_URL || "").trim()
   const liveModelConfigured = !!(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY)
+  const recentCronCutoff = Date.now() - RECENT_CRON_HEALTH_WINDOW_MS
+  const recentCronHealthRuns = recentCronRuns.filter((run) => toEpoch(run.createdAt) >= recentCronCutoff)
+  const failedRecentCronRuns = recentCronHealthRuns.filter((run) => !run.ok).length
+  const staleOverrideRecentCronRuns = recentCronHealthRuns.filter((run) =>
+    run.jobId !== "screening-reminders" &&
+    run.message.toLowerCase().includes("screening reminder workflow")
+  ).length
+  const cronHealthReady =
+    recentCronHealthRuns.length === 0 ||
+    (failedRecentCronRuns === 0 && staleOverrideRecentCronRuns === 0)
 
   const pendingApplications = applications.filter((item) => item.status === "pending").length
   const approvedApplications = applications.filter((item) => item.status === "approved").length
@@ -165,9 +182,9 @@ export async function GET() {
     {
       id: "admin-security",
       title: "Admin and service auth",
-      description: "Admin APIs require OPENRX_ADMIN_API_KEY, workers require OPENRX_AGENT_NOTIFY_TOKEN, trusted role headers stay disabled, and unsigned wallet headers are not trusted in production.",
-      status: toStatus(adminApiKeyConfigured && agentNotifyTokenConfigured && trustedRoleHeaderDisabled && unsignedWalletHeaderDisabled),
-      metric: adminApiKeyConfigured && agentNotifyTokenConfigured && trustedRoleHeaderDisabled && unsignedWalletHeaderDisabled
+      description: "Admin APIs require OPENRX_ADMIN_API_KEY, workers require OPENRX_AGENT_NOTIFY_TOKEN, trusted role headers stay disabled, unsigned wallet headers are not trusted, and live cron request overrides stay off.",
+      status: toStatus(adminApiKeyConfigured && agentNotifyTokenConfigured && trustedRoleHeaderDisabled && unsignedWalletHeaderDisabled && cronRequestOverridesDisabled),
+      metric: adminApiKeyConfigured && agentNotifyTokenConfigured && trustedRoleHeaderDisabled && unsignedWalletHeaderDisabled && cronRequestOverridesDisabled
         ? "Locked"
         : "Missing launch secret or unsafe header trust enabled",
       href: "/admin-review",
@@ -226,6 +243,16 @@ export async function GET() {
       description: "Background reminders and OpenClaw jobs are driven by the EC2/systemd scheduler instead of Vercel cron.",
       status: toStatus(Boolean(awsWorker)),
       metric: awsWorker ? `${awsWorker.workerId} active` : "No recent AWS heartbeat",
+      href: "/dashboard",
+    },
+    {
+      id: "background-job-health",
+      title: "Background job health",
+      description: "Recent scheduled runs should complete without provider-blocked failures or stale screening prompt overrides on unrelated jobs.",
+      status: toStatus(cronHealthReady),
+      metric: recentCronHealthRuns.length === 0
+        ? "No recent runs yet"
+        : `${recentCronHealthRuns.length - failedRecentCronRuns}/${recentCronHealthRuns.length} recent ok${staleOverrideRecentCronRuns ? ` · ${staleOverrideRecentCronRuns} stale override` : ""}`,
       href: "/dashboard",
     },
   ]

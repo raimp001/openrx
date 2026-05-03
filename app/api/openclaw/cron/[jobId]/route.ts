@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { runAgent } from "@/lib/ai-engine"
 import { resolveClinicSession } from "@/lib/clinic-auth"
 import {
+  allowsCronRequestOverrides,
   buildCronAgentMessage,
+  canRunCronSideEffectsAfterAgentFailure,
   classifyCronAgentResult,
   getCronJob,
   normalizeTriggeredAt,
@@ -36,6 +38,18 @@ function parseBoolean(value: string | null): boolean | undefined {
 
 function getDefaultWorkerId(jobId: string): string {
   return process.env.OPENRX_WORKER_ID?.trim() || `vercel-cron-${jobId}`
+}
+
+function emptySideEffects() {
+  return {
+    executed: false,
+    failed: false,
+    notificationsCreated: 0,
+    emailsSent: 0,
+    deployTriggered: false,
+    summaries: [] as string[],
+    warnings: [] as string[],
+  }
 }
 
 async function maybeRecordWorkerHeartbeat(
@@ -94,9 +108,10 @@ async function executeCronRequest(
 
   await maybeRecordWorkerHeartbeat(body, job.id, session.authSource)
 
-  const allowRequestScopedOverrides =
-    session.authSource === "admin_api_key" ||
-    (process.env.NODE_ENV !== "production" && session.authSource === "default")
+  const allowRequestScopedOverrides = allowsCronRequestOverrides({
+    authSource: session.authSource,
+    dryRun: body.dryRun,
+  })
   const messageOverride = allowRequestScopedOverrides ? body.message : undefined
   const walletAddress = allowRequestScopedOverrides ? body.walletAddress : undefined
   const triggeredAt = normalizeTriggeredAt(body.triggeredAt)
@@ -146,32 +161,6 @@ async function executeCronRequest(
     return NextResponse.json(payload)
   }
 
-  if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
-    const payload = {
-      ok: false,
-      failureReason: "missing_model_credentials",
-      error:
-        "AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
-    }
-    await recordCronRun({
-      jobId: job.id,
-      sessionId: body.sessionId || `cron-${job.id}-missing-creds`,
-      requestedByUserId: session.userId,
-      requestedByRole: session.role,
-      authSource: session.authSource,
-      dryRun: false,
-      ok: false,
-      failureReason: payload.failureReason,
-      httpStatus: 503,
-      idempotencyKey: body.idempotencyKey || null,
-      walletAddress: walletAddress || null,
-      message,
-      triggeredAt: triggeredAt.effectiveIso,
-      responsePayload: payload,
-    })
-    return NextResponse.json(payload, { status: 503 })
-  }
-
   const cached = readCronIdempotency<{
     ok: boolean
     failureReason: string | null
@@ -183,7 +172,9 @@ async function executeCronRequest(
     triggeredAt: ReturnType<typeof normalizeTriggeredAt>
     dryRun: false
     live: boolean
-    providerCalled: true
+    providerCalled: boolean
+    agentFailureReason?: string | null
+    modelSummaryAvailable?: boolean
     sideEffectsExecuted: boolean
     sideEffects: {
       notificationsCreated: number
@@ -235,41 +226,51 @@ async function executeCronRequest(
   }
 
   const sessionId = body.sessionId || `cron-${job.id}-${Date.now()}`
+  const liveModelConfigured = !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY)
 
-  const result = await runAgent({
-    agentId: job.agentId,
-    message,
-    sessionId,
-    walletAddress,
-  })
+  const result = liveModelConfigured
+    ? await runAgent({
+        agentId: job.agentId,
+        message,
+        sessionId,
+        walletAddress,
+      })
+    : {
+        response:
+          "AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
+        agentId: job.agentId,
+      }
 
   const classification = classifyCronAgentResult(result)
-  const sideEffects = classification.ok
+  const canRunSideEffects =
+    classification.ok ||
+    canRunCronSideEffectsAfterAgentFailure(job.id, classification.failureReason)
+  const sideEffects = canRunSideEffects
     ? await executeCronSideEffects({
         job,
         sessionId,
         triggeredAtIso: triggeredAt.effectiveIso,
         agentResponse: result.response,
       })
-    : {
-        executed: false,
-        failed: false,
-        notificationsCreated: 0,
-        emailsSent: 0,
-        deployTriggered: false,
-        summaries: [] as string[],
-        warnings: [] as string[],
-      }
+    : emptySideEffects()
 
-  const ok = classification.ok && !sideEffects.failed
-  const failureReason = classification.failureReason || (sideEffects.failed ? "side_effect_failed" : null)
-  const httpStatus = sideEffects.failed ? 502 : classification.httpStatus
+  if (!classification.ok && canRunSideEffects) {
+    sideEffects.warnings.unshift(
+      `AI summary unavailable (${classification.failureReason}); deterministic side effects still evaluated.`
+    )
+  }
+
+  const ok = canRunSideEffects && !sideEffects.failed
+  const failureReason = sideEffects.failed ? "side_effect_failed" : ok ? null : classification.failureReason
+  const httpStatus = sideEffects.failed ? 502 : ok ? 200 : classification.httpStatus
 
   const payload = {
     ok,
     failureReason,
     dryRun: false,
-    providerCalled: true,
+    providerCalled: liveModelConfigured,
+    agentFailureReason: classification.failureReason,
+    modelSummaryAvailable: classification.ok,
     sideEffectsExecuted: sideEffects.executed,
     sideEffects: {
       notificationsCreated: sideEffects.notificationsCreated,
@@ -300,7 +301,7 @@ async function executeCronRequest(
       key: body.idempotencyKey || null,
       status: body.idempotencyKey ? "stored" : "none",
     },
-    live: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
+    live: liveModelConfigured,
     maxDurationSeconds: maxDuration,
   }
 

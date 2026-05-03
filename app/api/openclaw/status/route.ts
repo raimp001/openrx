@@ -103,12 +103,17 @@ function summarizeScheduler(workers: WorkerRecord[]) {
 }
 
 export async function GET() {
-  const hasLLM = !!process.env.OPENAI_API_KEY
+  const hasLLM = !!(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY)
   const recentActions = getRecentActions(5)
   const [allWorkers, recentRuns] = await Promise.all([
     listWorkerHeartbeats(20),
     listRecentCronRuns(5),
   ])
+  const failedRecentRuns = recentRuns.filter((run) => !run.ok).length
+  const staleOverrideRuns = recentRuns.filter((run) =>
+    run.jobId !== "screening-reminders" &&
+    run.message.toLowerCase().includes("screening reminder workflow")
+  ).length
 
   const workers = allWorkers
     .filter(isActiveWorker)
@@ -126,6 +131,12 @@ export async function GET() {
       engine: hasLLM ? "OpenAI GPT-4o-mini" : "not-configured",
     },
     scheduler: summarizeScheduler(allWorkers),
+    recentCronHealth: {
+      checked: recentRuns.length,
+      failed: failedRecentRuns,
+      staleOverrides: staleOverrideRuns,
+      ok: failedRecentRuns === 0 && staleOverrideRuns === 0,
+    },
     recentActions,
     agents: OPENCLAW_CONFIG.agents.map((a) => ({
       id: a.id,

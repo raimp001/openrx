@@ -8,7 +8,7 @@ type TriggeredAtInfo = {
   requestedAt?: string
 }
 
-type CronFailureReason =
+export type CronFailureReason =
   | "unknown_agent"
   | "missing_model_credentials"
   | "provider_auth_failed"
@@ -166,6 +166,39 @@ export function listDueCronJobs(at: Date) {
 
 export function getCronJob(jobId: string): CronJob | undefined {
   return OPENCLAW_CONFIG.cronJobs.find((item) => item.id === jobId)
+}
+
+export function allowsCronRequestOverrides(params: {
+  authSource: string
+  dryRun?: boolean
+}): boolean {
+  if (process.env.OPENRX_ALLOW_CRON_REQUEST_OVERRIDES === "true") {
+    return params.authSource === "admin_api_key"
+  }
+
+  if (process.env.NODE_ENV !== "production" && params.authSource === "default") {
+    return true
+  }
+
+  // Keep preview/testing flexible without allowing a stale EC2 env file to
+  // override the real prompt/wallet for every live scheduled job.
+  return params.dryRun === true && params.authSource === "admin_api_key"
+}
+
+export function canRunCronSideEffectsAfterAgentFailure(
+  jobId: CronJobId,
+  failureReason: CronFailureReason | null
+): boolean {
+  if (!failureReason) return true
+  if (jobId === "daily-deploy") return false
+
+  return [
+    "missing_model_credentials",
+    "provider_auth_failed",
+    "provider_rate_limited",
+    "provider_unavailable",
+    "empty_or_fallback_response",
+  ].includes(failureReason)
 }
 
 export function normalizeTriggeredAt(value?: string): TriggeredAtInfo {

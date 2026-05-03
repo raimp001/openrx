@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/api-auth"
+import { canUseWalletScopedData, requestWalletMatches, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import {
   finalizeRefund,
@@ -12,6 +12,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const walletAddress = searchParams.get("walletAddress") || undefined
   const paymentId = searchParams.get("paymentId") || undefined
+  if (walletAddress && !canUseWalletScopedData(auth.session, walletAddress)) {
+    return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
+  }
 
   const snapshot = await getLedgerSnapshot({ walletAddress })
   const refunds = paymentId
@@ -36,6 +39,12 @@ export async function POST(request: NextRequest) {
         { error: "paymentId, amount, reason, and requestedBy are required." },
         { status: 400 }
       )
+    }
+    if (
+      !canUseWalletScopedData(auth.session, body.requestedBy) &&
+      !requestWalletMatches(request, body.requestedBy)
+    ) {
+      return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
     }
 
     const refund = await requestRefund({
@@ -76,6 +85,12 @@ export async function PATCH(request: NextRequest) {
           { status: 400 }
         )
       }
+      if (
+        !canUseWalletScopedData(auth.session, body.approvedBy) &&
+        !requestWalletMatches(request, body.approvedBy)
+      ) {
+        return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
+      }
       const refund = await updateRefundApproval(body.refundId, body.approvedBy)
       return NextResponse.json({ refund })
     }
@@ -85,6 +100,12 @@ export async function PATCH(request: NextRequest) {
         { error: "approvedBy and status are required for finalize action." },
         { status: 400 }
       )
+    }
+    if (
+      !canUseWalletScopedData(auth.session, body.approvedBy) &&
+      !requestWalletMatches(request, body.approvedBy)
+    ) {
+      return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
     }
 
     const result = await finalizeRefund({

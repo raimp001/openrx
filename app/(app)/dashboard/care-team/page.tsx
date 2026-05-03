@@ -8,8 +8,8 @@ export default function CareTeamCommandCenterPage() {
     <div className="space-y-4">
       <AppPageHeader
         className="surface-card p-4 sm:p-5"
-        title="AI Care Team"
-        description="Supervise your AI care team like a terminal. Blue glow means an agent needs human input."
+        title="Care team operations"
+        description="See which OpenRx helpers are active, what needs human input, and where the next care task is waiting."
       />
 
       <CareTeamCommandCenter />

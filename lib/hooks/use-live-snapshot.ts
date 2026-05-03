@@ -17,12 +17,21 @@ export function useLiveSnapshot(): UseLiveSnapshotResult {
   const demoWalletAddress = process.env.NEXT_PUBLIC_DEVELOPER_WALLET || undefined
   const activeWalletAddress = walletAddress || demoWalletAddress
   const [snapshot, setSnapshot] = useState<LiveSnapshot>(() => createEmptyLiveSnapshot(activeWalletAddress || null))
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(Boolean(activeWalletAddress))
   const [error, setError] = useState("")
 
   const load = useCallback(async () => {
     setLoading(true)
     setError("")
+
+    if (!activeWalletAddress) {
+      setSnapshot(createEmptyLiveSnapshot(null))
+      setLoading(false)
+      return
+    }
+
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 3500)
 
     try {
       const params = new URLSearchParams()
@@ -30,6 +39,8 @@ export function useLiveSnapshot(): UseLiveSnapshotResult {
 
       const response = await fetch(`/api/live/patient-snapshot?${params.toString()}`, {
         cache: "no-store",
+        signal: controller.signal,
+        headers: activeWalletAddress ? { "x-wallet-address": activeWalletAddress } : undefined,
       })
 
       if (!response.ok) {
@@ -42,6 +53,7 @@ export function useLiveSnapshot(): UseLiveSnapshotResult {
       setSnapshot(createEmptyLiveSnapshot(activeWalletAddress || null))
       setError(issue instanceof Error ? issue.message : "Failed to load patient snapshot.")
     } finally {
+      window.clearTimeout(timeout)
       setLoading(false)
     }
   }, [activeWalletAddress])

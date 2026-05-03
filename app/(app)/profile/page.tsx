@@ -7,11 +7,12 @@ import {
   AlertCircle, Heart, Calendar, Activity, FlaskConical, Syringe,
   ChevronRight, CheckCircle2, Clock, Edit3, ArrowRightCircle,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatDate } from "@/lib/utils"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
+import { OpsBadge } from "@/components/ui/ops-primitives"
 
 function age(dob: string): string {
   if (!dob) return "—"
@@ -64,6 +65,15 @@ export default function ProfilePage() {
   const latestVital = [...snapshot.vitals].sort(
     (a, b) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
   )[0]
+  const attentionCount = abnormalLabs + dueVaccines.length + upcomingApts.length
+  const nextAppointment = upcomingApts[0]
+  const profileFocus = abnormalLabs
+    ? "Review abnormal diagnostics"
+    : dueVaccines.length
+    ? "Close preventive care gaps"
+    : activeMeds.length
+    ? "Maintain medication adherence"
+    : "Complete record setup"
 
   const infoRows: { label: string; value: string; icon: React.ElementType }[] = useMemo(() => {
     if (!patient) return []
@@ -85,7 +95,7 @@ export default function ProfilePage() {
         </div>
         <h2 className="text-xl font-serif text-primary">No profile found</h2>
         <p className="text-sm text-muted mt-2 max-w-sm">
-          Complete onboarding to set up your health profile, or connect your wallet to load saved data.
+          Complete onboarding to set up your health profile, or connect your account to load saved data.
         </p>
         <Link
           href="/onboarding"
@@ -100,17 +110,67 @@ export default function ProfilePage() {
   return (
     <div className="animate-slide-up space-y-5">
       <AppPageHeader
+        eyebrow="Patient overview"
         title="My Health Profile"
-        description="Your complete health record and account details."
-        className="surface-card p-4 sm:p-5"
+        description="A single patient-facing summary of identity, coverage, care team, medications, labs, and the next actions that matter most."
+        className="surface-card p-5 sm:p-6"
+        meta={
+          <div className="flex flex-wrap items-center gap-2">
+            <OpsBadge tone={attentionCount ? "gold" : "accent"}>{attentionCount} items to watch</OpsBadge>
+            <OpsBadge tone={isConnected ? "accent" : "blue"}>{isConnected ? "account linked" : "account not linked"}</OpsBadge>
+            {patient.insurance_provider ? <OpsBadge tone="blue">{patient.insurance_provider}</OpsBadge> : null}
+          </div>
+        }
         actions={
-          <AIAction
-            agentId="coordinator"
-            label="Summarize My Health"
-            prompt="Give me a comprehensive health summary: active conditions, medications, upcoming appointments, and any items needing immediate attention."
-          />
+          <>
+            <Link href="/onboarding" className="control-button-secondary">
+              Update details
+            </Link>
+            <AIAction
+              agentId="coordinator"
+              label="Summarize My Health"
+              prompt="Give me a comprehensive health summary: active conditions, medications, upcoming appointments, and any items needing immediate attention."
+            />
+          </>
         }
       />
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <ProfileBriefCard
+          eyebrow="Current care focus"
+          title={profileFocus}
+          detail={
+            abnormalLabs
+              ? `${abnormalLabs} abnormal lab value${abnormalLabs === 1 ? "" : "s"} should be reviewed before routine follow-up.`
+              : dueVaccines.length
+              ? `${dueVaccines.length} vaccine${dueVaccines.length === 1 ? " is" : "s are"} due or overdue.`
+              : activeMeds.length
+              ? `${activeMeds.length} active medication${activeMeds.length === 1 ? "" : "s"} are shaping the day-to-day care plan.`
+              : "This profile still needs more live record data to become a complete care snapshot."
+          }
+          tone={abnormalLabs ? "red" : dueVaccines.length ? "gold" : activeMeds.length ? "blue" : "accent"}
+        />
+        <ProfileBriefCard
+          eyebrow="Next appointment"
+          title={nextAppointment ? formatDate(nextAppointment.scheduled_at) : "Nothing scheduled"}
+          detail={
+            nextAppointment
+              ? `${nextAppointment.type} · ${nextAppointment.reason || "Visit details pending"}`
+              : "There is no upcoming visit on file right now."
+          }
+          tone={nextAppointment ? "accent" : "terra"}
+        />
+        <ProfileBriefCard
+          eyebrow="Coverage snapshot"
+          title={patient.insurance_plan || patient.insurance_provider || "Coverage not on file"}
+          detail={
+            patient.insurance_id
+              ? `Member ID ${patient.insurance_id}`
+              : "Add insurance details to keep billing, referrals, and prior auth aligned."
+          }
+          tone={patient.insurance_provider ? "blue" : "gold"}
+        />
+      </div>
 
       {/* Profile card */}
       <div className="surface-card overflow-hidden">
@@ -133,7 +193,7 @@ export default function ProfilePage() {
                 )}
                 {isConnected && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/8 px-2 py-0.5 text-[9px] font-bold text-accent">
-                    <CheckCircle2 size={8} /> Wallet Linked
+                    <CheckCircle2 size={8} /> Account linked
                   </span>
                 )}
               </div>
@@ -444,6 +504,31 @@ export default function ProfilePage() {
             <p className="text-[10px] text-muted mt-0.5">{link.desc}</p>
           </Link>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function ProfileBriefCard({
+  eyebrow,
+  title,
+  detail,
+  tone,
+}: {
+  eyebrow: string
+  title: string
+  detail: string
+  tone: "terra" | "accent" | "blue" | "gold" | "red"
+}) {
+  return (
+    <div className="surface-card px-5 py-5">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{eyebrow}</div>
+      <div className="mt-3 flex items-start justify-between gap-3">
+        <div>
+          <div className="text-lg font-serif leading-tight text-primary">{title}</div>
+          <div className="mt-2 text-sm leading-6 text-secondary">{detail}</div>
+        </div>
+        <OpsBadge tone={tone} className="shrink-0">{tone === "accent" ? "stable" : tone === "blue" ? "watch" : tone === "gold" ? "review" : tone === "red" ? "urgent" : "active"}</OpsBadge>
       </div>
     </div>
   )

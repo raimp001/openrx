@@ -101,6 +101,61 @@ function buildContextBlock(patientContext: Record<string, unknown> | null): stri
 - Recent vitals: ${patientContext.recentVitals ? JSON.stringify(patientContext.recentVitals) : "None"}`
 }
 
+function buildFallbackChatMessage(agentType: string, messages: Array<{ role: string; content: string }>): string {
+  const lastUserMessage = [...messages].reverse().find((message) => message.role === "user")?.content?.trim()
+  const context = lastUserMessage
+    ? `I’m looking at: “${lastUserMessage.slice(0, 140)}${lastUserMessage.length > 140 ? "..." : ""}”`
+    : "I can help with the next step."
+
+  if (agentType === "billing") {
+    return `${context}\n\nFor billing, start with the claim number, date of service, payer, balance, and denial reason if present. OpenRx can then separate what needs appeal, payment review, or a call to the insurer.`
+  }
+
+  if (agentType === "prior-auth") {
+    return `${context}\n\nFor prior authorization, confirm the drug or procedure, payer, diagnosis, urgency, and supporting notes. If this is a denial, prepare the appeal evidence before resubmitting.`
+  }
+
+  if (agentType === "triage") {
+    return `${context}\n\nIf this involves chest pain, trouble breathing, stroke symptoms, severe allergic reaction, or sudden weakness, call 911 now. Otherwise, note onset, severity, associated symptoms, and whether same-day care is needed.`
+  }
+
+  return `${context}\n\nThe next useful step is to name the care goal and the blocker: appointment, medication, bill, screening, message, referral, or records. OpenRx can route from there and keep the work moving in the background.`
+}
+
+function fallbackResponse(params: {
+  message: string
+  sessionId?: string
+  stream: boolean
+}) {
+  if (!params.stream) {
+    return NextResponse.json({
+      message: params.message,
+      sessionId: params.sessionId,
+      model: "openrx-safe-fallback",
+      fallback: true,
+    })
+  }
+
+  const encoder = new TextEncoder()
+  const readable = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: params.message, type: "text_delta" })}\n\n`))
+      controller.enqueue(
+        encoder.encode(`data: ${JSON.stringify({ type: "done", message: params.message, model: "openrx-safe-fallback", fallback: true })}\n\n`)
+      )
+      controller.close()
+    },
+  })
+
+  return new Response(readable, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "X-AI-Model": "openrx-safe-fallback",
+    },
+  })
+}
+
 // ── POST — streaming chat ─────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
@@ -126,23 +181,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "messages array is required" }, { status: 400 })
     }
 
+    const validRoles = new Set(["user", "assistant"])
+    const sanitizedMessages = messages
+      .filter((m) => validRoles.has(m.role) && typeof m.content === "string")
+      .slice(-40)
+      .map((m) => ({ role: m.role, content: m.content.slice(0, 12000) }))
+
+    if (sanitizedMessages.length === 0) {
+      return NextResponse.json({ error: "At least one user message is required" }, { status: 400 })
+    }
+
     const systemPrompt = (SYSTEM_PROMPTS[agentType] ?? SYSTEM_PROMPTS.general) + buildContextBlock(patientContext)
 
     const claudeKey = process.env.ANTHROPIC_API_KEY
     const openaiKey = process.env.OPENAI_API_KEY
+    const fallbackMessage = buildFallbackChatMessage(agentType, sanitizedMessages)
 
     if (!claudeKey && !openaiKey) {
-      return NextResponse.json(
-        { error: "AI service unavailable. Set ANTHROPIC_API_KEY (recommended) or OPENAI_API_KEY." },
-        { status: 503 }
-      )
+      return fallbackResponse({ message: fallbackMessage, sessionId, stream: wantsStream })
     }
 
     // ── Claude path (preferred) ──
     if (claudeKey) {
       const claude = new Anthropic({ apiKey: claudeKey })
 
-      const anthropicMessages = messages.map((m) => ({
+      const anthropicMessages = sanitizedMessages.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       }))
@@ -183,9 +246,10 @@ export async function POST(request: NextRequest) {
               )
 
               controller.close()
-            } catch (err) {
+            } catch {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: fallbackMessage, type: "text_delta" })}\n\n`))
               controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ type: "error", message: String(err) })}\n\n`)
+                encoder.encode(`data: ${JSON.stringify({ type: "done", message: fallbackMessage, model: "openrx-safe-fallback", fallback: true })}\n\n`)
               )
               controller.close()
             }
@@ -204,11 +268,16 @@ export async function POST(request: NextRequest) {
 
       // Non-streaming Claude response
       const response = await claude.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 2048,
-        system: systemPrompt,
-        messages: anthropicMessages,
-      })
+          model: "claude-sonnet-4-6",
+          max_tokens: 2048,
+          system: systemPrompt,
+          messages: anthropicMessages,
+        })
+        .catch(() => null)
+
+      if (!response) {
+        return fallbackResponse({ message: fallbackMessage, sessionId, stream: false })
+      }
 
       const assistantMessage = response.content
         .filter((b) => b.type === "text")
@@ -227,15 +296,20 @@ export async function POST(request: NextRequest) {
     const openai = new OpenAI({ apiKey: openaiKey! })
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
-      ],
-      max_tokens: 1024,
-      temperature: 0.7,
-      stream: wantsStream,
-    })
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...sanitizedMessages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+        ],
+        max_tokens: 1024,
+        temperature: 0.7,
+        stream: wantsStream,
+      })
+      .catch(() => null)
+
+    if (!response) {
+      return fallbackResponse({ message: fallbackMessage, sessionId, stream: wantsStream })
+    }
 
     if (wantsStream) {
       const encoder = new TextEncoder()
@@ -255,8 +329,11 @@ export async function POST(request: NextRequest) {
               encoder.encode(`data: ${JSON.stringify({ type: "done", message: fullText, model: "gpt-4o-mini" })}\n\n`)
             )
             controller.close()
-          } catch (err) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message: String(err) })}\n\n`))
+          } catch {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: fallbackMessage, type: "text_delta" })}\n\n`))
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: "done", message: fallbackMessage, model: "openrx-safe-fallback", fallback: true })}\n\n`)
+            )
             controller.close()
           }
         },
@@ -277,12 +354,16 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("[AI chat]", error)
-    if (error instanceof Anthropic.APIError) {
-      return NextResponse.json({ error: `Claude error: ${error.message}` }, { status: error.status ?? 500 })
-    }
-    if (error instanceof OpenAI.APIError) {
-      return NextResponse.json({ error: `AI error: ${error.message}` }, { status: error.status ?? 500 })
-    }
-    return NextResponse.json({ error: "Failed to process AI request" }, { status: 500 })
+    const status = (error instanceof Anthropic.APIError || error instanceof OpenAI.APIError)
+      ? (error.status ?? 500)
+      : 500
+    const isRateLimit = status === 429
+    const isOverloaded = status === 529
+    const friendlyMessage = isRateLimit
+      ? "Our AI assistant is handling a high volume of requests. Please wait a moment and try again."
+      : isOverloaded
+      ? "Our AI assistant is temporarily at capacity. Please try again in a few minutes."
+      : "Something went wrong. Please try again, and if the issue continues, contact your care team."
+    return NextResponse.json({ error: friendlyMessage }, { status })
   }
 }

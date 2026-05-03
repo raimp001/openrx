@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import dynamic from "next/dynamic"
 import {
   Bot,
   Download,
@@ -13,16 +14,6 @@ import {
   Upload,
   Wand2,
 } from "lucide-react"
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  type Edge,
-  type Node,
-  type NodeProps,
-} from "reactflow"
-import { toPng, toSvg } from "html-to-image"
-import { jsPDF } from "jspdf"
 import MermaidRender from "@/components/visualizer/mermaid-render"
 import { cn } from "@/lib/utils"
 import {
@@ -34,6 +25,7 @@ import type {
   VisualizerFocusArea,
   VisualizerMappingResponse,
 } from "@/lib/codebase-visualizer/types"
+import type { Edge, Node } from "reactflow"
 
 export interface CodebaseVisualizerProps {
   repoUrl?: string
@@ -47,21 +39,14 @@ interface ChatMessage {
   text: string
 }
 
-function InsightNode({ data }: NodeProps<{ label: string; insight: string }>) {
-  return (
-    <div
-      title={data.insight}
-      className="rounded-[18px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,250,242,0.98),rgba(243,235,224,0.96))] px-3 py-2 text-[11px] text-primary shadow-[0_12px_24px_rgba(17,34,30,0.08)]"
-    >
-      <div className="font-semibold">{data.label}</div>
-      <div className="mt-1 line-clamp-2 text-[10px] text-muted">{data.insight}</div>
+const ReactFlowCanvas = dynamic(() => import("@/components/visualizer/react-flow-canvas"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full min-h-[620px] items-center justify-center rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.96))] text-sm text-muted">
+      Preparing interactive graph canvas...
     </div>
-  )
-}
-
-const nodeTypes = {
-  default: InsightNode,
-}
+  ),
+})
 
 function downloadBlob(filename: string, content: BlobPart, type: string) {
   const blob = new Blob([content], { type })
@@ -301,11 +286,13 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
     if (!diagramRef.current || !activeDiagram) return
 
     if (format === "svg") {
+      const { toSvg } = await import("html-to-image")
       const svg = await toSvg(diagramRef.current, { cacheBust: true })
       downloadBlob(`${activeDiagram.id}.svg`, svg, "image/svg+xml")
       return
     }
 
+    const { toPng } = await import("html-to-image")
     const png = await toPng(diagramRef.current, { cacheBust: true, pixelRatio: 2 })
     if (format === "png") {
       downloadBlob(`${activeDiagram.id}.png`, await (await fetch(png)).blob(), "image/png")
@@ -317,6 +304,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
     await new Promise((resolve) => {
       image.onload = resolve
     })
+    const { jsPDF } = await import("jspdf")
     const pdf = new jsPDF({
       orientation: image.width > image.height ? "landscape" : "portrait",
       unit: "px",
@@ -344,12 +332,12 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
 
   return (
     <div className={cn("space-y-5", props.className)}>
-      <div className="surface-card p-5 text-primary shadow-[0_20px_48px_rgba(17,34,30,0.1)]">
+      <div className="surface-card p-5 text-primary shadow-[0_20px_48px_rgba(8,24,46,0.10)]">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl tracking-tight text-primary">AI Agent Codebase Mapper & Visualizer</h1>
+            <h1 className="text-2xl tracking-tight text-primary">AI Architecture Briefing</h1>
             <p className="mt-1 text-sm text-secondary">
-              One-click architecture mapping with interactive diagrams, AI insights, exports, and follow-up analysis.
+              Map systems, agents, deployment paths, and risk boundaries into a readable technical brief with exports and follow-up analysis.
             </p>
           </div>
           <button
@@ -516,11 +504,12 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
               <button
                 onClick={() => void improveCurrentDiagram()}
                 disabled={improveLoading}
+                aria-label="Improve this diagram"
                 className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white/80 px-2.5 py-1.5 text-[11px] font-semibold text-primary hover:border-teal/30"
               >
                 {improveLoading ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                Improve this diagram
-              </button>
+                    Improve diagram
+                  </button>
               <button onClick={() => exportRaw("mermaid")} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-primary">
                 <FileCode2 size={12} /> Mermaid
               </button>
@@ -533,21 +522,13 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
               <button onClick={() => void copyEmbedLink()} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-primary">Copy embed link</button>
             </div>
 
-            <div ref={diagramRef} className="mt-3 h-[620px] overflow-hidden rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,250,242,0.98),rgba(243,235,224,0.96))]">
+            <div ref={diagramRef} className="mt-3 h-[620px] overflow-hidden rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.96))]">
               {viewMode === "graph" ? (
-                <ReactFlow
+                <ReactFlowCanvas
                   nodes={visibleNodes}
                   edges={visibleEdges}
-                  onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-                  fitView
-                  proOptions={{ hideAttribution: true }}
-                  nodeTypes={nodeTypes}
-                  className="!bg-[#fbf5ea]"
-                >
-                  <MiniMap className="!bg-[#f2eadf]" />
-                  <Controls className="!bg-[#fffaf2]" />
-                  <Background color="#c7b595" gap={24} />
-                </ReactFlow>
+                  onNodeSelect={setSelectedNodeId}
+                />
               ) : (
                 <div className="h-full overflow-auto p-2">
                   <MermaidRender code={activeDiagram.mermaid} />

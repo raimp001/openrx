@@ -20,38 +20,29 @@ import {
   Loader2,
   Wifi,
   WifiOff,
-  Zap,
-  Clock,
   Users,
-  TrendingUp,
   CheckCircle2,
   AlertCircle,
   GitBranch,
   Trash2,
-  Activity,
-  Eye,
-  Search,
-  MessageSquare,
-  Sparkles,
-  CircleDot,
 } from "lucide-react"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { AppPageHeader } from "@/components/layout/app-page"
-import { ShrinkwrapBubble } from "@/components/shrinkwrap-bubble"
+import { OpsBadge } from "@/components/ui/ops-primitives"
 
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
 const QUICK_PROMPTS = [
-  { label: "What should I do next?", prompt: "Based on my health profile, what are the most important things I should do this week?", agentId: "coordinator" as AgentId, icon: CircleDot },
-  { label: "Screening due?", prompt: "Which preventive screenings am I due or overdue for, based on my age and risk factors?", agentId: "screening" as AgentId, icon: Eye },
-  { label: "Refill status", prompt: "Which of my medications need refills soon and are there any adherence issues?", agentId: "rx" as AgentId, icon: Pill },
-  { label: "Explain a bill", prompt: "Do I have any unpaid bills or denied claims? Explain them in plain English.", agentId: "billing" as AgentId, icon: Receipt },
-  { label: "Prior auth status", prompt: "What is the status of my pending prior authorizations?", agentId: "prior-auth" as AgentId, icon: ShieldCheck },
-  { label: "Find a provider", prompt: "Help me find a specialist near me. I need recommendations based on my insurance.", agentId: "coordinator" as AgentId, icon: Search },
-  { label: "Questions for my doctor", prompt: "Based on my recent labs and health history, what questions should I ask at my next appointment?", agentId: "second-opinion" as AgentId, icon: MessageSquare },
-  { label: "Clinical trials", prompt: "Find recruiting clinical trials relevant to my health profile and explain likely fit.", agentId: "trials" as AgentId, icon: FlaskConical },
+  { label: "Next appointment", prompt: "When is my next appointment and what should I bring?", agentId: "scheduling" as AgentId },
+  { label: "Medication refills", prompt: "Which of my medications need refills soon?", agentId: "rx" as AgentId },
+  { label: "Bill questions", prompt: "Do I have any unpaid bills or denied claims I should address?", agentId: "billing" as AgentId },
+  { label: "Prior auth status", prompt: "What is the status of my pending prior authorizations?", agentId: "prior-auth" as AgentId },
+  { label: "Lab results", prompt: "Can you summarize my recent lab results and flag anything abnormal?", agentId: "coordinator" as AgentId },
+  { label: "Wellness tips", prompt: "Based on my health history, what preventive care steps should I take this year?", agentId: "wellness" as AgentId },
+  { label: "Screening risk", prompt: "Run my preventive risk screening and prioritize top actions for this month.", agentId: "screening" as AgentId },
+  { label: "Second opinion", prompt: "Review my diabetes care plan and give me key clinician questions for a second opinion.", agentId: "second-opinion" as AgentId },
+  { label: "Find trials", prompt: "Find recruiting clinical trials relevant to my health profile and explain likely fit.", agentId: "trials" as AgentId },
 ]
-
 
 interface ChatMessage {
   id: string
@@ -63,19 +54,19 @@ interface ChatMessage {
   timestamp: Date
 }
 
-const agentMeta: Record<string, { label: string; shortName: string; icon: typeof Bot; color: string }> = {
-  onboarding: { label: "Sage", shortName: "Sage", icon: Heart, color: "text-teal" },
-  coordinator: { label: "Atlas", shortName: "Atlas", icon: Bot, color: "text-teal" },
-  triage: { label: "Nova", shortName: "Nova", icon: Stethoscope, color: "text-red-500" },
-  scheduling: { label: "Cal", shortName: "Cal", icon: Calendar, color: "text-violet" },
-  billing: { label: "Vera", shortName: "Vera", icon: Receipt, color: "text-emerald-600" },
-  rx: { label: "Maya", shortName: "Maya", icon: Pill, color: "text-amber-600" },
-  "prior-auth": { label: "Rex", shortName: "Rex", icon: ShieldCheck, color: "text-teal-dark" },
-  wellness: { label: "Ivy", shortName: "Ivy", icon: Activity, color: "text-emerald-600" },
-  screening: { label: "Quinn", shortName: "Quinn", icon: Eye, color: "text-teal" },
-  "second-opinion": { label: "Orion", shortName: "Orion", icon: Stethoscope, color: "text-violet" },
-  trials: { label: "Lyra", shortName: "Lyra", icon: FlaskConical, color: "text-amber" },
-  devops: { label: "Bolt", shortName: "Bolt", icon: Zap, color: "text-secondary" },
+const agentMeta: Record<string, { label: string; icon: typeof Bot; color: string }> = {
+  onboarding: { label: "Care setup", icon: Bot, color: "text-teal" },
+  coordinator: { label: "General help", icon: Bot, color: "text-teal" },
+  triage: { label: "Symptoms and urgency", icon: Stethoscope, color: "text-soft-red" },
+  scheduling: { label: "Appointments", icon: Calendar, color: "text-soft-blue" },
+  billing: { label: "Coverage and bills", icon: Receipt, color: "text-accent" },
+  rx: { label: "Medications", icon: Pill, color: "text-yellow-600" },
+  "prior-auth": { label: "Coverage approvals", icon: ShieldCheck, color: "text-teal" },
+  wellness: { label: "Prevention", icon: Stethoscope, color: "text-accent" },
+  screening: { label: "Screening review", icon: Heart, color: "text-teal" },
+  "second-opinion": { label: "Second opinion", icon: ShieldCheck, color: "text-soft-blue" },
+  trials: { label: "Clinical trials", icon: FlaskConical, color: "text-accent" },
+  devops: { label: "Product status", icon: Bot, color: "text-secondary" },
 }
 
 export default function ChatPage() {
@@ -85,10 +76,11 @@ export default function ChatPage() {
       id: "welcome",
       role: "agent",
       content:
-        "Hi, I'm Atlas — your care coordination assistant.\n\n" +
-        "I work with a team of specialist agents to help you navigate appointments, medications, billing, screenings, and more.\n\n" +
-        (isConnected ? "Your wallet is connected. I can see your profile.\n\n" : "") +
-        "What can I help with?",
+        "Welcome to OpenRx. Ask about referrals, coverage, medications, appointments, screenings, or confusing results.\n\n" +
+        (isConnected
+          ? "Your account is connected, so replies can use your saved profile.\n\n"
+          : "") +
+        "How can I help you today?",
       agentId: "coordinator",
       timestamp: new Date(),
     },
@@ -99,17 +91,46 @@ export default function ChatPage() {
   const [activeAgent, setActiveAgent] = useState<AgentId>("coordinator")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const [agentActions, setAgentActions] = useState<{ id: string; agentName: string; action: string; detail: string; timestamp: string }[]>([])
+  const seededPromptRef = useRef(false)
+
+  const welcomeMessage: ChatMessage = {
+    id: "welcome",
+    role: "agent",
+    content:
+      "Welcome to OpenRx. Ask about referrals, coverage, medications, appointments, screenings, or confusing results.\n\n" +
+      (isConnected
+        ? "Your account is connected, so replies can use your saved profile.\n\n"
+        : "") +
+      "How can I help you today?",
+    agentId: "coordinator",
+    timestamp: new Date(),
+  }
 
   const clearChat = useCallback(() => {
-    setMessages([{
-      id: "welcome",
-      role: "agent",
-      content: "Hi, I'm Atlas — your care coordination assistant.\n\nWhat can I help with?",
-      agentId: "coordinator",
-      timestamp: new Date(),
-    }])
+    setMessages([welcomeMessage])
     inputRef.current?.focus()
+  }, [isConnected]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sendQuickPrompt = useCallback((prompt: string, agentId: AgentId) => {
+    setInput(prompt)
+    setActiveAgent(agentId)
+    inputRef.current?.focus()
+  }, [])
+
+  // Preload questions from the homepage/dashboard ask panels without sending on the patient's behalf.
+  useEffect(() => {
+    if (seededPromptRef.current || typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    const prompt = params.get("prompt")
+    const topic = params.get("topic")
+    if (topic && OPENCLAW_CONFIG.agents.some((agent) => agent.id === topic)) {
+      setActiveAgent(topic as AgentId)
+    }
+    if (prompt) {
+      setInput(prompt)
+      window.setTimeout(() => inputRef.current?.focus(), 60)
+    }
+    seededPromptRef.current = true
   }, [])
 
   // Check gateway status
@@ -120,56 +141,49 @@ export default function ChatPage() {
       .catch(() => setGatewayStatus("offline"))
   }, [])
 
-  // Fetch agent activity after each message send
-  useEffect(() => {
-    if (messages.length <= 1) return
-    fetch("/api/openclaw/status")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.recentActions?.length) setAgentActions(d.recentActions.slice(0, 6))
-      })
-      .catch(() => {})
-  }, [messages.length])
-
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  const sendMessage = useCallback(async (overrideText?: string) => {
-    const text = (overrideText || input).trim()
-    if (!text || isLoading) return
+  const sendMessage = useCallback(async () => {
+    if (!input.trim() || isLoading) return
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      content: text,
+      content: input.trim(),
       timestamp: new Date(),
     }
 
-    const savedInput = text
+    const savedInput = input.trim()
     setMessages((prev) => [...prev, userMsg])
     setInput("")
     setIsLoading(true)
 
+    // Execute orchestrator workflow — route to best agent with collaborators
     const workflow = executeWorkflow(userMsg.content)
 
+    // If the orchestrator routes to a different agent, auto-switch
     if (workflow.route.primaryAgent !== activeAgent) {
       setActiveAgent(workflow.route.primaryAgent)
     }
 
+    // Show routing info as a system message if collaborators are involved
     if (workflow.route.collaborators.length > 0) {
-      const names = workflow.route.collaborators
-        .map((id) => agentMeta[id]?.shortName || id)
+      const collaboratorNames = workflow.route.collaborators
+        .map((id) => {
+          return agentMeta[id]?.label || id
+        })
         .join(", ")
-      const primary = agentMeta[workflow.route.primaryAgent]?.shortName || "Agent"
+      const primaryAgent = agentMeta[workflow.route.primaryAgent]
 
       setMessages((prev) => [
         ...prev,
         {
           id: `routing-${Date.now()}`,
           role: "system",
-          content: `${primary} is handling this with ${names}`,
+          content: `I’m routing this to ${primaryAgent?.label || "the right care area"} and checking ${collaboratorNames} in the background.`,
           timestamp: new Date(),
         },
       ])
@@ -178,7 +192,10 @@ export default function ChatPage() {
     try {
       const res = await fetch("/api/openclaw/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(walletAddress ? { "x-wallet-address": walletAddress } : {}),
+        },
         body: JSON.stringify({
           message: userMsg.content,
           agentId: workflow.route.primaryAgent,
@@ -186,25 +203,19 @@ export default function ChatPage() {
         }),
       })
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null)
-        throw new Error(errData?.error || `Request failed (${res.status})`)
-      }
-
       const data = await res.json()
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `agent-${Date.now()}`,
-          role: "agent",
-          content: data.response || data.error || "No response received.",
-          agentId: workflow.route.primaryAgent,
-          collaborators: workflow.route.collaborators,
-          routingInfo: workflow.route.reasoning,
-          timestamp: new Date(),
-        },
-      ])
+      const agentMsg: ChatMessage = {
+        id: `agent-${Date.now()}`,
+        role: "agent",
+        content: data.response || data.error || "No response received.",
+        agentId: workflow.route.primaryAgent,
+        collaborators: workflow.route.collaborators,
+        routingInfo: workflow.route.reasoning,
+        timestamp: new Date(),
+      }
+
+      setMessages((prev) => [...prev, agentMsg])
     } catch {
       setInput(savedInput)
       setMessages((prev) => [
@@ -212,7 +223,7 @@ export default function ChatPage() {
         {
           id: `error-${Date.now()}`,
           role: "system",
-          content: "Connection error. Your message has been restored — try again.",
+          content: "Connection error. Your message has been restored — try sending again.",
           timestamp: new Date(),
         },
       ])
@@ -221,81 +232,61 @@ export default function ChatPage() {
     }
   }, [input, isLoading, activeAgent, walletAddress])
 
-  const sendQuickPrompt = useCallback((prompt: string, agentId: AgentId) => {
-    setActiveAgent(agentId)
-    sendMessage(prompt)
-  }, [sendMessage])
-
-  const currentAgentMeta = agentMeta[activeAgent]
+  const activeMeta = agentMeta[activeAgent] ?? agentMeta.coordinator
 
   return (
-    <div className="animate-slide-up space-y-4">
-      {/* Header */}
+    <div className="mx-auto max-w-4xl animate-slide-up space-y-4">
       <AppPageHeader
-        leading={
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-teal">
-            <Bot size={18} className="text-white" />
-          </div>
-        }
-        title="AI Concierge"
+        eyebrow="Ask"
+        title="Ask OpenRx."
+        description="One question at a time. OpenRx will route the care work quietly."
         meta={
-          <div className="flex items-center gap-3">
-            {gatewayStatus === "online" ? (
-              <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-soft" />
-                Connected
-              </span>
-            ) : gatewayStatus === "offline" ? (
-              <span className="flex items-center gap-1 text-[10px] font-medium text-red-500">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                Offline — responses may fail
-              </span>
+          <>
+            {gatewayStatus === "checking" ? (
+              <OpsBadge tone="blue"><Loader2 size={10} className="animate-spin" /> connecting</OpsBadge>
+            ) : gatewayStatus === "online" ? (
+              <OpsBadge tone="accent"><Wifi size={10} /> online</OpsBadge>
             ) : (
-              <span className="flex items-center gap-1 text-[10px] text-muted">
-                <Loader2 size={9} className="animate-spin" /> Connecting
-              </span>
+              <OpsBadge tone="red"><WifiOff size={10} /> offline</OpsBadge>
             )}
-            {currentAgentMeta && (
-              <span className="flex items-center gap-1 text-[10px] font-medium text-secondary">
-                <currentAgentMeta.icon size={10} className={currentAgentMeta.color} />
-                {currentAgentMeta.label}
-              </span>
-            )}
-          </div>
+            <OpsBadge tone={isConnected ? "accent" : "gold"}>
+              {isConnected ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
+              {isConnected ? "personalized" : "general"}
+            </OpsBadge>
+            <OpsBadge tone="terra">{activeMeta.label}</OpsBadge>
+          </>
         }
+        actions={messages.length > 1 ? (
+          <button type="button" onClick={clearChat} className="control-button-secondary px-3 py-2" disabled={isLoading}>
+            <Trash2 size={12} />
+            Clear
+          </button>
+        ) : null}
       />
 
-      {/* Agent selector — compact pill row */}
-      <div className="flex gap-1 flex-wrap">
-        {OPENCLAW_CONFIG.agents.map((agent) => {
-          const meta = agentMeta[agent.id]
-          const Icon = meta?.icon || Bot
-          const isActive = activeAgent === agent.id
-          return (
-            <button
-              key={agent.id}
-              onClick={() => setActiveAgent(agent.id as AgentId)}
-              aria-pressed={isActive}
-              aria-label={`${agent.name} agent`}
-              className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-medium transition-all border",
-                isActive
-                  ? "bg-teal-50/60 text-teal-700 border-teal/10"
-                  : "text-muted border-transparent hover:text-secondary hover:bg-zinc-50"
-              )}
-            >
-              <Icon size={11} className={isActive ? meta?.color : ""} />
-              {agent.name}
-            </button>
-          )
-        })}
-      </div>
+      <section className="surface-card flex min-h-[min(680px,calc(100vh-10rem))] flex-col overflow-hidden p-0">
+        <div className="border-b border-[rgba(82,108,139,0.12)] px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-primary">{activeMeta.label}</p>
+            <p className="text-xs text-muted">Ask. Review. Move.</p>
+          </div>
+          {messages.length <= 1 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {QUICK_PROMPTS.slice(0, 6).map((qp) => (
+                <button
+                  key={qp.label}
+                  onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
+                  className="rounded-full border border-[rgba(82,108,139,0.12)] bg-white/62 px-3 py-1.5 text-[12px] font-medium text-secondary transition hover:bg-white hover:text-primary"
+                >
+                  {qp.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
-      {/* Chat window */}
-      <div className="surface-card flex min-h-[min(520px,calc(100vh-13rem))] max-h-[calc(100vh-12rem)] flex-col overflow-hidden">
-        {/* Messages */}
         <div
-          className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5"
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-5"
           role="log"
           aria-live="polite"
           aria-relevant="additions"
@@ -307,119 +298,74 @@ export default function ChatPage() {
 
             return (
               <div key={msg.id}>
-                <div className={cn("flex gap-3", msg.role === "user" ? "flex-row-reverse" : "")}>
-                  {msg.role !== "system" && (
-                    <div className={cn(
-                      "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                      msg.role === "agent" ? "bg-teal-50/60" : "bg-blue-50/60"
-                    )}>
+                {msg.role === "system" ? (
+                  <div className="rounded-[16px] bg-amber-50/70 px-4 py-3">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold text-amber-800">
+                      <GitBranch size={11} />
+                      Routing
+                    </div>
+                    <p className="mt-1 text-xs leading-6 text-secondary">{msg.content}</p>
+                  </div>
+                ) : (
+                  <div className={cn("flex gap-3", msg.role === "user" ? "flex-row-reverse" : "")}>
+                    <div
+                      className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                        msg.role === "agent" ? "bg-teal/10" : "bg-soft-blue/10"
+                      )}
+                    >
                       {msg.role === "user" ? (
-                        <User size={13} className="text-blue-500" />
+                        <User size={14} className="text-soft-blue" />
                       ) : (
-                        <Icon size={13} className={meta?.color || "text-teal"} />
+                        <Icon size={14} className={meta?.color || "text-teal"} />
                       )}
                     </div>
-                  )}
-                  <ShrinkwrapBubble
-                    text={msg.content}
-                    role={msg.role}
-                    className={cn(
-                      msg.role === "user"
-                        ? "chat-bubble-user"
-                        : msg.role === "system"
-                        ? "chat-bubble-system !w-full"
-                        : "chat-bubble-agent"
-                    )}
-                  >
-                    {msg.role === "system" ? (
-                      <div className="flex items-center justify-center gap-1.5">
-                        <GitBranch size={10} className="text-amber-500" />
-                        <span className="text-[11px] text-amber-700 font-medium">{msg.content}</span>
-                      </div>
-                    ) : (
-                      <>
-                        {msg.role === "agent" && meta && (
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <span className={cn("text-[10px] font-bold uppercase tracking-wider", meta.color)}>
-                              {meta.label}
-                            </span>
-                            {msg.collaborators && msg.collaborators.length > 0 && (
-                              <span className="flex items-center gap-0.5 text-[9px] text-muted">
-                                <Users size={8} />
-                                +{msg.collaborators.length}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        <p className="text-[14px] text-primary leading-relaxed whitespace-pre-line">
-                          {msg.content.replace(/\*\*(.*?)\*\*/g, "$1")}
-                        </p>
-                        <span className="text-[10px] text-muted mt-1.5 block">
-                          {msg.timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                        </span>
-                      </>
-                    )}
-                  </ShrinkwrapBubble>
-                </div>
-
-                {msg.routingInfo && (
-                  <div className="ml-11 mt-1 flex items-center gap-1.5">
-                    <AlertCircle size={8} className="text-muted" />
-                    <span className="text-[9px] text-muted italic">{msg.routingInfo}</span>
+                    <div
+                      className={cn(
+                        "max-w-[86%] rounded-[20px] px-4 py-3",
+                        msg.role === "user" ? "bg-white text-primary" : "bg-[rgba(245,249,255,0.78)] text-primary"
+                      )}
+                    >
+                      {msg.role === "agent" && meta ? (
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <span className={cn("text-[10px] font-semibold uppercase tracking-[0.12em]", meta.color)}>
+                            {meta.label}
+                          </span>
+                          {msg.collaborators?.length ? (
+                            <OpsBadge tone="gold" className="px-2 py-0">
+                              <Users size={10} />
+                              +{msg.collaborators.length}
+                            </OpsBadge>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      <p className="whitespace-pre-line text-sm leading-7">{msg.content}</p>
+                      {msg.routingInfo ? <p className="mt-2 text-[10px] italic text-muted">{msg.routingInfo}</p> : null}
+                    </div>
                   </div>
                 )}
               </div>
             )
           })}
 
-          {isLoading && (
+          {isLoading ? (
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-xl bg-teal-50/60 flex items-center justify-center">
-                <Bot size={13} className="text-teal" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal/10">
+                <Bot size={14} className="text-teal" />
               </div>
-              <div className="chat-bubble-agent">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    {[0, 1, 2].map((i) => (
-                      <div
-                        key={i}
-                        className="h-1.5 w-1.5 rounded-full bg-teal/40 animate-pulse-soft"
-                        style={{ animationDelay: `${i * 0.2}s` }}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[12px] text-muted">
-                    {currentAgentMeta?.label || "Agent"} is thinking...
-                  </span>
+              <div className="rounded-[20px] bg-[rgba(245,249,255,0.78)] px-4 py-3">
+                <div className="flex items-center gap-2 text-xs text-secondary">
+                  <Loader2 size={14} className="animate-spin text-teal" />
+                  Checking context...
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick prompts — show when only welcome message */}
-        {messages.length <= 1 && (
-          <div className="px-5 py-3 border-t border-border/30">
-            <p className="text-[10px] font-medium text-muted uppercase tracking-wider mb-2">Try asking</p>
-            <div className="flex flex-wrap gap-1.5">
-              {QUICK_PROMPTS.map((qp) => (
-                <button
-                  key={qp.label}
-                  onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-secondary bg-surface hover:bg-teal-50/40 hover:text-teal border border-border/40 hover:border-teal/10 rounded-full transition"
-                >
-                  <qp.icon size={10} />
-                  {qp.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Input */}
-        <div className="sticky bottom-0 z-10 border-t border-border/40 bg-white/95 px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] backdrop-blur-sm">
+        <div className="border-t border-[rgba(82,108,139,0.12)] bg-white/56 px-3 py-3 sm:px-4">
           <div className="flex items-end gap-2">
             <input
               ref={inputRef}
@@ -427,95 +373,24 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-              placeholder={`Ask ${currentAgentMeta?.label || "your care team"} anything...`}
+              placeholder="Ask OpenRx what to do next..."
               disabled={isLoading}
-              aria-label="Message to AI concierge"
-              className="min-h-11 flex-1 rounded-xl border border-border/50 bg-surface px-4 py-2.5 text-sm placeholder:text-muted transition focus:border-teal/20 focus:outline-none focus:ring-2 focus:ring-teal/10 disabled:opacity-50"
+              aria-label="Message OpenRx help"
+              className="min-h-11 flex-1 rounded-full border border-[rgba(82,108,139,0.14)] bg-white px-4 py-2.5 text-sm text-primary placeholder:text-muted transition focus:border-teal/25 focus:outline-none focus:ring-1 focus:ring-teal/10 disabled:opacity-50"
             />
-            {messages.length > 1 && (
-              <button
-                type="button"
-                onClick={clearChat}
-                disabled={isLoading}
-                title="Clear conversation"
-                aria-label="Clear conversation"
-                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-zinc-50 hover:text-secondary disabled:opacity-50"
-              >
-                <Trash2 size={16} className="shrink-0" />
-              </button>
-            )}
             <button
               type="button"
-              onClick={() => sendMessage()}
+              onClick={sendMessage}
               disabled={isLoading || !input.trim()}
               aria-label="Send message"
-              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-teal text-white transition hover:shadow-glow-sm disabled:opacity-50 sm:min-w-[4.5rem] sm:gap-2 sm:px-4"
+              className="control-button-primary min-w-[4.5rem] justify-center px-4"
             >
-              <Send size={16} className="shrink-0 sm:hidden" />
-              <span className="hidden text-[13px] font-semibold sm:inline">Send</span>
+              <Send size={15} />
+              Send
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Agent activity footer */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="surface-card overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border/30">
-            <Zap size={12} className="text-teal" />
-            <span className="text-[11px] font-semibold text-primary uppercase tracking-wider">Active Automations</span>
-          </div>
-          <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-2">
-            {OPENCLAW_CONFIG.cronJobs.slice(0, 6).map((job) => {
-              const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === job.agentId)
-              const meta = agentMeta[job.agentId]
-              const Icon = meta?.icon || Bot
-              return (
-                <div key={job.id} className="flex items-start gap-2.5 p-2.5 rounded-lg hover:bg-surface/50 transition">
-                  <Icon size={12} className={cn("mt-0.5 shrink-0", meta?.color || "text-teal")} />
-                  <div>
-                    <p className="text-[11px] font-medium text-primary">{job.description}</p>
-                    <p className="text-[10px] text-muted mt-0.5">
-                      {job.schedule} · {agent?.name}
-                    </p>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="surface-card overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border/30">
-            <GitBranch size={12} className="text-teal" />
-            <span className="text-[11px] font-semibold text-primary uppercase tracking-wider">Agent Activity</span>
-          </div>
-          {agentActions.length > 0 ? (
-            <div className="divide-y divide-border/20">
-              {agentActions.map((action) => {
-                const meta = agentMeta[action.agentName?.toLowerCase()] || agentMeta.coordinator
-                return (
-                  <div key={action.id} className="flex items-start gap-2.5 px-4 py-2.5">
-                    <meta.icon size={12} className={cn("mt-0.5 shrink-0", meta.color)} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-semibold text-primary truncate">{action.agentName}: {action.action}</p>
-                      <p className="text-[10px] text-muted truncate">{action.detail}</p>
-                    </div>
-                    <span className="text-[9px] text-muted shrink-0">
-                      {new Date(action.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="p-8 text-center">
-              <Users size={18} className="text-muted mx-auto mb-2" />
-              <p className="text-[12px] text-muted">Send a message to see agents collaborate</p>
-            </div>
-          )}
-        </div>
-      </div>
+      </section>
     </div>
   )
 }

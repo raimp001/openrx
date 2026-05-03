@@ -44,8 +44,12 @@ async function maybeRecordWorkerHeartbeat(
   authSource: string
 ) {
   if (!(authSource === "agent_token" || authSource === "admin_api_key")) return
+  if (body.dryRun) return
 
-  const workerId = (body.workerId || "").trim() || getDefaultWorkerId(jobId)
+  const configuredWorkerId = body.workerId?.trim() || process.env.OPENRX_WORKER_ID?.trim()
+  if (!configuredWorkerId) return
+
+  const workerId = configuredWorkerId || getDefaultWorkerId(jobId)
   const workerType = (body.workerType || "").trim() || "vercel-cron"
 
   await upsertWorkerHeartbeat({
@@ -90,9 +94,14 @@ async function executeCronRequest(
 
   await maybeRecordWorkerHeartbeat(body, job.id, session.authSource)
 
+  const allowRequestScopedOverrides =
+    session.authSource === "admin_api_key" ||
+    (process.env.NODE_ENV !== "production" && session.authSource === "default")
+  const messageOverride = allowRequestScopedOverrides ? body.message : undefined
+  const walletAddress = allowRequestScopedOverrides ? body.walletAddress : undefined
   const triggeredAt = normalizeTriggeredAt(body.triggeredAt)
   const message = buildCronAgentMessage(job, {
-    override: body.message,
+    override: messageOverride,
     triggeredAt: triggeredAt.effectiveIso,
   })
 
@@ -129,7 +138,7 @@ async function executeCronRequest(
       ok: true,
       httpStatus: 200,
       idempotencyKey: body.idempotencyKey || null,
-      walletAddress: body.walletAddress || null,
+      walletAddress: walletAddress || null,
       message,
       triggeredAt: triggeredAt.effectiveIso,
       responsePayload: payload,
@@ -142,7 +151,7 @@ async function executeCronRequest(
       ok: false,
       failureReason: "missing_model_credentials",
       error:
-        "OpenClaw AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
+        "AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
     }
     await recordCronRun({
       jobId: job.id,
@@ -155,7 +164,7 @@ async function executeCronRequest(
       failureReason: payload.failureReason,
       httpStatus: 503,
       idempotencyKey: body.idempotencyKey || null,
-      walletAddress: body.walletAddress || null,
+      walletAddress: walletAddress || null,
       message,
       triggeredAt: triggeredAt.effectiveIso,
       responsePayload: payload,
@@ -202,7 +211,7 @@ async function executeCronRequest(
       failureReason: cached.failureReason,
       httpStatus: replayStatus,
       idempotencyKey: body.idempotencyKey || null,
-      walletAddress: body.walletAddress || null,
+      walletAddress: walletAddress || null,
       message,
       triggeredAt: triggeredAt.effectiveIso,
       responsePayload: {
@@ -231,7 +240,7 @@ async function executeCronRequest(
     agentId: job.agentId,
     message,
     sessionId,
-    walletAddress: body.walletAddress,
+    walletAddress,
   })
 
   const classification = classifyCronAgentResult(result)
@@ -307,7 +316,7 @@ async function executeCronRequest(
     failureReason,
     httpStatus,
     idempotencyKey: body.idempotencyKey || null,
-    walletAddress: body.walletAddress || null,
+    walletAddress: walletAddress || null,
     message,
     triggeredAt: triggeredAt.effectiveIso,
     responsePayload: payload,

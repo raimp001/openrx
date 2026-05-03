@@ -1,17 +1,9 @@
-import { requireAuth } from "@/lib/api-auth"
+import { canUseWalletScopedData, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { runAgent, runCoordinator } from "@/lib/ai-engine"
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(req); if ("response" in auth) return auth.response;
   try {
-    if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: "OpenClaw AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY." },
-        { status: 503 }
-      )
-    }
-
     const body = await req.json()
     const { message, agentId, sessionId, walletAddress } = body as {
       message: string
@@ -56,14 +48,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (walletAddress && !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
-      return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 })
-    }
+    const auth = await requireAuth(req, { allowPublic: true })
+    if ("response" in auth) return auth.response
+    const effectiveWalletAddress = canUseWalletScopedData(auth.session, walletAddress)
+      ? walletAddress
+      : undefined
 
     // Use coordinator routing for the coordinator agent
     const result = agentId === "coordinator"
-      ? await runCoordinator(message, sessionId, walletAddress)
-      : await runAgent({ agentId, message, sessionId, walletAddress })
+      ? await runCoordinator(message, sessionId, effectiveWalletAddress)
+      : await runAgent({ agentId, message, sessionId, walletAddress: effectiveWalletAddress })
 
     return NextResponse.json({
       sessionId: sessionId || `session-${Date.now()}`,

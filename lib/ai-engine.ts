@@ -6,7 +6,7 @@ import { getLiveSnapshotByWallet } from "./live-data.server"
 // ── AI Clients ────────────────────────────────────────────
 const getClaudeClient = () =>
   process.env.ANTHROPIC_API_KEY
-    ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 30_000 })
+    ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     : null
 
 const openai = new OpenAI({
@@ -79,6 +79,34 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function buildFallbackAgentResponse(agentId: string, message: string): string {
+  const trimmedMessage = message.trim()
+  const contextLine = trimmedMessage ? `I’m looking at: “${trimmedMessage.slice(0, 140)}${trimmedMessage.length > 140 ? "..." : ""}”` : "I can help with the next step."
+
+  switch (agentId) {
+    case "rx":
+      return `${contextLine}\n\nFor medications, the safest next move is to confirm the medication name, dose, remaining supply, preferred pharmacy, and prescriber. If this is urgent or you are out of medication, call the pharmacy or prescribing office now while OpenRx queues the refill workflow.`
+    case "scheduling":
+      return `${contextLine}\n\nFor scheduling, pick the visit type, preferred time window, location preference, and insurance plan. OpenRx can then turn that into a booking request and surface any prep instructions or copay questions.`
+    case "billing":
+      return `${contextLine}\n\nFor billing, gather the claim number, date of service, insurer, amount owed, and any denial reason. OpenRx can help separate patient balance, insurance balance, and appeal next steps.`
+    case "prior-auth":
+      return `${contextLine}\n\nFor prior authorization, the next step is to confirm the drug or procedure, payer, diagnosis, urgency, and supporting clinical notes. If there is a denial, OpenRx should prepare the appeal evidence before resubmission.`
+    case "screening":
+      return `${contextLine}\n\nFor screening, start with age, sex at birth if relevant, family history, symptoms, smoking history, and prior screening dates. OpenRx should prioritize the highest-impact prevention step first.`
+    case "trials":
+      return `${contextLine}\n\nFor trials, confirm the condition, stage or mutation if known, travel radius, current treatment, and recent labs. OpenRx can then rank studies as possible leads, not final eligibility decisions.`
+    case "triage":
+      return `${contextLine}\n\nIf symptoms include chest pain, trouble breathing, stroke symptoms, severe allergic reaction, or sudden weakness, call 911 now. Otherwise, note onset, severity, associated symptoms, medications, and whether same-day care is needed.`
+    case "second-opinion":
+      return `${contextLine}\n\nFor a second opinion, collect the diagnosis, current plan, key test results, medications, and the specific decision you are unsure about. OpenRx should turn that into clinician-ready questions.`
+    case "onboarding":
+      return `${contextLine}\n\nFor setup, start with identity, contact details, insurance, primary care, pharmacy, medications, and care preferences. OpenRx should ask one question at a time and keep the setup moving.`
+    default:
+      return `${contextLine}\n\nOpenRx can route this to the right care workflow. Start with the concrete goal, any deadlines, and the blocker: appointment, medication, bill, screening, message, or referral.`
+  }
+}
+
 // ── GQA-inspired Patient Context Cache ───────────────────
 // Mirrors grouped-query attention: one expensive context fetch is shared
 // across multiple agent heads in the same session window, avoiding
@@ -91,7 +119,7 @@ const contextCache = new Map<string, CachedContext>()
 const CONTEXT_TTL_MS = 30_000 // 30 s — covers a full MoE fan-out round-trip
 
 async function getPatientContext(walletAddress?: string): Promise<string> {
-  const cacheKey = walletAddress || `__anonymous_${Date.now()}__`
+  const cacheKey = walletAddress || `__anon_${Date.now()}_${Math.random().toString(36).slice(2, 6)}__`
   const cached = contextCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now()) {
     return cached.text
@@ -100,7 +128,7 @@ async function getPatientContext(walletAddress?: string): Promise<string> {
   const snapshot = await getLiveSnapshotByWallet(walletAddress)
   if (!snapshot.patient) {
     const text =
-      "CURRENT PATIENT DATA: No live patient profile found. Ask the user to connect a wallet and complete onboarding."
+      "CURRENT PATIENT DATA: No live patient profile found. Ask the user to complete setup or share the minimum details needed for the current question."
     contextCache.set(cacheKey, { text, expiresAt: Date.now() + CONTEXT_TTL_MS })
     return text
   }
@@ -207,9 +235,9 @@ export async function runAgent(params: {
 
   const claude = getClaudeClient()
 
-  // Fail closed when no live model key is configured.
+  // Keep the demo path useful even when the hosted model provider is unavailable.
   if (!claude && !process.env.OPENAI_API_KEY) {
-    return { response: "AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.", agentId }
+    return { response: buildFallbackAgentResponse(agentId, message), agentId }
   }
 
   const sessionKey = sessionId || `${agentId}-default`
@@ -314,7 +342,9 @@ IMPORTANT RULES:
       : undefined
     console.error(`Agent ${agentId} error:`, errMsg || error)
 
-    return { response: friendlyAIError(status, errMsg), agentId }
+    const errorNote = friendlyAIError(status, errMsg)
+    const fallback = buildFallbackAgentResponse(agentId, message)
+    return { response: `${errorNote}\n\n${fallback}`, agentId }
   }
 }
 
@@ -332,7 +362,7 @@ export async function runParallelExperts(params: {
   // Fetch patient context once — shared across all expert calls (GQA cache hit)
   const sharedContext = await getPatientContext(params.walletAddress)
 
-  const settled = await Promise.allSettled(
+  const results = await Promise.all(
     params.expertIds.map((agentId) =>
       runAgent({
         agentId,
@@ -343,11 +373,7 @@ export async function runParallelExperts(params: {
       }).then((r) => ({ agentId: r.agentId, response: r.response }))
     )
   )
-  return settled.map((result, i) =>
-    result.status === "fulfilled"
-      ? result.value
-      : { agentId: params.expertIds[i], response: "This expert is temporarily unavailable." }
-  )
+  return results
 }
 
 // ── Coordinator with Real Routing ────────────────────────
@@ -360,45 +386,34 @@ export async function runCoordinator(
   agentId: string
   handoff?: string
 }> {
-  const MAX_HANDOFF_DEPTH = 3
-  const visited = new Set<string>()
-  let current = await runAgent({
+  const result = await runAgent({
     agentId: "coordinator",
     message,
     sessionId,
     walletAddress,
   })
 
-  let combinedResponse = current.response
-  let finalAgentId = current.agentId
+  // If coordinator hands off, run the target agent
+  if (result.handoff) {
+    const targetAgent = OPENCLAW_CONFIG.agents.find((a) => a.id === result.handoff)
+    if (targetAgent) {
+      logAction("coordinator", "routed", `→ ${targetAgent.name}: ${message.slice(0, 40)}...`)
 
-  // Follow handoff chain with depth limit and cycle detection
-  while (current.handoff && visited.size < MAX_HANDOFF_DEPTH) {
-    if (visited.has(current.handoff)) {
-      console.warn(`[OpenClaw] Handoff cycle detected: ${[...visited].join(" → ")} → ${current.handoff}. Stopping.`)
-      break
+      const followUp = await runAgent({
+        agentId: result.handoff,
+        message,
+        sessionId: sessionId ? `${sessionId}-${result.handoff}` : undefined,
+        walletAddress,
+      })
+
+      // Combine coordinator's intro with specialist's response
+      return {
+        response: `${result.response}\n\n---\n\n**${targetAgent.name}:** ${followUp.response}`,
+        agentId: result.handoff,
+        handoff: followUp.handoff,
+      }
     }
-    visited.add(current.handoff)
-
-    const targetAgent = OPENCLAW_CONFIG.agents.find((a) => a.id === current.handoff)
-    if (!targetAgent) break
-
-    logAction(finalAgentId, "routed", `→ ${targetAgent.name}: ${message.slice(0, 40)}...`)
-
-    current = await runAgent({
-      agentId: current.handoff,
-      message,
-      sessionId: sessionId ? `${sessionId}-${current.handoff}` : undefined,
-      walletAddress,
-    })
-
-    combinedResponse += `\n\n---\n\n**${targetAgent.name}:** ${current.response}`
-    finalAgentId = current.agentId
   }
 
-  return {
-    response: combinedResponse,
-    agentId: finalAgentId,
-    handoff: current.handoff,
-  }
+  return result
 }

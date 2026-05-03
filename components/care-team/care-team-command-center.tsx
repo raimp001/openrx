@@ -321,12 +321,12 @@ export default function CareTeamCommandCenter() {
         </div>
       )}
 
-      <div className="surface-card overflow-hidden border-soft-blue/20 bg-[linear-gradient(180deg,rgba(255,250,244,0.98),rgba(243,236,225,0.95))] text-primary">
+      <div className="surface-card overflow-hidden border-soft-blue/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.95))] text-primary">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-4 py-4">
           <div>
             <h2 className="text-lg text-primary">AI Care Team Command Center</h2>
             <p className="text-xs text-secondary">
-              Supervise OpenClaw agents in real time. Blue glow means a human decision is required.
+              Supervise care automation in real time. Blue glow means a human decision is required.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -441,7 +441,7 @@ export default function CareTeamCommandCenter() {
                 minPercent={30}
                 maxPercent={70}
                 first={
-                  <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,252,248,0.92),rgba(244,237,226,0.94))]">
+                  <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(239,246,255,0.94))]">
                     <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Agent Log / Chat</p>
@@ -521,7 +521,7 @@ export default function CareTeamCommandCenter() {
                     minPercent={35}
                     maxPercent={80}
                     first={
-                      <div className={cn("flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,252,248,0.94),rgba(242,235,224,0.96))]", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}
+                      <div className={cn("flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(239,246,255,0.96))]", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-4 py-3">
                           <div className="flex items-center gap-2">
@@ -585,7 +585,7 @@ export default function CareTeamCommandCenter() {
                       </div>
                     }
                     second={
-                      <div className={cn("flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,252,247,0.94),rgba(242,235,224,0.96))]", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}
+                      <div className={cn("flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(239,246,255,0.96))]", selectedAgent?.status === "needs_input" && "care-team-pane-needs-input")}
                       >
                         <div className="flex items-center justify-between border-b border-border/70 px-4 py-2.5">
                           <div className="flex items-center gap-2 text-xs text-secondary">

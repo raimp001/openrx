@@ -1,32 +1,18 @@
 import { requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { resolveClinicSession } from '@/lib/clinic-auth'
-
-const MAX_LIMIT = 100
-const MAX_SEARCH_LENGTH = 200
 
 // GET /api/patients - Get patient profile(s)
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
-    const session = await resolveClinicSession(request)
-    if (session.authSource === 'default' && session.userId === 'anonymous') {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
     const patientId = searchParams.get('patientId')
     const search = searchParams.get('search')
-    const rawLimit = parseInt(searchParams.get('limit') || '20')
-    const limit = Math.min(Math.max(rawLimit || 20, 1), MAX_LIMIT)
-    const page = Math.max(parseInt(searchParams.get('page') || '1') || 1, 1)
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const page = parseInt(searchParams.get('page') || '1')
     const skip = (page - 1) * limit
-
-    if (search && search.length > MAX_SEARCH_LENGTH) {
-      return NextResponse.json({ error: `Search query too long. Maximum ${MAX_SEARCH_LENGTH} characters.` }, { status: 400 })
-    }
 
     // Get single patient by userId
     if (userId) {

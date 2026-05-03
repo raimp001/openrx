@@ -31,7 +31,7 @@ function AdherenceRing({ pct, size = 58 }: { pct: number; size?: number }) {
   const circumference = 2 * Math.PI * radius
   const safePct = Math.min(100, Math.max(0, pct))
   const filled = (safePct / 100) * circumference
-  const color = safePct >= 90 ? "#1FA971" : safePct >= 80 ? "#D97706" : "#D1495B"
+  const color = safePct >= 90 ? "#047857" : safePct >= 80 ? "#B45309" : "#B91C1C"
   const label = safePct >= 90 ? "Great" : safePct >= 80 ? "Fair" : "Low"
 
   return (
@@ -128,6 +128,26 @@ export default function PrescriptionsPage() {
   const avgAdherence = activeRx.length
     ? Math.round(activeRx.reduce((sum, prescription) => sum + prescription.adherence_pct, 0) / activeRx.length)
     : null
+  const sortedFiltered = useMemo(
+    () =>
+      [...filtered].sort((left, right) => {
+        const score = (prescription: (typeof filtered)[number]) => {
+          const daysLeft = daysUntilRefill(prescription.last_filled, prescription.frequency)
+          return (
+            (prescription.status === "pending-refill" ? 5 : 0) +
+            (prescription.status === "active" && prescription.adherence_pct < 80 ? 4 : 0) +
+            (daysLeft !== null && daysLeft <= 7 ? 3 : 0) +
+            (prescription.refills_remaining === 0 ? 2 : 0)
+          )
+        }
+        return score(right) - score(left) || right.adherence_pct - left.adherence_pct
+      }),
+    [filtered]
+  )
+  const primaryConcern = useMemo(
+    () => sortedFiltered.find((prescription) => prescription.status === "pending-refill" || prescription.adherence_pct < 80) || sortedFiltered[0] || null,
+    [sortedFiltered]
+  )
 
   if (loading) {
     return (
@@ -156,14 +176,14 @@ export default function PrescriptionsPage() {
       <div className="animate-slide-up space-y-6">
         <AppPageHeader
           eyebrow="Medication management"
-          title="Medication board"
+          title="Medications"
           description="Track fills, adherence, and refill pressure in one view instead of jumping between charts, pharmacies, and reminders."
         />
         <div className="surface-card p-6">
           <OpsEmptyState
             icon={Pill}
             title="No medication data is connected yet"
-            description="Connect your health record first, then Maya will organize your medications, refill timing, and adherence signals here."
+            description="Connect your health record first, then OpenRx will organize your medications, refill timing, and adherence signals here."
           />
           <div className="mt-5 flex justify-center">
             <Link href="/onboarding" className="control-button-primary">
@@ -179,8 +199,8 @@ export default function PrescriptionsPage() {
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
         eyebrow="Medication management"
-        title="Medication board"
-        description="Maya turns the prescription list into a real operating view: what is active, what is slipping, and what needs a refill before it becomes a care gap."
+        title="Medications"
+        description="See what is active, what is slipping, and what needs a refill before it becomes a care gap."
         meta={
           <div className="flex flex-wrap items-center gap-2">
             <OpsBadge tone="accent">{activeRx.length} active</OpsBadge>
@@ -195,7 +215,7 @@ export default function PrescriptionsPage() {
             </Link>
             <AIAction
               agentId="rx"
-              label="Maya: Review Meds"
+              label="Review meds"
               prompt="Review my medications for refill timing, adherence risk, and possible interactions. Prioritize the most important next steps."
               context={`${activeRx.length} active medications. Average adherence ${avgAdherence ?? 0}%. Low adherence medications: ${lowAdherence.length}. Pending refills: ${pendingRefills.length}.`}
             />
@@ -231,6 +251,83 @@ export default function PrescriptionsPage() {
           detail="Active medications trending below an 80% adherence pattern."
           icon={AlertTriangle}
           tone={lowAdherence.length ? "red" : "accent"}
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
+        <div className="overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(8,24,46,0.16)]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Medication to address first</p>
+              <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-white">
+                {primaryConcern ? primaryConcern.medication_name : "No urgent medication"}
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-white/72">
+                {primaryConcern
+                  ? `${statusLabel(primaryConcern.status)} · adherence ${primaryConcern.adherence_pct}% · ${primaryConcern.pharmacy || "Pharmacy on file"}`
+                  : "The current regimen is stable. No refill or adherence signal is leading the queue right now."}
+              </p>
+            </div>
+            <OpsBadge tone={primaryConcern?.status === "pending-refill" || (primaryConcern?.adherence_pct ?? 100) < 80 ? "red" : primaryConcern ? "gold" : "accent"} className="!border-white/12 !bg-white/10 !text-white">
+              {primaryConcern?.status === "pending-refill" || (primaryConcern?.adherence_pct ?? 100) < 80 ? "urgent" : primaryConcern ? "review" : "stable"}
+            </OpsBadge>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Refill pressure</p>
+              <p className="mt-2 text-lg font-semibold text-white">{pendingRefills.length + refillSoon.length} medication{pendingRefills.length + refillSoon.length === 1 ? "" : "s"}</p>
+              <p className="mt-1 text-[12px] leading-6 text-white/64">
+                {pendingRefills.length || refillSoon.length
+                  ? "These prescriptions are already waiting for a refill or are closing in on the refill window."
+                  : "No refill bottleneck is visible in the active regimen."}
+              </p>
+            </div>
+            <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Regimen posture</p>
+              <p className="mt-2 text-lg font-semibold text-white">
+                {avgAdherence === null
+                  ? "No active regimen"
+                  : avgAdherence >= 90
+                    ? "Stable routine"
+                    : avgAdherence >= 80
+                      ? "Needs reinforcement"
+                      : "Drifting off plan"}
+              </p>
+              <p className="mt-1 text-[12px] leading-6 text-white/64">
+                {avgAdherence === null
+                  ? "There is no active medication list on file yet."
+                  : `Average adherence is ${avgAdherence}%, which sets the tone for refill and counseling priority.`}
+              </p>
+            </div>
+          </div>
+        </div>
+        <BriefingCard
+          eyebrow="Refill pressure"
+          title={`${pendingRefills.length + refillSoon.length} medications`}
+          detail={
+            pendingRefills.length || refillSoon.length
+              ? "These prescriptions are already waiting for a refill or are approaching the refill window."
+              : "No refill bottleneck is visible in the current regimen."
+          }
+          tone={pendingRefills.length || refillSoon.length ? "gold" : "accent"}
+        />
+        <BriefingCard
+          eyebrow="Regimen posture"
+          title={
+            avgAdherence === null
+              ? "No active regimen"
+              : avgAdherence >= 90
+                ? "Stable routine"
+                : avgAdherence >= 80
+                  ? "Needs reinforcement"
+                  : "Drifting off plan"
+          }
+          detail={
+            avgAdherence === null
+              ? "There is no active medication list on file yet."
+              : `Average adherence is ${avgAdherence}%, which sets the tone for refill and counseling priority.`
+          }
+          tone={avgAdherence === null ? "blue" : avgAdherence >= 90 ? "accent" : avgAdherence >= 80 ? "gold" : "red"}
         />
       </div>
 
@@ -272,7 +369,7 @@ export default function PrescriptionsPage() {
             />
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
-              {filtered.map((prescription) => {
+              {sortedFiltered.map((prescription) => {
                 const physician = getPhysician(prescription.physician_id)
                 const isLowAdherence = prescription.status === "active" && prescription.adherence_pct < 80
                 const daysLeft = daysUntilRefill(prescription.last_filled, prescription.frequency)
@@ -316,7 +413,7 @@ export default function PrescriptionsPage() {
 
                     {isLowAdherence ? (
                       <SignalBanner tone="red" title="Adherence slipping">
-                        This medication is below the 80% threshold. Maya should help identify whether this is cost, side effects, or a routine issue.
+                        This medication is below the 80% threshold. Review whether cost, side effects, or routine changes are getting in the way.
                       </SignalBanner>
                     ) : null}
                     {needsRefillSoon ? (
@@ -362,7 +459,7 @@ export default function PrescriptionsPage() {
 
         <div className="space-y-4">
           <OpsPanel
-            eyebrow="Maya focus"
+            eyebrow="Medication focus"
             title="What to act on first"
             description="A compact queue of the signals most likely to turn into missed doses, refill delays, or avoidable confusion."
           >
@@ -437,7 +534,7 @@ function MetaCard({
 }) {
   return (
     <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 shadow-sm">
-      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted/80">{label}</div>
+      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-secondary">{label}</div>
       <div className={cn("mt-2 text-sm font-semibold", tone)}>{value}</div>
     </div>
   )
@@ -479,12 +576,59 @@ function FocusItem({
   tone: "terra" | "accent" | "blue" | "gold" | "red"
 }) {
   return (
-    <div className="surface-muted flex items-start justify-between gap-3 px-4 py-3">
+    <div
+      className={cn(
+        "flex items-start justify-between gap-3 rounded-[22px] border px-4 py-3",
+        tone === "red"
+          ? "border-red-200/45 bg-[linear-gradient(180deg,rgba(255,247,246,0.96),rgba(255,239,237,0.92))]"
+          : tone === "gold"
+            ? "border-amber-300/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,246,255,0.90))]"
+            : tone === "blue"
+              ? "border-[rgba(59,130,246,0.18)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
+              : "border-[rgba(82,108,139,0.12)] bg-white/90"
+      )}
+    >
       <div>
         <div className="text-sm font-semibold text-primary">{label}</div>
         <div className="mt-1 text-xs leading-5 text-muted">{detail}</div>
       </div>
       <OpsBadge tone={tone} className="shrink-0">{value}</OpsBadge>
+    </div>
+  )
+}
+
+function BriefingCard({
+  eyebrow,
+  title,
+  detail,
+  tone,
+}: {
+  eyebrow: string
+  title: string
+  detail: string
+  tone: "terra" | "accent" | "blue" | "gold" | "red"
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[24px] border px-5 py-5",
+        tone === "red"
+          ? "border-red-200/45 bg-[linear-gradient(180deg,rgba(255,247,246,0.96),rgba(255,239,237,0.92))]"
+          : tone === "gold"
+            ? "border-amber-300/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,246,255,0.90))]"
+            : tone === "blue"
+              ? "border-[rgba(59,130,246,0.18)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
+              : "border-[rgba(82,108,139,0.12)] bg-white/90"
+      )}
+    >
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{eyebrow}</div>
+      <div className="mt-3 flex items-start justify-between gap-3">
+        <div>
+          <div className="text-lg font-serif leading-tight text-primary">{title}</div>
+          <div className="mt-2 text-sm leading-6 text-secondary">{detail}</div>
+        </div>
+        <OpsBadge tone={tone} className="shrink-0">{tone === "accent" ? "stable" : tone === "blue" ? "watch" : tone === "gold" ? "review" : tone === "red" ? "urgent" : "active"}</OpsBadge>
+      </div>
     </div>
   )
 }

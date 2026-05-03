@@ -1,9 +1,14 @@
-import { requireAuth } from "@/lib/api-auth"
+import {
+  canUseWalletScopedData,
+  isDemoWalletAddress,
+  isEvmWalletAddress,
+  requestWalletMatches,
+  requireAuth,
+} from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { createPaymentIntent, type PaymentCategory } from "@/lib/payments-ledger"
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as {
       walletAddress?: string
@@ -20,13 +25,19 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    if (!/^0x[a-fA-F0-9]{40}$/.test(body.walletAddress)) {
-      return NextResponse.json({ error: "Invalid wallet address format." }, { status: 400 })
+    if (!isEvmWalletAddress(body.walletAddress)) {
+      return NextResponse.json({ error: "walletAddress must be a valid EVM address." }, { status: 400 })
     }
 
-    if (auth.session.walletAddress && body.walletAddress.toLowerCase() !== auth.session.walletAddress.toLowerCase()) {
-      return NextResponse.json({ error: "Wallet address does not match authenticated session." }, { status: 403 })
+    const auth = await requireAuth(request, {
+      allowPublic: isDemoWalletAddress(body.walletAddress) || requestWalletMatches(request, body.walletAddress),
+    })
+    if ("response" in auth) return auth.response
+    if (
+      !canUseWalletScopedData(auth.session, body.walletAddress) &&
+      !requestWalletMatches(request, body.walletAddress)
+    ) {
+      return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
     }
 
     const payment = await createPaymentIntent({

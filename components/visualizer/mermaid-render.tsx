@@ -15,21 +15,21 @@ export default function MermaidRender({ code }: { code: string }) {
         mermaid.initialize({
           startOnLoad: false,
           theme: "base",
-          securityLevel: "loose",
+          securityLevel: "strict",
           themeVariables: {
-            primaryColor: "#f7efe1",
-            primaryTextColor: "#11221e",
-            primaryBorderColor: "#d8c9ae",
-            lineColor: "#405650",
-            secondaryColor: "#f2eadf",
-            tertiaryColor: "#fffaf2",
-            background: "#fffaf2",
-            mainBkg: "#fffaf2",
-            secondBkg: "#f5ecde",
-            tertiaryBkg: "#fbf5ea",
-            clusterBkg: "#f5ecde",
-            clusterBorder: "#d8c9ae",
-            edgeLabelBackground: "#fffaf2",
+            primaryColor: "#EFF6FF",
+            primaryTextColor: "#07111F",
+            primaryBorderColor: "#B9C6D8",
+            lineColor: "#1D4ED8",
+            secondaryColor: "#F7FAFF",
+            tertiaryColor: "#FFFFFF",
+            background: "#F7FAFF",
+            mainBkg: "#FFFFFF",
+            secondBkg: "#EFF6FF",
+            tertiaryBkg: "#F7FAFF",
+            clusterBkg: "#EFF6FF",
+            clusterBorder: "#B9C6D8",
+            edgeLabelBackground: "#FFFFFF",
             fontFamily: "var(--font-sans)",
           },
         })
@@ -70,7 +70,7 @@ export default function MermaidRender({ code }: { code: string }) {
 
   return (
     <div
-      className="overflow-auto rounded-[22px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,250,242,0.98),rgba(245,236,222,0.96))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
+      className="overflow-auto rounded-[22px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.96))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   )

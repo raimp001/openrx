@@ -76,7 +76,7 @@ test("simple screening intake returns free recommendations", async ({ page }) =>
   await expect(page.getByText("Evidence Sources")).toBeVisible()
   await expect(page.getByText("Failed to compute screening assessment.")).toHaveCount(0)
 
-  await page.getByRole("button", { name: "Generate Deep Dive (Paid)" }).click()
-  await expect(page.getByText("Complete Base Pay Before Deep Recommendation")).toBeVisible()
-  await expect(page.getByText("Connect your wallet to unlock the paid deep-dive recommendation.")).toBeVisible()
+  await page.getByRole("button", { name: "Generate Advanced Review" }).click()
+  await expect(page.getByText("Complete payment before advanced review")).toBeVisible()
+  await expect(page.getByText("Connect payment access to unlock advanced review.")).toBeVisible()
 })

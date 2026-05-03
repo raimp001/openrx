@@ -138,8 +138,8 @@ export const PA_AUDIT_EVENTS: AuditEvent[] = [
     actor: "patient",
     actorName: "James Thompson",
     timestamp: "2024-11-06T11:20:00Z",
-    summary: "Patient initiated appeal generation via Claude Opus 4.6",
-    details: { appealType: "standard", includeP2P: true, aiModel: "claude-opus-4-6" },
+    summary: "Patient initiated AI-assisted appeal generation through OpenRx.",
+    details: { appealType: "standard", includeP2P: true, aiRoute: "openrx-appeal-engine" },
     hipaaRelevant: true,
   },
   {
@@ -340,5 +340,5 @@ export const ACTOR_COLORS: Record<AuditActor, string> = {
   physician: "bg-accent/10 text-accent",
   payer: "bg-warm-200 text-warm-700",
   rex: "bg-terra/10 text-terra",
-  system: "bg-sand text-cloudy",
+  system: "bg-sand/70 text-secondary",
 }

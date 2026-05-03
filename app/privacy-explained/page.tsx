@@ -1,147 +1,175 @@
 import Link from "next/link"
 import {
-  Lock,
-  Eye,
-  EyeOff,
-  Shield,
-  Server,
+  AlertTriangle,
   Bot,
   CheckCircle2,
+  Eye,
+  EyeOff,
+  Lock,
+  Server,
+  Shield,
   XCircle,
-  AlertTriangle,
-  Heart,
 } from "lucide-react"
+import { BrandMark, BrandWordmark } from "@/components/brand-logo"
+
+const shortVersion = [
+  "In demo mode, the app uses sample patient data and does not need a personal account.",
+  "We do not sell your data to advertisers, insurers, pharmacies, or data brokers.",
+  "We only send the minimum context needed to answer a question or complete a workflow.",
+  "Wallet connection is optional and used as a pseudonymous profile identifier, not as your name.",
+  "You can use the product without creating a permanent identity in the app shell.",
+  "OpenRx is a personal health workflow tool, not a hospital, insurer, or clinician.",
+]
+
+const demoStorage = [
+  "The interface can run on seeded demo records without requiring personal health information.",
+  "Your session behavior is meant to be explorable before you commit any persistent identity.",
+  "Clearing local browser state removes the temporary client-side session context used for demo flows.",
+]
+
+const walletStorage = [
+  "Connected wallet mode stores profile preferences against a pseudonymous wallet address.",
+  "We do not intentionally write identifiers like Social Security numbers or insurance IDs on-chain.",
+  "Wallet-linked preferences are meant for continuity of care coordination, not public disclosure.",
+]
+
+const neverDo = [
+  "Sell patient data to third parties",
+  "Hand your information to insurers for underwriting",
+  "Share your workflow history with employers",
+  "Use your prompts as ad-targeting inventory",
+  "Store full insurance IDs or Social Security numbers by design",
+  "Treat product analytics as a substitute for care consent",
+]
+
+const assistantLimits = [
+  "Diagnose conditions or replace a licensed clinician",
+  "Log directly into payer portals or hospital systems on your behalf",
+  "Interpret every workflow as a permanent medical record",
+  "Guarantee that a provider, insurer, or trial site will accept your case",
+]
+
+const rights = [
+  {
+    title: "Use it without a full profile",
+    description: "You can explore much of OpenRx in demo mode before connecting a wallet or saving preferences.",
+  },
+  {
+    title: "Disconnect and minimize",
+    description: "You can disconnect the wallet-linked profile path and reduce what is associated with your session.",
+  },
+  {
+    title: "Ask how a workflow uses data",
+    description: "We owe you plain-language explanations of what a workflow needs and what leaves the browser.",
+  },
+]
 
 export default function PrivacyExplainedPage() {
   return (
-    <div className="min-h-screen bg-surface">
-      {/* Nav */}
-      <header className="sticky top-0 z-50 bg-surface/90 backdrop-blur-sm border-b border-border">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_16%_0%,rgba(47,107,255,0.08),transparent_26%),radial-gradient(circle_at_86%_12%,rgba(47,107,255,0.08),transparent_22%),linear-gradient(180deg,#f7faff_0%,#edf4ff_46%,#ffffff_100%)]">
+      <header className="sticky top-0 z-50 border-b border-[rgba(82,108,139,0.12)] bg-[rgba(247,250,255,0.82)] backdrop-blur-xl">
+        <div className="mx-auto flex h-18 max-w-6xl items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal to-teal-dark flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 4v16M4 12h16" stroke="#060D1B" strokeWidth="3" strokeLinecap="round" />
-              </svg>
-            </div>
-            <span className="text-base font-bold text-primary font-serif">OpenRx</span>
+            <BrandMark size="sm" />
+            <BrandWordmark subtitle />
           </Link>
-          <Link href="/dashboard" className="text-xs font-semibold text-teal hover:underline">
-            Go to Dashboard →
-          </Link>
+          <div className="flex items-center gap-3 text-sm">
+            <Link href="/" className="chip hover:border-teal/30 hover:text-primary">
+              Home
+            </Link>
+            <Link href="/dashboard" className="control-button-primary px-4 py-2">
+              Open Dashboard
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-12 space-y-12">
-        {/* Hero */}
-        <div className="text-center max-w-2xl mx-auto">
-          <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-5">
-            <Lock size={24} className="text-accent" />
-          </div>
-          <h1 className="text-4xl font-serif text-primary">How We Handle Your Data</h1>
-          <p className="text-muted mt-4 leading-relaxed">
-            Plain English. No legalese. We believe you deserve to know exactly what happens
-            to your health information — so here it is.
-          </p>
-        </div>
-
-        {/* TL;DR */}
-        <div className="bg-accent/5 rounded-2xl border border-accent/20 p-6">
-          <h2 className="text-sm font-bold text-accent uppercase tracking-widest mb-4 flex items-center gap-2">
-            <CheckCircle2 size={14} />
-            TL;DR — The Short Version
-          </h2>
-          <ul className="space-y-2.5">
-            {[
-              "In demo mode, no personal health data is stored on our servers — everything is sample data.",
-              "We never sell your data to anyone, ever.",
-              "We never share your data with insurance companies, pharmacies, or advertisers.",
-              "Our AI uses your information only to answer your questions, not to train models.",
-              "You can use OpenRx without creating an account or providing any personal info.",
-              "We are not a HIPAA covered entity — we're a personal tool, not a clinical provider.",
-            ].map((point) => (
-              <li key={point} className="flex items-start gap-2.5 text-sm text-primary">
-                <CheckCircle2 size={14} className="text-accent shrink-0 mt-0.5" />
-                {point}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* What We Store */}
-        <section>
-          <h2 className="text-2xl font-serif text-primary mb-6 flex items-center gap-3">
-            <Eye size={20} className="text-teal" />
-            What We Store
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-surface rounded-2xl border border-border p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Server size={14} className="text-teal" />
-                <h3 className="text-sm font-bold text-primary">Demo Mode (Default)</h3>
-              </div>
-              <p className="text-xs text-muted mb-3">
-                When you use OpenRx without connecting a wallet or creating an account:
-              </p>
-              <ul className="space-y-1.5">
-                {[
-                  "All data shown is sample/fictional patient data",
-                  "Nothing you type or click is saved to our servers",
-                  "Your session data lives only in your browser memory",
-                  "Clearing your browser clears everything",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-xs text-secondary">
-                    <CheckCircle2 size={11} className="text-accent shrink-0 mt-0.5" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="bg-surface rounded-2xl border border-border p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Shield size={14} className="text-teal" />
-                <h3 className="text-sm font-bold text-primary">With Wallet Connected</h3>
-              </div>
-              <p className="text-xs text-muted mb-3">
-                If you optionally connect a Coinbase Smart Wallet:
-              </p>
-              <ul className="space-y-1.5">
-                {[
-                  "Your profile preferences (pharmacy, PCP, meds list) are stored encrypted on-chain",
-                  "Your wallet address is used as a pseudonymous identifier — not your name",
-                  "No PHI (Social Security, insurance ID, diagnosis) is written to the blockchain",
-                  "You can disconnect and delete your profile at any time",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-xs text-secondary">
-                    <CheckCircle2 size={11} className="text-accent shrink-0 mt-0.5" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+      <main className="mx-auto max-w-6xl px-6 py-10 sm:py-14">
+        <section className="surface-hero relative overflow-hidden px-6 py-8 sm:px-8 sm:py-10">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(47,107,255,0.12),transparent_24%),radial-gradient(circle_at_88%_16%,rgba(47,107,255,0.09),transparent_20%)]" />
+          <div className="relative max-w-4xl">
+            <span className="eyebrow-pill">Privacy explained</span>
+            <h1 className="mt-5 max-w-4xl text-[clamp(3rem,6vw,5.4rem)] font-serif text-primary">
+              How OpenRx handles data, in plain English.
+            </h1>
+            <p className="mt-5 max-w-3xl text-[15px] leading-8 text-secondary">
+              This page exists so you can understand the product without reading a legal maze. OpenRx is designed to
+              help people coordinate care, screening, medication access, and provider matching without turning every
+              click into a hidden data transaction.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2.5">
+              <span className="chip">demo-first workflows</span>
+              <span className="chip">wallet optional</span>
+              <span className="chip">minimal-context AI routing</span>
             </div>
           </div>
         </section>
 
-        {/* What We Never Do */}
-        <section>
-          <h2 className="text-2xl font-serif text-primary mb-6 flex items-center gap-3">
-            <EyeOff size={20} className="text-soft-red" />
-            What We Never Do
-          </h2>
-          <div className="bg-soft-red/5 rounded-2xl border border-soft-red/10 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-                "Sell your data to any third party",
-                "Share your information with insurance companies",
-                "Use your data to train AI models",
-                "Track you across websites",
-                "Show you targeted health ads",
-                "Store your Social Security Number or full insurance ID",
-                "Provide your information to employers",
-                "Share with pharmaceutical companies",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-2 text-sm text-primary">
-                  <XCircle size={13} className="text-soft-red shrink-0" />
+        <section className="mt-8 grid gap-8 xl:grid-cols-[0.9fr_1.1fr]">
+          <div className="surface-card p-6">
+            <div className="flex items-center gap-2">
+              <Lock size={16} className="text-accent" />
+              <div className="section-title">Short version</div>
+            </div>
+            <div className="mt-5 space-y-3">
+              {shortVersion.map((item) => (
+                <div key={item} className="flex items-start gap-3 rounded-[18px] bg-[rgba(255,255,255,0.74)] px-4 py-3">
+                  <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-accent" />
+                  <p className="text-sm leading-6 text-primary">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] px-6 py-6 text-white shadow-[0_26px_70px_rgba(8,24,46,0.16)]">
+            <div className="section-title text-white/55">Trust posture</div>
+            <h2 className="mt-3 text-[clamp(1.8rem,3vw,2.8rem)] font-semibold tracking-[-0.05em]">
+              We built OpenRx to reduce healthcare friction, not to monetize patient exposure.
+            </h2>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-white/72">
+              The design principle is simple: use the minimum information needed to move a workflow forward, keep the
+              user in control of when identity becomes persistent, and avoid hiding sensitive behavior behind vague copy.
+            </p>
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              <div className="rounded-[20px] border border-white/10 bg-white/[0.05] p-4">
+                <div className="section-title text-white/50">Default mode</div>
+                <p className="mt-2 text-sm leading-6 text-white/78">
+                  Demo-safe exploration is a first-class path. The product should be understandable before you trust it.
+                </p>
+              </div>
+              <div className="rounded-[20px] border border-white/10 bg-white/[0.05] p-4">
+                <div className="section-title text-white/50">Persistent mode</div>
+                <p className="mt-2 text-sm leading-6 text-white/78">
+                  When you connect identity, the app should explain what is being stored, why, and what still stays out.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10 grid gap-4 lg:grid-cols-2">
+          <div className="surface-card p-6">
+            <div className="flex items-center gap-2">
+              <Server size={16} className="text-teal" />
+              <div className="section-title">What stays local in demo mode</div>
+            </div>
+            <div className="mt-5 space-y-3">
+              {demoStorage.map((item) => (
+                <div key={item} className="rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-[rgba(255,255,255,0.74)] px-4 py-3 text-sm leading-6 text-secondary">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="surface-card p-6">
+            <div className="flex items-center gap-2">
+              <Shield size={16} className="text-teal" />
+              <div className="section-title">What changes if you connect a wallet</div>
+            </div>
+            <div className="mt-5 space-y-3">
+              {walletStorage.map((item) => (
+                <div key={item} className="rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-[rgba(255,255,255,0.74)] px-4 py-3 text-sm leading-6 text-secondary">
                   {item}
                 </div>
               ))}
@@ -149,126 +177,114 @@ export default function PrivacyExplainedPage() {
           </div>
         </section>
 
-        {/* How AI Works */}
-        <section>
-          <h2 className="text-2xl font-serif text-primary mb-6 flex items-center gap-3">
-            <Bot size={20} className="text-teal" />
-            How Our AI Works
-          </h2>
-          <div className="space-y-4">
-            <div className="bg-surface rounded-2xl border border-border p-5">
-              <h3 className="text-sm font-bold text-primary mb-2">What AI we use</h3>
-              <p className="text-sm text-secondary leading-relaxed">
-                OpenRx is powered by Claude (made by Anthropic) through the OpenClaw gateway.
-                Claude is one of the most privacy-respecting AI systems available — messages
-                sent to Claude are not used to train future models by default.
-              </p>
-            </div>
-            <div className="bg-surface rounded-2xl border border-border p-5">
-              <h3 className="text-sm font-bold text-primary mb-2">What gets sent to AI</h3>
-              <p className="text-sm text-secondary leading-relaxed">
-                When you ask our AI a question, we send only what&apos;s necessary to answer it —
-                typically the question text plus minimal context (like your medication names, not
-                your full identity). We strip names, dates of birth, and insurance IDs before
-                sending. The AI never receives your wallet address or account details.
-              </p>
-            </div>
-            <div className="bg-surface rounded-2xl border border-border p-5">
-              <h3 className="text-sm font-bold text-primary mb-2">What AI cannot do</h3>
-              <ul className="space-y-1.5 mt-2">
-                {[
-                  "Diagnose medical conditions",
-                  "Prescribe or recommend specific treatments",
-                  "Access your actual insurance portal or medical records",
-                  "See your real lab results (demo mode uses sample data)",
-                ].map((item) => (
-                  <li key={item} className="flex items-center gap-2 text-sm text-secondary">
-                    <XCircle size={12} className="text-muted shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
+        <section className="mt-10 surface-card p-6">
+          <div className="flex items-center gap-2">
+            <EyeOff size={16} className="text-soft-red" />
+            <div className="section-title">What we do not do</div>
           </div>
-        </section>
-
-        {/* HIPAA Note */}
-        <section>
-          <div className="bg-yellow-900/20 rounded-2xl border border-yellow-700/30 p-6">
-            <div className="flex items-start gap-3">
-              <AlertTriangle size={18} className="text-yellow-400 shrink-0 mt-0.5" />
-              <div>
-                <h2 className="text-sm font-bold text-yellow-400 mb-2">A Note on HIPAA</h2>
-                <p className="text-sm text-secondary leading-relaxed">
-                  OpenRx is a personal health management tool, not a HIPAA covered entity or business
-                  associate. This means HIPAA&apos;s protections don&apos;t technically apply to us the same
-                  way they apply to your doctor or hospital. We think that&apos;s actually fine —
-                  because our privacy standards are stricter by design. We recommend you treat
-                  OpenRx as a personal notebook, not a clinical system: don&apos;t paste in sensitive
-                  documents you&apos;d rather keep completely private.
-                </p>
-                <p className="text-sm text-secondary mt-3">
-                  <strong className="text-primary">Always consult a licensed healthcare provider</strong> for
-                  medical decisions. OpenRx provides information and workflow assistance — not medical advice.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Your Rights */}
-        <section>
-          <h2 className="text-2xl font-serif text-primary mb-6 flex items-center gap-3">
-            <Shield size={20} className="text-teal" />
-            Your Rights
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              {
-                title: "Right to Delete",
-                desc: "Disconnect your wallet or clear your browser to remove all data. No account = no data on our servers.",
-              },
-              {
-                title: "Right to Opt Out",
-                desc: "Use OpenRx entirely in demo mode with no personal data. Every feature works without creating an account.",
-              },
-              {
-                title: "Right to Know",
-                desc: "This page exists because we believe transparency isn't optional. If you have questions, contact us.",
-              },
-            ].map((right) => (
-              <div key={right.title} className="bg-surface rounded-2xl border border-border p-5">
-                <CheckCircle2 size={16} className="text-accent mb-3" />
-                <h3 className="text-sm font-bold text-primary mb-1">{right.title}</h3>
-                <p className="text-xs text-muted leading-relaxed">{right.desc}</p>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {neverDo.map((item) => (
+              <div
+                key={item}
+                className="flex items-start gap-3 rounded-[20px] border border-soft-red/12 bg-soft-red/5 px-4 py-4"
+              >
+                <XCircle size={15} className="mt-0.5 shrink-0 text-soft-red" />
+                <p className="text-sm leading-6 text-primary">{item}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Contact */}
-        <section className="text-center py-8 border-t border-border">
-          <p className="text-sm text-muted">
-            Questions about your data?{" "}
-            <a href="mailto:privacy@openrx.health" className="text-teal font-semibold hover:underline">
+        <section className="mt-10 grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
+          <div className="surface-card p-6">
+            <div className="flex items-center gap-2">
+              <Bot size={16} className="text-accent" />
+              <div className="section-title">How AI is routed</div>
+            </div>
+            <div className="mt-5 space-y-4">
+              <div className="rounded-[20px] bg-[rgba(255,255,255,0.78)] px-5 py-4">
+                <h3 className="text-sm font-semibold text-primary">Safety layer first, provider second</h3>
+                <p className="mt-2 text-sm leading-6 text-secondary">
+                  OpenRx routes AI requests through a safety and workflow layer before they reach any model provider.
+                  The exact provider behind a workflow may change over time as reliability, safety, and cost settings
+                  change, so we do not treat any one model vendor as permanent product infrastructure.
+                </p>
+              </div>
+              <div className="rounded-[20px] bg-[rgba(255,255,255,0.78)] px-5 py-4">
+                <h3 className="text-sm font-semibold text-primary">Minimum context only</h3>
+                <p className="mt-2 text-sm leading-6 text-secondary">
+                  We only send the prompt and the smallest amount of structured context needed for the task. We do not
+                  intentionally include Social Security numbers, insurance IDs, or wallet addresses in model requests.
+                </p>
+              </div>
+              <div className="rounded-[20px] bg-[rgba(255,255,255,0.78)] px-5 py-4">
+                <h3 className="text-sm font-semibold text-primary">Retention is provider-dependent</h3>
+                <p className="mt-2 text-sm leading-6 text-secondary">
+                  Where a provider offers no-training or reduced-retention controls, OpenRx is configured to prefer
+                  them. Provider-side policies can still differ by workflow, so we avoid promising that every provider
+                  behaves identically.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="surface-card p-6">
+            <div className="flex items-center gap-2">
+              <Eye size={16} className="text-teal" />
+              <div className="section-title">What the assistant cannot do</div>
+            </div>
+            <div className="mt-5 space-y-3">
+              {assistantLimits.map((item) => (
+                <div key={item} className="flex items-start gap-3 rounded-[18px] bg-[rgba(239,246,255,0.84)] px-4 py-3">
+                  <XCircle size={14} className="mt-0.5 shrink-0 text-muted" />
+                  <p className="text-sm leading-6 text-secondary">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10 rounded-[28px] border border-amber-300/28 bg-[linear-gradient(180deg,rgba(120,81,0,0.09),rgba(255,255,255,0.76))] p-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-700" />
+            <div>
+              <div className="section-title text-amber-800/80">Clinical boundary</div>
+              <h2 className="mt-3 text-2xl font-serif text-primary">OpenRx is not your doctor.</h2>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-secondary">
+                OpenRx is a personal coordination and decision-support product. It can help you organize questions,
+                surface likely next steps, and reduce friction across care workflows. It does not replace a licensed
+                clinician, hospital, or health plan, and it should not be treated like a legal medical record.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10">
+          <div className="flex items-center gap-2">
+            <Shield size={16} className="text-teal" />
+            <div className="section-title">Your rights in the product</div>
+          </div>
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            {rights.map((item) => (
+              <div key={item.title} className="surface-card p-5">
+                <CheckCircle2 size={16} className="text-accent" />
+                <h3 className="mt-4 text-base font-semibold text-primary">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-secondary">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <footer className="mt-12 border-t border-[rgba(82,108,139,0.12)] py-8 text-center">
+          <p className="text-sm text-secondary">
+            Questions about privacy or data handling?{" "}
+            <a href="mailto:privacy@openrx.health" className="font-semibold text-teal hover:underline">
               privacy@openrx.health
             </a>
           </p>
-          <p className="text-xs text-muted mt-2">Last updated February 2026</p>
-        </section>
+          <p className="mt-2 text-xs text-muted">Last updated April 2026</p>
+        </footer>
       </main>
-
-      <footer className="border-t border-border bg-surface">
-        <div className="max-w-4xl mx-auto px-6 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Heart size={14} className="text-teal" />
-            <span className="text-xs text-muted">OpenRx &middot; Privacy by design</span>
-          </div>
-          <Link href="/" className="text-xs text-muted hover:text-muted transition">
-            ← Back to OpenRx
-          </Link>
-        </div>
-      </footer>
     </div>
   )
 }

@@ -6,7 +6,7 @@ import { AppPageHeader } from "@/components/layout/app-page"
 import {
   Bot, User, Heart, Pill, Stethoscope,
   CheckCircle2,
-  Activity, ArrowRight, ArrowLeft, Sparkles, Wallet as WalletIcon,
+  Activity, ArrowRight, ArrowLeft,
 } from "lucide-react"
 import { useState, useRef, useEffect, useCallback } from "react"
 
@@ -47,7 +47,6 @@ interface PatientData {
 
 type Step =
   | "welcome"
-  | "dob"
   | "has-pcp" | "pcp-search" | "pcp-confirm"
   | "has-dentist" | "dentist-search"
   | "pharmacy-search"
@@ -56,14 +55,7 @@ type Step =
   | "screenings"
   | "summary" | "complete"
 
-const STEP_ORDER: Step[] = [
-  "welcome", "dob", "has-pcp", "pcp-search", "pcp-confirm",
-  "has-dentist", "dentist-search", "pharmacy-search",
-  "medications", "med-more", "devices", "screenings", "summary", "complete",
-]
-
 const STEP_LABELS: Partial<Record<Step, string>> = {
-  "dob": "About You",
   "has-pcp": "Primary Care",
   "pcp-search": "Primary Care",
   "pcp-confirm": "Primary Care",
@@ -78,19 +70,20 @@ const STEP_LABELS: Partial<Record<Step, string>> = {
   "complete": "Complete",
 }
 
+const JOURNEY_MILESTONES = ["Primary Care", "Dentist", "Pharmacy", "Medications", "Devices", "Screenings", "Complete"]
+
 function getStepProgress(step: Step): { current: number; total: number; label: string } {
   // Group steps into user-facing milestones
-  const milestones = ["Primary Care", "Dentist", "Pharmacy", "Medications", "Devices", "Screenings", "Complete"]
   const label = STEP_LABELS[step] || "Getting Started"
-  const idx = milestones.indexOf(label)
-  return { current: Math.max(1, idx + 1), total: milestones.length, label }
+  const idx = JOURNEY_MILESTONES.indexOf(label)
+  return { current: Math.max(1, idx + 1), total: JOURNEY_MILESTONES.length, label }
 }
 
 const AGENT_NAMES: Record<string, { name: string; icon: typeof Bot; color: string }> = {
-  sage: { name: "Sage", icon: Heart, color: "text-teal" },
-  maya: { name: "Maya", icon: Pill, color: "text-yellow-600" },
-  cal: { name: "Cal", icon: Stethoscope, color: "text-soft-blue" },
-  ivy: { name: "Ivy", icon: Activity, color: "text-accent" },
+  sage: { name: "OpenRx", icon: Heart, color: "text-teal" },
+  maya: { name: "Medication setup", icon: Pill, color: "text-yellow-600" },
+  cal: { name: "Scheduling help", icon: Stethoscope, color: "text-soft-blue" },
+  ivy: { name: "Prevention setup", icon: Activity, color: "text-accent" },
 }
 
 function normalizeSelectionText(value: string): string {
@@ -167,7 +160,6 @@ export default function OnboardingPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [searchResults, setSearchResults] = useState<{ name: string; npi: string; credential?: string; specialty?: string; fullAddress?: string; phone?: string }[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [lastSearchLocation, setLastSearchLocation] = useState("")
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -228,14 +220,18 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (step === "welcome" && messages.length === 0) {
       addAgent(
-        `Hi! I'm Sage. Let's set up your care team — takes about 2 minutes.\n\nFirst, what's your full name?`,
-        "sage"
+        `Let’s set up your care team. This usually takes 5-7 minutes, and you can skip anything you do not know yet.\n\nDo you have a primary care physician?`,
+        "sage",
+        [
+          { label: "Yes, I have one", value: "yes" },
+          { label: "No, I need one", value: "no" },
+        ]
       )
-      setStep("dob")
+      setStep("has-pcp")
     }
   }, [step, messages.length, addAgent, isConnected])
 
-  // Save to wallet identity when onboarding completes
+  // Save to the connected account when onboarding completes.
   const saveToWallet = useCallback(() => {
     if (!isConnected || !walletAddress) return
 
@@ -263,33 +259,6 @@ export default function OnboardingPage() {
     if (directValue === undefined) setInput("")
 
     switch (step) {
-      case "dob": {
-        addUser(val)
-        // First response is the name, second is DOB
-        if (!patient.fullName) {
-          setPatient(p => ({ ...p, fullName: val }))
-          addAgent(`Nice to meet you, ${val.split(" ")[0]}! What's your date of birth? (e.g. 03/15/1990)`)
-        } else {
-          // Parse DOB
-          const parsed = new Date(val)
-          const ageYears = parsed.getTime() ? Math.floor((Date.now() - parsed.getTime()) / 31557600000) : NaN
-          if (!isNaN(parsed.getTime()) && parsed.getTime() < Date.now() && ageYears >= 0 && ageYears <= 120) {
-            setPatient(p => ({ ...p, dob: parsed.toISOString().slice(0, 10) }))
-            addAgent(
-              `Got it. Do you have a primary care physician?`,
-              "sage",
-              [
-                { label: "Yes, I have one", value: "yes" },
-                { label: "No, I need one", value: "no" },
-              ]
-            )
-            advanceStep("has-pcp")
-          } else {
-            addAgent("I didn't catch that. Please enter a valid date of birth like MM/DD/YYYY (age must be 0-120).")
-          }
-        }
-        break
-      }
       case "has-pcp":
         addUser(val)
         if (val.toLowerCase().includes("yes")) {
@@ -308,26 +277,7 @@ export default function OnboardingPage() {
         setIsSearching(true)
         addSystem("Searching NPI Registry...")
         try {
-          // Build a smarter query: if user input looks like a location (ZIP or city), search for internal medicine there
-          // If it looks like a name, search by name with the last known location
-          const isZip = /^\d{5}(-\d{4})?$/.test(val.trim())
-          const isShortLocation = val.trim().split(/\s+/).length <= 3 && !val.includes(",") && /^[a-zA-Z\s]+$/.test(val.trim())
-          let searchQuery: string
-          if (isZip) {
-            setLastSearchLocation(val.trim())
-            searchQuery = `internal medicine provider ${val.trim()}`
-          } else if (isShortLocation) {
-            // Likely a city name — always update stored location (supports retry with new city)
-            setLastSearchLocation(val.trim())
-            searchQuery = `internal medicine provider ${val.trim()}`
-          } else if (lastSearchLocation) {
-            // User already gave a location, this is likely a name or refinement
-            searchQuery = `${val} internal medicine provider ${lastSearchLocation}`
-          } else {
-            searchQuery = `${val} internal medicine provider`
-          }
-
-          const res = await fetch(`/api/providers/search?q=${encodeURIComponent(searchQuery)}&limit=5`)
+          const res = await fetch(`/api/providers/search?q=${encodeURIComponent(`${val} internal medicine provider`)}&limit=5`)
           const data = (await res.json()) as {
             ready?: boolean
             clarificationQuestion?: string
@@ -349,7 +299,7 @@ export default function OnboardingPage() {
             phone: item.phone,
           }))
 
-          if (data.ready === false && mapped.length === 0) {
+          if (data.ready === false) {
             addAgent(data.clarificationQuestion || "Tell me the city/state or ZIP so I can find PCP options.")
             setStep("pcp-search")
             break
@@ -424,27 +374,7 @@ export default function OnboardingPage() {
 
       case "dentist-search":
         addUser(val)
-        setIsSearching(true)
-        addSystem("Searching dentists...")
-        try {
-          const res = await fetch(`/api/providers/search?q=${encodeURIComponent(`dentist ${val}`)}&limit=3`)
-          const data = (await res.json()) as {
-            ready?: boolean
-            clarificationQuestion?: string
-            matches?: Array<{ name: string; npi: string; specialty?: string; fullAddress?: string; phone?: string }>
-          }
-          const dentists = (data.matches || []).filter((item) => !("kind" in item) || (item as Record<string, unknown>).kind !== "lab")
-          if (dentists.length > 0) {
-            const d = dentists[0]
-            setPatient(p => ({ ...p, hasDentist: true, dentistName: d.name }))
-            addAgent(`Found **${d.name}**${d.fullAddress ? `\n${d.fullAddress}` : ""}${d.phone ? `\n${d.phone}` : ""}\n\nI've noted this as your dentist. What pharmacy do you use?`)
-          } else {
-            addAgent("Couldn't find dentists there. We can set this up later.\n\nWhat pharmacy do you use?")
-          }
-        } catch {
-          addAgent("Had trouble searching — we can add a dentist later.\n\nWhat pharmacy do you use?")
-        }
-        setIsSearching(false)
+          addAgent("Noted. What pharmacy do you use?")
         advanceStep("pharmacy-search")
         break
 
@@ -499,16 +429,9 @@ export default function OnboardingPage() {
           }, 800)
         } else {
           const parts = val.split(/\s+/)
-          let med: { name: string; dose: string; frequency: string }
-          if (parts.length >= 3) {
-            med = { name: parts.slice(0, -2).join(" "), dose: parts[parts.length - 2], frequency: parts[parts.length - 1] }
-          } else if (parts.length === 2) {
-            med = { name: parts[0], dose: parts[1], frequency: "" }
-          } else {
-            med = { name: val, dose: "", frequency: "" }
-          }
+          const med = { name: parts.slice(0, -2).join(" ") || val, dose: parts[parts.length - 2] || "", frequency: parts[parts.length - 1] || "" }
           setPatient(p => ({ ...p, medications: [...(p.medications || []), med] }))
-          addAgent(`Got it — **${val}** added to your list.\n\nI'll check for interactions once we have everything.\n\nAny other medications? (Say 'done' when you're finished)`, "maya")
+          addAgent(`Got it - **${val}** added to your list.\n\nI will check for interactions once we have everything.\n\nAny other medications? (Say 'done' when you are finished)`, "maya")
           advanceStep("med-more")
         }
         break
@@ -517,7 +440,7 @@ export default function OnboardingPage() {
         addUser(val)
         if (val.toLowerCase() === "done" || val.toLowerCase() === "that's it" || val.toLowerCase() === "no") {
           const medCount = patient.medications?.length || 0
-          addAgent(`${medCount} medication${medCount !== 1 ? "s" : ""} recorded. Running interaction check... No interactions found!\n\nHanding you back to Sage.`, "maya")
+          addAgent(`${medCount} medication${medCount !== 1 ? "s" : ""} recorded. Interaction check complete: no obvious interactions found in this demo.\n\nNext, a few care setup details.`, "maya")
           setTimeout(() => {
             addAgent("Almost done. Any health devices?", "sage", [
               { label: "Apple Watch / Fitbit", value: "smartwatch" },
@@ -531,22 +454,20 @@ export default function OnboardingPage() {
         } else {
           const med = { name: val, dose: "", frequency: "" }
           setPatient(p => ({ ...p, medications: [...(p.medications || []), med] }))
-          addAgent(`Added **${val}** — any more? (Say 'done' when finished)`, "maya")
+          addAgent(`Added **${val}**. Any more? (Say 'done' when finished)`, "maya")
         }
         break
 
       case "devices":
         addUser(val)
         setPatient(p => ({ ...p, devices: [val] }))
-        addAgent("Last step — Ivy will set up your preventive screenings.", "sage")
+        addAgent("Last step: I will prepare your preventive screening list.", "sage")
         setTimeout(async () => {
           let age = 40
-          if (patient.dob) {
-            const dob = new Date(patient.dob)
-            if (!isNaN(dob.getTime())) {
-              age = Math.floor((Date.now() - dob.getTime()) / 31557600000)
-            }
-          }
+          try {
+            const dob = new Date(patient.dob || "")
+            age = Math.floor((Date.now() - dob.getTime()) / 31557600000)
+          } catch {}
 
           try {
             const res = await fetch("/api/onboarding", {
@@ -561,14 +482,14 @@ export default function OnboardingPage() {
             const screenings = data.screenings || []
             setPatient(p => ({ ...p, screenings }))
 
-            const list = screenings.map((s: { name: string; frequency: string; reason: string }) => `- **${s.name}** — ${s.frequency}\n  _${s.reason}_`).join("\n\n")
-            addAgent(`Hi ${patient.fullName?.split(" ")[0] || "there"}! I'm Ivy, your wellness coach.\n\nBased on your profile, here are your recommended screenings:\n\n${list}\n\nI'll work with Cal (scheduling) to get these booked for you. Want me to schedule them now?`, "ivy", [
-              { label: "Yes, schedule them!", value: "yes" },
+            const list = screenings.map((s: { name: string; frequency: string; reason: string }) => `- **${s.name}** - ${s.frequency}\n  _${s.reason}_`).join("\n\n")
+            addAgent(`Hi ${patient.fullName?.split(" ")[0] || "there"}.\n\nBased on your profile, these screenings may be relevant:\n\n${list}\n\nDo you want help turning these into scheduling next steps?`, "ivy", [
+              { label: "Yes, help me schedule", value: "yes" },
               { label: "Let me review first", value: "later" },
             ])
             advanceStep("screenings")
           } catch {
-            addAgent("I've set up your wellness plan. Let's wrap up!", "ivy")
+            addAgent("Your prevention list is ready. Let us wrap up.", "ivy")
             advanceStep("summary")
           }
         }, 800)
@@ -577,8 +498,8 @@ export default function OnboardingPage() {
       case "screenings":
         addUser(val)
         if (val.toLowerCase().includes("yes")) {
-          addSystem("Cal is scheduling your screenings...")
-          addAgent("I've asked Cal to find the best times for your screenings. You'll get confirmations shortly!", "ivy")
+          addSystem("Preparing scheduling next steps...")
+          addAgent("I will surface realistic scheduling options and follow-up reminders from your dashboard.", "ivy")
         }
         setTimeout(() => {
           const medList = patient.medications?.length
@@ -593,12 +514,12 @@ export default function OnboardingPage() {
             `**Medications:**\n${medList}\n\n` +
             `**Upcoming Screenings:**\n${screenList}\n\n` +
             (isConnected
-              ? `Your profile has been saved to your wallet identity. When you reconnect, everything will be here.\n\n`
+              ? `Your profile has been saved to your account. When you return, everything will be here.\n\n`
               : "") +
-            `Your OpenRx care team — Atlas, Nova, Cal, Vera, Maya, Rex, Ivy, and I — are all working together behind the scenes for you. Welcome aboard!`
+            `Your OpenRx care plan is ready. You can now review screenings, messages, appointments, medications, and follow-up tasks from the dashboard.`
           )
 
-          // Save to wallet identity
+          // Save to the connected account when available.
           saveToWallet()
 
           advanceStep("complete")
@@ -609,197 +530,153 @@ export default function OnboardingPage() {
         addUser(val)
         break
     }
-  }, [input, step, patient, searchResults, lastSearchLocation, addUser, addAgent, addSystem, advanceStep, isConnected, saveToWallet])
+  }, [input, step, patient, searchResults, addUser, addAgent, addSystem, advanceStep, isConnected, saveToWallet])
 
   const handleOption = useCallback((value: string) => {
     handleSubmit(value)
   }, [handleSubmit])
 
-  return (
-    <div className="animate-slide-up max-w-2xl mx-auto">
-      {/* Hero header */}
-      <div className="mb-4 overflow-hidden rounded-2xl border border-border/30 bg-white p-6">
-        <div className="flex flex-col items-center text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-teal shadow-glow-sm">
-            <Sparkles size={22} className="text-white" />
-          </div>
-          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-primary">Set up your care profile</h1>
-          <p className="mt-1.5 text-[14px] text-secondary">A 2-minute conversation — no forms, no passwords.</p>
-          {isConnected && (
-            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-3 py-1 text-[10px] font-semibold text-accent">
-              <WalletIcon size={10} />
-              Wallet connected — profile will be saved automatically
-            </div>
-          )}
-        </div>
-      </div>
+  const progress = getStepProgress(step)
+  const stageTitle = step === "complete" ? "Care profile complete" : progress.label
+  const progressPercent = Math.round((progress.current / progress.total) * 100)
 
-      {/* Progress */}
-      {step !== "welcome" && step !== "complete" && (() => {
-        const { current, total, label } = getStepProgress(step)
-        return (
-          <div className="flex items-center gap-3 mb-3 px-1">
-            {stepHistory.length > 0 && (
-              <button
-                onClick={goBack}
-                className="flex items-center gap-1 text-xs font-medium text-secondary hover:text-teal transition-colors"
-                aria-label="Go back to previous step"
-              >
+  return (
+    <div className="mx-auto max-w-4xl animate-slide-up space-y-4">
+      <AppPageHeader
+        variant="hero"
+        eyebrow="Setup"
+        title="Tell us what care to coordinate."
+        description="Answer one question at a time. Skip anything you do not know. The goal is a usable care plan, not a long form."
+        meta={
+          <>
+            <span className="chip">{progressPercent}%</span>
+            <span className="chip">{stageTitle}</span>
+            {isConnected ? <span className="chip">Account connected</span> : null}
+          </>
+        }
+      />
+
+      <section className="surface-card overflow-hidden">
+        <div className="border-b border-[rgba(82,108,139,0.12)] px-4 py-4 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-primary">{stageTitle}</p>
+              <p className="mt-1 text-xs text-muted">Step {progress.current} of {progress.total}</p>
+            </div>
+            {stepHistory.length > 0 && step !== "complete" ? (
+              <button onClick={goBack} className="control-button-secondary px-3 py-2" aria-label="Go back to previous step">
                 <ArrowLeft size={14} />
                 Back
               </button>
-            )}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-semibold text-teal uppercase tracking-wider">{label}</span>
-                <span className="text-[10px] font-medium text-muted">{current} of {total}</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-border/30 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700 ease-out"
-                  style={{
-                    width: `${(current / total) * 100}%`,
-                    background: "linear-gradient(90deg, #0D9488, #14B8A6)",
-                  }}
-                />
-              </div>
-            </div>
+            ) : null}
           </div>
-        )
-      })()}
-
-      {/* Chat */}
-      <div className="rounded-2xl border border-border/30 bg-white overflow-hidden flex flex-col h-[calc(100vh-320px)] min-h-[500px]">
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {messages.map((msg) => {
-            const agentInfo = msg.agent ? AGENT_NAMES[msg.agent] : null
-            const Icon = agentInfo?.icon || Bot
-
-            return (
-              <div key={msg.id} className="animate-fade-in">
-                <div className={cn("flex gap-3", msg.role === "user" ? "flex-row-reverse" : "")}>
-                  {msg.role !== "system" && (
-                    <div className={cn(
-                      "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                      msg.role === "agent"
-                        ? "bg-teal-50/60"
-                        : "bg-blue-50/60"
-                    )}>
-                      {msg.role === "user"
-                        ? <User size={14} className="text-soft-blue" />
-                        : <Icon size={14} className={agentInfo?.color || "text-teal"} />}
-                    </div>
-                  )}
-                  <div className={cn(
-                    "rounded-2xl px-4 py-3 max-w-[85%]",
-                    msg.role === "user"
-                      ? "chat-bubble-user"
-                      : msg.role === "system"
-                      ? "chat-bubble-system w-full max-w-full"
-                      : "chat-bubble-agent"
-                  )}>
-                    {msg.role === "agent" && agentInfo && (
-                      <span className={cn("text-[10px] font-bold uppercase tracking-wider mb-1 block", agentInfo.color)}>
-                        {agentInfo.name}
-                      </span>
-                    )}
-                    <p className="text-sm text-primary leading-relaxed whitespace-pre-line">
-                      {msg.content.replace(/\*\*(.*?)\*\*/g, "$1")}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Option buttons */}
-                {msg.options && step !== "complete" && msg.id === messages[messages.length - 1]?.id && (
-                  <div className="flex flex-wrap gap-2 mt-3 ml-12">
-                    {msg.options.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => handleOption(opt.value)}
-                        className="px-4 py-2 text-[12px] font-semibold rounded-full border border-teal/10 bg-white text-teal hover:border-teal/20 hover:bg-teal-50/40 transition-all active:scale-[0.97]"
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-
-          {isTyping && (
-            <div className="flex gap-3 animate-fade-in">
-              <div className="w-8 h-8 rounded-xl bg-teal-50/60 flex items-center justify-center">
-                <Heart size={13} className="text-teal" />
-              </div>
-              <div className="chat-bubble-agent">
-                <div className="flex gap-1.5">
-                  <span className="w-2 h-2 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-2 h-2 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-2 h-2 bg-teal/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isSearching && (
-            <div className="flex items-center gap-2 text-xs text-teal animate-fade-in ml-12">
-              <div className="h-4 w-4 rounded-full border-2 border-teal/30 border-t-teal animate-spin" />
-              <span>Searching NPI Registry...</span>
-            </div>
-          )}
-
-          <div ref={endRef} />
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-border/50">
+            <div className="h-full rounded-full bg-teal transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+          </div>
         </div>
 
-        {/* Input */}
-        {step !== "complete" && (
-          <div className="px-4 py-3 border-t border-border/30 bg-white">
-            <div className="flex gap-2">
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                placeholder="Type your answer..."
-                disabled={isTyping || isSearching}
-                aria-label="Onboarding chat input"
-                className="flex-1 px-4 py-3 rounded-xl border border-border/50 bg-surface text-sm placeholder:text-muted focus:outline-none focus:border-teal/20 focus:ring-2 focus:ring-teal/10 transition-all disabled:opacity-50"
-              />
-              <button
-                onClick={() => handleSubmit()}
-                disabled={isTyping || isSearching || !input.trim()}
-                aria-label="Send message"
-                className="px-4 py-3 rounded-xl bg-gradient-teal text-white transition-all disabled:opacity-40 hover:shadow-glow-sm"
-              >
-                <ArrowRight size={16} />
-              </button>
-            </div>
-          </div>
-        )}
+        <div className="flex min-h-[620px] flex-col">
+          <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+            {messages.map((msg) => {
+              const agentInfo = msg.agent ? AGENT_NAMES[msg.agent] : null
+              const Icon = agentInfo?.icon || Bot
 
-        {/* Complete state */}
-        {step === "complete" && (
-          <div className="px-5 py-6 border-t border-border/30 bg-white text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 mb-3">
-              <CheckCircle2 size={22} className="text-emerald-500" strokeWidth={1.5} />
-            </div>
-            <p className="text-[16px] font-semibold text-primary">You&apos;re all set</p>
-            <p className="text-[13px] text-secondary mt-1">Your care team is working for you.</p>
-            {isConnected && (
-              <p className="text-[11px] text-accent/70 mt-1">Profile saved to your wallet identity</p>
-            )}
-            <a
-              href="/dashboard"
-              className="mt-4 btn-primary inline-flex text-sm px-6 py-2.5"
-            >
-              Go to Dashboard
-              <ArrowRight size={14} />
-            </a>
+              return (
+                <div key={msg.id}>
+                  <div className={cn("flex gap-3", msg.role === "user" ? "flex-row-reverse" : "")}>
+                    {msg.role !== "system" ? (
+                      <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", msg.role === "agent" ? "bg-teal/10" : "bg-soft-blue/10")}>
+                        {msg.role === "user" ? <User size={14} className="text-soft-blue" /> : <Icon size={14} className={agentInfo?.color || "text-teal"} />}
+                      </div>
+                    ) : null}
+                    <div className={cn(
+                      "max-w-[88%] rounded-[20px] px-4 py-3",
+                      msg.role === "user" ? "bg-white text-primary" :
+                      msg.role === "system" ? "w-full max-w-full bg-white/34 text-center text-xs text-muted" :
+                      "bg-teal/6 text-primary"
+                    )}>
+                      {msg.role === "agent" && agentInfo ? (
+                        <span className={cn("mb-1 block text-[10px] font-bold uppercase tracking-[0.14em]", agentInfo.color)}>
+                          {agentInfo.name}
+                        </span>
+                      ) : null}
+                      <p className="whitespace-pre-line text-sm leading-7">
+                        {msg.content.replace(/\*\*(.*?)\*\*/g, "$1")}
+                      </p>
+                    </div>
+                  </div>
+
+                  {msg.options && step !== "complete" && msg.id === messages[messages.length - 1]?.id ? (
+                    <div className="ml-11 mt-3 flex flex-wrap gap-2">
+                      {msg.options.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => handleOption(opt.value)}
+                          className="rounded-full border border-[rgba(82,108,139,0.12)] bg-white/72 px-3.5 py-2 text-xs font-semibold text-secondary transition hover:bg-white hover:text-primary"
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+
+            {isTyping ? (
+              <div className="flex gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal/10">
+                  <Heart size={14} className="text-teal" />
+                </div>
+                <div className="rounded-[20px] bg-teal/6 px-4 py-3">
+                  <div className="flex gap-1">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal/40" style={{ animationDelay: "0ms" }} />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal/40" style={{ animationDelay: "150ms" }} />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal/40" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <div ref={endRef} />
           </div>
-        )}
-      </div>
+
+          {step !== "complete" ? (
+            <div className="border-t border-[rgba(82,108,139,0.12)] bg-white/48 px-3 py-3 sm:px-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                  placeholder={isSearching ? "Searching..." : "Type your answer"}
+                  disabled={isTyping || isSearching}
+                  aria-label="Onboarding chat input"
+                  className="min-h-11 flex-1 rounded-full border border-[rgba(82,108,139,0.14)] bg-white px-4 py-2.5 text-sm text-primary placeholder:text-muted focus:border-teal/25 focus:outline-none focus:ring-1 focus:ring-teal/10 disabled:opacity-50"
+                />
+                <button
+                  onClick={() => handleSubmit()}
+                  disabled={isTyping || isSearching || !input.trim()}
+                  aria-label="Send message"
+                  className="control-button-primary min-h-11 px-5"
+                >
+                  Continue
+                  <ArrowRight size={15} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="border-t border-[rgba(82,108,139,0.12)] bg-accent/5 px-5 py-5 text-center">
+              <CheckCircle2 size={24} className="mx-auto text-accent" />
+              <p className="mt-2 text-base font-semibold text-accent">Care setup complete</p>
+              <a href="/dashboard" className="mt-3 inline-flex text-sm font-semibold text-teal hover:underline">
+                Go to dashboard
+              </a>
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   )
 }

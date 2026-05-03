@@ -1,4 +1,9 @@
-import { requireAuth } from "@/lib/api-auth"
+import {
+  canUseWalletScopedData,
+  isEvmWalletAddress,
+  requestWalletMatches,
+  requireAuth,
+} from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getDatabaseHealth } from "@/lib/database-health"
@@ -55,21 +60,6 @@ function serializeConditionStatus(status?: string): string | undefined {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request); if ("response" in auth) return auth.response;
-  const databaseHealth = await getDatabaseHealth({ force: true })
-  if (!databaseHealth.reachable) {
-    return NextResponse.json(
-      {
-        error: databaseHealth.message,
-        message:
-          databaseHealth.status === "missing"
-            ? "Set DATABASE_URL to activate live patient records."
-            : "OpenRx could not reach Postgres. Fix the database connection to activate live patient records.",
-      },
-      { status: 503 }
-    )
-  }
-
   try {
     const body = (await request.json()) as SyncProfileRequest
     const profile = body.profile
@@ -77,6 +67,31 @@ export async function POST(request: NextRequest) {
 
     if (!walletAddress || !profile) {
       return NextResponse.json({ error: "walletAddress and profile are required." }, { status: 400 })
+    }
+    if (!isEvmWalletAddress(walletAddress)) {
+      return NextResponse.json({ error: "walletAddress must be a valid EVM address." }, { status: 400 })
+    }
+
+    const auth = await requireAuth(request, {
+      allowPublic: requestWalletMatches(request, walletAddress),
+    })
+    if ("response" in auth) return auth.response
+    if (!canUseWalletScopedData(auth.session, walletAddress) && !requestWalletMatches(request, walletAddress)) {
+      return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
+    }
+
+    const databaseHealth = await getDatabaseHealth({ force: true })
+    if (!databaseHealth.reachable) {
+      return NextResponse.json(
+        {
+          error: databaseHealth.message,
+          message:
+            databaseHealth.status === "missing"
+              ? "Set DATABASE_URL to activate live patient records."
+              : "OpenRx could not reach Postgres. Fix the database connection to activate live patient records.",
+        },
+        { status: 503 }
+      )
     }
 
     const desiredEmail = normalizeEmail(profile.email)
@@ -210,7 +225,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       userId: user.id,
       patientId: patientProfile.id,
-      message: "Live records synced. Refreshing your care workspace.",
+      message: "Live records synced. Refreshing your care dashboard.",
     })
   } catch (error) {
     console.error("Failed to sync wallet profile to database:", error)

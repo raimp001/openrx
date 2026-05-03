@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 import { getImprovementMetrics, getImprovements, runImprovementCycle } from "@/lib/openclaw/self-improve"
 
-// GET: Return live OpenClaw self-improvement pipeline status.
+// GET: Return live care automation improvement status.
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   if (searchParams.get("refresh") === "1") {

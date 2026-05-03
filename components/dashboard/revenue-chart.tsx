@@ -64,7 +64,7 @@ export default function RevenueChart() {
             <Bar
               dataKey="collected"
               name="Collected"
-              fill="#C5A04E"
+              fill="#1D4ED8"
               radius={[4, 4, 0, 0]}
               maxBarSize={28}
             />

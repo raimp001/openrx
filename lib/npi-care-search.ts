@@ -46,6 +46,7 @@ const SPECIALTY_MAP: Record<string, string> = {
   "family doctor": "Family Medicine",
   "internal medicine": "Internal Medicine",
   "primary care": "Internal Medicine",
+  pcp: "Internal Medicine",
   pediatrician: "Pediatrics",
   pediatrics: "Pediatrics",
   therapist: "Therapist",
@@ -53,6 +54,10 @@ const SPECIALTY_MAP: Record<string, string> = {
   psychiatry: "Psychiatry",
   radiology: "Radiology",
   radiologist: "Radiology",
+  mammogram: "Radiology",
+  mammography: "Radiology",
+  ultrasound: "Radiology",
+  imaging: "Radiology",
   neurology: "Neurology",
   neurologist: "Neurology",
   nephrology: "Nephrology",
@@ -67,6 +72,13 @@ const SPECIALTY_MAP: Record<string, string> = {
   gastroenterology: "Gastroenterology",
   gastroenterologist: "Gastroenterology",
   colonoscopy: "Gastroenterology",
+  "colon cancer screening": "Gastroenterology",
+  "medical genetics": "Medical Genetics",
+  geneticist: "Medical Genetics",
+  "genetic counseling": "Genetic Counselor",
+  "ob gyn": "Obstetrics & Gynecology",
+  obgyn: "Obstetrics & Gynecology",
+  gynecology: "Obstetrics & Gynecology",
 }
 
 const CAREGIVER_ROLE_MAP: Record<string, string> = {
@@ -86,7 +98,7 @@ const CAREGIVER_ROLE_MAP: Record<string, string> = {
 }
 
 const LAB_KEYWORDS = ["lab", "laboratory", "clinical laboratory", "pathology", "diagnostic lab"]
-const RADIOLOGY_KEYWORDS = ["radiology", "imaging", "mri", "ct", "xray", "ultrasound", "mammography"]
+const RADIOLOGY_KEYWORDS = ["radiology", "imaging", "mri", "ct", "xray", "ultrasound", "mammogram", "mammography"]
 
 const LOCATION_STOP_WORDS = new Set(
   [

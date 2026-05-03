@@ -2,9 +2,10 @@ import { test, expect } from "@playwright/test"
 import { AppointmentStatus, NotificationType, PrismaClient, UserRole } from "@prisma/client"
 import { executeCronSideEffects } from "@/lib/openclaw/cron-side-effects"
 
-const prisma = new PrismaClient()
+const prisma = process.env.DATABASE_URL ? new PrismaClient() : null
 
 async function hasCoreTables() {
+  if (!prisma) return false
   try {
     await prisma.user.findFirst({ select: { id: true } })
     return true
@@ -22,8 +23,16 @@ async function hasCoreTables() {
 }
 
 test("appointment reminder side effects create patient notifications", async () => {
+  if (!process.env.DATABASE_URL) {
+    test.skip(true, "DATABASE_URL is not configured for local cron side-effect tests.")
+  }
+
   if (!(await hasCoreTables())) {
     test.skip(true, "Local database schema is missing core Prisma tables.")
+  }
+
+  if (!prisma) {
+    test.skip(true, "Prisma client is unavailable without DATABASE_URL.")
   }
 
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`

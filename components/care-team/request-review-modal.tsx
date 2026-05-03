@@ -46,27 +46,27 @@ export default function RequestReviewModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-warm-900/20 backdrop-blur-sm px-4">
-      <div className="w-full max-w-3xl overflow-hidden rounded-[30px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,251,244,0.98),rgba(246,238,226,0.96))] shadow-[0_28px_60px_rgba(17,34,30,0.16)]">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-primary/24 backdrop-blur-sm px-4">
+      <div className="w-full max-w-3xl overflow-hidden rounded-[30px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.96))] shadow-[0_28px_60px_rgba(8,24,46,0.16)]">
         <div className="flex items-start justify-between border-b border-border/70 px-5 py-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-soft-blue">Human Review Required</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">Human Review Required</p>
             <h3 className="mt-1 text-xl text-primary">{request.agentName} needs decision support</h3>
             <p className="mt-1 text-xs text-muted">Patient Ref: {request.context.patientIdHash.slice(0, 14)}…</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-border/80 bg-white/70 px-3 py-1.5 text-xs font-semibold text-primary hover:border-soft-blue/30 hover:text-primary"
+            className="rounded-xl border border-border/80 bg-white/70 px-3 py-1.5 text-xs font-semibold text-primary hover:border-accent/30 hover:text-primary"
           >
             Close
           </button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 px-5 py-4 lg:grid-cols-2">
-          <div className="space-y-3 rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,237,227,0.9))] p-4">
+          <div className="space-y-3 rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(239,246,255,0.9))] p-4">
             <div className="flex items-center gap-2 text-xs text-secondary">
-              <AlertTriangle size={14} className="text-soft-blue" />
+              <AlertTriangle size={14} className="text-accent" />
               Workflow: <span className="font-semibold uppercase text-primary">{request.context.workflow}</span>
             </div>
             <div>
@@ -79,7 +79,7 @@ export default function RequestReviewModal({
             </div>
           </div>
 
-          <div className="space-y-3 rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,237,227,0.9))] p-4">
+          <div className="space-y-3 rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(239,246,255,0.9))] p-4">
             <label className="text-xs font-semibold text-secondary">
               Reviewer note
               <textarea
@@ -87,7 +87,7 @@ export default function RequestReviewModal({
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 placeholder="Add approval rationale, rejection notes, or edits..."
-                className="mt-1 w-full rounded-2xl border border-border/80 bg-white/88 px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-soft-blue/35 focus:outline-none"
+                className="mt-1 w-full rounded-2xl border border-border/80 bg-white/88 px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-accent/35 focus:outline-none"
               />
             </label>
 
@@ -97,7 +97,7 @@ export default function RequestReviewModal({
                 rows={3}
                 value={editedAction}
                 onChange={(event) => setEditedAction(event.target.value)}
-                className="mt-1 w-full rounded-2xl border border-border/80 bg-white/88 px-3 py-2 text-sm text-primary focus:border-soft-blue/35 focus:outline-none"
+                className="mt-1 w-full rounded-2xl border border-border/80 bg-white/88 px-3 py-2 text-sm text-primary focus:border-accent/35 focus:outline-none"
               />
             </label>
 
@@ -107,7 +107,7 @@ export default function RequestReviewModal({
                 value={editedBrowserUrl}
                 onChange={(event) => setEditedBrowserUrl(event.target.value)}
                 placeholder="https://"
-                className="mt-1 w-full rounded-2xl border border-border/80 bg-white/88 px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-soft-blue/35 focus:outline-none"
+                className="mt-1 w-full rounded-2xl border border-border/80 bg-white/88 px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-accent/35 focus:outline-none"
               />
             </label>
           </div>

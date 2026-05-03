@@ -33,16 +33,9 @@ export function canAccessCareTeam(role: ClinicRole): boolean {
   return role === "admin" || role === "staff" || role === "service"
 }
 
-/** Timing-safe string comparison to prevent timing attacks on secrets */
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b))
-}
-
 function getDefaultRole(): ClinicRole {
   const envRole = normalizeRole(process.env.OPENRX_CARE_TEAM_DEFAULT_ROLE)
   if (envRole) return envRole
-  // Always default to patient — never grant elevated access implicitly
   return "patient"
 }
 
@@ -60,14 +53,14 @@ async function resolveRoleFromWallet(headers: Headers): Promise<{ userId?: strin
     return {}
   }
 
-  // Validate wallet address format before querying DB
-  if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+  const normalizedWallet = wallet.trim().toLowerCase()
+  if (!/^0x[a-fA-F0-9]{40}$/.test(normalizedWallet)) {
     return {}
   }
 
   try {
     const user = await prisma.user.findUnique({
-      where: { walletAddress: wallet.toLowerCase() },
+      where: { walletAddress: normalizedWallet },
       select: { id: true, role: true },
     })
     if (!user) return {}
@@ -75,7 +68,7 @@ async function resolveRoleFromWallet(headers: Headers): Promise<{ userId?: strin
     return {
       userId: user.id,
       role: dbRoleToClinicRole(user.role),
-      walletAddress: wallet,
+      walletAddress: normalizedWallet,
     }
   } catch {
     return {}
@@ -83,7 +76,6 @@ async function resolveRoleFromWallet(headers: Headers): Promise<{ userId?: strin
 }
 
 function getTrustedRole(headers: Headers): { userId?: string; role?: ClinicRole } {
-  // Default to false — role header trust must be explicitly opted-in
   const trustHeader = (process.env.OPENRX_TRUST_ROLE_HEADER || "false").toLowerCase() === "true"
   if (!trustHeader) return {}
 
@@ -101,10 +93,9 @@ function getTrustedRole(headers: Headers): { userId?: string; role?: ClinicRole 
 export async function resolveClinicSession(request: NextRequest): Promise<ClinicSession> {
   const headers = request.headers
 
-  // Admin API key auth — require key to be set and use timing-safe comparison
   const adminKey = process.env.OPENRX_ADMIN_API_KEY || ""
-  const providedAdminKey = getHeader(headers, "x-admin-api-key")
-  if (adminKey && providedAdminKey && timingSafeEqual(providedAdminKey, adminKey)) {
+  const headerAdminKey = getHeader(headers, "x-admin-api-key")
+  if (adminKey && headerAdminKey && adminKey.length === headerAdminKey.length && crypto.timingSafeEqual(Buffer.from(adminKey), Buffer.from(headerAdminKey))) {
     return {
       userId: getHeader(headers, "x-openrx-user-id") || "admin-api",
       role: "admin",
@@ -113,10 +104,9 @@ export async function resolveClinicSession(request: NextRequest): Promise<Clinic
     }
   }
 
-  // Agent/service token auth — timing-safe comparison
   const agentToken = process.env.OPENRX_AGENT_NOTIFY_TOKEN || ""
   const bearer = getHeader(headers, "authorization").replace(/^Bearer\s+/i, "")
-  if (agentToken && bearer && timingSafeEqual(bearer, agentToken)) {
+  if (agentToken && bearer && agentToken.length === bearer.length && crypto.timingSafeEqual(Buffer.from(agentToken), Buffer.from(bearer))) {
     return {
       userId: "openclaw-service",
       role: "service",

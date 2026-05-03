@@ -1,9 +1,20 @@
 'use client'
 
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import {
+  Activity,
+  Droplets,
+  Heart,
+  Scale,
+  Thermometer,
+  Wind,
+  AlertTriangle,
+  CheckCircle2,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={className}>{children}</div>
+  return <div className={cn('surface-card', className)}>{children}</div>
 }
 
 function CardHeader({ className, children }: { className?: string; children: ReactNode }) {
@@ -19,7 +30,7 @@ function CardContent({ className, children }: { className?: string; children: Re
 }
 
 function Badge({ className, children }: { className?: string; children: ReactNode }) {
-  return <span className={`inline-flex items-center rounded px-2 py-0.5 ${className || ''}`}>{children}</span>
+  return <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]', className)}>{children}</span>
 }
 
 interface VitalSign {
@@ -47,39 +58,54 @@ interface MetricCardProps {
   unit: string
   normalRange?: string
   status?: 'normal' | 'warning' | 'critical'
-  icon: string
+  icon: ReactNode
+}
+
+function statusClasses(status: 'normal' | 'warning' | 'critical') {
+  if (status === 'critical') {
+    return {
+      card: 'border-soft-red/20 bg-soft-red/5',
+      badge: 'bg-soft-red/12 text-soft-red',
+      icon: 'text-soft-red',
+      label: 'needs attention',
+    }
+  }
+
+  if (status === 'warning') {
+    return {
+      card: 'border-yellow-200/70 bg-yellow-50/60',
+      badge: 'bg-yellow-200/60 text-yellow-700',
+      icon: 'text-yellow-700',
+      label: 'watch closely',
+    }
+  }
+
+  return {
+    card: 'border-accent/15 bg-accent/5',
+    badge: 'bg-accent/12 text-accent',
+    icon: 'text-accent',
+    label: 'within range',
+  }
 }
 
 function MetricCard({ label, value, unit, normalRange, status = 'normal', icon }: MetricCardProps) {
-  const statusColors = {
-    normal: 'bg-accent/10 border-accent/20 text-accent',
-    warning: 'bg-yellow-50 border-yellow-200/70 text-yellow-700',
-    critical: 'bg-soft-red/10 border-soft-red/20 text-soft-red',
-  }
-
-  const badgeColors = {
-    normal: 'bg-accent/15 text-accent',
-    warning: 'bg-yellow-200/60 text-yellow-700',
-    critical: 'bg-soft-red/15 text-soft-red',
-  }
+  const colors = statusClasses(status)
 
   return (
-    <div className={`rounded-lg border p-4 ${statusColors[status]}`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-2xl">{icon}</span>
-        <Badge className={`text-xs ${badgeColors[status]}`}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-        </Badge>
+    <div className={cn('rounded-[24px] border px-4 py-4 shadow-[0_18px_50px_-36px_rgba(17,24,39,0.25)]', colors.card)}>
+      <div className="flex items-start justify-between gap-3">
+        <div className={cn('inline-flex h-11 w-11 items-center justify-center rounded-[16px] bg-white/80 shadow-sm', colors.icon)}>
+          {icon}
+        </div>
+        <Badge className={colors.badge}>{colors.label}</Badge>
       </div>
-      <div className="mt-2">
-        <p className="text-sm text-muted">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-primary">
+      <div className="mt-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{label}</p>
+        <p className="mt-2 text-2xl font-semibold text-primary">
           {value ?? '--'}
           <span className="ml-1 text-sm font-normal text-muted">{unit}</span>
         </p>
-        {normalRange && (
-          <p className="mt-1 text-xs text-muted">Normal: {normalRange}</p>
-        )}
+        {normalRange ? <p className="mt-1 text-xs text-muted">Target: {normalRange}</p> : null}
       </div>
     </div>
   )
@@ -151,16 +177,17 @@ export function HealthMetrics({ patientId, vitalSigns: initialVitals }: HealthMe
 
   if (loading) {
     return (
-      <Card className="surface-card">
-        <CardHeader>
-          <CardTitle className="text-primary">Health Metrics</CardTitle>
+      <Card>
+        <CardHeader className="border-b border-border/50 px-6 py-5">
+          <CardTitle className="text-lg font-serif text-primary">Health Metrics</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <CardContent className="px-6 py-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="animate-pulse rounded-lg border border-border/70 bg-surface/60 p-4">
-                <div className="mb-2 h-4 w-3/4 rounded bg-border/70" />
-                <div className="h-8 w-1/2 rounded bg-border/70" />
+              <div key={i} className="animate-pulse rounded-[22px] border border-border/70 bg-white/70 p-4">
+                <div className="mb-3 h-10 w-10 rounded-[14px] bg-border/70" />
+                <div className="mb-2 h-3 w-24 rounded bg-border/70" />
+                <div className="h-8 w-28 rounded bg-border/70" />
               </div>
             ))}
           </div>
@@ -171,12 +198,15 @@ export function HealthMetrics({ patientId, vitalSigns: initialVitals }: HealthMe
 
   if (error) {
     return (
-      <Card className="surface-card">
-        <CardHeader>
-          <CardTitle className="text-primary">Health Metrics</CardTitle>
+      <Card>
+        <CardHeader className="border-b border-border/50 px-6 py-5">
+          <CardTitle className="text-lg font-serif text-primary">Health Metrics</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-soft-red">{error}</p>
+        <CardContent className="px-6 py-6">
+          <div className="flex items-start gap-3 rounded-[22px] border border-soft-red/20 bg-soft-red/5 px-4 py-4 text-sm text-soft-red">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+            <p>{error}</p>
+          </div>
         </CardContent>
       </Card>
     )
@@ -184,14 +214,14 @@ export function HealthMetrics({ patientId, vitalSigns: initialVitals }: HealthMe
 
   if (!latest) {
     return (
-      <Card className="surface-card">
-        <CardHeader>
-          <CardTitle className="text-primary">Health Metrics</CardTitle>
+      <Card>
+        <CardHeader className="border-b border-border/50 px-6 py-5">
+          <CardTitle className="text-lg font-serif text-primary">Health Metrics</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="py-8 text-center text-muted">
-            No vital signs recorded yet. Schedule an appointment to get your health metrics tracked.
-          </p>
+        <CardContent className="px-6 py-8">
+          <div className="rounded-[24px] border border-border/70 bg-white/72 px-5 py-8 text-center text-sm text-muted">
+            No vital signs recorded yet. Schedule a visit or connect a device feed to build a monitoring history.
+          </div>
         </CardContent>
       </Card>
     )
@@ -205,21 +235,39 @@ export function HealthMetrics({ patientId, vitalSigns: initialVitals }: HealthMe
     minute: '2-digit',
   })
 
+  const attentionCount = [
+    getBloodPressureStatus(latest.bloodPressure),
+    getHeartRateStatus(latest.heartRate),
+    getTemperatureStatus(latest.temperature),
+    getOxygenStatus(latest.oxygenSaturation),
+    getBMIStatus(latest.bmi),
+  ].filter((status) => status !== 'normal').length
+
   return (
-    <Card className="surface-card">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-primary">Health Metrics</CardTitle>
-        <span className="text-sm text-muted">Last recorded: {recordedDate}</span>
+    <Card>
+      <CardHeader className="border-b border-border/50 px-6 py-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-lg font-serif text-primary">Health Metrics</CardTitle>
+            <p className="mt-1 text-sm text-muted">Latest physiologic snapshot from the connected patient record.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge className={attentionCount ? 'bg-soft-red/12 text-soft-red' : 'bg-accent/12 text-accent'}>
+              {attentionCount ? `${attentionCount} items need review` : 'all signals stable'}
+            </Badge>
+            <Badge className="bg-white/85 text-secondary ring-1 ring-border">{recordedDate}</Badge>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <CardContent className="space-y-6 px-6 py-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <MetricCard
             label="Blood Pressure"
             value={latest.bloodPressure}
             unit="mmHg"
             normalRange="90-120 / 60-80"
             status={getBloodPressureStatus(latest.bloodPressure)}
-            icon="❤️"
+            icon={<Heart size={20} />}
           />
           <MetricCard
             label="Heart Rate"
@@ -227,7 +275,7 @@ export function HealthMetrics({ patientId, vitalSigns: initialVitals }: HealthMe
             unit="bpm"
             normalRange="60-100"
             status={getHeartRateStatus(latest.heartRate)}
-            icon="💓"
+            icon={<Activity size={20} />}
           />
           <MetricCard
             label="Temperature"
@@ -235,23 +283,23 @@ export function HealthMetrics({ patientId, vitalSigns: initialVitals }: HealthMe
             unit="°C"
             normalRange="36.1-37.2"
             status={getTemperatureStatus(latest.temperature)}
-            icon="🌡️"
+            icon={<Thermometer size={20} />}
           />
           <MetricCard
-            label="O₂ Saturation"
+            label="Oxygen Saturation"
             value={latest.oxygenSaturation}
             unit="%"
             normalRange="95-100"
             status={getOxygenStatus(latest.oxygenSaturation)}
-            icon="🫁"
+            icon={<Droplets size={20} />}
           />
           <MetricCard
-            label="Resp. Rate"
+            label="Respiratory Rate"
             value={latest.respiratoryRate}
             unit="breaths/min"
             normalRange="12-20"
             status="normal"
-            icon="💨"
+            icon={<Wind size={20} />}
           />
           <MetricCard
             label="BMI"
@@ -259,32 +307,39 @@ export function HealthMetrics({ patientId, vitalSigns: initialVitals }: HealthMe
             unit="kg/m²"
             normalRange="18.5-24.9"
             status={getBMIStatus(latest.bmi)}
-            icon="⚖️"
+            icon={<Scale size={20} />}
           />
         </div>
 
-        {vitalSigns.length > 1 && (
-          <div className="mt-6">
-            <h4 className="mb-3 text-sm font-medium text-secondary">Recent Trend (Last 5 readings)</h4>
-            <div className="space-y-2">
+        {vitalSigns.length > 1 ? (
+          <div className="rounded-[24px] border border-border/70 bg-white/72 px-5 py-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-semibold text-primary">Recent trend</h4>
+                <p className="mt-1 text-xs text-muted">The last five readings, ordered most recent first.</p>
+              </div>
+              <Badge className="bg-accent/10 text-accent">
+                <CheckCircle2 size={12} className="mr-1" /> chronology
+              </Badge>
+            </div>
+            <div className="mt-4 space-y-2">
               {vitalSigns.slice(0, 5).map((vs) => (
                 <div
                   key={vs.id}
-                  className="flex items-center justify-between rounded-lg border border-border/60 bg-surface/60 p-2 text-sm"
+                  className="flex flex-col gap-2 rounded-[20px] border border-border/60 bg-white/80 px-4 py-3 text-sm md:flex-row md:items-center md:justify-between"
                 >
-                  <span className="text-muted">
-                    {new Date(vs.recordedAt).toLocaleDateString()}
-                  </span>
-                  <div className="flex gap-4 text-secondary">
-                    {vs.bloodPressure && <span>BP: {vs.bloodPressure}</span>}
-                    {vs.heartRate && <span>HR: {vs.heartRate}</span>}
-                    {vs.oxygenSaturation && <span>SpO₂: {vs.oxygenSaturation}%</span>}
+                  <span className="text-muted">{new Date(vs.recordedAt).toLocaleDateString()}</span>
+                  <div className="flex flex-wrap gap-4 text-secondary">
+                    {vs.bloodPressure ? <span>BP: {vs.bloodPressure}</span> : null}
+                    {vs.heartRate ? <span>HR: {vs.heartRate}</span> : null}
+                    {vs.oxygenSaturation ? <span>SpO₂: {vs.oxygenSaturation}%</span> : null}
+                    {vs.temperature ? <span>Temp: {vs.temperature}°C</span> : null}
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   )

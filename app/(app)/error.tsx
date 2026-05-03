@@ -11,28 +11,30 @@ export default function Error({
   reset: () => void
 }) {
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="text-center max-w-md">
-        <div className="w-16 h-16 rounded-2xl bg-soft-red/10 flex items-center justify-center mx-auto mb-5">
-          <AlertTriangle size={28} className="text-soft-red" />
+    <div className="flex min-h-[70vh] items-center justify-center">
+      <div className="surface-hero w-full max-w-2xl overflow-hidden px-6 py-8 text-center sm:px-8">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[24px] bg-soft-red/10 text-soft-red">
+          <AlertTriangle size={28} />
         </div>
-        <h2 className="text-xl font-serif text-primary">
-          Something went wrong
-        </h2>
-        <p className="text-sm text-muted mt-2 leading-relaxed">
-          {error.message || "An unexpected error occurred. Please try again."}
+        <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">OpenRx recovery</p>
+        <h2 className="mt-3 font-serif text-[2.2rem] leading-tight text-primary">This page stalled before it finished loading.</h2>
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-secondary">
+          {error.message || "An unexpected error occurred. Retry first. If it persists, go back to the dashboard and re-enter the workflow from a stable page."}
         </p>
-        <div className="flex items-center justify-center gap-3 mt-6">
+        {error.digest ? (
+          <p className="mt-3 text-[11px] text-muted">Reference: {error.digest}</p>
+        ) : null}
+        <div className="mt-8 flex items-center justify-center gap-3">
           <button
             onClick={reset}
-            className="px-5 py-2.5 bg-teal text-white text-sm font-semibold rounded-xl hover:bg-teal-dark transition flex items-center gap-2"
+            className="control-button-primary"
           >
             <RefreshCw size={14} />
-            Try Again
+            Retry page
           </button>
           <Link
             href="/dashboard"
-            className="px-5 py-2.5 bg-surface text-primary text-sm font-semibold rounded-xl border border-border hover:border-teal/30 transition flex items-center gap-2"
+            className="control-button-secondary"
           >
             <Home size={14} />
             Dashboard

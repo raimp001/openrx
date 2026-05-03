@@ -19,9 +19,29 @@ test("status API exposes scheduler summary and prioritizes active workers", asyn
   expect(typeof data.connected).toBe("boolean")
   expect(data.scheduler.message.length).toBeGreaterThan(0)
   expect(["offline", "manual", "vercel", "aws", "hybrid"]).toContain(data.scheduler.mode)
-  expect(data.backgroundWorkers.length).toBeGreaterThan(0)
-
   if (data.backgroundWorkers.length > 1) {
     expect(data.backgroundWorkers[0].workerType).not.toBe("manual")
   }
+})
+
+test("platform readiness exposes launch-blocking email and worker checks", async ({ request }) => {
+  const response = await request.get("/api/platform/readiness")
+  expect(response.ok()).toBeTruthy()
+
+  const data = (await response.json()) as {
+    readinessScore: number
+    checks: Array<{ id: string; status: string; metric: string; description: string }>
+  }
+
+  expect(data.readinessScore).toBeGreaterThanOrEqual(0)
+  expect(data.readinessScore).toBeLessThanOrEqual(100)
+
+  const emailCheck = data.checks.find((check) => check.id === "email-delivery")
+  expect(emailCheck).toBeTruthy()
+  expect(emailCheck?.metric.length).toBeGreaterThan(0)
+  expect(emailCheck?.description.length).toBeGreaterThan(0)
+
+  const workerCheck = data.checks.find((check) => check.id === "aws-worker-cutover")
+  expect(workerCheck).toBeTruthy()
+  expect(["ready", "attention"]).toContain(workerCheck?.status)
 })

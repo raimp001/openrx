@@ -18,6 +18,7 @@ import TreasuryConsole from "@/components/payments/treasury-console"
 import { OpsBadge, OpsEmptyState, OpsMetricCard, OpsPanel } from "@/components/ui/ops-primitives"
 import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
 import { toBaseBuilderTxUrl } from "@/lib/basebuilder/config"
+import { cn } from "@/lib/utils"
 import type {
   AttestationRecord,
   LedgerEntry,
@@ -85,6 +86,10 @@ function defaultSnapshot(): SnapshotPayload {
 export default function ComplianceLedgerPage() {
   const { walletAddress, isConnected } = useWalletIdentity()
   const activeWallet = walletAddress || ""
+  const walletHeaders = useMemo<Record<string, string>>(
+    (): Record<string, string> => (activeWallet ? { "x-wallet-address": activeWallet } : {}),
+    [activeWallet]
+  )
   const [snapshot, setSnapshot] = useState<SnapshotPayload>(defaultSnapshot())
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -110,6 +115,19 @@ export default function ComplianceLedgerPage() {
   const refundTxUrl = useMemo(() => (isBaseTxHash(refundTxHash) ? toBaseBuilderTxUrl(refundTxHash.trim()) : ""), [refundTxHash])
   const canCreateIntent = isPositiveMoney(amount) && description.trim().length > 2
   const canRequestRefund = !!selectedPaymentId && isPositiveMoney(refundAmount) && refundReason.trim().length > 2
+  const activeRefund = useMemo(
+    () => snapshot.refunds.find((refund) => refund.status !== "sent" && refund.status !== "failed") || snapshot.refunds[0] || null,
+    [snapshot.refunds]
+  )
+  const reviewPayment = useMemo(
+    () =>
+      snapshot.payments.find((payment) =>
+        payment.status === "pending_verification" ||
+        payment.status === "initiated" ||
+        payment.status === "failed"
+      ) || snapshot.payments[0] || null,
+    [snapshot.payments]
+  )
 
   function exportSnapshot() {
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" })
@@ -122,20 +140,31 @@ export default function ComplianceLedgerPage() {
   }
 
   const loadSnapshot = useCallback(async () => {
+    if (!activeWallet) {
+      setSnapshot(defaultSnapshot())
+      setSelectedPaymentId("")
+      setSelectedRefundId("")
+      setLoading(false)
+      setError("")
+      return
+    }
+
     setLoading(true)
     setError("")
     try {
-      const response = await fetch(`/api/payments/ledger?walletAddress=${encodeURIComponent(activeWallet)}`)
+      const response = await fetch(`/api/payments/ledger?walletAddress=${encodeURIComponent(activeWallet)}`, {
+        headers: walletHeaders,
+      })
       const data = (await response.json()) as SnapshotPayload
       setSnapshot(data)
       setSelectedPaymentId((prev) => prev || data.payments[0]?.id || "")
       setSelectedRefundId((prev) => prev || data.refunds[0]?.id || "")
     } catch {
-      setError("Unable to load compliance ledger data.")
+      setError("Unable to load payment record data.")
     } finally {
       setLoading(false)
     }
-  }, [activeWallet])
+  }, [activeWallet, walletHeaders])
 
   useEffect(() => {
     void loadSnapshot()
@@ -143,7 +172,7 @@ export default function ComplianceLedgerPage() {
 
   async function createIntent() {
     if (!activeWallet) {
-      setError("Connect a wallet before creating payment intents.")
+      setError("Connect account payment access before creating payment intents.")
       return
     }
     setBusy(true)
@@ -151,7 +180,7 @@ export default function ComplianceLedgerPage() {
     try {
       const response = await fetch("/api/payments/intent", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...walletHeaders },
         body: JSON.stringify({ walletAddress: activeWallet, amount, category, description }),
       })
       const data = (await response.json()) as { error?: string; payment?: PaymentRecord }
@@ -189,7 +218,7 @@ export default function ComplianceLedgerPage() {
 
   async function verifyPayment() {
     if (!activeWallet) {
-      setError("Connect a wallet before verifying payments.")
+      setError("Connect account payment access before verifying payments.")
       return
     }
     if (!selectedPaymentId || !verifyTxHash.trim()) return
@@ -198,7 +227,7 @@ export default function ComplianceLedgerPage() {
     try {
       const response = await fetch("/api/payments/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...walletHeaders },
         body: JSON.stringify({
           paymentId: selectedPaymentId,
           txHash: verifyTxHash.trim(),
@@ -219,7 +248,7 @@ export default function ComplianceLedgerPage() {
 
   async function requestPaymentRefund() {
     if (!activeWallet) {
-      setError("Connect a wallet before requesting refunds.")
+      setError("Connect account payment access before requesting refunds.")
       return
     }
     if (!selectedPaymentId || !refundAmount.trim()) return
@@ -228,7 +257,7 @@ export default function ComplianceLedgerPage() {
     try {
       const response = await fetch("/api/payments/refunds", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...walletHeaders },
         body: JSON.stringify({
           paymentId: selectedPaymentId,
           amount: refundAmount,
@@ -249,7 +278,7 @@ export default function ComplianceLedgerPage() {
 
   async function approveRefund() {
     if (!activeWallet) {
-      setError("Connect a wallet before approving refunds.")
+      setError("Connect account payment access before approving refunds.")
       return
     }
     if (!selectedRefundId) return
@@ -258,7 +287,7 @@ export default function ComplianceLedgerPage() {
     try {
       const response = await fetch("/api/payments/refunds", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...walletHeaders },
         body: JSON.stringify({ action: "approve", refundId: selectedRefundId, approvedBy: activeWallet }),
       })
       const data = (await response.json()) as { error?: string }
@@ -273,7 +302,7 @@ export default function ComplianceLedgerPage() {
 
   async function finalizeRefund() {
     if (!activeWallet) {
-      setError("Connect a wallet before finalizing refunds.")
+      setError("Connect account payment access before finalizing refunds.")
       return
     }
     if (!selectedRefundId) return
@@ -282,7 +311,7 @@ export default function ComplianceLedgerPage() {
     try {
       const response = await fetch("/api/payments/refunds", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...walletHeaders },
         body: JSON.stringify({
           action: "finalize",
           refundId: selectedRefundId,
@@ -304,12 +333,12 @@ export default function ComplianceLedgerPage() {
   return (
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
-        eyebrow="Payments"
-        title="Compliance ledger"
-        description="Operational control for intents, verification, receipts, attestations, refunds, and treasury actions. The goal is fast review without losing audit depth."
+        eyebrow="Payment records"
+        title="Track receipts, refunds, and payment proof."
+        description="Use this advanced page to verify Base Pay settlements, create receipts, review refunds, and export an audit trail when payment questions come up."
         meta={
           <div className="flex flex-wrap items-center gap-2">
-            <OpsBadge tone={isConnected ? "accent" : "gold"}>{isConnected ? "wallet connected" : "wallet required"}</OpsBadge>
+            <OpsBadge tone={isConnected ? "accent" : "gold"}>{isConnected ? "account connected" : "account required"}</OpsBadge>
             <OpsBadge tone="terra">{snapshot.entries.length} ledger entries</OpsBadge>
             <OpsBadge tone={snapshot.summary.openRefundCount ? "red" : "blue"}>
               {snapshot.summary.openRefundCount} open refunds
@@ -330,7 +359,7 @@ export default function ComplianceLedgerPage() {
 
       {!isConnected ? (
         <div className="rounded-2xl border border-yellow-300/30 bg-yellow-100/30 px-4 py-3 text-sm text-primary">
-          Wallet is not connected. Connect a wallet before creating intents, verifying Base Pay settlements, or running refunds.
+          Account payment access is not connected. Connect your account before creating intents, verifying Base Pay settlements, or running refunds.
         </div>
       ) : null}
 
@@ -357,11 +386,86 @@ export default function ComplianceLedgerPage() {
             <OpsMetricCard label="Attestations" value={`${snapshot.summary.attestationCount}`} detail="Recorded compliance attestations tied to receipts and refunds." icon={ShieldCheck} tone="accent" />
           </div>
 
+          <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
+            <div className="overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(8,24,46,0.16)]">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Start here</p>
+                  <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-white">
+                    {activeRefund
+                      ? `Refund ${activeRefund.id.slice(0, 8)} needs closure`
+                      : reviewPayment
+                        ? `${reviewPayment.category} payment is next to reconcile`
+                        : "No immediate ledger escalation"}
+                  </h2>
+                  <p className="mt-3 text-sm leading-7 text-white/72">
+                    {activeRefund
+                      ? `${activeRefund.status} · $${activeRefund.amount} · ${activeRefund.reason}`
+                      : reviewPayment
+                        ? `${reviewPayment.status} · expected $${reviewPayment.expectedAmount}`
+                        : "The current ledger is quiet. No refund or payment verification queue is leading the board right now."}
+                  </p>
+                </div>
+                <OpsBadge tone={activeRefund ? "red" : reviewPayment ? "gold" : "accent"} className="!border-white/12 !bg-white/10 !text-white">
+                  {activeRefund ? "urgent" : reviewPayment ? "review" : "stable"}
+                </OpsBadge>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">First move</p>
+                  <p className="mt-2 text-lg font-semibold text-white">
+                    {activeRefund
+                      ? "Close refund workflow"
+                      : snapshot.summary.pendingVerificationCount
+                        ? "Verify onchain settlement"
+                        : "Create next intent"}
+                  </p>
+                  <p className="mt-1 text-[12px] leading-6 text-white/64">
+                    {activeRefund
+                      ? "Refunds create the fastest audit confusion when they sit half-finished."
+                      : snapshot.summary.pendingVerificationCount
+                        ? "Pending verification is the next choke point for receipts and attestations."
+                        : "No active queue is blocked, so the next task is a fresh payment intent."}
+                  </p>
+                </div>
+                <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Operational posture</p>
+                  <p className="mt-2 text-lg font-semibold text-white">
+                    {snapshot.summary.openRefundCount
+                      ? "Refunds open"
+                      : snapshot.summary.pendingVerificationCount
+                        ? "Settlement queue active"
+                        : "Ledger stable"}
+                  </p>
+                  <p className="mt-1 text-[12px] leading-6 text-white/64">
+                    {snapshot.summary.openRefundCount
+                      ? "Resolve refund approvals and finalize chain evidence before more volume accumulates."
+                      : snapshot.summary.pendingVerificationCount
+                        ? "Verification work is the main remaining bottleneck in the current ledger state."
+                        : "Receipts, attestations, and treasury flows are currently quiet."}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <LedgerBriefCard
+              eyebrow="Verification queue"
+              title={`${snapshot.summary.pendingVerificationCount} awaiting proof`}
+              detail={snapshot.summary.pendingVerificationCount ? "These intents need a chain hash before receipts and attestations can be closed." : "No payment intent is waiting on verification right now."}
+              tone={snapshot.summary.pendingVerificationCount ? "gold" : "accent"}
+            />
+            <LedgerBriefCard
+              eyebrow="Refund pressure"
+              title={`${snapshot.summary.openRefundCount} open refund${snapshot.summary.openRefundCount === 1 ? "" : "s"}`}
+              detail={snapshot.summary.openRefundCount ? "Refund requests still need approval or finalization." : "No refund request is currently blocking the ledger."}
+              tone={snapshot.summary.openRefundCount ? "red" : "accent"}
+            />
+          </div>
+
           <TreasuryConsole />
 
           <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
             <div className="space-y-4">
-              <OpsPanel eyebrow="Step 1" title="Create payment intent" description="Start with an expected amount, category, and human-readable reason before launching any pay flow.">
+              <OpsPanel eyebrow="Step 1" title="Create payment intent" description="Start with the expected amount, payment category, and a reason a human could still understand during audit review.">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="control-label">
                     Amount (USDC)
@@ -388,7 +492,7 @@ export default function ComplianceLedgerPage() {
                 </div>
               </OpsPanel>
 
-              <OpsPanel eyebrow="Step 2" title="Verify payment and issue receipt" description="Pick an intent, attach the onchain settlement hash, and verify against the expected recipient.">
+              <OpsPanel eyebrow="Step 2" title="Verify payment and issue receipt" description="Attach the onchain settlement hash, verify against the expected recipient, then let the system issue the receipt and downstream attestation artifacts.">
                 <div className="space-y-3">
                   <label className="control-label">
                     Intent
@@ -422,7 +526,7 @@ export default function ComplianceLedgerPage() {
                 </div>
               </OpsPanel>
 
-              <OpsPanel eyebrow="Step 3" title="Refund workflow" description="Request a refund first, then approve and finalize it once the chain transfer is ready.">
+              <OpsPanel eyebrow="Step 3" title="Refund workflow" description="Request the refund first, then move it through approval and finalization once the transfer is ready.">
                 <div className="grid gap-3">
                   <label className="control-label">
                     Payment
@@ -588,6 +692,46 @@ function ArtifactCard({ title, subtitle, footnote }: { title: string; subtitle: 
       <div className="text-sm font-semibold text-primary">{title}</div>
       <div className="mt-1 text-xs text-secondary">{subtitle}</div>
       <div className="mt-2 font-mono text-[11px] text-muted">{footnote}</div>
+    </div>
+  )
+}
+
+function LedgerBriefCard({
+  eyebrow,
+  title,
+  detail,
+  tone,
+}: {
+  eyebrow: string
+  title: string
+  detail: string
+  tone: "terra" | "accent" | "blue" | "gold" | "red"
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[24px] border px-5 py-5",
+        tone === "red"
+          ? "border-red-200/45 bg-[linear-gradient(180deg,rgba(255,247,246,0.96),rgba(255,239,237,0.92))]"
+          : tone === "gold"
+            ? "border-amber-300/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,246,255,0.90))]"
+            : tone === "blue"
+              ? "border-[rgba(59,130,246,0.18)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
+              : tone === "accent"
+                ? "border-[rgba(47,107,255,0.14)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
+                : "border-[rgba(47,107,255,0.14)] bg-[linear-gradient(180deg,rgba(255,248,244,0.96),rgba(255,242,237,0.92))]"
+      )}
+    >
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{eyebrow}</div>
+      <div className="mt-3 flex items-start justify-between gap-3">
+        <div>
+          <div className="text-lg font-serif leading-tight text-primary">{title}</div>
+          <div className="mt-2 text-sm leading-6 text-secondary">{detail}</div>
+        </div>
+        <OpsBadge tone={tone} className="shrink-0">
+          {tone === "accent" ? "stable" : tone === "blue" ? "watch" : tone === "gold" ? "review" : tone === "red" ? "urgent" : "active"}
+        </OpsBadge>
+      </div>
     </div>
   )
 }

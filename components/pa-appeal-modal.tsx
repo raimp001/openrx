@@ -108,8 +108,8 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-warm-900/20 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[30px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,251,245,0.98),rgba(244,237,226,0.96))] shadow-[0_28px_60px_rgba(17,34,30,0.16)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/24 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[30px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.96))] shadow-[0_28px_60px_rgba(8,24,46,0.16)]">
         {/* Header */}
         <div className="shrink-0 border-b border-border/70 px-5 py-5">
           <div className="flex items-start justify-between gap-4">
@@ -147,7 +147,7 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
             <AlertTriangle size={13} className="text-soft-red shrink-0 mt-0.5" />
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-soft-red">Denial Reason</p>
-              <p className="mt-1 text-xs leading-6 text-red-800/80">{pa.denial_reason}</p>
+              <p className="mt-1 text-xs leading-6 text-red-800">{pa.denial_reason}</p>
             </div>
           </div>
         )}
@@ -170,7 +170,7 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
                       "rounded-[20px] border p-3 text-left transition",
                       appealType === opt.value
                         ? "border-accent/30 bg-accent/7"
-                        : "border-border/80 bg-surface/70 hover:border-warm-300"
+                        : "border-border/80 bg-surface/70 hover:border-accent/30"
                     )}
                   >
                     <div className={cn("text-xs font-bold", appealType === opt.value ? "text-accent" : "text-primary")}>
@@ -228,7 +228,7 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
                   "Step-by-step submission instructions for " + pa.insurance_provider,
                   includeP2P ? "Peer-to-peer review request language" : null,
                 ].filter(Boolean).map((item, i) => (
-                  <li key={i} className="text-[11px] text-accent/80 flex items-center gap-1.5">
+                  <li key={i} className="text-[11px] text-accent flex items-center gap-1.5">
                     <ChevronRight size={9} className="text-accent shrink-0" />
                     {item}
                   </li>
@@ -238,7 +238,7 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
 
             <button
               onClick={() => void generateAppeal()}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-teal py-3 text-sm font-bold text-cream transition hover:bg-warm-900"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white transition hover:bg-[#12213a]"
             >
               <Send size={14} />
               Generate appeal package
@@ -290,7 +290,7 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
                     className={cn(
                       "rounded-xl px-3 py-1 text-[10px] font-bold transition",
                       activeSection === sec
-                        ? "bg-teal text-cream"
+                        ? "bg-primary text-white"
                         : "bg-border/50 text-muted hover:bg-border"
                     )}
                   >
@@ -315,7 +315,7 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
               {result.evaluation?.score !== undefined && (
                 <span className={cn(
                   "font-bold",
-                  result.evaluation.score >= 85 ? "text-accent" : result.evaluation.score >= 60 ? "text-yellow-400" : "text-soft-red"
+                  result.evaluation.score >= 85 ? "text-accent" : result.evaluation.score >= 60 ? "text-yellow-800" : "text-soft-red"
                 )}>
                   Approval score: {result.evaluation.score}/100
                 </span>
@@ -358,7 +358,7 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
               </button>
               <button
                 onClick={onClose}
-                className="flex items-center gap-2 bg-teal hover:bg-warm-900 text-cream text-xs font-bold px-4 py-2 rounded-xl transition"
+                className="flex items-center gap-2 bg-primary hover:bg-[#12213a] text-white text-xs font-bold px-4 py-2 rounded-xl transition"
               >
                 Done
               </button>

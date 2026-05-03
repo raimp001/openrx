@@ -199,7 +199,7 @@ export default function Topbar() {
               {results.total === 0 ? (
                 <div className="px-4 py-3 text-sm text-secondary">No results for &ldquo;{query}&rdquo;</div>
               ) : (
-                <div id="search-results-listbox" className="max-h-80 overflow-y-auto py-1" role="listbox">
+                <div id="search-results-listbox" className="max-h-80 overflow-y-auto py-1" role="listbox" aria-label="Search results">
                   {(() => {
                     let idx = 0
                     return (

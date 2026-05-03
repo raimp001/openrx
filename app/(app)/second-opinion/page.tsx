@@ -18,6 +18,7 @@ export default function SecondOpinionPage() {
   const [symptoms, setSymptoms] = useState("")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<SecondOpinionResult | null>(null)
+  const [error, setError] = useState("")
 
   const agreementMeta = useMemo(() => {
     if (!result) return null
@@ -31,6 +32,7 @@ export default function SecondOpinionPage() {
   async function submitReview() {
     if (!diagnosis.trim() || !currentPlan.trim()) return
     setLoading(true)
+    setError("")
     try {
       const response = await fetch("/api/second-opinion/review", {
         method: "POST",
@@ -44,8 +46,17 @@ export default function SecondOpinionPage() {
             .filter(Boolean),
         }),
       })
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null)
+        throw new Error(errData?.error || `Review failed (${response.status})`)
+      }
       const data = (await response.json()) as SecondOpinionResult
+      if (!data.agreement || !data.summary) {
+        throw new Error("Received incomplete review data. Please try again.")
+      }
       setResult(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -137,7 +148,17 @@ export default function SecondOpinionPage() {
         </div>
       </section>
 
-      {!result && !loading && (
+      {error && (
+        <div className="surface-card border-soft-red/20 bg-soft-red/5 p-4 flex items-center gap-3">
+          <AlertTriangle size={16} className="text-soft-red shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-primary">Review failed</p>
+            <p className="text-xs text-secondary mt-0.5">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {!result && !loading && !error && (
         <div className="surface-card py-12 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] bg-teal/8">
             <Stethoscope size={28} className="text-teal" />

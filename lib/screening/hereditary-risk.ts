@@ -1,4 +1,5 @@
 export const hereditaryRiskPathways = {
+  HEREDITARY: ["hereditary cancer risk"],
   BRCA: ["breast", "ovarian", "pancreatic", "prostate"],
   BRCA1: ["breast", "ovarian", "pancreatic", "prostate"],
   BRCA2: ["breast", "ovarian", "pancreatic", "prostate", "melanoma"],

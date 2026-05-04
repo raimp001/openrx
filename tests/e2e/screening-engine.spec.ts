@@ -141,6 +141,7 @@ test("assessment promotes actionable inherited-risk recommendations instead of o
   expect(names).toContain("Colorectal cancer screening")
   expect(names).toContain("PSA screening discussion")
   expect(names).toContain("Genetic counseling and high-risk screening review")
+  expect(assessment.structuredRecommendations?.some((rec) => rec.id === "hereditary-cancer-genetic-counseling")).toBe(true)
   expect(assessment.structuredRecommendations?.some((rec) => rec.id === "lung-smoking-history-needed")).toBe(true)
 })
 

@@ -182,7 +182,20 @@ export function screeningIntakeFromLegacy(input: LegacyScreeningInput = {}): Scr
     .flatMap((term) => term.split(/[^a-zA-Z0-9]+/))
     .map((term) => normalizeGene(term))
     .filter((gene): gene is NonNullable<ReturnType<typeof normalizeGene>> => Boolean(gene))
-  const uniqueGenes = Array.from(new Set(genes))
+  const hasGenericHereditarySignal = allTerms.some((term) =>
+    includesAny(normalized(term), [
+      "reported germline mutation signal",
+      "germline mutation",
+      "hereditary cancer",
+      "inherited cancer",
+      "pathogenic variant",
+      "mutation carrier",
+    ])
+  )
+  const uniqueGenes = Array.from(new Set([
+    ...genes,
+    ...(hasGenericHereditarySignal && genes.length === 0 ? ["HEREDITARY" as const] : []),
+  ]))
   const packYears = extractPackYears(allSmokingTerms)
   const quitYearsAgo = extractQuitYears(allSmokingTerms)
 
@@ -306,6 +319,11 @@ function addHereditaryRiskRecommendations(recommendations: ScreeningRecommendati
   const pathways = getPathwaysForGenes(normalizedGenes)
 
   if (normalizedGenes.length === 0) return
+  const hasGenericSignal = normalizedGenes.includes("HEREDITARY")
+  const specificGenes = Array.from(new Set(normalizedGenes.filter((gene) => gene !== "HEREDITARY")))
+  const variantLabel = specificGenes.length > 0
+    ? specificGenes.join(", ")
+    : "reported inherited-risk signal"
 
   addUnique(recommendations, recommendation({
     id: "hereditary-cancer-genetic-counseling",
@@ -313,13 +331,15 @@ function addHereditaryRiskRecommendations(recommendations: ScreeningRecommendati
     screeningName: "Genetic counseling and high-risk pathway review",
     status: "high_risk",
     riskCategory: "hereditary_risk",
-    rationale: `Known pathogenic or likely pathogenic variants (${Array.from(new Set(normalizedGenes)).join(", ")}) can change screening start age, modality, and interval.`,
+    rationale: hasGenericSignal && specificGenes.length === 0
+      ? "A reported inherited-risk or germline mutation signal can change screening start age, modality, and interval."
+      : `Known pathogenic or likely pathogenic variants (${variantLabel}) can change screening start age, modality, and interval.`,
     recommendedNextStep: "Request genetic counseling or high-risk clinic review before relying on average-risk screening intervals.",
     suggestedTiming: "Before choosing a routine screening interval",
     sourceId: "pending-high-risk-oncology",
     requiresClinicianReview: true,
     patientFriendlyExplanation: "A known inherited-risk result may mean your screening plan should be different from average-risk guidelines. OpenRx can help organize genetic counseling or high-risk clinic review.",
-    clinicianSummary: `Known hereditary cancer signal: ${Array.from(new Set(normalizedGenes)).join(", ")}. Exact NCCN interval logic is not encoded; route to genetics/high-risk specialist review.`,
+    clinicianSummary: `Known hereditary cancer signal: ${variantLabel}. Exact NCCN interval logic is not encoded; route to genetics/high-risk specialist review.`,
     nextSteps: ["request_genetic_counseling", "request_specialist_review", "download_clinician_summary"],
   }))
 }

@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test"
 import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
 import { createScreeningNextStepRequest } from "@/lib/screening/next-step-store"
+import { parseScreeningIntakeNarrative } from "@/lib/screening-intake"
+import { buildDeterministicScreeningResponse } from "@/lib/ai-engine"
 import type { ScreeningIntake } from "@/lib/screening/types"
 
 function intake(overrides: Partial<ScreeningIntake> = {}): ScreeningIntake {
@@ -104,6 +106,19 @@ test("legacy narrative extraction feeds hereditary and family-history screening 
 
   expect(result.recommendations.some((rec) => rec.id === "hereditary-cancer-genetic-counseling")).toBe(true)
   expect(result.recommendations.every((rec) => !rec.patientFriendlyExplanation.toLowerCase().includes("you have cancer"))).toBe(true)
+})
+
+test("screening chat handles compact family-history narrative without provider fallback", () => {
+  const parsed = parseScreeningIntakeNarrative("age 55 male hx colorectal cancer in father")
+  const response = buildDeterministicScreeningResponse("age 55 male hx colorectal cancer in father")
+
+  expect(parsed.extracted.age).toBe(55)
+  expect(parsed.extracted.gender).toBe("male")
+  expect(parsed.extracted.familyHistory).toContain("family history of colorectal cancer")
+  expect(response).toContain("Colorectal")
+  expect(response.toLowerCase()).toContain("clinician review")
+  expect(response.toLowerCase()).not.toContain("try again")
+  expect(response.toLowerCase()).not.toContain("high volume")
 })
 
 test("patient-facing recommendation language avoids unsafe certainty", () => {

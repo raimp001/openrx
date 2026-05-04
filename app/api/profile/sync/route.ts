@@ -100,8 +100,8 @@ export async function POST(request: NextRequest) {
     const safeEmail = desiredEmail || fallbackEmail(walletAddress)
 
     const [existingByWallet, existingByEmail] = await Promise.all([
-      prisma.user.findUnique({
-        where: { walletAddress },
+      prisma.user.findFirst({
+        where: { walletAddress: { equals: walletAddress, mode: "insensitive" } },
         include: { patientProfile: true },
       }),
       desiredEmail

@@ -9,6 +9,9 @@ const STORAGE_PREFIX = "openrx:profile:" as const
 
 export interface WalletProfile {
   walletAddress: string
+  serverUserId?: string
+  serverPatientId?: string
+  walletSessionSyncedAt?: string
   fullName: string
   dateOfBirth: string
   gender: string

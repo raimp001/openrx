@@ -56,6 +56,20 @@ interface WalletIdentityState {
   getWalletAuthHeaders: () => Promise<Record<string, string>>
 }
 
+interface WalletSessionResponse {
+  ok?: boolean
+  isNewUser?: boolean
+  userId?: string
+  patientId?: string
+  message?: string
+  error?: string
+  profile?: {
+    fullName?: string
+    email?: string
+    onboardingComplete?: boolean
+  }
+}
+
 const WalletIdentityContext = createContext<WalletIdentityState>({
   isConnected: false,
   walletAddress: undefined,
@@ -81,10 +95,15 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
   const [databaseSyncStatus, setDatabaseSyncStatus] = useState<WalletIdentityState["databaseSyncStatus"]>("idle")
   const [databaseSyncMessage, setDatabaseSyncMessage] = useState("")
   const lastSyncedFingerprintRef = useRef("")
+  const lastWalletSessionRef = useRef("")
   const walletProofRef = useRef<{
     walletAddress: string
     message: string
     signature: string
+  } | null>(null)
+  const walletProofPromiseRef = useRef<{
+    walletAddress: string
+    promise: Promise<Record<string, string>>
   } | null>(null)
 
   // Load profile when wallet connects
@@ -106,6 +125,9 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
       setDatabaseSyncStatus("idle")
       setDatabaseSyncMessage("")
       lastSyncedFingerprintRef.current = ""
+      lastWalletSessionRef.current = ""
+      walletProofRef.current = null
+      walletProofPromiseRef.current = null
     }
     setIsLoading(false)
   }, [isConnected, address])
@@ -162,14 +184,29 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const message = buildWalletAuthMessage(walletAddress)
-    const signature = await signMessageAsync({ message })
-    walletProofRef.current = { walletAddress, message, signature }
+    if (walletProofPromiseRef.current?.walletAddress === walletAddress) {
+      return walletProofPromiseRef.current.promise
+    }
 
-    return {
-      "x-wallet-address": walletAddress,
-      "x-wallet-message": message,
-      "x-wallet-signature": signature,
+    const proofPromise = (async () => {
+      const message = buildWalletAuthMessage(walletAddress)
+      const signature = await signMessageAsync({ message })
+      walletProofRef.current = { walletAddress, message, signature }
+
+      return {
+        "x-wallet-address": walletAddress,
+        "x-wallet-message": message,
+        "x-wallet-signature": signature,
+      }
+    })()
+    walletProofPromiseRef.current = { walletAddress, promise: proofPromise }
+
+    try {
+      return await proofPromise
+    } finally {
+      if (walletProofPromiseRef.current?.walletAddress === walletAddress) {
+        walletProofPromiseRef.current = null
+      }
     }
   }, [address, signMessageAsync])
 
@@ -177,6 +214,78 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
     profile && profile.onboardingComplete
       ? profileToPatient(profile)
       : EMPTY_PATIENT
+
+  useEffect(() => {
+    if (!isConnected || !address || !profile?.walletAddress) {
+      return
+    }
+
+    const walletAddress = address.toLowerCase()
+    if (lastWalletSessionRef.current === walletAddress) {
+      return
+    }
+
+    let active = true
+    lastWalletSessionRef.current = walletAddress
+    setDatabaseSyncStatus("syncing")
+    setDatabaseSyncMessage("Recognizing wallet profile...")
+
+    getWalletAuthHeaders()
+      .then((walletHeaders) => fetch("/api/profile/wallet-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...walletHeaders,
+        },
+        body: JSON.stringify({ walletAddress }),
+      }))
+      .then(async (response) => {
+        const result = (await response.json().catch(() => null)) as WalletSessionResponse | null
+
+        if (!active) return
+
+        if (!response.ok) {
+          if (response.status === 503) {
+            setDatabaseSyncStatus("database_missing")
+            setDatabaseSyncMessage(result?.message || "Set DATABASE_URL to activate live wallet recognition.")
+            return
+          }
+
+          setDatabaseSyncStatus("error")
+          setDatabaseSyncMessage(result?.error || "Failed to recognize wallet profile.")
+          return
+        }
+
+        setProfile((current) => {
+          if (!current || current.walletAddress.toLowerCase() !== walletAddress) return current
+          const updated: WalletProfile = {
+            ...current,
+            serverUserId: result?.userId || current.serverUserId,
+            serverPatientId: result?.patientId || current.serverPatientId,
+            walletSessionSyncedAt: new Date().toISOString(),
+            fullName: current.fullName || result?.profile?.fullName || "",
+            email: current.email || result?.profile?.email || "",
+            onboardingComplete: current.onboardingComplete || Boolean(result?.profile?.onboardingComplete),
+          }
+          saveWalletProfile(updated)
+          return updated
+        })
+        setIsNewUser(Boolean(result?.isNewUser))
+        setDatabaseSyncStatus("synced")
+        setDatabaseSyncMessage(result?.message || "Wallet recognized.")
+        window.dispatchEvent(new CustomEvent("openrx:live-refresh"))
+      })
+      .catch(() => {
+        if (!active) return
+        lastWalletSessionRef.current = ""
+        setDatabaseSyncStatus("error")
+        setDatabaseSyncMessage("Failed to recognize wallet profile.")
+      })
+
+    return () => {
+      active = false
+    }
+  }, [address, getWalletAuthHeaders, isConnected, profile?.walletAddress])
 
   useEffect(() => {
     if (!isConnected || !address || !profile?.onboardingComplete) {

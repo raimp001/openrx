@@ -2,6 +2,9 @@ import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import { OPENCLAW_CONFIG } from "./openclaw/config"
 import { getLiveSnapshotByWallet } from "./live-data.server"
+import { parseScreeningIntakeNarrative } from "./screening-intake"
+import { nextStepLabel, recommendScreenings, screeningIntakeFromLegacy } from "./screening/recommend"
+import type { ScreeningRecommendation } from "./screening/types"
 
 // ── AI Clients ────────────────────────────────────────────
 const getClaudeClient = () =>
@@ -105,6 +108,105 @@ function buildFallbackAgentResponse(agentId: string, message: string): string {
     default:
       return `${contextLine}\n\nOpenRx can route this to the right care workflow. Start with the concrete goal, any deadlines, and the blocker: appointment, medication, bill, screening, message, or referral.`
   }
+}
+
+const SCREENING_QUERY_TERMS = [
+  "screening",
+  "colonoscopy",
+  "colon cancer",
+  "colorectal",
+  "mammogram",
+  "pap",
+  "hpv",
+  "ldct",
+  "lung cancer",
+  "psa",
+  "prostate",
+  "brca",
+  "lynch",
+  "family history",
+]
+
+function looksLikeScreeningQuestion(agentId: string, message: string): boolean {
+  if (agentId === "screening") return true
+  const lowered = message.toLowerCase()
+  if (/\b(?:hx|fhx|fam hx)\b/.test(lowered)) return true
+  return SCREENING_QUERY_TERMS.some((term) => lowered.includes(term))
+}
+
+function conciseStatus(status: ScreeningRecommendation["status"]): string {
+  return status.replace(/_/g, " ")
+}
+
+function formatScreeningRecommendation(rec: ScreeningRecommendation, index: number): string {
+  const nextStep = rec.nextSteps[0] ? nextStepLabel(rec.nextSteps[0]) : rec.recommendedNextStep
+  const review = rec.requiresClinicianReview ? " Clinician review is needed before using this as a routine screening interval." : ""
+
+  return [
+    `${index}. ${rec.screeningName}`,
+    `Status: ${conciseStatus(rec.status)} (${rec.riskCategory.replace(/_/g, " ")}).`,
+    `Why: ${rec.patientFriendlyExplanation}${review}`,
+    `Next: ${nextStep}. ${rec.recommendedNextStep}`,
+    `Source: ${rec.sourceSystem}${rec.sourceVersion ? ` ${rec.sourceVersion}` : ""}.`,
+  ].join("\n")
+}
+
+function summarizeParsedScreeningInput(message: string): string {
+  const parsed = parseScreeningIntakeNarrative(message).extracted
+  const details = [
+    typeof parsed.age === "number" ? `age ${parsed.age}` : undefined,
+    parsed.gender,
+    parsed.familyHistory.length ? parsed.familyHistory.join("; ") : undefined,
+    parsed.conditions.length ? parsed.conditions.join("; ") : undefined,
+    parsed.symptoms.length ? `symptoms: ${parsed.symptoms.join(", ")}` : undefined,
+  ].filter(Boolean)
+
+  return details.length ? details.join(", ") : "the details you shared"
+}
+
+export function buildDeterministicScreeningResponse(message: string): string {
+  const parsed = parseScreeningIntakeNarrative(message)
+
+  if (!parsed.ready) {
+    return [
+      "I can help with screening, but I need one more line of context to do it safely.",
+      parsed.clarificationQuestion || "Share your age, sex used for screening intervals, symptoms, family history, smoking history, and prior screening dates if known.",
+      "",
+      "OpenRx can organize the next step, but it does not replace a clinician or guarantee that a test is ordered or covered.",
+    ].join("\n")
+  }
+
+  const engineResult = recommendScreenings(screeningIntakeFromLegacy({
+    age: parsed.extracted.age,
+    gender: parsed.extracted.gender,
+    smoker: parsed.extracted.smoker,
+    familyHistory: parsed.extracted.familyHistory,
+    symptoms: parsed.extracted.symptoms,
+    conditions: parsed.extracted.conditions,
+  }))
+
+  const actionable = engineResult.recommendations
+    .filter((rec) => rec.status !== "not_due")
+    .slice(0, 4)
+  const recommendations = actionable.length ? actionable : engineResult.recommendations.slice(0, 3)
+
+  if (recommendations.length === 0) {
+    return [
+      `Based on what you shared (${summarizeParsedScreeningInput(message)}), I do not have enough source-backed detail to show a screening recommendation safely.`,
+      "Next: request care navigation or add prior screening dates, symptoms, family history diagnosis ages, and smoking pack-years if relevant.",
+      "OpenRx can organize the next step, but it does not replace a clinician.",
+    ].join("\n")
+  }
+
+  const summary = summarizeParsedScreeningInput(message)
+  return [
+    `Based on what you shared: ${summary}.`,
+    "",
+    ...recommendations.map((rec, index) => formatScreeningRecommendation(rec, index + 1)),
+    "",
+    "What OpenRx should do next: start a navigation request, prepare a clinician summary, and confirm prior screening dates/family diagnosis age before treating this as routine screening.",
+    "Safety note: this is guideline-based education and care navigation support, not a diagnosis, medical order, or insurance approval guarantee.",
+  ].join("\n\n")
 }
 
 // ── GQA-inspired Patient Context Cache ───────────────────
@@ -233,6 +335,16 @@ export async function runAgent(params: {
     return { response: "Unknown agent.", agentId }
   }
 
+  const sessionKey = sessionId || `${agentId}-default`
+
+  if (looksLikeScreeningQuestion(agentId, message)) {
+    const response = buildDeterministicScreeningResponse(message)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("screening", "deterministic-screening-response", `${message.slice(0, 60)}...`, "portal")
+    return { response, agentId: "screening" }
+  }
+
   const claude = getClaudeClient()
 
   // Keep the demo path useful even when the hosted model provider is unavailable.
@@ -240,7 +352,6 @@ export async function runAgent(params: {
     return { response: buildFallbackAgentResponse(agentId, message), agentId }
   }
 
-  const sessionKey = sessionId || `${agentId}-default`
   const patientContext = params._cachedPatientContext ?? await getPatientContext(walletAddress)
 
   // Build system prompt with patient context
@@ -343,6 +454,10 @@ IMPORTANT RULES:
     console.error(`Agent ${agentId} error:`, errMsg || error)
 
     const errorNote = friendlyAIError(status, errMsg)
+    if (looksLikeScreeningQuestion(agentId, message)) {
+      const deterministic = buildDeterministicScreeningResponse(message)
+      return { response: deterministic, agentId: "screening" }
+    }
     const fallback = buildFallbackAgentResponse(agentId, message)
     return { response: `${errorNote}\n\n${fallback}`, agentId }
   }

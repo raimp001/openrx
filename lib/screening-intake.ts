@@ -84,8 +84,15 @@ const SYMPTOM_KEYWORDS = [
   "fever",
   "night sweats",
   "blood in stool",
+  "rectal bleeding",
+  "bloody stool",
   "blood in urine",
   "coughing blood",
+  "hemoptysis",
+  "breast lump",
+  "breast mass",
+  "abnormal uterine bleeding",
+  "postmenopausal bleeding",
   "joint pain",
   "muscle weakness",
   "confusion",
@@ -153,6 +160,7 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   const lowered = narrative.toLowerCase()
 
   const ageMatch =
+    lowered.match(/\bage\s*(?:is|=|:)?\s*(\d{1,3})\b/) ||
     lowered.match(/\b(\d{1,3})\s*(?:years?\s*old|yo|y\/o)\b/) ||
     lowered.match(/\bi am\s+(\d{1,3})\b/)
   const age = ageMatch ? Number.parseInt(ageMatch[1], 10) : undefined

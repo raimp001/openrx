@@ -5,6 +5,7 @@ import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db"
 import { getDatabaseHealth } from "@/lib/database-health"
 import { fromCents, toCents } from "@/lib/money"
+import { resolveBaseUsdcTransferStatus } from "@/lib/basebuilder/usdc.server"
 
 const DEFAULT_TREASURY_WALLET = "0x09aeac8822F72AD49676c4DfA38519C98484730c"
 const DEFAULT_CURRENCY = "USDC" as const
@@ -417,7 +418,27 @@ function createPaymentIntentInFileStore(input: PaymentIntentInput): PaymentRecor
   return payment
 }
 
-async function resolveBasePaymentStatus(params: { txHash: string; testnet?: boolean }): Promise<BasePayStatus> {
+function looksLikeBaseTxHash(value: string): boolean {
+  return /^0x[a-fA-F0-9]{64}$/.test(value.trim())
+}
+
+async function resolveBasePaymentStatus(params: {
+  txHash: string
+  testnet?: boolean
+  walletAddress?: string
+  expectedAmount?: string
+  expectedRecipient?: string
+}): Promise<BasePayStatus> {
+  if (looksLikeBaseTxHash(params.txHash)) {
+    return resolveBaseUsdcTransferStatus({
+      txHash: params.txHash,
+      testnet: params.testnet,
+      walletAddress: params.walletAddress,
+      expectedAmount: params.expectedAmount,
+      expectedRecipient: params.expectedRecipient,
+    })
+  }
+
   const { getPaymentStatus } = await import("@base-org/account")
   return (await getPaymentStatus({
     id: params.txHash.trim(),
@@ -553,6 +574,9 @@ async function verifyAndRecordPaymentInFileStore(input: VerifyPaymentInput): Pro
   const status = await resolveBasePaymentStatus({
     txHash: input.txHash,
     testnet: input.testnet,
+    walletAddress,
+    expectedAmount: input.expectedAmount || payment.expectedAmount,
+    expectedRecipient: input.expectedRecipient || payment.recipientAddress,
   })
 
   payment.txHash = input.txHash
@@ -1353,7 +1377,13 @@ async function verifyAndRecordPaymentInDatabase(input: VerifyPaymentInput): Prom
     }
   }
 
-  const status = await resolveBasePaymentStatus({ txHash: input.txHash, testnet: input.testnet })
+  const status = await resolveBasePaymentStatus({
+    txHash: input.txHash,
+    testnet: input.testnet,
+    walletAddress,
+    expectedAmount: input.expectedAmount || payment.expectedAmount,
+    expectedRecipient: input.expectedRecipient || payment.recipientAddress,
+  })
 
   const partialStatus: PaymentStatus =
     status.status === "completed" ? "verified" : status.status === "failed" ? "failed" : "pending_verification"

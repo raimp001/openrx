@@ -25,6 +25,7 @@ export function Providers({
           chain={base}
           apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
           config={{
+            paymaster: process.env.NEXT_PUBLIC_CDP_PAYMASTER_URL || process.env.NEXT_PUBLIC_ONCHAINKIT_PAYMASTER_URL,
             appearance: {
               mode: "dark",
               theme: "base",

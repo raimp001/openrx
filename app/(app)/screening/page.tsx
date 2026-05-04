@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
+import { BaseUsdcTransaction } from "@/components/payments/base-usdc-transaction"
 import {
   ChoiceChip,
   ClinicalField,
@@ -330,7 +331,7 @@ export default function ScreeningPage() {
     }
   }
 
-  async function verifyScreeningPayment() {
+  async function verifyScreeningPayment(txHashOverride?: string) {
     if (!walletAddress) {
       setError("Connect payment access before verification.")
       return
@@ -341,7 +342,8 @@ export default function ScreeningPage() {
       setError("Start secure payment first so I can verify it.")
       return
     }
-    if (!verifyTxHash.trim()) {
+    const txHash = (txHashOverride || verifyTxHash).trim()
+    if (!txHash) {
       setError("Paste a transaction hash to verify payment.")
       return
     }
@@ -354,7 +356,7 @@ export default function ScreeningPage() {
         headers: await getJsonHeaders(),
         body: JSON.stringify({
           paymentId: resolvedPaymentId,
-          txHash: verifyTxHash.trim(),
+          txHash,
           walletAddress,
           expectedAmount: intent.expectedAmount,
           expectedRecipient: intent.recipientAddress,
@@ -364,6 +366,7 @@ export default function ScreeningPage() {
       if (!response.ok || data.error) {
         throw new Error(data.error || "Payment verification failed.")
       }
+      setVerifyTxHash(txHash)
       setPaymentId(resolvedPaymentId)
       setPaymentReady(true)
     } catch (issue) {
@@ -652,28 +655,46 @@ export default function ScreeningPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-            <button
-              onClick={() => void launchBasePay()}
-              disabled={!walletAddress || launchingPay || creatingIntent}
-              className="control-button-secondary w-full"
-            >
-              {creatingIntent
-                ? "Preparing payment..."
-                : launchingPay
-                ? "Launching payment..."
-                : `1. Start secure payment (${fee} USDC)`}
-            </button>
+            <div className="space-y-3">
+              {!paymentIntent ? (
+                <button
+                  onClick={() => void ensureScreeningPaymentIntent()}
+                  disabled={!walletAddress || creatingIntent}
+                  className="control-button-primary w-full justify-center"
+                >
+                  {creatingIntent ? "Preparing Base payment..." : `1. Prepare secure Base payment (${fee} USDC)`}
+                </button>
+              ) : (
+                <BaseUsdcTransaction
+                  amount={paymentIntent.expectedAmount}
+                  recipientAddress={paymentIntent.recipientAddress}
+                  disabled={!walletAddress || verifyingPayment}
+                  onTransactionHash={(hash) => setVerifyTxHash(hash)}
+                  onConfirmed={(hash) => void verifyScreeningPayment(hash)}
+                />
+              )}
+              <button
+                onClick={() => void launchBasePay()}
+                disabled={!walletAddress || launchingPay || creatingIntent}
+                className="w-full rounded-[18px] border border-white/12 bg-white/8 px-3 py-3 text-xs font-semibold text-white/78 transition hover:bg-white/12 disabled:opacity-60"
+              >
+                {launchingPay ? "Opening Base Pay..." : "Alternative: open Base Pay"}
+              </button>
+              <p className="text-[11px] leading-5 text-white/56">
+                CDP OnchainKit sends USDC on Base from the connected wallet. When the transaction confirms, OpenRx auto-fills the proof and verifies it against the payment intent.
+              </p>
+            </div>
             <div className="space-y-3">
               <ClinicalField
-                label="Transaction hash"
-                hint="Paste the Base transaction hash after payment launches."
+                label="Payment proof"
+                hint="Auto-filled after the Base transaction confirms. You can also paste a Base transaction hash or Base Pay ID."
                 htmlFor="screening-tx-hash"
               >
                 <ClinicalInput
                   id="screening-tx-hash"
                   value={verifyTxHash}
                   onChange={(event) => setVerifyTxHash(event.target.value)}
-                  placeholder="Paste transaction hash"
+                  placeholder="Base transaction hash or Base Pay ID"
                 />
               </ClinicalField>
               {screeningTxUrl && (
@@ -691,7 +712,7 @@ export default function ScreeningPage() {
                 disabled={!walletAddress || verifyingPayment}
                 className="w-full rounded-[18px] bg-white px-3 py-3 text-xs font-semibold text-primary transition hover:bg-white/92 disabled:opacity-60"
               >
-                {verifyingPayment ? "Verifying..." : "2. Verify payment"}
+                {verifyingPayment ? "Verifying..." : "2. Verify onchain payment"}
               </button>
             </div>
           </div>

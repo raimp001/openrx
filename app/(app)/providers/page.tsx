@@ -13,7 +13,7 @@ import {
   Building2,
   ArrowRight,
 } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
 import {
@@ -26,6 +26,11 @@ import type { ParsedCareQuery, CareDirectoryMatch } from "@/lib/npi-care-search"
 import { cn } from "@/lib/utils"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
+import {
+  PROVIDER_HANDOFF_STORAGE_KEY,
+  isFreshCareHandoff,
+  type ProviderHandoffPayload,
+} from "@/lib/care-handoff"
 
 const EXAMPLE_SEARCHES = [
   "hillsboro",
@@ -35,9 +40,26 @@ const EXAMPLE_SEARCHES = [
   "Find a radiology center in Austin TX",
 ]
 
+function parseProviderHandoff(raw: string | null): ProviderHandoffPayload | null {
+  if (!raw) return null
+  try {
+    const payload = JSON.parse(raw) as Partial<ProviderHandoffPayload>
+    if (!payload.query || !isFreshCareHandoff(payload.createdAt)) return null
+    return {
+      source: payload.source === "link" ? "link" : "chat",
+      query: payload.query,
+      autorun: payload.autorun !== false,
+      createdAt: payload.createdAt || Date.now(),
+    }
+  } catch {
+    return null
+  }
+}
+
 export default function ProvidersPage() {
   const { snapshot } = useLiveSnapshot()
   const scrollRef = useScrollReveal()
+  const seededHandoffRef = useRef(false)
   const profileLocation = snapshot.patient?.address || ""
   const [query, setQuery] = useState("")
   const [matches, setMatches] = useState<CareDirectoryMatch[]>([])
@@ -48,6 +70,7 @@ export default function ProvidersPage() {
   const [hasSearched, setHasSearched] = useState(false)
   const [error, setError] = useState("")
   const [autoLocationNote, setAutoLocationNote] = useState("")
+  const [handoffNotice, setHandoffNotice] = useState("")
   const [activeGroup, setActiveGroup] = useState<"all" | CareDirectoryMatch["kind"]>("all")
 
   const grouped = useMemo(() => {
@@ -144,6 +167,25 @@ export default function ProvidersPage() {
     },
     [profileLocation, query]
   )
+
+  useEffect(() => {
+    if (seededHandoffRef.current || typeof window === "undefined") return
+    seededHandoffRef.current = true
+
+    const params = new URLSearchParams(window.location.search)
+    const prompt = params.get("q") || params.get("query") || ""
+    const stored = parseProviderHandoff(window.sessionStorage.getItem(PROVIDER_HANDOFF_STORAGE_KEY))
+    window.sessionStorage.removeItem(PROVIDER_HANDOFF_STORAGE_KEY)
+
+    const nextQuery = stored?.query || prompt
+    if (!nextQuery.trim()) return
+
+    setQuery(nextQuery.trim())
+    setHandoffNotice("Loaded your chat context and started the care-network search here.")
+    if (stored?.autorun || params.get("autorun") === "1" || params.get("handoff") === "chat") {
+      void searchDirectory(nextQuery.trim())
+    }
+  }, [searchDirectory])
 
   function useProfileLocation() {
     if (!profileLocation) return
@@ -276,6 +318,7 @@ export default function ProvidersPage() {
             </div>
 
             {autoLocationNote ? <p className="text-sm text-accent">{autoLocationNote}</p> : null}
+            {handoffNotice ? <p className="text-sm text-accent">{handoffNotice}</p> : null}
             {error ? <p className="text-sm text-soft-red">{error}</p> : null}
           </div>
 

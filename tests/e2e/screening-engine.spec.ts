@@ -8,6 +8,11 @@ import {
   buildOpenAIClinicalEvidencePrompt,
   resolveOpenAIClinicalEvidenceConfig,
 } from "@/lib/screening-evidence"
+import {
+  PROVIDER_HANDOFF_STORAGE_KEY,
+  SCREENING_HANDOFF_STORAGE_KEY,
+  resolveCareHandoff,
+} from "@/lib/care-handoff"
 import type { ScreeningIntake } from "@/lib/screening/types"
 
 function intake(overrides: Partial<ScreeningIntake> = {}): ScreeningIntake {
@@ -230,4 +235,23 @@ test("OpenAI clinical evidence prompt is citation-oriented and does not include 
   expect(prompt).toContain("do not include wallet")
   expect(prompt).not.toContain("patientid")
   expect(prompt).not.toContain("0x55826e51751c49e6e2a2d9840745787f7fd977bd")
+})
+
+test("chat screening handoff preserves clinical context for one-click recommendations", () => {
+  const action = resolveCareHandoff("I am 58 male, father had prostate cancer at 52, BRCA mutation carrier. What recs?", "screening")
+
+  expect(action?.label).toBe("Open screening plan")
+  expect(action?.href).toBe("/screening?handoff=chat")
+  expect(action?.storageKey).toBe(SCREENING_HANDOFF_STORAGE_KEY)
+  expect(action?.payload.autorun).toBe(true)
+  expect(JSON.stringify(action?.payload).toLowerCase()).toContain("brca")
+})
+
+test("chat care-network handoff preserves provider query for automatic search", () => {
+  const action = resolveCareHandoff("Find a radiology center near Portland OR 97204", "scheduling")
+
+  expect(action?.label).toBe("Search care network")
+  expect(action?.href).toBe("/providers?handoff=chat")
+  expect(action?.storageKey).toBe(PROVIDER_HANDOFF_STORAGE_KEY)
+  expect(action?.payload.autorun).toBe(true)
 })

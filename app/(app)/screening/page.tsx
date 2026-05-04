@@ -1,19 +1,17 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Activity,
   AlertTriangle,
   CreditCard,
   ExternalLink,
-  HeartPulse,
   Loader2,
   MapPin,
   Phone,
   Search,
   ShieldCheck,
   Wallet,
-  type LucideIcon,
 } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
@@ -42,6 +40,11 @@ import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
+import {
+  SCREENING_HANDOFF_STORAGE_KEY,
+  isFreshCareHandoff,
+  type ScreeningHandoffPayload,
+} from "@/lib/care-handoff"
 
 interface LocalCareConnection {
   recommendationId: string
@@ -86,33 +89,6 @@ const NARRATIVE_STARTERS = [
   "I am 67 with diabetes, hypertension, and prior abnormal colon polyp.",
 ]
 
-function FlowStep({
-  step,
-  title,
-  description,
-  icon: Icon,
-}: {
-  step: string
-  title: string
-  description: string
-  icon: LucideIcon
-}) {
-  return (
-    <div className="surface-muted p-4">
-      <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[20px] bg-teal/10 text-teal">
-          <Icon size={16} />
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-secondary">{step}</p>
-          <p className="mt-2 text-sm font-semibold text-primary">{title}</p>
-          <p className="mt-1 text-sm leading-6 text-secondary">{description}</p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function formatWallet(address?: string): string {
   if (!address) return ""
   if (address.length < 12) return address
@@ -136,10 +112,27 @@ function toAgeFromDob(value?: string): string {
   return age > 0 ? String(age) : ""
 }
 
+function parseScreeningHandoff(raw: string | null): ScreeningHandoffPayload | null {
+  if (!raw) return null
+  try {
+    const payload = JSON.parse(raw) as Partial<ScreeningHandoffPayload>
+    if (!payload.narrative || !isFreshCareHandoff(payload.createdAt)) return null
+    return {
+      source: payload.source === "link" ? "link" : "chat",
+      narrative: payload.narrative,
+      autorun: payload.autorun !== false,
+      createdAt: payload.createdAt || Date.now(),
+    }
+  } catch {
+    return null
+  }
+}
+
 export default function ScreeningPage() {
   const { snapshot } = useLiveSnapshot()
   const { walletAddress, isConnected, profile, getWalletAuthHeaders } = useWalletIdentity()
   const scrollRef = useScrollReveal()
+  const seededHandoffRef = useRef(false)
   const [assessment, setAssessment] = useState<ScreeningResponse | null>(null)
   const [localCareConnections, setLocalCareConnections] = useState<LocalCareConnection[]>([])
   const [evidenceCitations, setEvidenceCitations] = useState<ScreeningEvidenceCitation[]>([])
@@ -168,6 +161,8 @@ export default function ScreeningPage() {
   const [launchingPay, setLaunchingPay] = useState(false)
   const [verifyingPayment, setVerifyingPayment] = useState(false)
   const [error, setError] = useState("")
+  const [handoffNotice, setHandoffNotice] = useState("")
+  const [autoRunRequested, setAutoRunRequested] = useState(false)
 
   const riskStyle = useMemo(() => {
     if (!assessment) return "bg-border text-muted"
@@ -530,6 +525,33 @@ export default function ScreeningPage() {
     }
   }
 
+  useEffect(() => {
+    if (seededHandoffRef.current || typeof window === "undefined") return
+    seededHandoffRef.current = true
+
+    const params = new URLSearchParams(window.location.search)
+    const prompt = params.get("prompt") || params.get("q") || ""
+    const stored = parseScreeningHandoff(window.sessionStorage.getItem(SCREENING_HANDOFF_STORAGE_KEY))
+    window.sessionStorage.removeItem(SCREENING_HANDOFF_STORAGE_KEY)
+
+    const nextNarrative = stored?.narrative || prompt
+    if (!nextNarrative.trim()) return
+
+    setNarrative(nextNarrative.trim())
+    setHandoffNotice("Loaded your chat context. OpenRx will run the free screening preview here without making you search again.")
+    if (stored?.autorun || params.get("autorun") === "1" || params.get("handoff") === "chat") {
+      setAutoRunRequested(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!autoRunRequested || running || assessment || !narrative.trim()) return
+    setAutoRunRequested(false)
+    void runScreening("preview")
+    // runScreening intentionally reads the latest intake state after the handoff populates it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRunRequested, running, assessment, narrative])
+
   async function requestScreeningNextStep(rec: StructuredScreeningRecommendation, action: ScreeningNextStep) {
     const key = `${rec.id}:${action}`
     setNextStepStatus((current) => ({ ...current, [key]: "Sending request..." }))
@@ -597,41 +619,22 @@ export default function ScreeningPage() {
         }
       />
 
-      <section className="reveal overflow-hidden rounded-[30px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] p-4 text-white shadow-[0_22px_46px_rgba(8,24,46,0.16)] md:p-5">
-        <div className="mb-5 grid gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
+      <section className="reveal overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_64%,#173B83_100%)] p-4 text-white shadow-[0_18px_38px_rgba(8,24,46,0.14)] md:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">How this works</p>
-            <h2 className="mt-4 max-w-2xl font-serif text-[2.35rem] leading-[0.96] text-white">Start with the free plan. Add inherited-risk depth only if it matters.</h2>
-          </div>
-          <div className="rounded-[24px] border border-white/12 bg-white/8 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Current mode</p>
-            <p className="mt-2 text-sm font-semibold text-white">{showingDeepResults ? "Advanced inherited-risk review" : "Free screening plan"}</p>
-            <p className="mt-2 text-[12px] leading-6 text-white/66">
-              {showingDeepResults
-                ? "Mutation-aware and evidence-linked recommendations are unlocked."
-                : "You can generate a baseline plan without payment setup. Advanced review stays optional."}
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">One sentence in, care plan out</p>
+            <h2 className="mt-3 max-w-2xl font-serif text-[2rem] leading-[0.98] text-white">Share context once. OpenRx carries it forward.</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">
+              Free preview stays first. Advanced inherited-risk review is optional, cited, and gated only when needed.
             </p>
           </div>
-        </div>
-        <div className="grid gap-3 md:grid-cols-3">
-          <FlowStep
-            step="01"
-            title="Tell us your story"
-            description="A short sentence about age, family history, prior polyps, smoking, or mutations is enough to start."
-            icon={HeartPulse}
-          />
-          <FlowStep
-            step="02"
-            title="Get the free preview"
-            description="OpenRx returns an age- and history-aware baseline plan without requiring payment setup."
-            icon={Activity}
-          />
-          <FlowStep
-            step="03"
-            title="Add advanced review"
-            description="If inherited-risk personalization is relevant, verify payment and release the deeper recommendation."
-            icon={ShieldCheck}
-          />
+          <div className="flex flex-wrap gap-2">
+            {["Ask once", "Auto-extract risk", "Show next step"].map((item) => (
+              <span key={item} className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[11px] font-semibold text-white/76">
+                {item}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -643,6 +646,12 @@ export default function ScreeningPage() {
 
       {error && (
         <div className="rounded-xl border border-soft-red/20 bg-soft-red/5 p-3 text-xs text-soft-red">{error}</div>
+      )}
+
+      {handoffNotice && (
+        <div className="rounded-xl border border-teal/20 bg-teal/5 p-3 text-xs text-secondary">
+          <span className="font-semibold text-primary">Context carried forward.</span> {handoffNotice}
+        </div>
       )}
 
       {paymentGateVisible && (

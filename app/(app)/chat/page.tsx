@@ -7,6 +7,7 @@ import {
 } from "@/lib/openclaw/orchestrator"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import {
+  ArrowRight,
   Bot,
   Calendar,
   Receipt,
@@ -29,6 +30,7 @@ import {
 import { useState, useEffect, useRef, useCallback } from "react"
 import { AppPageHeader } from "@/components/layout/app-page"
 import { OpsBadge } from "@/components/ui/ops-primitives"
+import { resolveCareHandoff, type CareHandoffAction } from "@/lib/care-handoff"
 
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
@@ -51,6 +53,7 @@ interface ChatMessage {
   agentId?: string
   collaborators?: string[]
   routingInfo?: string
+  action?: CareHandoffAction
   timestamp: Date
 }
 
@@ -115,6 +118,12 @@ export default function ChatPage() {
     setInput(prompt)
     setActiveAgent(agentId)
     inputRef.current?.focus()
+  }, [])
+
+  const openCareHandoff = useCallback((action: CareHandoffAction) => {
+    if (typeof window === "undefined") return
+    window.sessionStorage.setItem(action.storageKey, JSON.stringify(action.payload))
+    window.location.href = action.href
   }, [])
 
   // Preload questions from the homepage/dashboard ask panels without sending on the patient's behalf.
@@ -212,6 +221,7 @@ export default function ChatPage() {
         agentId: workflow.route.primaryAgent,
         collaborators: workflow.route.collaborators,
         routingInfo: workflow.route.reasoning,
+        action: resolveCareHandoff(userMsg.content, workflow.route.primaryAgent) || undefined,
         timestamp: new Date(),
       }
 
@@ -341,6 +351,16 @@ export default function ChatPage() {
                       ) : null}
                       <p className="whitespace-pre-line text-sm leading-7">{msg.content}</p>
                       {msg.routingInfo ? <p className="mt-2 text-[10px] italic text-muted">{msg.routingInfo}</p> : null}
+                      {msg.action ? (
+                        <button
+                          type="button"
+                          onClick={() => openCareHandoff(msg.action!)}
+                          className="mt-3 inline-flex items-center gap-2 rounded-full bg-midnight px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-[#12211d]"
+                        >
+                          {msg.action.label}
+                          <ArrowRight size={12} />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 )}

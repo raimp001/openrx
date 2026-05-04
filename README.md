@@ -104,6 +104,12 @@ Set these for production deployments:
 # Required for live AI responses
 OPENAI_API_KEY=...
 
+# Optional: advanced screening evidence synthesis with OpenAI Responses + web_search.
+# This enriches paid/deep screening review with cited guideline/literature sources.
+OPENRX_OPENAI_EVIDENCE_MODE=auto
+OPENRX_OPENAI_EVIDENCE_MODEL=gpt-5.4
+OPENRX_OPENAI_EVIDENCE_ALLOWED_DOMAINS=uspreventiveservicestaskforce.org,cdc.gov,cancer.gov,pubmed.ncbi.nlm.nih.gov,ncbi.nlm.nih.gov,nccn.org,acog.org,auanet.org,cancer.org,radiologyinfo.org
+
 # Required for durable, compliance-oriented file persistence
 OPENRX_APPLICATIONS_PATH=/secure/path/openrx-applications.json
 OPENRX_LEDGER_PATH=/secure/path/openrx-ledger.json

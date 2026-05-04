@@ -499,6 +499,7 @@ async function buildAssessmentPayload(
           assessment: enrichedAssessment,
           symptoms: input.symptoms,
           familyHistory: input.familyHistory,
+          conditions: input.conditions,
         })
       : buildUspstfGuidelineCitations()
   const nextActions =

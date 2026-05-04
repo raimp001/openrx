@@ -4,6 +4,10 @@ import { createScreeningNextStepRequest } from "@/lib/screening/next-step-store"
 import { parseScreeningIntakeNarrative } from "@/lib/screening-intake"
 import { buildDeterministicScreeningResponse } from "@/lib/ai-engine"
 import { assessHealthScreening } from "@/lib/basehealth"
+import {
+  buildOpenAIClinicalEvidencePrompt,
+  resolveOpenAIClinicalEvidenceConfig,
+} from "@/lib/screening-evidence"
 import type { ScreeningIntake } from "@/lib/screening/types"
 
 function intake(overrides: Partial<ScreeningIntake> = {}): ScreeningIntake {
@@ -188,4 +192,42 @@ test("screening next-step requests use internal IDs and do not store raw wallet 
   expect(request.internalUserId).toMatch(/^usr_/)
   expect(request.walletHash).toHaveLength(64)
   expect(JSON.stringify(request).toLowerCase()).not.toContain(walletAddress.toLowerCase())
+})
+
+test("OpenAI clinical evidence config enables source search only when a server key exists", () => {
+  const disabled = resolveOpenAIClinicalEvidenceConfig({
+    OPENRX_OPENAI_EVIDENCE_MODE: "auto",
+    OPENAI_API_KEY: "",
+  })
+  const enabled = resolveOpenAIClinicalEvidenceConfig({
+    OPENRX_OPENAI_EVIDENCE_MODE: "auto",
+    OPENAI_API_KEY: "sk-test",
+  })
+
+  expect(disabled.enabled).toBe(false)
+  expect(enabled.enabled).toBe(true)
+  expect(enabled.model).toBe("gpt-5.4")
+  expect(enabled.allowedDomains).toContain("pubmed.ncbi.nlm.nih.gov")
+  expect(enabled.allowedDomains).toContain("uspreventiveservicestaskforce.org")
+})
+
+test("OpenAI clinical evidence prompt is citation-oriented and does not include identity plumbing", () => {
+  const assessment = assessHealthScreening({
+    age: 58,
+    gender: "male",
+    familyHistory: ["father had prostate cancer at age 52"],
+    conditions: ["BRCA mutation carrier"],
+  })
+  const prompt = buildOpenAIClinicalEvidencePrompt({
+    assessment,
+    familyHistory: ["father had prostate cancer at age 52"],
+    conditions: ["BRCA mutation carrier"],
+  }).toLowerCase()
+
+  expect(prompt).toContain("uspstf")
+  expect(prompt).toContain("source citations")
+  expect(prompt).toContain("clinician review")
+  expect(prompt).toContain("do not include wallet")
+  expect(prompt).not.toContain("patientid")
+  expect(prompt).not.toContain("0x55826e51751c49e6e2a2d9840745787f7fd977bd")
 })

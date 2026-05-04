@@ -1184,7 +1184,7 @@ export default function ScreeningPage() {
           </div>
           <p className="text-xs text-muted">
             {showingDeepResults
-              ? "Guideline and literature links supporting the deep personalized recommendation set."
+              ? "Guideline, PubMed, and configured OpenAI source-search links supporting the advanced recommendation set."
               : "Free preview currently shows USPSTF guideline sources."}
           </p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">

@@ -366,21 +366,29 @@ function addFamilyHistoryOverrides(recommendations: ScreeningRecommendation[], i
   }
 
   const brcaFamily = familyCancer(intake, ["breast", "ovarian", "tubal", "peritoneal"])
-  if (brcaFamily.length > 0 || intake.familyHistory.some((entry) => entry.knownMutation)) {
+  const hasKnownFamilyMutation = intake.familyHistory.some((entry) => entry.knownMutation)
+  if (brcaFamily.length > 0 || hasKnownFamilyMutation) {
+    const mutationOnly = brcaFamily.length === 0 && hasKnownFamilyMutation
     addUnique(recommendations, recommendation({
       id: "brca-family-history-risk-assessment",
-      cancerType: "breast/ovarian hereditary risk",
-      screeningName: "BRCA-related risk assessment",
+      cancerType: mutationOnly ? "hereditary cancer risk" : "breast/ovarian hereditary risk",
+      screeningName: mutationOnly ? "Inherited-risk assessment" : "BRCA-related risk assessment",
       status: "needs_clinician_review",
       riskCategory: "hereditary_risk",
-      rationale: "Family breast, ovarian, tubal, peritoneal cancer, or known familial mutation can warrant a validated familial risk assessment and possible genetic counseling.",
+      rationale: mutationOnly
+        ? "A known familial mutation or inherited-risk signal can warrant clinician review and genetic counseling before using routine screening intervals."
+        : "Family breast, ovarian, tubal, peritoneal cancer, or known familial mutation can warrant a validated familial risk assessment and possible genetic counseling.",
       recommendedNextStep: "Request genetic counseling or a clinician-led hereditary risk assessment.",
-      suggestedTiming: "Before deciding whether average-risk breast screening is enough",
-      sourceId: "uspstf-brca-2019",
-      evidenceGrade: "B",
+      suggestedTiming: mutationOnly ? "Before relying on average-risk intervals" : "Before deciding whether average-risk breast screening is enough",
+      sourceId: mutationOnly ? "pending-high-risk-oncology" : "uspstf-brca-2019",
+      evidenceGrade: mutationOnly ? undefined : "B",
       requiresClinicianReview: true,
-      patientFriendlyExplanation: "Your family history may mean you should be checked for hereditary risk before choosing a routine screening plan.",
-      clinicianSummary: "USPSTF BRCA-related risk assessment pathway triggered by family history/familial mutation signal.",
+      patientFriendlyExplanation: mutationOnly
+        ? "A reported inherited-risk result may change which screenings are appropriate and when they should start. A clinician or genetic counselor should review it."
+        : "Your family history may mean you should be checked for hereditary risk before choosing a routine screening plan.",
+      clinicianSummary: mutationOnly
+        ? "Known familial mutation/hereditary signal reported without breast/ovarian family-history pattern; route to genetics/high-risk review."
+        : "USPSTF BRCA-related risk assessment pathway triggered by family history/familial mutation signal.",
       nextSteps: ["request_genetic_counseling", "request_specialist_review", "download_clinician_summary"],
     }))
   }

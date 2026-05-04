@@ -14,6 +14,7 @@ export interface ScreeningIntakeResult {
 }
 
 const GENE_MARKERS = [
+  "brca",
   "brca1",
   "brca2",
   "palb2",
@@ -172,14 +173,29 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   const bmiMatch = lowered.match(/\bbmi\s*(?:is|=|:)?\s*(\d{1,2}(?:\.\d+)?)\b/)
   const bmi = bmiMatch ? Number.parseFloat(bmiMatch[1]) : undefined
 
-  const smoker = /\bsmoker\b|\bsmoking\b|\bsmokes\b/.test(lowered)
+  const formerSmoking = /\bformer smoker\b|\bquit smoking\b|\bquit\s+\d{1,2}\s+years?\s+ago\b|\bused to smoke\b|\bex-smoker\b/.test(lowered)
+  const currentSmoking =
+    /\bcurrent smoker\b|\bsmoking now\b|\bsmokes\b/.test(lowered) ||
+    (/\bsmoker\b|\bsmoking\b/.test(lowered) && !formerSmoking)
+  const smoker = currentSmoking ? true : formerSmoking ? false : undefined
 
   const symptoms = unique(
     SYMPTOM_KEYWORDS.filter((keyword) => lowered.includes(keyword))
   )
   const familyHistory = extractFamilyHistory(lowered)
 
-  const conditions = unique(CONDITION_KEYWORDS.filter((keyword) => lowered.includes(keyword)))
+  const smokingContext: string[] = []
+  const packYearMatch = lowered.match(/\b(\d{1,3})\s*pack[-\s]?years?\b/)
+  if (packYearMatch) smokingContext.push(`${packYearMatch[1]} pack-years`)
+  const quitMatch = lowered.match(/\bquit(?:\s+smoking)?\s*(\d{1,2})\s*years?\s*ago\b/)
+  if (quitMatch) smokingContext.push(`quit smoking ${quitMatch[1]} years ago`)
+  if (formerSmoking) smokingContext.push("former smoker")
+  if (currentSmoking) smokingContext.push("current smoker")
+
+  const conditions = unique([
+    ...CONDITION_KEYWORDS.filter((keyword) => lowered.includes(keyword)),
+    ...smokingContext,
+  ])
 
   if (lowered.includes("germline")) {
     conditions.push("germline mutation reported")

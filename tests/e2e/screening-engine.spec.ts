@@ -3,6 +3,7 @@ import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/
 import { createScreeningNextStepRequest } from "@/lib/screening/next-step-store"
 import { parseScreeningIntakeNarrative } from "@/lib/screening-intake"
 import { buildDeterministicScreeningResponse } from "@/lib/ai-engine"
+import { assessHealthScreening } from "@/lib/basehealth"
 import type { ScreeningIntake } from "@/lib/screening/types"
 
 function intake(overrides: Partial<ScreeningIntake> = {}): ScreeningIntake {
@@ -106,6 +107,41 @@ test("legacy narrative extraction feeds hereditary and family-history screening 
 
   expect(result.recommendations.some((rec) => rec.id === "hereditary-cancer-genetic-counseling")).toBe(true)
   expect(result.recommendations.every((rec) => !rec.patientFriendlyExplanation.toLowerCase().includes("you have cancer"))).toBe(true)
+})
+
+test("generic BRCA carrier prompt returns baseline screening and inherited-risk routing", () => {
+  const parsed = parseScreeningIntakeNarrative("I am 58 male, father had prostate cancer at 52, BRCA mutation carrier")
+  const result = recommendScreenings(screeningIntakeFromLegacy({
+    age: parsed.extracted.age,
+    gender: parsed.extracted.gender,
+    familyHistory: parsed.extracted.familyHistory,
+    conditions: parsed.extracted.conditions,
+    smoker: parsed.extracted.smoker,
+  }))
+
+  expect(parsed.extracted.age).toBe(58)
+  expect(parsed.extracted.gender).toBe("male")
+  expect(parsed.extracted.genes).toContain("BRCA")
+  expect(result.recommendations.some((rec) => rec.id === "hereditary-cancer-genetic-counseling")).toBe(true)
+  expect(result.recommendations.some((rec) => rec.id === "uspstf-average-risk-colorectal" && rec.status === "due")).toBe(true)
+  expect(result.recommendations.some((rec) => rec.id === "uspstf-prostate-shared-decision" && rec.status === "discuss")).toBe(true)
+  expect(result.recommendations.some((rec) => rec.id === "lung-smoking-history-needed" && rec.status === "discuss")).toBe(true)
+})
+
+test("assessment promotes actionable inherited-risk recommendations instead of only a low risk score", () => {
+  const assessment = assessHealthScreening({
+    age: 58,
+    gender: "male",
+    familyHistory: ["father had prostate cancer at age 52"],
+    conditions: ["reported germline mutation signal"],
+  })
+  const names = assessment.recommendedScreenings.map((rec) => rec.name)
+
+  expect(assessment.riskTier).not.toBe("low")
+  expect(names).toContain("Colorectal cancer screening")
+  expect(names).toContain("PSA screening discussion")
+  expect(names).toContain("Genetic counseling and high-risk screening review")
+  expect(assessment.structuredRecommendations?.some((rec) => rec.id === "lung-smoking-history-needed")).toBe(true)
 })
 
 test("screening chat handles compact family-history narrative without provider fallback", () => {

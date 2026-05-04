@@ -56,6 +56,7 @@ type ScreeningAssessmentPayload = ScreeningAssessment & {
 const CARE_MATCH_LIMIT = 10
 const MAX_CONNECTIONS = 3
 const GENETIC_MARKERS = [
+  "brca",
   "brca1",
   "brca2",
   "palb2",
@@ -85,7 +86,7 @@ const FAMILY_TERMS = [
   "grandfather",
   "cousin",
 ]
-const BRCA_PROSTATE_MARKERS = ["brca1", "brca2", "palb2", "atm", "chek2", "hoxb13", "prostate cancer"]
+const BRCA_PROSTATE_MARKERS = ["brca", "brca1", "brca2", "palb2", "atm", "chek2", "hoxb13", "prostate cancer"]
 const COLORECTAL_MARKERS = ["colorectal cancer", "colon cancer", "rectal cancer", "colorectal", "colon"]
 const POLYPOSIS_MARKERS = [
   "polyposis",
@@ -117,9 +118,17 @@ function hasGeneticSignal(term: string): boolean {
 }
 
 function sanitizePreviewInput(input: ScreeningInput): ScreeningInput {
+  const geneticSignal = [
+    ...(input.conditions || []),
+    ...(input.familyHistory || []),
+  ].some((term) => hasGeneticSignal(term.toLowerCase()))
+
   return {
     ...input,
-    conditions: (input.conditions || []).filter((condition) => !hasGeneticSignal(condition.toLowerCase())),
+    conditions: [
+      ...(input.conditions || []).filter((condition) => !hasGeneticSignal(condition.toLowerCase())),
+      ...(geneticSignal ? ["reported germline mutation signal"] : []),
+    ],
     familyHistory: (input.familyHistory || []).filter((entry) => !hasGeneticSignal(entry.toLowerCase())),
   }
 }
@@ -188,7 +197,7 @@ function applyGeneticsDeepDive(
   }
 
   if (
-    mention.some((marker) => ["brca1", "brca2", "palb2", "atm", "chek2", "hoxb13"].includes(marker)) ||
+    mention.some((marker) => ["brca", "brca1", "brca2", "palb2", "atm", "chek2", "hoxb13"].includes(marker)) ||
     hasProstateFamilyRisk
   ) {
     factors = withFactor(factors, {

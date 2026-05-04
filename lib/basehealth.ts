@@ -379,6 +379,10 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
   const symptoms = (input.symptoms || []).map((item) => item.toLowerCase())
   const familyHistory = (input.familyHistory || []).map((item) => item.toLowerCase())
   const riskText = [...Array.from(conditionSet), ...symptoms, ...familyHistory].join(" ")
+  const inheritedRiskSignal =
+    /\b(brca|lynch|germline|mutation|pathogenic variant|carrier|apc|mutyh|palb2|atm|chek2|hoxb13)\b/.test(
+      riskText
+    )
 
   const factors: ScreeningFactor[] = []
   let score = 10
@@ -451,6 +455,15 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
       familyScore,
       "monitor",
       `Reported ${familyHistory.length} family history risk factor(s).`
+    )
+  }
+
+  if (inheritedRiskSignal) {
+    addFactor(
+      "Inherited-risk signal reported",
+      12,
+      "elevated",
+      "Known or suspected germline risk can change cancer screening pathways and should be reviewed with genetics or a high-risk clinic."
     )
   }
 
@@ -608,9 +621,9 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
   }
 
   if (
-    isFemale &&
     (riskText.includes("breast cancer") ||
       riskText.includes("ovarian cancer") ||
+      riskText.includes("brca") ||
       riskText.includes("brca1") ||
       riskText.includes("brca2"))
   ) {
@@ -620,6 +633,17 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
       priority: "high",
       ownerAgent: "screening",
       reason: "Personal or family breast/ovarian cancer history or BRCA signal should trigger formal familial risk assessment and counseling referral when positive.",
+    })
+  }
+
+  if (inheritedRiskSignal) {
+    addRecommendation({
+      id: "hereditary-risk-review",
+      name: "Genetic counseling and high-risk screening review",
+      priority: "high",
+      ownerAgent: "screening",
+      reason:
+        "A reported germline mutation or hereditary-risk signal should be reviewed before relying only on average-risk intervals.",
     })
   }
 
@@ -688,13 +712,7 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
   ]
   const screeningEngine = recommendScreenings(screeningIntakeFromLegacy(buildScreeningEngineInput(input, patient, age)))
   const engineRecommendations = screeningEngine.recommendations
-    .filter((rec) =>
-      rec.status === "urgent_clinician_review" ||
-      rec.status === "high_risk" ||
-      rec.status === "surveillance_or_follow_up" ||
-      rec.status === "needs_clinician_review" ||
-      rec.status === "unknown"
-    )
+    .filter((rec) => rec.status !== "not_due")
     .map(toLegacyScreeningRecommendation)
   const mergedLegacyRecommendations = [...orderedRecommendations]
   for (const rec of engineRecommendations) {

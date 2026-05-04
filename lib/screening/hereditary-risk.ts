@@ -1,4 +1,5 @@
 export const hereditaryRiskPathways = {
+  BRCA: ["breast", "ovarian", "pancreatic", "prostate"],
   BRCA1: ["breast", "ovarian", "pancreatic", "prostate"],
   BRCA2: ["breast", "ovarian", "pancreatic", "prostate", "melanoma"],
   MLH1: ["colorectal", "endometrial", "ovarian", "gastric", "urinary_tract"],
@@ -22,6 +23,7 @@ export type HereditaryRiskGene = keyof typeof hereditaryRiskPathways
 export function normalizeGene(value: string): HereditaryRiskGene | null {
   const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "")
   if (normalized in hereditaryRiskPathways) return normalized as HereditaryRiskGene
+  if (normalized === "BRCAMUTATION" || normalized === "BRCACARRIER") return "BRCA"
   if (normalized === "LYNCH") return "MLH1"
   if (normalized === "FAP") return "APC"
   return null

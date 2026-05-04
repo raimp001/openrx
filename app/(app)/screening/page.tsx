@@ -204,7 +204,32 @@ export default function ScreeningPage() {
     age.trim().length > 0 ||
     familyHistory.trim().length > 0 ||
     conditions.trim().length > 0
-  const structuredRecommendations = assessment?.structuredRecommendations || []
+  const structuredRecommendations = useMemo(
+    () => assessment?.structuredRecommendations || [],
+    [assessment?.structuredRecommendations]
+  )
+  const briefRecommendationItems = useMemo(() => {
+    if (!assessment) return []
+
+    if (structuredRecommendations.length > 0) {
+      return structuredRecommendations
+        .filter((rec) => rec.status !== "not_due")
+        .slice(0, 5)
+        .map((rec) => ({
+          id: rec.id,
+          label: rec.screeningName,
+          meta: `${rec.status.replaceAll("_", " ")} · ${rec.sourceSystem}`,
+          detail: rec.patientFriendlyExplanation,
+        }))
+    }
+
+    return assessment.recommendedScreenings.slice(0, 5).map((rec) => ({
+      id: rec.id,
+      label: rec.name,
+      meta: rec.priority,
+      detail: rec.reason,
+    }))
+  }, [assessment, structuredRecommendations])
 
   const urgentScreeningCount = assessment?.recommendedScreenings.filter((item) => item.priority === "high").length || 0
 
@@ -971,6 +996,26 @@ export default function ScreeningPage() {
                   </div>
                 ))}
               </div>
+              {briefRecommendationItems.length > 0 && (
+                <div className="mt-4 rounded-[20px] border border-white/12 bg-white/8 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
+                    First recommendations
+                  </p>
+                  <div className="mt-3 space-y-3">
+                    {briefRecommendationItems.map((item) => (
+                      <div key={item.id} className="rounded-[16px] bg-white/8 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm font-semibold leading-5 text-white">{item.label}</p>
+                          <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-white/64">
+                            {item.meta}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-[12px] leading-5 text-white/68">{item.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="mt-4 rounded-[20px] border border-white/12 bg-white/8 p-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
                   {showingDeepResults ? "Advanced review ready" : "What advanced review adds"}

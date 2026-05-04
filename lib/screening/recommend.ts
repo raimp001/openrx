@@ -170,13 +170,21 @@ export function screeningIntakeFromLegacy(input: LegacyScreeningInput = {}): Scr
   const conditions = input.conditions || []
   const familyHistory = input.familyHistory || []
   const allTerms = [...conditions, ...familyHistory]
+  const allSmokingTerms = [...conditions, ...familyHistory, ...(input.symptoms || [])]
+  const smokingText = allSmokingTerms.map(normalized).join(" | ")
+  const formerSmokingSignal = includesAny(smokingText, [
+    "former smoker",
+    "used to smoke",
+    "quit smoking",
+    "ex-smoker",
+  ])
   const genes = allTerms
     .flatMap((term) => term.split(/[^a-zA-Z0-9]+/))
     .map((term) => normalizeGene(term))
     .filter((gene): gene is NonNullable<ReturnType<typeof normalizeGene>> => Boolean(gene))
   const uniqueGenes = Array.from(new Set(genes))
-  const packYears = extractPackYears([...conditions, ...familyHistory, ...(input.symptoms || [])])
-  const quitYearsAgo = extractQuitYears([...conditions, ...familyHistory, ...(input.symptoms || [])])
+  const packYears = extractPackYears(allSmokingTerms)
+  const quitYearsAgo = extractQuitYears(allSmokingTerms)
 
   return {
     patientId: input.patientId,
@@ -204,8 +212,16 @@ export function screeningIntakeFromLegacy(input: LegacyScreeningInput = {}): Scr
       knownPathogenicVariants: uniqueGenes.map((gene) => ({ gene, classification: "pathogenic" as const })),
     },
     smoking: {
-      currentSmoker: Boolean(input.smoker),
-      formerSmoker: !input.smoker && quitYearsAgo !== undefined,
+      currentSmoker:
+        typeof input.smoker === "boolean"
+          ? input.smoker && !formerSmokingSignal
+          : undefined,
+      formerSmoker:
+        formerSmokingSignal || (!input.smoker && quitYearsAgo !== undefined)
+          ? true
+          : typeof input.smoker === "boolean"
+            ? false
+            : undefined,
       packYears,
       quitYearsAgo,
     },
@@ -355,7 +371,7 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
   const sexAtBirth = intake.demographics.sexAtBirth || "unknown"
   const cervixPresent = intake.personalHistory.cervixPresent !== false && !intake.personalHistory.hysterectomy
   const hasHighRiskCrc = intake.personalHistory.colonPolyps || intake.personalHistory.advancedAdenoma || intake.personalHistory.inflammatoryBowelDisease || hasCancerHistory(intake, "colorectal") || familyCancer(intake, ["colon", "colorectal", "rectal"]).length > 0
-  const hasHighRiskBreast = intake.personalHistory.priorChestRadiation || hasCancerHistory(intake, "breast") || (intake.genetics.knownPathogenicVariants || []).some((variant) => ["BRCA1", "BRCA2", "PALB2", "TP53", "PTEN", "CDH1"].includes(normalizeGene(variant.gene) || ""))
+  const hasHighRiskBreast = intake.personalHistory.priorChestRadiation || hasCancerHistory(intake, "breast") || (intake.genetics.knownPathogenicVariants || []).some((variant) => ["BRCA", "BRCA1", "BRCA2", "PALB2", "TP53", "PTEN", "CDH1"].includes(normalizeGene(variant.gene) || ""))
   const hasCervicalSurveillanceRisk = intake.personalHistory.immunosuppression || hasCancerHistory(intake, "cervical")
 
   if (age === undefined) return
@@ -487,6 +503,27 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
         requiresClinicianReview: false,
         patientFriendlyExplanation: "OpenRx needs pack-years and quit timing before it can tell whether lung screening fits USPSTF criteria.",
         clinicianSummary: "Smoking signal present but insufficient detail for LDCT eligibility.",
+        nextSteps: ["request_care_navigation", "download_clinician_summary"],
+      }))
+    } else if (
+      intake.smoking.currentSmoker === undefined &&
+      intake.smoking.formerSmoker === undefined &&
+      intake.smoking.packYears === undefined
+    ) {
+      addUnique(recommendations, recommendation({
+        id: "lung-smoking-history-needed",
+        cancerType: "lung cancer",
+        screeningName: "Clarify smoking history for lung screening",
+        status: "discuss",
+        riskCategory: "unknown",
+        rationale: "USPSTF LDCT eligibility depends on age, pack-years, current smoking status, and quit timing; smoking history was not supplied.",
+        recommendedNextStep: "Add whether the patient ever smoked, total pack-years, whether they currently smoke, and if former, how many years since quitting.",
+        suggestedTiming: "Before deciding about LDCT",
+        sourceId: "uspstf-lung-2021",
+        evidenceGrade: "B",
+        requiresClinicianReview: false,
+        patientFriendlyExplanation: "At this age, lung screening may matter only if there has been enough smoking exposure. OpenRx needs pack-years and quit timing before recommending LDCT.",
+        clinicianSummary: "Age 50-80 but smoking exposure unknown; clarify USPSTF LDCT eligibility variables.",
         nextSteps: ["request_care_navigation", "download_clinician_summary"],
       }))
     }

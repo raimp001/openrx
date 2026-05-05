@@ -58,6 +58,20 @@ const CONDITION_KEYWORDS = [
   "cancer",
 ]
 
+const SCREENING_HISTORY_KEYWORDS = [
+  "colonoscopy",
+  "fit",
+  "stool test",
+  "cologuard",
+  "mammogram",
+  "mammography",
+  "pap",
+  "hpv",
+  "ldct",
+  "low-dose ct",
+  "psa",
+]
+
 const SYMPTOM_KEYWORDS = [
   "fatigue",
   "chest pain",
@@ -163,12 +177,13 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   const ageMatch =
     lowered.match(/\bage\s*(?:is|=|:)?\s*(\d{1,3})\b/) ||
     lowered.match(/\b(\d{1,3})\s*(?:years?\s*old|yo|y\/o)\b/) ||
-    lowered.match(/\bi am\s+(\d{1,3})\b/)
+    lowered.match(/\bi am\s+(\d{1,3})\b/) ||
+    lowered.match(/\b(\d{2})\s*(?:m|male|man|f|female|woman)\b/)
   const age = ageMatch ? Number.parseInt(ageMatch[1], 10) : undefined
 
   let gender: string | undefined
-  if (/\bmale\b|\bman\b|\bgentleman\b/.test(lowered)) gender = "male"
-  if (/\bfemale\b|\bwoman\b|\blady\b/.test(lowered)) gender = "female"
+  if (/\b\d{2}\s*f\b|\bfemale\b|\bwoman\b|\blady\b/.test(lowered)) gender = "female"
+  if (/\b\d{2}\s*m\b|\bmale\b|\bman\b|\bgentleman\b/.test(lowered)) gender = "male"
 
   const bmiMatch = lowered.match(/\bbmi\s*(?:is|=|:)?\s*(\d{1,2}(?:\.\d+)?)\b/)
   const bmi = bmiMatch ? Number.parseFloat(bmiMatch[1]) : undefined
@@ -196,6 +211,13 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     ...CONDITION_KEYWORDS.filter((keyword) => lowered.includes(keyword)),
     ...smokingContext,
   ])
+
+  SCREENING_HISTORY_KEYWORDS.forEach((keyword) => {
+    if (!lowered.includes(keyword)) return
+    const nearbyYear = lowered.match(new RegExp(`(?:${keyword}|last)[^.!?\\n]{0,80}\\b(20\\d{2}|19\\d{2})\\b`))?.[1]
+    const result = lowered.includes("abnormal") ? "abnormal" : lowered.includes("normal") ? "normal" : ""
+    conditions.push(`${result ? `${result} ` : ""}${keyword}${nearbyYear ? ` ${nearbyYear}` : ""}`.trim())
+  })
 
   if (lowered.includes("germline")) {
     conditions.push("germline mutation reported")

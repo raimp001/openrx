@@ -37,6 +37,7 @@ type CareAskPanelProps = {
   suggestions?: CareAskSuggestion[]
   lanes?: BackgroundLane[]
   compact?: boolean
+  minimal?: boolean
   dark?: boolean
   showLanes?: boolean
   className?: string
@@ -92,6 +93,7 @@ export function CareAskPanel({
   suggestions = defaultSuggestions,
   lanes = defaultLanes,
   compact = false,
+  minimal = false,
   dark = false,
   showLanes = false,
   className,
@@ -122,6 +124,7 @@ export function CareAskPanel({
     <section
       className={cn(
         "relative overflow-hidden rounded-[34px] border p-4 shadow-[0_34px_90px_rgba(8,24,46,0.10)] sm:p-5",
+        minimal && "rounded-[30px] p-2 shadow-[0_22px_70px_rgba(8,24,46,0.09)] sm:p-2",
         dark
           ? "border-white/12 bg-[#07111f] text-white"
           : "border-[rgba(82,108,139,0.14)] bg-[rgba(255,255,255,0.78)] text-primary backdrop-blur-2xl",
@@ -130,7 +133,7 @@ export function CareAskPanel({
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(47,107,255,0.13),transparent_34%),radial-gradient(circle_at_92%_20%,rgba(8,126,139,0.11),transparent_30%)]" />
       <div className="relative">
-        <div className="flex flex-wrap items-center gap-3">
+        {!minimal && (eyebrow || title || description) ? <div className="flex flex-wrap items-center gap-3">
           <span
             className={cn(
               "inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]",
@@ -140,11 +143,11 @@ export function CareAskPanel({
             <Bot size={12} />
             {eyebrow}
           </span>
-        </div>
+        </div> : null}
 
-        <div className={cn("mt-3 grid gap-5", showLanes && !compact ? "xl:grid-cols-[1.1fr_0.9fr] xl:items-start" : "lg:grid-cols-1")}>
+        <div className={cn(minimal ? "grid gap-0" : "mt-3 grid gap-5", showLanes && !compact && !minimal ? "xl:grid-cols-[1.1fr_0.9fr] xl:items-start" : "lg:grid-cols-1")}>
           <div>
-            <h2
+            {!minimal && title ? <h2
               className={cn(
                 "max-w-3xl font-serif leading-[0.96] tracking-[-0.055em]",
                 compact ? "text-[clamp(1.8rem,3.4vw,2.7rem)]" : "text-[clamp(2.4rem,5vw,4.2rem)]",
@@ -152,14 +155,16 @@ export function CareAskPanel({
               )}
             >
               {title}
-            </h2>
-            <p className={cn("mt-3 max-w-xl text-sm leading-7", dark ? "text-white/68" : "text-secondary")}>
+            </h2> : null}
+            {!minimal && description ? <p className={cn("mt-3 max-w-xl text-sm leading-7", dark ? "text-white/68" : "text-secondary")}>
               {description}
-            </p>
+            </p> : null}
 
             <form
               className={cn(
-                "mt-5 overflow-hidden rounded-[28px] border shadow-[0_18px_50px_rgba(8,24,46,0.08)]",
+                "overflow-hidden rounded-[28px] border shadow-[0_18px_50px_rgba(8,24,46,0.08)]",
+                !minimal && "mt-5",
+                minimal && "rounded-[26px] shadow-none",
                 dark ? "border-white/12 bg-white/[0.06]" : "border-[rgba(82,108,139,0.16)] bg-white/92"
               )}
               onSubmit={(event) => {
@@ -178,6 +183,7 @@ export function CareAskPanel({
                 rows={compact ? 2 : 2}
                 className={cn(
                   "min-h-[104px] w-full resize-none bg-transparent px-4 py-4 text-[15px] leading-7 outline-none placeholder:text-muted sm:px-5",
+                  minimal && "min-h-[86px] px-4 py-4 text-[16px]",
                   dark ? "text-white placeholder:text-white/42" : "text-primary"
                 )}
               />
@@ -187,7 +193,7 @@ export function CareAskPanel({
                   dark ? "border-white/10" : "border-[rgba(82,108,139,0.12)]"
                 )}
               >
-                <div className={cn("hidden items-center gap-2 text-xs sm:flex", dark ? "text-white/56" : "text-muted")}>
+                <div className={cn("hidden items-center gap-2 text-xs sm:flex", minimal && "sr-only", dark ? "text-white/56" : "text-muted")}>
                   <MessageSquareText size={13} />
                   Routes to screening, care search, billing, meds, or follow-up.
                 </div>
@@ -200,12 +206,12 @@ export function CareAskPanel({
                   )}
                 >
                   {isLaunching ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
-                  Ask OpenRx
+                  {minimal ? "Ask" : "Ask OpenRx"}
                 </button>
               </div>
             </form>
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className={cn("mt-3 flex flex-wrap gap-2", minimal && "justify-center")}>
               {suggestions.slice(0, 3).map((suggestion) => (
                 <button
                   key={suggestion.label}
@@ -224,7 +230,7 @@ export function CareAskPanel({
             </div>
           </div>
 
-          {showLanes ? <div className={cn("grid gap-3", compact && "sm:grid-cols-3")}>
+          {showLanes && !minimal ? <div className={cn("grid gap-3", compact && "sm:grid-cols-3")}>
             {lanes.map((lane, index) => (
               <div
                 key={lane.label}

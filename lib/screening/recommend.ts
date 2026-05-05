@@ -351,22 +351,48 @@ function addFamilyHistoryOverrides(recommendations: ScreeningRecommendation[], i
     addUnique(recommendations, recommendation({
       id: "crc-family-history-review",
       cancerType: "colorectal cancer",
-      screeningName: earlyOrFirstDegree ? "Colorectal high-risk screening review" : "Colorectal family-history review",
+      screeningName: earlyOrFirstDegree ? "Colonoscopy and GI review" : "Colorectal family-history review",
       status: "needs_clinician_review",
       riskCategory: earlyOrFirstDegree ? "increased_risk" : "unknown",
       rationale: "Family history can change colorectal screening start age, modality, and interval, so average-risk USPSTF logic should not be applied blindly.",
-      recommendedNextStep: "Request GI or primary-care review and bring family diagnosis ages plus any prior colonoscopy/pathology records.",
+      recommendedNextStep: "Request GI or primary-care review for colonoscopy planning and bring family diagnosis ages plus any prior colonoscopy/pathology records.",
       suggestedTiming: earlyOrFirstDegree ? "Before routine average-risk interval is used" : "At next preventive visit",
       sourceId: "pending-high-risk-oncology",
       requiresClinicianReview: true,
-      patientFriendlyExplanation: "Because you reported colorectal cancer in the family, you may need a different plan than average-risk screening. A clinician should confirm the right interval.",
+      patientFriendlyExplanation: "Because you reported colorectal cancer in the family, the practical next step is usually colonoscopy/GI planning rather than a generic average-risk checklist. A clinician should confirm the exact timing.",
       clinicianSummary: `Family colorectal history entries: ${crcFamily.map((entry) => `${entry.relationship}:${entry.cancerType}${entry.diagnosisAge ? `@${entry.diagnosisAge}` : ""}`).join("; ")}. Exact ACG/USMSTF family-history interval not implemented.`,
       nextSteps: ["request_colonoscopy", "request_referral", "request_specialist_review", "download_clinician_summary"],
     }))
   }
 
   const brcaFamily = familyCancer(intake, ["breast", "ovarian", "tubal", "peritoneal"])
+  const prostateFamily = familyCancer(intake, ["prostate"])
   const hasKnownFamilyMutation = intake.familyHistory.some((entry) => entry.knownMutation)
+  const inheritedProstateGene = (intake.genetics.knownPathogenicVariants || []).some((variant) =>
+    ["BRCA", "BRCA1", "BRCA2", "HOXB13", "ATM", "CHEK2"].includes(normalizeGene(variant.gene) || "")
+  )
+
+  if (
+    intake.demographics.sexAtBirth === "male" &&
+    (prostateFamily.length > 0 || inheritedProstateGene || hasKnownFamilyMutation)
+  ) {
+    addUnique(recommendations, recommendation({
+      id: "hereditary-prostate-screening-review",
+      cancerType: "prostate cancer",
+      screeningName: "PSA and hereditary prostate-risk review",
+      status: "high_risk",
+      riskCategory: "hereditary_risk",
+      rationale: "Family prostate cancer or inherited-risk variants can change prostate screening timing and should not be handled as routine average-risk screening alone.",
+      recommendedNextStep: "Request a PSA shared-decision visit with primary care or urology, and genetics/high-risk review when a mutation is known or suspected.",
+      suggestedTiming: "Now or at the next preventive visit",
+      sourceId: "pending-high-risk-oncology",
+      requiresClinicianReview: true,
+      patientFriendlyExplanation: "Because you reported prostate cancer family history or an inherited-risk signal, ask for a PSA discussion and high-risk review rather than treating this as routine screening only.",
+      clinicianSummary: `Prostate hereditary-risk signal detected: ${prostateFamily.map((entry) => `${entry.relationship}:${entry.cancerType}${entry.diagnosisAge ? `@${entry.diagnosisAge}` : ""}`).join("; ") || "mutation/familial signal"}. Exact NCCN interval logic is not encoded; route to urology/genetics or high-risk review.`,
+      nextSteps: ["request_psa_discussion", "request_specialist_review", "request_genetic_counseling", "download_clinician_summary"],
+    }))
+  }
+
   if (brcaFamily.length > 0 || hasKnownFamilyMutation) {
     const mutationOnly = brcaFamily.length === 0 && hasKnownFamilyMutation
     addUnique(recommendations, recommendation({

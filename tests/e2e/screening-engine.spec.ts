@@ -59,6 +59,8 @@ test("colorectal family history routes away from blind average-risk logic", () =
   expect(familyReview?.status).toBe("needs_clinician_review")
   expect(familyReview?.riskCategory).toBe("increased_risk")
   expect(familyReview?.requiresClinicianReview).toBe(true)
+  expect(familyReview?.screeningName).toContain("Colonoscopy")
+  expect(familyReview?.nextSteps).toContain("request_colonoscopy")
   expect(result.recommendations.find((rec) => rec.id === "uspstf-average-risk-colorectal")).toBeUndefined()
 })
 
@@ -132,9 +134,29 @@ test("generic BRCA carrier prompt returns baseline screening and inherited-risk 
   expect(parsed.extracted.gender).toBe("male")
   expect(parsed.extracted.genes).toContain("BRCA")
   expect(result.recommendations.some((rec) => rec.id === "hereditary-cancer-genetic-counseling")).toBe(true)
+  expect(result.recommendations.some((rec) => rec.id === "hereditary-prostate-screening-review")).toBe(true)
   expect(result.recommendations.some((rec) => rec.id === "uspstf-average-risk-colorectal" && rec.status === "due")).toBe(true)
   expect(result.recommendations.some((rec) => rec.id === "uspstf-prostate-shared-decision" && rec.status === "discuss")).toBe(true)
   expect(result.recommendations.some((rec) => rec.id === "lung-smoking-history-needed" && rec.status === "discuss")).toBe(true)
+})
+
+test("screening parser handles compact demographic and prior screening shorthand", () => {
+  const parsed = parseScreeningIntakeNarrative("58M BRCA2 carrier, father prostate cancer at 52, normal colonoscopy 2023, former smoker 30 pack-years quit 8 years ago")
+  const result = recommendScreenings(screeningIntakeFromLegacy({
+    age: parsed.extracted.age,
+    gender: parsed.extracted.gender,
+    familyHistory: parsed.extracted.familyHistory,
+    conditions: parsed.extracted.conditions,
+    smoker: parsed.extracted.smoker,
+  }))
+
+  expect(parsed.extracted.age).toBe(58)
+  expect(parsed.extracted.gender).toBe("male")
+  expect(parsed.extracted.conditions).toContain("normal colonoscopy 2023")
+  expect(parsed.extracted.conditions).toContain("30 pack-years")
+  expect(result.recommendations.some((rec) => rec.id === "uspstf-average-risk-colorectal" && rec.status === "not_due")).toBe(true)
+  expect(result.recommendations.some((rec) => rec.id === "uspstf-lung-ldct" && rec.status === "due")).toBe(true)
+  expect(result.recommendations.some((rec) => rec.id === "hereditary-prostate-screening-review")).toBe(true)
 })
 
 test("assessment promotes actionable inherited-risk recommendations instead of only a low risk score", () => {
@@ -149,8 +171,10 @@ test("assessment promotes actionable inherited-risk recommendations instead of o
   expect(assessment.riskTier).not.toBe("low")
   expect(names).toContain("Colorectal cancer screening")
   expect(names).toContain("PSA screening discussion")
+  expect(names).toContain("PSA and hereditary prostate-risk review")
   expect(names).toContain("Genetic counseling and high-risk screening review")
   expect(assessment.structuredRecommendations?.some((rec) => rec.id === "hereditary-cancer-genetic-counseling")).toBe(true)
+  expect(assessment.structuredRecommendations?.some((rec) => rec.id === "hereditary-prostate-screening-review")).toBe(true)
   expect(assessment.structuredRecommendations?.some((rec) => rec.id === "lung-smoking-history-needed")).toBe(true)
 })
 

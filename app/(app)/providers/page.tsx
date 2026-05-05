@@ -12,6 +12,7 @@ import {
   Sparkles,
   Building2,
   ArrowRight,
+  CalendarCheck,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import AIAction from "@/components/ai-action"
@@ -28,8 +29,10 @@ import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
 import {
   PROVIDER_HANDOFF_STORAGE_KEY,
+  SCHEDULING_HANDOFF_STORAGE_KEY,
   isFreshCareHandoff,
   type ProviderHandoffPayload,
+  type SchedulingHandoffPayload,
 } from "@/lib/care-handoff"
 
 const EXAMPLE_SEARCHES = [
@@ -460,10 +463,18 @@ export default function ProvidersPage() {
                     {topMatch.phone ? <p className="mt-1">{topMatch.phone}</p> : null}
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openSchedulingFromProvider(topMatch, query || `Schedule ${topMatch.specialty || topMatch.kind} with ${topMatch.name}`)}
+                      className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[12px] font-semibold text-primary transition hover:bg-white/92"
+                    >
+                      <CalendarCheck size={14} />
+                      Schedule
+                    </button>
                     {topMatch.phone ? (
                       <a
                         href={`tel:${topMatch.phone.replace(/[^\d+]/g, "")}`}
-                        className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[12px] font-semibold text-primary transition hover:bg-white/92"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/10 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-white/12"
                       >
                         <Phone size={14} />
                         Call first
@@ -516,6 +527,7 @@ export default function ProvidersPage() {
               title="Providers"
               icon={Stethoscope}
               items={grouped.providers}
+              query={query}
             />
           )}
           {visible.caregivers && (
@@ -523,6 +535,7 @@ export default function ProvidersPage() {
               title="Caregivers"
               icon={Users}
               items={grouped.caregivers}
+              query={query}
             />
           )}
           {visible.labs && (
@@ -530,6 +543,7 @@ export default function ProvidersPage() {
               title="Labs"
               icon={Search}
               items={grouped.labs}
+              query={query}
             />
           )}
           {visible.radiology && (
@@ -537,6 +551,7 @@ export default function ProvidersPage() {
               title="Radiology Centers"
               icon={ShieldCheck}
               items={grouped.radiology}
+              query={query}
             />
           )}
         </div>
@@ -586,14 +601,34 @@ function buildProviderRecommendation(item: CareDirectoryMatch) {
   return `Start here because this ${specialty.toLowerCase()} entry has the cleanest combination of status, contactability, and location detail in the current result set.`
 }
 
+function openSchedulingFromProvider(item: CareDirectoryMatch, reason: string) {
+  if (typeof window === "undefined") return
+  const payload: SchedulingHandoffPayload = {
+    source: "provider",
+    providerName: item.name,
+    providerKind: item.kind,
+    specialty: item.specialty || undefined,
+    npi: item.npi,
+    phone: item.phone || undefined,
+    fullAddress: item.fullAddress || undefined,
+    reason,
+    query: reason,
+    createdAt: Date.now(),
+  }
+  window.sessionStorage.setItem(SCHEDULING_HANDOFF_STORAGE_KEY, JSON.stringify(payload))
+  window.location.href = "/scheduling?handoff=provider"
+}
+
 function ResultGroup({
   title,
   icon: Icon,
   items,
+  query,
 }: {
   title: string
   icon: typeof Stethoscope
   items: CareDirectoryMatch[]
+  query: string
 }) {
   if (items.length === 0) return null
   return (
@@ -653,6 +688,14 @@ function ResultGroup({
                   NPI: {item.npi} · Taxonomy: {item.taxonomyCode || "n/a"}
                 </span>
                 <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openSchedulingFromProvider(item, query || `Schedule ${item.specialty || item.kind} with ${item.name}`)}
+                    className="inline-flex items-center gap-1 rounded-full bg-midnight px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-[#12211d]"
+                  >
+                    <CalendarCheck size={11} />
+                    Schedule
+                  </button>
                   {item.phone && (
                     <a
                       href={`tel:${item.phone.replace(/[^\d+]/g, "")}`}
@@ -679,7 +722,7 @@ function ResultGroup({
               <div className="lg:self-center">
                 <AIAction
                   agentId="scheduling"
-                  label="Connect"
+                  label="Coordinate"
                   prompt={`Coordinate care with ${item.name} (NPI ${item.npi}) and verify network and scheduling options.`}
                   context={`${item.kind} | ${item.specialty} | ${item.fullAddress} | ${item.phone}`}
                   variant="inline"

@@ -1164,28 +1164,19 @@ export default function ScreeningPage() {
                         <p className="mt-2 text-xs leading-5 text-muted">{rec.rationale}</p>
                         <div className="mt-4 rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-surface/50 p-3">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Do next</p>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Next step</p>
                             <span className="text-[10px] text-muted">
-                              No order is placed here. OpenRx prepares the handoff.
+                              Choose a provider path; no order is placed here.
                             </span>
                           </div>
                           <div className="mt-3 flex flex-wrap items-center gap-2">
-                            {primaryAction ? (
-                            <button
-                              type="button"
-                              onClick={() => void requestScreeningNextStep(rec, primaryAction)}
-                              className="rounded-2xl bg-midnight px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#12211d]"
-                            >
-                              Ask OpenRx to coordinate
-                            </button>
-                            ) : null}
                             <button
                               type="button"
                               onClick={() => openProviderSearchFromRecommendation(rec, "best_fit")}
-                              className="inline-flex items-center gap-1 rounded-2xl border border-teal/20 bg-white/72 px-3 py-2 text-xs font-semibold text-teal transition hover:border-teal/35 hover:bg-teal/5"
+                              className="inline-flex items-center gap-1 rounded-2xl bg-midnight px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#12211d]"
                             >
                               <Search size={12} />
-                              Find care options
+                              Find and schedule
                               <ArrowRight size={12} />
                             </button>
                             <button
@@ -1196,6 +1187,15 @@ export default function ScreeningPage() {
                               <Stethoscope size={12} />
                               Find primary care
                             </button>
+                            {primaryAction ? (
+                              <button
+                                type="button"
+                                onClick={() => void requestScreeningNextStep(rec, primaryAction)}
+                                className="rounded-2xl border border-border bg-white/72 px-3 py-2 text-xs font-semibold text-muted transition hover:border-teal/25 hover:text-teal"
+                              >
+                                Save request
+                              </button>
+                            ) : null}
                             {requestKey && nextStepStatus[requestKey] ? (
                               <span className="text-[11px] text-muted">{nextStepStatus[requestKey]}</span>
                             ) : null}

@@ -1,13 +1,18 @@
 "use client"
 
 import { cn, formatTime, formatDate, getStatusColor } from "@/lib/utils"
-import { Video, AlertTriangle, Stethoscope, Bot, Calendar, ChevronDown, MapPin, Clock } from "lucide-react"
-import { useMemo, useState } from "react"
+import { Video, AlertTriangle, Stethoscope, Bot, Calendar, ChevronDown, MapPin, Clock, CalendarCheck, Phone, ExternalLink, CheckCircle2 } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
 import { OpsBadge, OpsBriefCard, OpsEmptyState, OpsTabButton } from "@/components/ui/ops-primitives"
 import Link from "next/link"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
+import {
+  SCHEDULING_HANDOFF_STORAGE_KEY,
+  isFreshCareHandoff,
+  type SchedulingHandoffPayload,
+} from "@/lib/care-handoff"
 
 type ViewMode = "today" | "upcoming" | "past"
 
@@ -15,9 +20,43 @@ function Skeleton({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded-lg bg-border/40", className)} />
 }
 
+function parseSchedulingHandoff(raw: string | null): SchedulingHandoffPayload | null {
+  if (!raw) return null
+  try {
+    const payload = JSON.parse(raw) as Partial<SchedulingHandoffPayload>
+    if (!payload.providerName || !payload.reason || !isFreshCareHandoff(payload.createdAt)) return null
+    return {
+      source: payload.source === "screening" || payload.source === "chat" ? payload.source : "provider",
+      providerName: payload.providerName,
+      providerKind: payload.providerKind || "provider",
+      specialty: payload.specialty || undefined,
+      npi: payload.npi || undefined,
+      phone: payload.phone || undefined,
+      fullAddress: payload.fullAddress || undefined,
+      reason: payload.reason,
+      query: payload.query || undefined,
+      createdAt: payload.createdAt || Date.now(),
+    }
+  } catch {
+    return null
+  }
+}
+
+function buildSchedulingWindows() {
+  const labels = ["Tomorrow morning", "Next weekday midday", "Next weekday afternoon"]
+  return labels.map((label, index) => {
+    const date = new Date()
+    date.setDate(date.getDate() + index + 1)
+    date.setHours(index === 0 ? 9 : index === 1 ? 11 : 14, index === 1 ? 30 : 0, 0, 0)
+    return `${label} · ${formatDate(date.toISOString())} at ${formatTime(date.toISOString())}`
+  })
+}
+
 export default function SchedulingPage() {
   const [view, setView] = useState<ViewMode>("today")
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [schedulingHandoff, setSchedulingHandoff] = useState<SchedulingHandoffPayload | null>(null)
+  const [requestStatus, setRequestStatus] = useState("")
   const { snapshot, getPhysician, loading } = useLiveSnapshot()
 
   const hasData = !!snapshot.patient
@@ -45,6 +84,18 @@ export default function SchedulingPage() {
   const nextAppointment = todayApts[0] || upcomingApts[0] || null
   const telehealthCount = myAppointments.filter((apt) => apt.type === "telehealth").length
   const todaysAttention = todayApts.filter((apt) => ["pending", "checked-in", "in-progress"].includes(apt.status)).length
+  const schedulingWindows = useMemo(() => buildSchedulingWindows(), [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const stored = parseSchedulingHandoff(window.sessionStorage.getItem(SCHEDULING_HANDOFF_STORAGE_KEY))
+    window.sessionStorage.removeItem(SCHEDULING_HANDOFF_STORAGE_KEY)
+    if (stored) {
+      setSchedulingHandoff(stored)
+      setRequestStatus("")
+      setView("upcoming")
+    }
+  }, [])
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -96,7 +147,7 @@ export default function SchedulingPage() {
     )
   }
 
-  if (!loading && !hasData) {
+  if (!loading && !hasData && !schedulingHandoff) {
     return (
       <div className="animate-slide-up flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-teal/5">
@@ -143,6 +194,86 @@ export default function SchedulingPage() {
           </>
         }
       />
+
+      {schedulingHandoff ? (
+        <section className="surface-card border-teal/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,250,247,0.88))] p-5 sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="section-title">Scheduling handoff</p>
+              <h2 className="mt-3 text-2xl font-serif text-primary">Ready to request this visit.</h2>
+              <p className="mt-3 text-sm leading-7 text-secondary">
+                OpenRx carried the provider and recommendation context here so you do not have to search again.
+                This creates a scheduling request, not a confirmed appointment, until the provider verifies availability and ordering/referral requirements.
+              </p>
+              <div className="mt-4 rounded-[22px] border border-[rgba(82,108,139,0.12)] bg-white/82 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-teal/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-teal">
+                    {schedulingHandoff.providerKind}
+                  </span>
+                  {schedulingHandoff.specialty ? <span className="chip">{schedulingHandoff.specialty}</span> : null}
+                  {schedulingHandoff.npi ? <span className="chip">NPI {schedulingHandoff.npi}</span> : null}
+                </div>
+                <p className="mt-3 text-lg font-semibold text-primary">{schedulingHandoff.providerName}</p>
+                <p className="mt-2 text-sm leading-6 text-secondary">{schedulingHandoff.reason}</p>
+                {schedulingHandoff.fullAddress ? (
+                  <p className="mt-3 flex items-center gap-2 text-xs text-muted">
+                    <MapPin size={12} />
+                    {schedulingHandoff.fullAddress}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="w-full rounded-[24px] border border-[rgba(82,108,139,0.12)] bg-white/78 p-4 lg:max-w-sm">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Preferred windows</p>
+              <div className="mt-3 space-y-2">
+                {schedulingWindows.map((slot) => (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => setRequestStatus(`Scheduling request staged for ${slot}. Call or send this request to confirm.`)}
+                    className="flex w-full items-center gap-2 rounded-2xl border border-border bg-surface/50 px-3 py-2 text-left text-xs font-semibold text-primary transition hover:border-teal/30 hover:bg-teal/5"
+                  >
+                    <CalendarCheck size={13} className="text-teal" />
+                    {slot}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRequestStatus("Scheduling request staged. Next: call the provider, send the referral/order context, and confirm coverage before the visit.")}
+                  className="control-button-primary px-4 py-2 text-xs"
+                >
+                  <CheckCircle2 size={13} />
+                  Request appointment
+                </button>
+                {schedulingHandoff.phone ? (
+                  <a
+                    href={`tel:${schedulingHandoff.phone.replace(/[^\d+]/g, "")}`}
+                    className="control-button-secondary px-4 py-2 text-xs"
+                  >
+                    <Phone size={13} />
+                    Call
+                  </a>
+                ) : null}
+                {schedulingHandoff.fullAddress ? (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(schedulingHandoff.fullAddress)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="control-button-secondary px-4 py-2 text-xs"
+                  >
+                    <ExternalLink size={13} />
+                    Map
+                  </a>
+                ) : null}
+              </div>
+              {requestStatus ? <p className="mt-3 text-xs leading-6 text-accent">{requestStatus}</p> : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid gap-3 md:grid-cols-3">
         <OpsBriefCard

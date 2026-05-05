@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 import {
   PROVIDER_HANDOFF_STORAGE_KEY,
+  SCHEDULING_HANDOFF_STORAGE_KEY,
   SCREENING_HANDOFF_STORAGE_KEY,
 } from "@/lib/care-handoff"
 
@@ -170,13 +171,90 @@ test("screening recommendation can hand off directly to care search", async ({ p
     .getByLabel("Tell us your history in plain English")
     .fill("I am 58 and need colorectal cancer screening.")
   await page.getByRole("button", { name: "Get My Free Recommendations" }).click()
-  await page.getByRole("button", { name: "Find care options" }).first().click()
+  await page.getByRole("button", { name: "Find and schedule" }).first().click()
 
   await expect(page).toHaveURL(/\/providers\?handoff=screening/)
   await expect(page.getByText("Loaded the screening recommendation")).toBeVisible()
   await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
   expect(providerQuery.toLowerCase()).toContain("gastroenterology")
   expect(providerQuery.toLowerCase()).toContain("colonoscopy")
+})
+
+test("screening recommendation can find a provider and carry that provider into scheduling", async ({ page }) => {
+  await mockScreeningApis(page)
+  await page.route(/\/api\/providers\/search.*/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ready: true,
+        parsed: {
+          raw: "Find gastroenterology providers for colonoscopy near Portland OR 97204",
+          serviceTypes: ["provider"],
+          city: "Portland",
+          state: "OR",
+          zip: "97204",
+          query: "gastroenterology providers for colonoscopy",
+        },
+        prompt: { id: "care-search", image: "", text: "" },
+        count: 1,
+        matches: [
+          {
+            kind: "provider",
+            npi: "1234567890",
+            name: "OpenRx Gastroenterology",
+            specialty: "Gastroenterology",
+            taxonomyCode: "207RG0100X",
+            status: "A",
+            confidence: "high",
+            fullAddress: "100 Care Way, Portland, OR 97204",
+            phone: "503-555-0101",
+          },
+        ],
+      }),
+    })
+  })
+  await page.route(/\/api\/live\/patient-snapshot.*/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        source: "database",
+        walletAddress: null,
+        generatedAt: new Date().toISOString(),
+        patient: null,
+        physicians: [],
+        appointments: [],
+        claims: [],
+        prescriptions: [],
+        priorAuths: [],
+        messages: [],
+        labResults: [],
+        vitals: [],
+        vaccinations: [],
+        referrals: [],
+        careTimeline: [],
+      }),
+    })
+  })
+
+  await page.goto("/screening")
+  await page
+    .getByLabel("Tell us your history in plain English")
+    .fill("I am 58 and need colorectal cancer screening.")
+  await page.getByRole("button", { name: "Get My Free Recommendations" }).click()
+  await page.getByRole("button", { name: "Find and schedule" }).first().click()
+
+  await expect(page).toHaveURL(/\/providers\?handoff=screening/)
+  await page.getByRole("button", { name: "Schedule" }).first().click()
+  await expect(page).toHaveURL(/\/scheduling\?handoff=provider/)
+  await expect(page.getByText("Ready to request this visit.")).toBeVisible()
+  await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
+  await page.getByRole("button", { name: "Request appointment" }).click()
+  await expect(page.getByText("Scheduling request staged.")).toBeVisible()
+
+  const stored = await page.evaluate((key) => window.sessionStorage.getItem(key), SCHEDULING_HANDOFF_STORAGE_KEY)
+  expect(stored).toBeNull()
 })
 
 test("provider handoff from chat auto-searches without a second button press", async ({ page }) => {

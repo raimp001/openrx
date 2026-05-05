@@ -1,5 +1,6 @@
 export const SCREENING_HANDOFF_STORAGE_KEY = "openrx:screening-handoff"
 export const PROVIDER_HANDOFF_STORAGE_KEY = "openrx:provider-handoff"
+export const SCHEDULING_HANDOFF_STORAGE_KEY = "openrx:scheduling-handoff"
 
 export interface ScreeningHandoffPayload {
   source: "chat" | "link"
@@ -15,11 +16,24 @@ export interface ProviderHandoffPayload {
   createdAt: number
 }
 
+export interface SchedulingHandoffPayload {
+  source: "provider" | "screening" | "chat"
+  providerName: string
+  providerKind: string
+  specialty?: string
+  npi?: string
+  phone?: string
+  fullAddress?: string
+  reason: string
+  query?: string
+  createdAt: number
+}
+
 export interface CareHandoffAction {
   label: string
   href: string
-  storageKey: typeof SCREENING_HANDOFF_STORAGE_KEY | typeof PROVIDER_HANDOFF_STORAGE_KEY
-  payload: ScreeningHandoffPayload | ProviderHandoffPayload
+  storageKey: typeof SCREENING_HANDOFF_STORAGE_KEY | typeof PROVIDER_HANDOFF_STORAGE_KEY | typeof SCHEDULING_HANDOFF_STORAGE_KEY
+  payload: ScreeningHandoffPayload | ProviderHandoffPayload | SchedulingHandoffPayload
 }
 
 const SCREENING_TERMS = [

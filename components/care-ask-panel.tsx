@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { useState } from "react"
+import { resolveCareHandoff } from "@/lib/care-handoff"
 import { cn } from "@/lib/utils"
 
 type CareAskSuggestion = {
@@ -43,50 +44,50 @@ type CareAskPanelProps = {
 
 const defaultSuggestions: CareAskSuggestion[] = [
   {
-    label: "What should I do next?",
-    prompt: "Look at my care plan and tell me the highest-priority next step.",
-    topic: "coordinator",
+    label: "What screening is due?",
+    prompt: "I want to know which preventive screenings may be due and what I should do next.",
+    topic: "screening",
   },
   {
-    label: "Find care near me",
-    prompt: "Find a nearby primary care option and explain what to do before booking.",
+    label: "Find primary care",
+    prompt: "Find a primary care option near me and explain what to ask before booking.",
     topic: "scheduling",
   },
   {
-    label: "Explain this bill",
-    prompt: "Help me understand the bill or denied claim I should review first.",
+    label: "Explain a bill",
+    prompt: "Help me understand a medical bill or denied claim and what to check first.",
     topic: "billing",
   },
   {
-    label: "Check screenings",
-    prompt: "Check which preventive screenings may be due and what I should ask my clinician.",
-    topic: "screening",
+    label: "What should I do next?",
+    prompt: "Tell me the highest-priority next step and route me to the right care service.",
+    topic: "coordinator",
   },
 ]
 
 const defaultLanes: BackgroundLane[] = [
   {
-    label: "Read the care context",
-    detail: "Profile, medications, labs, appointments, messages, and coverage signals stay attached to the request.",
+    label: "Understand the ask",
+    detail: "You start with one sentence. OpenRx looks for screening, provider, billing, medication, or follow-up intent.",
     icon: FileText,
   },
   {
-    label: "Route the work",
-    detail: "OpenRx decides whether this is a screening, referral, medication, billing, or scheduling task.",
+    label: "Route to the service",
+    detail: "Clear screening and care-search questions open the right workflow directly instead of making you pick a page.",
     icon: Sparkles,
   },
   {
-    label: "Prepare the next step",
-    detail: "The answer comes back with plain-language actions instead of a pile of pages to inspect.",
+    label: "Prepare the handoff",
+    detail: "The next page keeps your question attached, then runs the check or search without a second form.",
     icon: CheckCircle2,
   },
 ]
 
 export function CareAskPanel({
   eyebrow = "Ask OpenRx",
-  title = "What do you need help with?",
-  description = "Ask in plain English. OpenRx routes the next step.",
-  placeholder = "Ask about screenings, referrals, meds, bills, labs, or visits...",
+  title = "Ask once. Open the right care path.",
+  description = "Use plain English. OpenRx routes screening, care search, billing, medication, and follow-up questions without asking you to choose the system first.",
+  placeholder = "Ask what screening is due, where to go, what a bill means, or what to do next...",
   defaultPrompt = "",
   suggestions = defaultSuggestions,
   lanes = defaultLanes,
@@ -103,8 +104,17 @@ export function CareAskPanel({
     setIsLaunching(true)
     const params = new URLSearchParams()
     const trimmed = nextPrompt.trim()
+
+    const action = resolveCareHandoff(trimmed, topic || "coordinator")
+    if (action && typeof window !== "undefined") {
+      window.sessionStorage.setItem(action.storageKey, JSON.stringify(action.payload))
+      router.push(action.href)
+      return
+    }
+
     if (trimmed) params.set("prompt", trimmed)
     if (topic) params.set("topic", topic)
+    if (trimmed) params.set("autorun", "1")
     router.push(`/chat${params.toString() ? `?${params.toString()}` : ""}`)
   }
 
@@ -179,7 +189,7 @@ export function CareAskPanel({
               >
                 <div className={cn("hidden items-center gap-2 text-xs sm:flex", dark ? "text-white/56" : "text-muted")}>
                   <MessageSquareText size={13} />
-                  One question is enough.
+                  Routes to screening, care search, billing, meds, or follow-up.
                 </div>
                 <button
                   type="submit"

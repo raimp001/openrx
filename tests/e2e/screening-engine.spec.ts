@@ -255,3 +255,12 @@ test("chat care-network handoff preserves provider query for automatic search", 
   expect(action?.storageKey).toBe(PROVIDER_HANDOFF_STORAGE_KEY)
   expect(action?.payload.autorun).toBe(true)
 })
+
+test("landing care-network handoff does not require patients to choose scheduling first", () => {
+  const action = resolveCareHandoff("Find a primary care doctor near Portland OR 97204", "coordinator")
+
+  expect(action?.label).toBe("Search care network")
+  expect(action?.href).toBe("/providers?handoff=chat")
+  expect(action?.storageKey).toBe(PROVIDER_HANDOFF_STORAGE_KEY)
+  expect(JSON.stringify(action?.payload).toLowerCase()).toContain("primary care")
+})

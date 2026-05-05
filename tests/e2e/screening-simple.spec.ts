@@ -230,3 +230,76 @@ test("provider handoff from chat auto-searches without a second button press", a
   await expect(page.getByText("Matched network")).toBeVisible()
   await expect(page.getByText("OpenRx Imaging Portland").first()).toBeVisible()
 })
+
+test("landing ask routes clear care-search intent to providers without generic chat", async ({ page }) => {
+  let providerQuery = ""
+  await page.route(/\/api\/providers\/search.*/, async (route) => {
+    providerQuery = new URL(route.request().url()).searchParams.get("q") || ""
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ready: true,
+        parsed: {
+          raw: providerQuery,
+          serviceTypes: ["provider"],
+          city: "",
+          state: "",
+          zip: "",
+          query: providerQuery,
+        },
+        prompt: { id: "care-search", image: "", text: "" },
+        count: 1,
+        matches: [
+          {
+            kind: "provider",
+            npi: "1234567890",
+            name: "OpenRx Primary Care",
+            specialty: "Internal Medicine",
+            taxonomyCode: "207R00000X",
+            status: "A",
+            confidence: "high",
+            fullAddress: "100 Care Way, Portland, OR 97204",
+            phone: "503-555-0102",
+          },
+        ],
+      }),
+    })
+  })
+
+  await page.goto("/")
+  await page.getByRole("button", { name: "Find primary care" }).click()
+
+  await expect(page).toHaveURL(/\/providers\?handoff=chat/)
+  await expect(page.getByText("Loaded your chat context")).toBeVisible()
+  await expect(page.getByText("OpenRx Primary Care").first()).toBeVisible()
+  expect(providerQuery.toLowerCase()).toContain("primary care")
+})
+
+test("chat prompt autorun answers after landing submit without a second send", async ({ page }) => {
+  let postedMessage = ""
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+  await page.route(/\/api\/openclaw\/chat$/, async (route) => {
+    const body = route.request().postDataJSON() as { message?: string }
+    postedMessage = body.message || ""
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        response: "Review the bill amount, claim status, and insurer explanation first.",
+        agentId: "billing",
+      }),
+    })
+  })
+
+  await page.goto("/chat?prompt=Explain%20this%20bill&topic=billing&autorun=1")
+
+  await expect(page.getByText("Review the bill amount")).toBeVisible()
+  expect(postedMessage).toBe("Explain this bill")
+})

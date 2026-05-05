@@ -48,6 +48,14 @@ const SCREENING_TERMS = [
 const CARE_SEARCH_TERMS = [
   "provider",
   "doctor",
+  "physician",
+  "pcp",
+  "primary care",
+  "find care",
+  "find a",
+  "book",
+  "schedule",
+  "appointment",
   "specialist",
   "caregiver",
   "care network",
@@ -60,6 +68,23 @@ const CARE_SEARCH_TERMS = [
   "lab",
   "laboratory",
   "colonoscopy center",
+  "clinic",
+  "clinician",
+]
+
+const BILLING_TERMS = [
+  "bill",
+  "billing",
+  "claim",
+  "denial",
+  "denied",
+  "coverage",
+  "insurance",
+  "prior auth",
+  "prior authorization",
+  "cost",
+  "copay",
+  "estimate",
 ]
 
 function includesAny(value: string, terms: string[]) {
@@ -100,7 +125,7 @@ export function resolveCareHandoff(message: string, agentId: string): CareHandof
   }
 
   const looksLikeCareSearch =
-    agentId === "scheduling" &&
+    agentId === "scheduling" ||
     includesAny(lowered, CARE_SEARCH_TERMS)
 
   if (looksLikeCareSearch) {
@@ -115,6 +140,10 @@ export function resolveCareHandoff(message: string, agentId: string): CareHandof
         createdAt: now,
       },
     }
+  }
+
+  if (agentId === "billing" || includesAny(lowered, BILLING_TERMS)) {
+    return null
   }
 
   return null

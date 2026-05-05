@@ -95,6 +95,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const seededPromptRef = useRef(false)
+  const autoSubmittedPromptRef = useRef(false)
 
   const welcomeMessage: ChatMessage = {
     id: "welcome",
@@ -126,7 +127,8 @@ export default function ChatPage() {
     window.location.href = action.href
   }, [])
 
-  // Preload questions from the homepage/dashboard ask panels without sending on the patient's behalf.
+  // Preload questions from homepage/dashboard ask panels. If the user explicitly
+  // submitted from that surface, autorun sends the message once.
   useEffect(() => {
     if (seededPromptRef.current || typeof window === "undefined") return
     const params = new URLSearchParams(window.location.search)
@@ -155,17 +157,19 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  const sendMessage = useCallback(async () => {
-    if (!input.trim() || isLoading) return
+  const sendMessage = useCallback(async (messageOverride?: string, agentOverride?: AgentId) => {
+    const nextInput = (messageOverride ?? input).trim()
+    if (!nextInput || isLoading) return
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      content: input.trim(),
+      content: nextInput,
       timestamp: new Date(),
     }
 
-    const savedInput = input.trim()
+    const savedInput = nextInput
+    const currentAgent = agentOverride || activeAgent
     setMessages((prev) => [...prev, userMsg])
     setInput("")
     setIsLoading(true)
@@ -174,7 +178,7 @@ export default function ChatPage() {
     const workflow = executeWorkflow(userMsg.content)
 
     // If the orchestrator routes to a different agent, auto-switch
-    if (workflow.route.primaryAgent !== activeAgent) {
+    if (workflow.route.primaryAgent !== currentAgent) {
       setActiveAgent(workflow.route.primaryAgent)
     }
 
@@ -241,6 +245,23 @@ export default function ChatPage() {
       setIsLoading(false)
     }
   }, [input, isLoading, activeAgent, walletAddress, getWalletAuthHeaders])
+
+  useEffect(() => {
+    if (autoSubmittedPromptRef.current || typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    const prompt = params.get("prompt")
+    if (params.get("autorun") !== "1" || !prompt?.trim()) return
+
+    const topic = params.get("topic")
+    const agentOverride = topic && OPENCLAW_CONFIG.agents.some((agent) => agent.id === topic)
+      ? topic as AgentId
+      : undefined
+
+    autoSubmittedPromptRef.current = true
+    window.setTimeout(() => {
+      void sendMessage(prompt, agentOverride)
+    }, 80)
+  }, [sendMessage])
 
   const activeMeta = agentMeta[activeAgent] ?? agentMeta.coordinator
 
@@ -400,7 +421,7 @@ export default function ChatPage() {
             />
             <button
               type="button"
-              onClick={sendMessage}
+              onClick={() => sendMessage()}
               disabled={isLoading || !input.trim()}
               aria-label="Send message"
               className="control-button-primary min-w-[4.5rem] justify-center px-4"

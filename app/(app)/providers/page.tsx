@@ -181,7 +181,11 @@ export default function ProvidersPage() {
     if (!nextQuery.trim()) return
 
     setQuery(nextQuery.trim())
-    setHandoffNotice("Loaded your chat context and started the care-network search here.")
+    setHandoffNotice(
+      stored?.source === "link"
+        ? "Loaded the screening recommendation and started the care-network search here."
+        : "Loaded your chat context and started the care-network search here."
+    )
     if (stored?.autorun || params.get("autorun") === "1" || params.get("handoff") === "chat") {
       void searchDirectory(nextQuery.trim())
     }

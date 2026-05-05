@@ -49,6 +49,24 @@ async function mockScreeningApis(page: Page) {
             reason: "Adults over 45 should stay current on colon screening cadence.",
           },
         ],
+        structuredRecommendations: [
+          {
+            id: "uspstf-average-risk-colorectal",
+            cancerType: "colorectal",
+            screeningName: "Colorectal cancer screening",
+            status: "due",
+            riskCategory: "average_risk",
+            rationale: "Adults 45-75 should stay current on colorectal cancer screening.",
+            recommendedNextStep: "Request colonoscopy or discuss FIT/colonoscopy options with a clinician.",
+            suggestedTiming: "Start now",
+            sourceSystem: "USPSTF",
+            evidenceGrade: "B",
+            requiresClinicianReview: false,
+            patientFriendlyExplanation: "Based on age, colorectal screening may be due now.",
+            clinicianSummary: "USPSTF average-risk CRC screening; verify prior screening and symptoms.",
+            nextSteps: ["request_colonoscopy", "request_care_navigation", "download_clinician_summary"],
+          },
+        ],
         nextActions: ["Review this plan with your clinician within 30 days."],
         localCareConnections: [],
         evidenceCitations: [
@@ -108,6 +126,57 @@ test("screening handoff from chat auto-runs the free recommendations", async ({ 
   await expect(page.getByText("Context carried forward.")).toBeVisible()
   await expect(page.getByText("Recommended Screenings")).toBeVisible()
   await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
+})
+
+test("screening recommendation can hand off directly to care search", async ({ page }) => {
+  await mockScreeningApis(page)
+  let providerQuery = ""
+  await page.route(/\/api\/providers\/search.*/, async (route) => {
+    providerQuery = new URL(route.request().url()).searchParams.get("q") || ""
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ready: true,
+        parsed: {
+          raw: providerQuery,
+          serviceTypes: ["provider"],
+          city: "",
+          state: "",
+          zip: "",
+          query: providerQuery,
+        },
+        prompt: { id: "care-search", image: "", text: "" },
+        count: 1,
+        matches: [
+          {
+            kind: "provider",
+            npi: "1234567890",
+            name: "OpenRx Gastroenterology",
+            specialty: "Gastroenterology",
+            taxonomyCode: "207RG0100X",
+            status: "A",
+            confidence: "high",
+            fullAddress: "100 Care Way, Portland, OR 97204",
+            phone: "503-555-0101",
+          },
+        ],
+      }),
+    })
+  })
+
+  await page.goto("/screening")
+  await page
+    .getByLabel("Tell us your history in plain English")
+    .fill("I am 58 and need colorectal cancer screening.")
+  await page.getByRole("button", { name: "Get My Free Recommendations" }).click()
+  await page.getByRole("button", { name: "Find care options" }).first().click()
+
+  await expect(page).toHaveURL(/\/providers\?handoff=screening/)
+  await expect(page.getByText("Loaded the screening recommendation")).toBeVisible()
+  await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
+  expect(providerQuery.toLowerCase()).toContain("gastroenterology")
+  expect(providerQuery.toLowerCase()).toContain("colonoscopy")
 })
 
 test("provider handoff from chat auto-searches without a second button press", async ({ page }) => {

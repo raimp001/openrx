@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Activity,
   AlertTriangle,
+  ArrowRight,
   CreditCard,
   ExternalLink,
   Loader2,
@@ -11,6 +12,7 @@ import {
   Phone,
   Search,
   ShieldCheck,
+  Stethoscope,
   Wallet,
 } from "lucide-react"
 import AIAction from "@/components/ai-action"
@@ -41,8 +43,10 @@ import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
 import {
+  PROVIDER_HANDOFF_STORAGE_KEY,
   SCREENING_HANDOFF_STORAGE_KEY,
   isFreshCareHandoff,
+  type ProviderHandoffPayload,
   type ScreeningHandoffPayload,
 } from "@/lib/care-handoff"
 
@@ -126,6 +130,50 @@ function parseScreeningHandoff(raw: string | null): ScreeningHandoffPayload | nu
   } catch {
     return null
   }
+}
+
+function locationSuffix(location?: string) {
+  const cleaned = (location || "").replace(/\s+/g, " ").trim()
+  return cleaned ? ` near ${cleaned}` : ""
+}
+
+function recommendationSpecialtyQuery(rec: StructuredScreeningRecommendation) {
+  const steps = rec.nextSteps
+  const haystack = `${rec.screeningName} ${rec.cancerType} ${rec.recommendedNextStep}`.toLowerCase()
+
+  if (steps.includes("seek_urgent_care")) return "urgent care providers"
+  if (steps.includes("request_colonoscopy")) return "gastroenterology providers for colonoscopy"
+  if (steps.includes("request_mammogram")) return "mammography radiology centers"
+  if (steps.includes("request_ldct")) return "low-dose CT radiology centers"
+  if (steps.includes("request_cervical_screening")) return "obgyn or primary care providers for Pap HPV screening"
+  if (steps.includes("request_psa_discussion")) return "urology or primary care providers for PSA screening discussion"
+  if (steps.includes("request_genetic_counseling")) return "genetic counseling or cancer genetics providers"
+  if (steps.includes("request_specialist_review")) {
+    if (haystack.includes("prostate")) return "urology providers"
+    if (haystack.includes("breast")) return "breast oncology or breast clinic providers"
+    if (haystack.includes("colon") || haystack.includes("colorectal")) return "gastroenterology providers"
+    if (haystack.includes("lung")) return "pulmonology providers"
+    if (haystack.includes("cervical")) return "obgyn providers"
+    return "specialist providers"
+  }
+  if (steps.includes("request_imaging")) return "radiology centers"
+  if (steps.includes("request_lab")) return "clinical laboratories"
+  if (steps.includes("request_referral")) return "primary care providers for referral"
+  return "primary care providers"
+}
+
+function buildRecommendationCareQuery(rec: StructuredScreeningRecommendation, location?: string) {
+  const suffix = locationSuffix(location)
+  return suffix
+    ? `Find ${recommendationSpecialtyQuery(rec)}${suffix} for ${rec.screeningName}`
+    : `Find ${recommendationSpecialtyQuery(rec)}`
+}
+
+function buildPrimaryCareQuery(rec: StructuredScreeningRecommendation, location?: string) {
+  const suffix = locationSuffix(location)
+  return suffix
+    ? `Find primary care providers${suffix} to review ${rec.screeningName}`
+    : "Find primary care providers"
 }
 
 export default function ScreeningPage() {
@@ -584,6 +632,21 @@ export default function ScreeningPage() {
         [key]: issue instanceof Error ? issue.message : "Could not create the next-step request.",
       }))
     }
+  }
+
+  function openProviderSearchFromRecommendation(rec: StructuredScreeningRecommendation, mode: "best_fit" | "primary_care") {
+    if (typeof window === "undefined") return
+    const query = mode === "primary_care"
+      ? buildPrimaryCareQuery(rec, snapshot.patient?.address)
+      : buildRecommendationCareQuery(rec, snapshot.patient?.address)
+    const payload: ProviderHandoffPayload = {
+      source: "link",
+      query,
+      autorun: true,
+      createdAt: Date.now(),
+    }
+    window.sessionStorage.setItem(PROVIDER_HANDOFF_STORAGE_KEY, JSON.stringify(payload))
+    window.location.href = "/providers?handoff=screening"
   }
 
   return (
@@ -1082,6 +1145,7 @@ export default function ScreeningPage() {
                           ? "bg-yellow-100 text-yellow-800"
                           : "bg-accent/10 text-accent"
                     const requestKey = primaryAction ? `${rec.id}:${primaryAction}` : ""
+                    const hasLocationContext = Boolean(snapshot.patient?.address?.trim())
                     return (
                       <div key={rec.id} className="rounded-[20px] border border-white/78 bg-white/74 p-4 shadow-sm">
                         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1098,20 +1162,51 @@ export default function ScreeningPage() {
                         </div>
                         <p className="mt-3 text-sm leading-6 text-secondary">{rec.patientFriendlyExplanation}</p>
                         <p className="mt-2 text-xs leading-5 text-muted">{rec.rationale}</p>
-                        {primaryAction ? (
+                        <div className="mt-4 rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-surface/50 p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Do next</p>
+                            <span className="text-[10px] text-muted">
+                              No order is placed here. OpenRx prepares the handoff.
+                            </span>
+                          </div>
                           <div className="mt-3 flex flex-wrap items-center gap-2">
+                            {primaryAction ? (
                             <button
                               type="button"
                               onClick={() => void requestScreeningNextStep(rec, primaryAction)}
                               className="rounded-2xl bg-midnight px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#12211d]"
                             >
-                              {nextStepLabel(primaryAction)}
+                              Ask OpenRx to coordinate
+                            </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() => openProviderSearchFromRecommendation(rec, "best_fit")}
+                              className="inline-flex items-center gap-1 rounded-2xl border border-teal/20 bg-white/72 px-3 py-2 text-xs font-semibold text-teal transition hover:border-teal/35 hover:bg-teal/5"
+                            >
+                              <Search size={12} />
+                              Find care options
+                              <ArrowRight size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openProviderSearchFromRecommendation(rec, "primary_care")}
+                              className="inline-flex items-center gap-1 rounded-2xl border border-border bg-white/72 px-3 py-2 text-xs font-semibold text-primary transition hover:border-teal/25 hover:text-teal"
+                            >
+                              <Stethoscope size={12} />
+                              Find primary care
                             </button>
                             {requestKey && nextStepStatus[requestKey] ? (
                               <span className="text-[11px] text-muted">{nextStepStatus[requestKey]}</span>
                             ) : null}
                           </div>
-                        ) : null}
+                          <p className="mt-2 text-[11px] leading-5 text-muted">
+                            {primaryAction ? `${nextStepLabel(primaryAction)} is the clinical task. ` : ""}
+                            {hasLocationContext
+                              ? "Provider search will use your saved location context."
+                              : "Provider search will ask for a city or ZIP before returning local results."}
+                          </p>
+                        </div>
                       </div>
                     )
                   })

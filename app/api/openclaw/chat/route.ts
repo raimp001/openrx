@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
       "screening",
       "second-opinion",
       "trials",
-      "devops",
     ]
 
     if (!message || typeof message !== "string" || !message.trim()) {

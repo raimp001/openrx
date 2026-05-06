@@ -4,7 +4,7 @@ import path from "node:path"
 import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db"
 import { getDatabaseHealth } from "@/lib/database-health"
-import { fromCents, toCents } from "@/lib/money"
+import { addAmounts, amountGte, fromCents, toCents } from "@/lib/money"
 import { resolveBaseUsdcTransferStatus } from "@/lib/basebuilder/usdc.server"
 
 const DEFAULT_TREASURY_WALLET = "0x09aeac8822F72AD49676c4DfA38519C98484730c"
@@ -782,9 +782,9 @@ function finalizeRefundInFileStore(input: FinalizeRefundInput): {
     reference: refund.txHash || refund.id,
   })
 
-  const refundedTotal = toAmount(String(toAmountNumber(payment.refundedAmount) * 100 + toAmountNumber(refund.amount) * 100))
+  const refundedTotal = addAmounts(payment.refundedAmount, refund.amount)
   payment.refundedAmount = refundedTotal
-  if (toAmountNumber(refundedTotal) >= toAmountNumber(payment.settledAmount || payment.expectedAmount)) {
+  if (amountGte(refundedTotal, payment.settledAmount || payment.expectedAmount)) {
     payment.status = "refunded"
   }
 
@@ -1685,14 +1685,13 @@ async function finalizeRefundInDatabase(input: FinalizeRefundInput): Promise<{
     }),
   ])
 
-  const refundedTotal = toAmount(String(toAmountNumber(payment.refundedAmount) * 100 + toAmountNumber(refund.amount) * 100))
+  const refundedTotal = addAmounts(payment.refundedAmount, refund.amount)
   payment = mapPaymentRow(
     await prisma.ledgerPaymentRecord.update({
       where: { id: payment.id },
       data: {
         refundedAmount: refundedTotal,
-        status:
-          toAmountNumber(refundedTotal) >= toAmountNumber(payment.settledAmount || payment.expectedAmount)
+        status: amountGte(refundedTotal, payment.settledAmount || payment.expectedAmount)
             ? "refunded"
             : payment.status,
       },

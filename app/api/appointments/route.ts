@@ -103,22 +103,28 @@ export async function POST(request: NextRequest) {
     const scheduledDate = new Date(scheduledAt)
     const endTime = new Date(scheduledDate.getTime() + duration * 60 * 1000)
 
-    const conflict = await prisma.appointment.findFirst({
+    // Fetch candidates whose start time could possibly overlap with the new slot.
+    // We check a generous window (4 hours before the new slot start) since we can't
+    // compute end times in SQL. True overlap is verified in-app below.
+    const candidates = await prisma.appointment.findMany({
       where: {
         doctorId,
         status: { in: ['PENDING', 'CONFIRMED'] },
-        AND: [
-          { scheduledAt: { lt: endTime } },
-          {
-            scheduledAt: {
-              gte: new Date(scheduledDate.getTime() - duration * 60 * 1000),
-            },
-          },
-        ],
+        scheduledAt: {
+          lt: endTime,
+          gte: new Date(scheduledDate.getTime() - 240 * 60 * 1000),
+        },
       },
+      select: { scheduledAt: true, duration: true },
     })
 
-    if (conflict) {
+    const hasConflict = candidates.some((appt) => {
+      const existingStart = new Date(appt.scheduledAt).getTime()
+      const existingEnd = existingStart + (appt.duration || 30) * 60 * 1000
+      return existingStart < endTime.getTime() && existingEnd > scheduledDate.getTime()
+    })
+
+    if (hasConflict) {
       return NextResponse.json(
         { error: 'Doctor has a conflicting appointment at this time' },
         { status: 409 }
@@ -185,6 +191,28 @@ export async function PATCH(request: NextRequest) {
         { error: 'Appointment ID is required' },
         { status: 400 }
       )
+    }
+
+    const validTransitions: Record<string, string[]> = {
+      PENDING: ['CONFIRMED', 'CANCELLED'],
+      CONFIRMED: ['COMPLETED', 'CANCELLED', 'NO_SHOW'],
+      COMPLETED: [],
+      CANCELLED: [],
+      NO_SHOW: [],
+    }
+
+    if (status) {
+      const existing = await prisma.appointment.findUnique({ where: { id }, select: { status: true } })
+      if (!existing) {
+        return NextResponse.json({ error: 'Appointment not found' }, { status: 404 })
+      }
+      const allowed = validTransitions[existing.status] || []
+      if (!allowed.includes(status)) {
+        return NextResponse.json(
+          { error: `Cannot transition from ${existing.status} to ${status}` },
+          { status: 422 }
+        )
+      }
     }
 
     const appointment = await prisma.appointment.update({

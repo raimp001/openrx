@@ -161,8 +161,11 @@ function legacySymptoms(symptoms: string[]): ScreeningIntake["symptoms"] {
 
 function legacyCancerHistory(conditions: string[]): ScreeningIntake["personalHistory"]["cancers"] {
   return conditions
-    .filter((entry) => includesAny(normalized(entry), ["personal history", "history of", "survivor", "treated for"]))
     .filter((entry) => includesAny(normalized(entry), ["cancer", "carcinoma", "melanoma"]))
+    .filter((entry) =>
+      includesAny(normalized(entry), ["personal history", "history of", "survivor", "treated for"]) ||
+      !includesAny(normalized(entry), ["family", "mother", "father", "brother", "sister", "parent"])
+    )
     .map((entry) => ({ type: parseCancerType(entry), diagnosisAge: parseDiagnosisAge(entry) }))
 }
 

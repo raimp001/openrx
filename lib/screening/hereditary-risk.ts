@@ -13,6 +13,7 @@ export const hereditaryRiskPathways = {
   PALB2: ["breast", "pancreatic"],
   ATM: ["breast", "pancreatic"],
   CHEK2: ["breast", "colorectal"],
+  HOXB13: ["prostate"],
   TP53: ["breast", "sarcoma", "brain", "adrenal", "leukemia"],
   PTEN: ["breast", "thyroid", "endometrial", "colorectal", "renal"],
   STK11: ["colorectal", "pancreatic", "gastric", "breast", "gynecologic"],

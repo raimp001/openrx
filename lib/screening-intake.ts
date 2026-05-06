@@ -183,7 +183,7 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
 
   let gender: string | undefined
   if (/\b\d{2}\s*f\b|\bfemale\b|\bwoman\b|\blady\b/.test(lowered)) gender = "female"
-  if (/\b\d{2}\s*m\b|\bmale\b|\bman\b|\bgentleman\b/.test(lowered)) gender = "male"
+  else if (/\b\d{2}\s*m\b|\bmale\b|\bman\b|\bgentleman\b/.test(lowered)) gender = "male"
 
   const bmiMatch = lowered.match(/\bbmi\s*(?:is|=|:)?\s*(\d{1,2}(?:\.\d+)?)\b/)
   const bmi = bmiMatch ? Number.parseFloat(bmiMatch[1]) : undefined
@@ -213,7 +213,8 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   ])
 
   SCREENING_HISTORY_KEYWORDS.forEach((keyword) => {
-    if (!lowered.includes(keyword)) return
+    const found = keyword.length <= 3 ? hasWord(lowered, keyword) : lowered.includes(keyword)
+    if (!found) return
     const nearbyYear = lowered.match(new RegExp(`(?:${keyword}|last)[^.!?\\n]{0,80}\\b(20\\d{2}|19\\d{2})\\b`))?.[1]
     const result = lowered.includes("abnormal") ? "abnormal" : lowered.includes("normal") ? "normal" : ""
     conditions.push(`${result ? `${result} ` : ""}${keyword}${nearbyYear ? ` ${nearbyYear}` : ""}`.trim())

@@ -127,7 +127,10 @@ const SCREENING_QUERY_TERMS = [
   "family history",
 ]
 
+const SCREENING_ELIGIBLE_AGENTS = new Set(["screening", "wellness", "coordinator"])
+
 function looksLikeScreeningQuestion(agentId: string, message: string): boolean {
+  if (!SCREENING_ELIGIBLE_AGENTS.has(agentId)) return false
   if (agentId === "screening") return true
   const lowered = message.toLowerCase()
   if (/\b(?:hx|fhx|fam hx)\b/.test(lowered)) return true
@@ -219,8 +222,24 @@ interface CachedContext {
 }
 const contextCache = new Map<string, CachedContext>()
 const CONTEXT_TTL_MS = 30_000 // 30 s — covers a full MoE fan-out round-trip
+const MAX_CONTEXT_CACHE_SIZE = 200
+
+function pruneContextCache() {
+  const now = Date.now()
+  const entries = Array.from(contextCache.entries())
+  for (const [key, entry] of entries) {
+    if (entry.expiresAt <= now) contextCache.delete(key)
+  }
+  if (contextCache.size > MAX_CONTEXT_CACHE_SIZE) {
+    const sorted = Array.from(contextCache.entries())
+      .sort((a, b) => a[1].expiresAt - b[1].expiresAt)
+    const toRemove = sorted.slice(0, contextCache.size - MAX_CONTEXT_CACHE_SIZE)
+    for (const [key] of toRemove) contextCache.delete(key)
+  }
+}
 
 async function getPatientContext(walletAddress?: string): Promise<string> {
+  pruneContextCache()
   const cacheKey = walletAddress || `__anon_${Date.now()}_${Math.random().toString(36).slice(2, 6)}__`
   const cached = contextCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now()) {
@@ -454,10 +473,6 @@ IMPORTANT RULES:
     console.error(`Agent ${agentId} error:`, errMsg || error)
 
     const errorNote = friendlyAIError(status, errMsg)
-    if (looksLikeScreeningQuestion(agentId, message)) {
-      const deterministic = buildDeterministicScreeningResponse(message)
-      return { response: deterministic, agentId: "screening" }
-    }
     const fallback = buildFallbackAgentResponse(agentId, message)
     return { response: `${errorNote}\n\n${fallback}`, agentId }
   }
@@ -477,7 +492,7 @@ export async function runParallelExperts(params: {
   // Fetch patient context once — shared across all expert calls (GQA cache hit)
   const sharedContext = await getPatientContext(params.walletAddress)
 
-  const results = await Promise.all(
+  const settled = await Promise.allSettled(
     params.expertIds.map((agentId) =>
       runAgent({
         agentId,
@@ -488,7 +503,11 @@ export async function runParallelExperts(params: {
       }).then((r) => ({ agentId: r.agentId, response: r.response }))
     )
   )
-  return results
+  return settled.map((result, i) =>
+    result.status === "fulfilled"
+      ? result.value
+      : { agentId: params.expertIds[i], response: "This specialist is temporarily unavailable. Please try again shortly." }
+  )
 }
 
 // ── Coordinator with Real Routing ────────────────────────

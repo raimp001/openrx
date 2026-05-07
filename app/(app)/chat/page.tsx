@@ -26,11 +26,14 @@ import {
 } from "lucide-react"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import {
+  buildActionPlan,
   fallbackHrefForCareHandoff,
   resolveCareHandoff,
   safeSessionSetItem,
+  type ActionPlanItem,
   type CareHandoffAction,
 } from "@/lib/care-handoff"
+import { ChatActionPlan } from "@/components/chat-action-plan"
 
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
@@ -75,6 +78,7 @@ interface ChatMessage {
   collaborators?: string[]
   routingInfo?: string
   action?: CareHandoffAction
+  actionPlan?: ActionPlanItem[]
   timestamp: Date
 }
 
@@ -418,6 +422,7 @@ export default function ChatPage() {
           collaborators: workflow.route.collaborators,
           routingInfo: workflow.route.reasoning,
           action: resolveCareHandoff(userMsg.content, workflow.route.primaryAgent) || undefined,
+          actionPlan: buildActionPlan(userMsg.content, workflow.route.primaryAgent),
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, agentMsg])
@@ -532,6 +537,9 @@ export default function ChatPage() {
                 {meta?.label || "OpenRx"}
               </div>
               <ChatAnswer content={msg.content} />
+              {msg.actionPlan && msg.actionPlan.length > 0 ? (
+                <ChatActionPlan items={msg.actionPlan} />
+              ) : null}
               {msg.action ? (
                 <button
                   type="button"

@@ -55,7 +55,7 @@ export default function LandingPage() {
           </span>
           <h1
             id="landing-heading"
-            className="mx-auto mt-5 max-w-2xl text-balance text-[clamp(2.4rem,5vw,3.6rem)] font-semibold leading-[1.05] tracking-[-0.022em] text-primary"
+            className="mx-auto mt-5 max-w-2xl text-balance text-display-lg font-semibold text-primary"
           >
             Ask a clinical question. Get the answer in chat — with sources.
           </h1>
@@ -85,14 +85,14 @@ export default function LandingPage() {
           </ul>
         </section>
 
-        <footer className="mt-auto flex flex-col items-center justify-between gap-4 pt-16 text-[12px] text-muted sm:flex-row">
+        <footer className="mt-auto flex flex-col items-center justify-between gap-4 pt-16 text-[12px] text-secondary sm:flex-row">
           <div className="flex items-center gap-2">
             <BrandMark size="sm" tone="light" />
-            <span>OpenRx</span>
-            <span aria-hidden>·</span>
-            <span>2026</span>
+            <span className="font-medium text-primary">OpenRx</span>
+            <span aria-hidden className="text-muted">·</span>
+            <span className="text-muted">{new Date().getFullYear()}</span>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4 text-muted">
             <Link href="/dashboard" className="hover:text-primary">Demo dashboard</Link>
             <Link href="/join-network" className="hover:text-primary">For clinicians</Link>
             <Link href="/privacy-explained" className="hover:text-primary">Privacy</Link>

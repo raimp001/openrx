@@ -113,11 +113,19 @@ export default function Sidebar() {
     </>
   )
 
+  // The chat page has its own chat-history drawer with a header trigger; we hide
+  // the global mobile hamburger there so two stacked menus don't fight for the
+  // same top-left corner.
+  const hideMobileHamburger = pathname === "/chat" || pathname?.startsWith("/chat/")
+
   return (
     <>
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 rounded-full border border-[rgba(82,108,139,0.12)] bg-white/92 p-2.5 text-secondary shadow-card transition hover:text-primary lg:hidden"
+        className={cn(
+          "fixed left-4 top-4 z-50 rounded-full border border-[rgba(82,108,139,0.12)] bg-white/92 p-2.5 text-secondary shadow-card transition hover:text-primary lg:hidden",
+          hideMobileHamburger && "hidden"
+        )}
         aria-label="Open navigation"
       >
         <Menu size={18} />

@@ -1,0 +1,55 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#E2E8F0"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F8FAFC"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Brand mark -->
+  <g transform="translate(96 96)">
+    <rect width="84" height="84" rx="20" fill="#0B1B33"/>
+    <g transform="translate(15 15)">
+      <path d="M14 39 L40 26.5 L14 14" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.94"/>
+      <circle cx="14" cy="14" r="4.2" fill="#FFFFFF"/>
+      <circle cx="14" cy="39" r="4.2" fill="#FFFFFF"/>
+      <circle cx="40" cy="26.5" r="5.4" fill="#5EEAD4"/>
+    </g>
+  </g>
+
+  <!-- Headline -->
+  <text x="96" y="296" font-family="Inter, system-ui, sans-serif" font-size="78" font-weight="700" fill="#0B1B33" letter-spacing="-2">
+    OpenRx
+  </text>
+  <text x="96" y="376" font-family="Inter, system-ui, sans-serif" font-size="44" font-weight="600" fill="#0B1B33" letter-spacing="-1">
+    Clinical answers, in chat.
+  </text>
+  <text x="96" y="436" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="400" fill="#475569">
+    Decision support backed by USPSTF, CDC, ACS, and NCCN — with sources inline.
+  </text>
+
+  <!-- Source pills -->
+  <g transform="translate(96 500)" font-family="Inter, system-ui, sans-serif" font-size="20" font-weight="500" fill="#475569">
+    <g>
+      <rect x="0" y="0" width="118" height="44" rx="22" fill="url(#card)" stroke="#E2E8F0"/>
+      <text x="59" y="29" text-anchor="middle">USPSTF</text>
+    </g>
+    <g transform="translate(140 0)">
+      <rect x="0" y="0" width="86" height="44" rx="22" fill="url(#card)" stroke="#E2E8F0"/>
+      <text x="43" y="29" text-anchor="middle">CDC</text>
+    </g>
+    <g transform="translate(248 0)">
+      <rect x="0" y="0" width="86" height="44" rx="22" fill="url(#card)" stroke="#E2E8F0"/>
+      <text x="43" y="29" text-anchor="middle">ACS</text>
+    </g>
+    <g transform="translate(356 0)">
+      <rect x="0" y="0" width="106" height="44" rx="22" fill="url(#card)" stroke="#E2E8F0"/>
+      <text x="53" y="29" text-anchor="middle">NCCN</text>
+    </g>
+  </g>
+</svg>

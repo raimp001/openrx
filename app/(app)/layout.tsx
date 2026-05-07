@@ -37,7 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         )}
         <main id="main-content" className="px-4 pb-24 pt-4 sm:px-6 lg:px-8 lg:pt-5" tabIndex={-1}>
-          <div className="mx-auto w-full max-w-[1180px]">{children}</div>
+          <div className="mx-auto w-full max-w-[1240px]">{children}</div>
         </main>
       </div>
     </div>

@@ -3,56 +3,86 @@ import { cn } from "@/lib/utils"
 type BrandMarkProps = {
   className?: string
   iconClassName?: string
-  size?: "sm" | "md" | "lg"
+  size?: "xs" | "sm" | "md" | "lg"
   tone?: "light" | "dark"
+  /** Render the mark as a flat vector with no surrounding chip — useful in tight headers. */
+  bare?: boolean
 }
 
 const SIZE_PX: Record<NonNullable<BrandMarkProps["size"]>, { box: number; svg: number }> = {
-  sm: { box: 32, svg: 18 },
-  md: { box: 40, svg: 22 },
-  lg: { box: 56, svg: 32 },
+  xs: { box: 24, svg: 14 },
+  sm: { box: 30, svg: 16 },
+  md: { box: 38, svg: 20 },
+  lg: { box: 56, svg: 30 },
 }
 
 /**
- * OpenRx mark: a soft-square monogram. Two geometric forms — an open arc
- * (the "O") and a single stroke that doubles as the leading bar of an "R" /
- * tally mark — sit on a deep navy field. Minimal, recognisable at 16px,
- * works on light and dark backgrounds.
+ * OpenRx mark — a "decision node":
+ *
+ *   three nodes forming a forward-leaning isosceles triangle, joined by quiet
+ *   slate strokes, with a single muted-teal accent on the leading node. Reads
+ *   as guidance, branches, and a recommendation — not as a generic AI sparkle,
+ *   not as a pill or cross. The bounding chip uses a deep navy in dark mode
+ *   and a near-white field in light mode, both with a 12-pixel rounded square
+ *   so it remains crisp at 16 px.
  */
-export function BrandMark({ className, iconClassName, size = "md", tone = "dark" }: BrandMarkProps) {
+export function BrandMark({
+  className,
+  iconClassName,
+  size = "md",
+  tone = "dark",
+  bare = false,
+}: BrandMarkProps) {
   const dims = SIZE_PX[size]
   const isLight = tone === "light"
+
+  // Stroke and fill colors per tone.
+  const stroke = isLight ? "#0B1B33" : "#FFFFFF"
+  const accent = isLight ? "#0F766E" : "#5EEAD4"
+
+  const svg = (
+    <svg
+      width={dims.svg}
+      height={dims.svg}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={cn("relative", iconClassName)}
+      aria-hidden
+    >
+      {/* connecting paths — leading edge points right, like a recommendation */}
+      <path
+        d="M6.5 17 L17.5 11.5 L6.5 6.5"
+        stroke={stroke}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+        opacity="0.9"
+      />
+      {/* anchor nodes */}
+      <circle cx="6.5" cy="6.5" r="1.7" fill={stroke} />
+      <circle cx="6.5" cy="17" r="1.7" fill={stroke} />
+      {/* lead node — accent */}
+      <circle cx="17.5" cy="11.5" r="2.2" fill={accent} />
+    </svg>
+  )
+
+  if (bare) {
+    return <span className={cn("inline-flex items-center justify-center", className)}>{svg}</span>
+  }
 
   return (
     <div
       className={cn(
         "relative flex shrink-0 items-center justify-center overflow-hidden rounded-[10px]",
         isLight
-          ? "border border-[rgba(15,23,42,0.10)] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
-          : "border border-[rgba(15,23,42,0.32)] bg-[#0B1B33] shadow-[0_2px_6px_rgba(11,27,51,0.18)]",
+          ? "border border-[rgba(11,27,51,0.08)] bg-white shadow-[0_1px_2px_rgba(11,27,51,0.06)]"
+          : "border border-[rgba(11,27,51,0.32)] bg-[#0B1B33] shadow-[0_2px_6px_rgba(11,27,51,0.18)]",
         className
       )}
       style={{ width: dims.box, height: dims.box }}
     >
-      <svg
-        width={dims.svg}
-        height={dims.svg}
-        viewBox="0 0 24 24"
-        fill="none"
-        className={cn("relative", iconClassName)}
-        aria-hidden
-      >
-        {/* Open arc — the "O", deliberately gapped so the mark reads as motion forward */}
-        <path
-          d="M19.2 8.4a8 8 0 1 0 1.4 6.7"
-          stroke={isLight ? "#0B1B33" : "#FFFFFF"}
-          strokeWidth="2"
-          strokeLinecap="round"
-          fill="none"
-        />
-        {/* Accent dot — a quiet teal node anchoring the mark */}
-        <circle cx="20.4" cy="7.4" r="2" fill={isLight ? "#0F766E" : "#5EEAD4"} />
-      </svg>
+      {svg}
     </div>
   )
 }
@@ -76,7 +106,7 @@ export function BrandWordmark({
 }: BrandWordmarkProps) {
   const Title = titleAs
   const titleColor = tone === "dark" ? "text-white" : "text-primary"
-  const subtitleColor = tone === "dark" ? "text-white/56" : "text-muted"
+  const subtitleColor = tone === "dark" ? "text-white/60" : "text-muted"
 
   return (
     <div className={cn("min-w-0", className)}>
@@ -100,6 +130,35 @@ export function BrandWordmark({
           Clinical answers, in chat
         </p>
       ) : null}
+    </div>
+  )
+}
+
+type BrandLockupProps = {
+  className?: string
+  size?: NonNullable<BrandMarkProps["size"]>
+  tone?: NonNullable<BrandMarkProps["tone"]>
+  showSubtitle?: boolean
+}
+
+/**
+ * Reusable lockup: mark + wordmark in a horizontal row. Use this anywhere a
+ * page header or footer needs the brand — it keeps spacing and tone in sync.
+ */
+export function BrandLockup({
+  className,
+  size = "sm",
+  tone = "light",
+  showSubtitle = false,
+}: BrandLockupProps) {
+  return (
+    <div className={cn("inline-flex items-center gap-2.5", className)}>
+      <BrandMark size={size} tone={tone === "light" ? "light" : "dark"} />
+      <BrandWordmark
+        subtitle={showSubtitle}
+        tone={tone}
+        titleClassName={size === "lg" ? "text-[18px]" : undefined}
+      />
     </div>
   )
 }

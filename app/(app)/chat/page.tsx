@@ -19,12 +19,12 @@ import {
   ExternalLink,
   AlertTriangle,
   CheckCircle2,
-  Trash2,
+  Menu,
   Sparkles,
   ShieldAlert,
   Clock3,
 } from "lucide-react"
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   buildActionPlan,
   fallbackHrefForCareHandoff,
@@ -34,6 +34,8 @@ import {
   type CareHandoffAction,
 } from "@/lib/care-handoff"
 import { ChatActionPlan } from "@/components/chat-action-plan"
+import { ChatHistorySidebar } from "@/components/chat-history/chat-history-sidebar"
+import { useChatHistory } from "@/lib/hooks/use-chat-history"
 
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
@@ -97,7 +99,23 @@ const agentMeta: Record<string, { label: string; icon: typeof Bot }> = {
   devops: { label: "Status", icon: Bot },
 }
 
-const SECTION_LABELS: Record<string, { variant: "due" | "review" | "upcoming" | "current" | "info" | "safety" | "followup" | "next" | "answer" | "refs"; icon?: typeof CheckCircle2 }> = {
+const SECTION_LABELS: Record<
+  string,
+  {
+    variant:
+      | "due"
+      | "review"
+      | "upcoming"
+      | "current"
+      | "info"
+      | "safety"
+      | "followup"
+      | "next"
+      | "answer"
+      | "refs"
+    icon?: typeof CheckCircle2
+  }
+> = {
   "Direct answer": { variant: "answer" },
   "Due now": { variant: "due", icon: AlertTriangle },
   "Needs clinician review": { variant: "review", icon: ShieldAlert },
@@ -151,8 +169,6 @@ function parseAnswer(content: string): ParsedAnswer {
       current = { heading: trimmed, variant: known.variant, icon: known.icon, lines: [] }
       continue
     }
-    // Recognise an inline "Direct answer: ..." opener as its own section so the
-    // top of the answer stands out visually and is testable.
     const directAnswerMatch = trimmed.match(/^Direct answer:\s*(.*)$/i)
     if (directAnswerMatch && current.heading === null && current.lines.length === 0) {
       current = { heading: "Direct answer", variant: "answer", lines: [directAnswerMatch[1] || ""] }
@@ -168,7 +184,6 @@ function parseAnswer(content: string): ParsedAnswer {
   }
   flush()
 
-  // Pull all hyperlinks for the citation rail
   const linkPattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g
   const citations: Array<{ label: string; url: string }> = []
   const seen = new Set<string>()
@@ -183,7 +198,11 @@ function parseAnswer(content: string): ParsedAnswer {
   return { sections, citations }
 }
 
-function renderInlineLinks(text: string, keyPrefix: string) {
+function renderInlineLinks(
+  text: string,
+  keyPrefix: string,
+  citations: Array<{ label: string; url: string }>
+) {
   const parts: Array<string | { label: string; url: string }> = []
   const pattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)]+)/g
   let lastIndex = 0
@@ -196,30 +215,41 @@ function renderInlineLinks(text: string, keyPrefix: string) {
   if (lastIndex < text.length) parts.push(text.slice(lastIndex))
   return parts.map((part, index) => {
     if (typeof part === "string") return <span key={`${keyPrefix}-${index}`}>{part}</span>
+    const refIndex = citations.findIndex((c) => c.url === part.url)
     return (
       <a
         key={`${keyPrefix}-${index}`}
         href={part.url}
         target="_blank"
         rel="noreferrer"
-        className="text-teal-dark underline decoration-teal/40 underline-offset-2 transition hover:decoration-teal-dark"
+        data-testid="chat-inline-citation"
+        className="inline-flex items-baseline gap-0.5 text-navy underline decoration-navy/40 underline-offset-2 transition hover:decoration-navy"
       >
         {part.label}
+        {refIndex >= 0 ? (
+          <sup className="ml-0.5 text-[10px] font-semibold text-teal-dark">[{refIndex + 1}]</sup>
+        ) : null}
       </a>
     )
   })
 }
 
-function SectionBlock({ section, idx }: { section: ParsedSection; idx: number }) {
+function SectionBlock({
+  section,
+  idx,
+  citations,
+}: {
+  section: ParsedSection
+  idx: number
+  citations: Array<{ label: string; url: string }>
+}) {
   const tone = sectionTone[section.variant] || sectionTone.info
   const Icon = section.icon
 
   if (section.variant === "refs") {
-    // References are rendered as a citation rail below. Skip inline render.
     return null
   }
 
-  // Render bullets / paragraphs
   const blocks = section.lines
     .map((line) => line.trim())
     .reduce<Array<{ kind: "p" | "bullet" | "blank"; text: string }>>((acc, line) => {
@@ -235,14 +265,17 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
       return acc
     }, [])
 
-  // Trim trailing blanks
   while (blocks.length && blocks[blocks.length - 1].kind === "blank") blocks.pop()
 
   if (!section.heading && blocks.length === 0) return null
 
   return (
     <div
-      data-testid={section.heading ? `chat-section-${section.heading.toLowerCase().replace(/[^a-z]+/g, "-")}` : undefined}
+      data-testid={
+        section.heading
+          ? `chat-section-${section.heading.toLowerCase().replace(/[^a-z]+/g, "-")}`
+          : undefined
+      }
       className={cn(
         "rounded-[12px] border px-4 py-3",
         tone,
@@ -264,13 +297,13 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
                 key={`b-${i}`}
                 className="pl-4 before:-ml-4 before:mr-2 before:text-teal before:content-['•']"
               >
-                {renderInlineLinks(block.text, `b-${i}`)}
+                {renderInlineLinks(block.text, `b-${i}`, citations)}
               </p>
             )
           }
           return (
             <p key={`b-${i}`} className="text-secondary">
-              {renderInlineLinks(block.text, `b-${i}`)}
+              {renderInlineLinks(block.text, `b-${i}`, citations)}
             </p>
           )
         })}
@@ -282,21 +315,27 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
 function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
   if (!citations.length) return null
   return (
-    <div data-testid="chat-citations" className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Sources</span>
-      {citations.map((c, i) => (
-        <a
-          key={`${c.url}-${i}`}
-          href={c.url}
-          target="_blank"
-          rel="noreferrer"
-          data-testid="chat-citation"
-          className="chat-citation-pill"
-        >
-          {c.label}
-          <ExternalLink size={10} />
-        </a>
-      ))}
+    <div data-testid="chat-citations" className="mt-3 border-t border-border pt-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Sources</p>
+      <ol className="mt-2 space-y-1.5 text-[13px] leading-6 text-secondary">
+        {citations.map((c, i) => (
+          <li key={`${c.url}-${i}`} className="flex items-start gap-2">
+            <span className="mt-0.5 inline-flex h-4 min-w-[1.1rem] items-center justify-center rounded-md bg-surface-2 px-1 text-[10px] font-semibold text-secondary">
+              {i + 1}
+            </span>
+            <a
+              href={c.url}
+              target="_blank"
+              rel="noreferrer"
+              data-testid="chat-citation"
+              className="inline-flex flex-1 items-center gap-1.5 text-navy underline decoration-navy/30 underline-offset-2 transition hover:decoration-navy"
+            >
+              {c.label}
+              <ExternalLink size={10} className="text-muted" aria-hidden />
+            </a>
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }
@@ -306,42 +345,80 @@ function ChatAnswer({ content }: { content: string }) {
   return (
     <div className="space-y-3">
       {parsed.sections.map((section, i) => (
-        <SectionBlock key={`s-${i}`} section={section} idx={i} />
+        <SectionBlock key={`s-${i}`} section={section} idx={i} citations={parsed.citations} />
       ))}
       <CitationRail citations={parsed.citations} />
     </div>
   )
 }
 
+function welcomeContent(connected: boolean): string {
+  return (
+    "How can I help you today? Ask a clinical question and I'll answer here in chat — with guideline links and a clear next step.\n\n" +
+    (connected ? "Your account is connected, so replies can use your saved profile.\n\n" : "") +
+    'Try: "What cancer screening does a 50-year-old woman need?"'
+  )
+}
+
 export default function ChatPage() {
   const { isConnected, walletAddress, getWalletAuthHeaders } = useWalletIdentity()
 
-  const buildWelcome = useCallback((connected: boolean): ChatMessage => ({
-    id: "welcome",
-    role: "agent",
-    agentId: "coordinator",
-    content:
-      "How can I help you today? Ask a clinical question and I'll answer here in chat — with guideline links and a clear next step.\n\n" +
-      (connected ? "Your account is connected, so replies can use your saved profile.\n\n" : "") +
-      "Try: \"What cancer screening does a 50-year-old woman need?\"",
-    timestamp: new Date(),
-  }), [])
+  const buildWelcome = useCallback(
+    (connected: boolean): ChatMessage => ({
+      id: "welcome",
+      role: "agent",
+      agentId: "coordinator",
+      content: welcomeContent(connected),
+      timestamp: new Date(),
+    }),
+    []
+  )
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [buildWelcome(isConnected)])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [activeAgent, setActiveAgent] = useState<AgentId>("coordinator")
   const [errorBanner, setErrorBanner] = useState<string | null>(null)
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const seededPromptRef = useRef(false)
   const autoSubmittedPromptRef = useRef(false)
 
-  const clearChat = useCallback(() => {
+  const history = useChatHistory(walletAddress)
+
+  const startNewConversation = useCallback(() => {
     setMessages([buildWelcome(isConnected)])
+    setActiveConversationId(null)
     setErrorBanner(null)
+    setInput("")
     inputRef.current?.focus()
+    setDrawerOpen(false)
   }, [buildWelcome, isConnected])
+
+  const selectConversation = useCallback(
+    async (id: string) => {
+      setDrawerOpen(false)
+      setErrorBanner(null)
+      const detail = await history.fetchConversation(id)
+      if (!detail) {
+        setErrorBanner("That conversation could not be loaded.")
+        return
+      }
+      const restored: ChatMessage[] = detail.messages.map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        agentId: m.agentId,
+        timestamp: new Date(m.createdAt),
+      }))
+      setMessages(restored.length ? restored : [buildWelcome(isConnected)])
+      setActiveConversationId(detail.id)
+    },
+    [buildWelcome, history, isConnected]
+  )
 
   const sendQuickPrompt = useCallback((prompt: string, agentId: AgentId) => {
     setInput(prompt)
@@ -376,6 +453,15 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isLoading])
 
+  // Auto-grow composer
+  useEffect(() => {
+    const node = inputRef.current
+    if (!node) return
+    node.style.height = "auto"
+    const max = 220
+    node.style.height = `${Math.min(node.scrollHeight, max)}px`
+  }, [input])
+
   const sendMessage = useCallback(
     async (messageOverride?: string, agentOverride?: AgentId) => {
       const nextInput = (messageOverride ?? input).trim()
@@ -398,6 +484,16 @@ export default function ChatPage() {
       const workflow = executeWorkflow(userMsg.content)
       if (workflow.route.primaryAgent !== currentAgent) {
         setActiveAgent(workflow.route.primaryAgent)
+      }
+
+      // Persist the user message; first user message creates the conversation
+      let conversationId = activeConversationId
+      const persisted = await history.appendMessage("user", userMsg.content, {
+        conversationId: conversationId || undefined,
+      })
+      if (persisted) {
+        conversationId = persisted.conversationId
+        setActiveConversationId(persisted.conversationId)
       }
 
       try {
@@ -426,6 +522,10 @@ export default function ChatPage() {
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, agentMsg])
+        await history.appendMessage("agent", agentMsg.content, {
+          conversationId: conversationId || undefined,
+          agentId: agentMsg.agentId,
+        })
       } catch {
         setInput(savedInput)
         setErrorBanner("Connection error. Your message was restored — try sending again.")
@@ -433,7 +533,7 @@ export default function ChatPage() {
         setIsLoading(false)
       }
     },
-    [input, isLoading, activeAgent, walletAddress, getWalletAuthHeaders]
+    [input, isLoading, activeAgent, activeConversationId, history, walletAddress, getWalletAuthHeaders]
   )
 
   useEffect(() => {
@@ -450,201 +550,280 @@ export default function ChatPage() {
     }, 80)
   }, [sendMessage])
 
+  // Global keyboard shortcuts
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const handler = (event: KeyboardEvent) => {
+      const isMod = event.metaKey || event.ctrlKey
+      if (isMod && event.shiftKey && (event.key === "O" || event.key === "o")) {
+        event.preventDefault()
+        startNewConversation()
+        return
+      }
+      if (isMod && (event.key === "k" || event.key === "K")) {
+        event.preventDefault()
+        const search = document.querySelector<HTMLInputElement>('[data-testid="chat-history-search"]')
+        if (search) {
+          setDrawerOpen(true)
+          if (sidebarCollapsed) setSidebarCollapsed(false)
+          window.setTimeout(() => search.focus(), 30)
+        }
+        return
+      }
+      if (event.key === "Escape" && drawerOpen) {
+        setDrawerOpen(false)
+      }
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [drawerOpen, sidebarCollapsed, startNewConversation])
+
   const showQuickPrompts = messages.length <= 1
 
+  const handleExportConversation = useCallback(
+    (id: string) => {
+      const params = new URLSearchParams()
+      if (walletAddress) params.set("walletAddress", walletAddress)
+      const url = `/api/chat/conversations/${encodeURIComponent(id)}/export${params.toString() ? `?${params}` : ""}`
+      if (typeof window !== "undefined") window.location.href = url
+    },
+    [walletAddress]
+  )
+
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-3xl animate-fade-in flex-col px-1">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-border pb-3 pt-1">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Ask OpenRx</p>
-          <h1 className="text-[18px] font-semibold tracking-tight text-primary">
-            Clinical answers, in chat
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <span
-            data-testid="chat-status-indicator"
-            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-success"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-success" />
-            online
-          </span>
-          <span
-            data-testid="chat-personalization-badge"
-            className={cn(
-              "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex",
-              isConnected
-                ? "border-emerald-200 bg-emerald-50 text-success"
-                : "border-border bg-white text-muted"
-            )}
-          >
-            <span
-              className={cn("h-1.5 w-1.5 rounded-full", isConnected ? "bg-success" : "bg-subtle")}
-            />
-            {isConnected ? "Personalized" : "General"}
-          </span>
-          <button
-            type="button"
-            onClick={clearChat}
-            className="control-button-secondary px-3 py-1.5 text-xs"
-            disabled={isLoading || messages.length <= 1}
-            data-testid="chat-clear"
-            aria-label="Clear"
-          >
-            <Trash2 size={12} />
-            Clear
-          </button>
-        </div>
-      </header>
-
-      {/* Messages */}
-      <div
-        className="flex-1 space-y-6 overflow-y-auto py-6"
-        role="log"
-        aria-live="polite"
-        aria-relevant="additions"
-        aria-label="Chat conversation"
-      >
-        {messages.map((msg) => {
-          if (msg.role === "system") {
-            return (
-              <div key={msg.id} data-testid="chat-message-system" className="chat-bubble-system mx-auto max-w-2xl">
-                {msg.content}
-              </div>
-            )
-          }
-          if (msg.role === "user") {
-            return (
-              <div key={msg.id} className="flex justify-end">
-                <div
-                  data-testid="chat-message-user"
-                  className="chat-bubble-user max-w-[85%] whitespace-pre-wrap"
-                >
-                  {msg.content}
-                </div>
-              </div>
-            )
-          }
-          const meta = msg.agentId ? agentMeta[msg.agentId] : null
-          const Icon = meta?.icon || Sparkles
-          return (
-            <article key={msg.id} data-testid="chat-message-agent" className="space-y-3">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white text-teal-dark">
-                  <Icon size={12} />
-                </span>
-                {meta?.label || "OpenRx"}
-              </div>
-              <ChatAnswer content={msg.content} />
-              {msg.actionPlan && msg.actionPlan.length > 0 ? (
-                <ChatActionPlan items={msg.actionPlan} />
-              ) : null}
-              {msg.action ? (
-                <button
-                  type="button"
-                  onClick={() => openCareHandoff(msg.action!)}
-                  data-testid="chat-action-button"
-                  className="control-button-accent px-3.5 py-2 text-xs"
-                >
-                  {msg.action.label}
-                  <ArrowRight size={12} />
-                </button>
-              ) : null}
-            </article>
-          )
-        })}
-
-        {isLoading ? (
-          <div className="flex items-center gap-3 text-muted" data-testid="chat-loading">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white">
-              <Sparkles size={12} className="text-teal-dark" />
-            </span>
-            <span className="flex items-center gap-1 text-[14px]">
-              Composing answer
-              <span className="ml-1 inline-flex items-center gap-1">
-                <span className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: "0ms" }} />
-                <span className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: "120ms" }} />
-                <span className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: "240ms" }} />
-              </span>
-            </span>
-          </div>
-        ) : null}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Error banner */}
-      {errorBanner ? (
-        <div
-          role="alert"
-          data-testid="chat-error"
-          className="mb-3 flex items-center gap-2 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-danger"
-        >
-          <AlertTriangle size={14} />
-          {errorBanner}
-        </div>
-      ) : null}
-
-      {/* Quick prompts (only when chat is empty) */}
-      {showQuickPrompts ? (
-        <div data-testid="chat-quick-prompts" className="mb-3 flex flex-wrap gap-2">
-          {QUICK_PROMPTS.map((qp) => (
-            <button
-              key={qp.label}
-              type="button"
-              onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
-              className="rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-secondary transition hover:border-border-strong hover:bg-surface-2 hover:text-primary"
-            >
-              {qp.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {/* Composer */}
-      <form
-        className="sticky bottom-2 mb-2 rounded-[14px] border border-border-strong bg-white p-2 shadow-card focus-within:border-teal/60 focus-within:shadow-focus"
-        onSubmit={(event) => {
-          event.preventDefault()
-          void sendMessage()
-        }}
-      >
-        <label htmlFor="chat-input" className="sr-only">
-          Message OpenRx help
-        </label>
-        <textarea
-          ref={inputRef}
-          id="chat-input"
-          data-testid="chat-input"
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault()
-              void sendMessage()
-            }
+    <div className="-mx-4 -mt-4 flex min-h-[calc(100vh-6rem)] flex-col rounded-none border border-border bg-white shadow-card sm:-mx-6 sm:rounded-[18px] lg:-mx-8 lg:-mt-1">
+      <div className="flex flex-1 min-h-0">
+        <ChatHistorySidebar
+          conversations={history.conversations}
+          activeConversationId={activeConversationId}
+          isLoading={history.isLoading}
+          collapsed={sidebarCollapsed}
+          mobileOpen={drawerOpen}
+          onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
+          onCloseMobile={() => setDrawerOpen(false)}
+          onNewChat={startNewConversation}
+          onSelectConversation={(id) => {
+            void selectConversation(id)
           }}
-          placeholder="Ask a clinical question — e.g., what screening is due for a 55-year-old?"
-          disabled={isLoading}
-          rows={2}
-          className="block max-h-[160px] min-h-[56px] w-full resize-none border-0 bg-transparent px-2 py-2 text-[15px] leading-6 text-primary outline-none placeholder:text-subtle disabled:opacity-60"
+          onRenameConversation={async (id, title) => {
+            await history.renameConversation(id, title)
+          }}
+          onTogglePinned={async (id, pinned) => {
+            await history.togglePinned(id, pinned)
+          }}
+          onDeleteConversation={async (id) => {
+            await history.deleteConversation(id)
+            if (id === activeConversationId) startNewConversation()
+          }}
+          onExportConversation={handleExportConversation}
         />
-        <div className="flex items-center justify-between gap-2 px-1 pb-0.5 pt-1">
-          <p className="text-[11px] text-muted">
-            Decision support — not a substitute for clinician judgment.
-          </p>
-          <button
-            type="submit"
-            data-testid="chat-send-button"
-            disabled={isLoading || !input.trim()}
-            aria-label="Send"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-navy text-white transition hover:bg-navy-hover disabled:cursor-not-allowed disabled:opacity-40"
+
+        <section className="flex min-w-0 flex-1 flex-col">
+          {/* Chat header */}
+          <header className="flex items-center justify-between border-b border-border bg-white/80 px-4 py-3 backdrop-blur sm:px-6">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-border text-muted transition hover:bg-surface-2 hover:text-primary md:hidden"
+                aria-label="Open chat history"
+                data-testid="chat-history-drawer-toggle"
+              >
+                <Menu size={16} />
+              </button>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                  Ask OpenRx
+                </p>
+                <h1 className="truncate text-[18px] font-semibold tracking-tight text-primary">
+                  Clinical answers, in chat
+                </h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                data-testid="chat-personalization-badge"
+                className={cn(
+                  "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex",
+                  isConnected
+                    ? "border-emerald-200 bg-emerald-50 text-success"
+                    : "border-border bg-white text-muted"
+                )}
+              >
+                <span
+                  className={cn("h-1.5 w-1.5 rounded-full", isConnected ? "bg-success" : "bg-subtle")}
+                />
+                {isConnected ? "Personalized" : "General"}
+              </span>
+            </div>
+          </header>
+
+          {/* Messages */}
+          <div
+            className="mx-auto w-full max-w-3xl flex-1 space-y-6 overflow-y-auto px-4 py-6 sm:px-6"
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions"
+            aria-label="Chat conversation"
           >
-            {isLoading ? <Loader2 size={14} className="animate-spin" /> : <ArrowUp size={14} />}
-          </button>
-        </div>
-      </form>
+            {messages.map((msg) => {
+              if (msg.role === "system") {
+                return (
+                  <div
+                    key={msg.id}
+                    data-testid="chat-message-system"
+                    className="chat-bubble-system mx-auto max-w-2xl"
+                  >
+                    {msg.content}
+                  </div>
+                )
+              }
+              if (msg.role === "user") {
+                return (
+                  <div key={msg.id} className="flex justify-end">
+                    <div
+                      data-testid="chat-message-user"
+                      className="chat-bubble-user max-w-[85%] whitespace-pre-wrap"
+                    >
+                      {msg.content}
+                    </div>
+                  </div>
+                )
+              }
+              const meta = msg.agentId ? agentMeta[msg.agentId] : null
+              const Icon = meta?.icon || Sparkles
+              return (
+                <article key={msg.id} data-testid="chat-message-agent" className="space-y-3">
+                  <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white text-teal-dark">
+                      <Icon size={12} />
+                    </span>
+                    {meta?.label || "OpenRx"}
+                  </div>
+                  <ChatAnswer content={msg.content} />
+                  {msg.actionPlan && msg.actionPlan.length > 0 ? (
+                    <ChatActionPlan items={msg.actionPlan} />
+                  ) : null}
+                  {msg.action ? (
+                    <button
+                      type="button"
+                      onClick={() => openCareHandoff(msg.action!)}
+                      data-testid="chat-action-button"
+                      className="control-button-accent px-3.5 py-2 text-xs"
+                    >
+                      {msg.action.label}
+                      <ArrowRight size={12} />
+                    </button>
+                  ) : null}
+                </article>
+              )
+            })}
+
+            {isLoading ? (
+              <div
+                data-testid="chat-loading"
+                className="space-y-3"
+                role="status"
+                aria-label="Composing answer"
+              >
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white text-teal-dark">
+                    <Sparkles size={12} />
+                  </span>
+                  OpenRx
+                </div>
+                <div className="space-y-2 rounded-[12px] border border-border-strong bg-white px-4 py-3">
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-surface-2" />
+                  <div className="h-3 w-11/12 animate-pulse rounded bg-surface-2" style={{ animationDelay: "120ms" }} />
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-surface-2" style={{ animationDelay: "240ms" }} />
+                </div>
+                <span className="inline-flex items-center gap-1 text-[12px] text-muted">
+                  Composing answer
+                  <span className="ml-1 inline-flex items-center gap-1">
+                    <span className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: "0ms" }} />
+                    <span className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: "120ms" }} />
+                    <span className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: "240ms" }} />
+                  </span>
+                </span>
+              </div>
+            ) : null}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Composer */}
+          <div className="mx-auto w-full max-w-3xl px-4 pb-4 sm:px-6">
+            {errorBanner ? (
+              <div
+                role="alert"
+                data-testid="chat-error"
+                className="mb-3 flex items-center gap-2 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-danger"
+              >
+                <AlertTriangle size={14} />
+                {errorBanner}
+              </div>
+            ) : null}
+
+            {showQuickPrompts ? (
+              <div data-testid="chat-quick-prompts" className="mb-3 flex flex-wrap gap-2">
+                {QUICK_PROMPTS.map((qp) => (
+                  <button
+                    key={qp.label}
+                    type="button"
+                    onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
+                    className="rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-secondary transition hover:border-border-strong hover:bg-surface-2 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal"
+                  >
+                    {qp.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <form
+              className="rounded-[14px] border border-border-strong bg-white p-2 shadow-card focus-within:border-teal/60 focus-within:shadow-focus"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void sendMessage()
+              }}
+            >
+              <label htmlFor="chat-input" className="sr-only">
+                Message OpenRx help
+              </label>
+              <textarea
+                ref={inputRef}
+                id="chat-input"
+                data-testid="chat-input"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault()
+                    void sendMessage()
+                  }
+                }}
+                placeholder="Ask a clinical question — e.g., what screening is due for a 55-year-old?"
+                disabled={isLoading}
+                rows={2}
+                className="block max-h-[220px] min-h-[56px] w-full resize-none border-0 bg-transparent px-2 py-2 text-[15px] leading-6 text-primary outline-none placeholder:text-subtle disabled:opacity-60"
+              />
+              <div className="flex items-center justify-between gap-2 px-1 pb-0.5 pt-1">
+                <p className="text-[11px] text-muted">
+                  Decision support — not a substitute for clinician judgment.
+                </p>
+                <button
+                  type="submit"
+                  data-testid="chat-send-button"
+                  disabled={isLoading || !input.trim()}
+                  aria-label={isLoading ? "Sending" : "Send"}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-navy text-white transition hover:bg-navy-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isLoading ? <Loader2 size={14} className="animate-spin" /> : <ArrowUp size={14} />}
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
     </div>
   )
 }

@@ -235,21 +235,28 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
     pushUnique({
       id: "check-screening-eligibility",
       label: "Review screening eligibility",
-      description: "Run the OpenRx screening engine against this patient context.",
+      description: "Run the OpenRx screening engine against this context.",
       href: `/screening?handoff=chat&autorun=1&prompt=${encodeURIComponent(trimmed)}`,
       kind: "screening",
     })
     pushUnique({
-      id: "schedule-screening",
-      label: "Find a screening center",
-      description: "Search nearby imaging, lab, or endoscopy partners.",
+      id: "find-care",
+      label: "Find care for this study",
+      description: "Search nearby endoscopy, mammography, LDCT, or lab partners.",
       href: `/providers?handoff=chat&autorun=1&q=${encodeURIComponent(trimmed)}`,
       kind: "lab",
     })
     pushUnique({
+      id: "request-order",
+      label: "Request the order or referral",
+      description: "Stage a clinician request for the screening order.",
+      href: `/scheduling?handoff=chat&reason=${encodeURIComponent("screening-order:" + trimmed.slice(0, 80))}`,
+      kind: "referral",
+    })
+    pushUnique({
       id: "schedule-followup",
       label: "Schedule clinician follow-up",
-      description: "Book a visit to confirm and order the study.",
+      description: "Book a visit to confirm risk and review results.",
       href: "/scheduling?handoff=chat&reason=screening-followup",
       kind: "schedule",
     })

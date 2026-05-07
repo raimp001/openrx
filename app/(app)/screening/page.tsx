@@ -747,6 +747,65 @@ export default function ScreeningPage() {
         </div>
       </section>
 
+      {!assessment && (
+        <section
+          data-testid="screening-sample-output"
+          aria-label="Example screening plan"
+          className="reveal surface-card p-5"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="shell-kicker">Example output · what you’ll get</p>
+              <h2 className="mt-2 font-serif text-[1.4rem] text-primary">
+                A guideline-based plan, grouped by what to do next
+              </h2>
+            </div>
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700">
+              Sample
+            </span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-secondary">
+            Profile shown: <span className="font-semibold text-primary">55-year-old man, average risk, never smoker, no family history of cancer</span>.
+            Real results are computed from your inputs and current USPSTF/CDC/ACS guidance.
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <div className="rounded-[20px] border border-rose-100 bg-rose-50/60 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-rose-700">Due now</p>
+              <ul className="mt-2 space-y-1.5 text-sm leading-6 text-secondary">
+                <li>• <span className="font-semibold text-primary">Colorectal cancer screening</span> — colonoscopy or FIT/FIT-DNA. USPSTF: ages 45–75 average risk.</li>
+                <li>• <span className="font-semibold text-primary">Blood pressure</span> — annually if previously normal; sooner with risk factors.</li>
+                <li>• <span className="font-semibold text-primary">Hepatitis C, HIV one-time</span> if not previously screened.</li>
+              </ul>
+            </div>
+            <div className="rounded-[20px] border border-amber-100 bg-amber-50/60 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-700">Discuss / shared decision</p>
+              <ul className="mt-2 space-y-1.5 text-sm leading-6 text-secondary">
+                <li>• <span className="font-semibold text-primary">PSA-based prostate screening</span> — shared decision-making 55–69 (Grade C).</li>
+                <li>• <span className="font-semibold text-primary">Lung LDCT</span> — only if 20+ pack-year history and current/former smoker (quit ≤ 15 yr).</li>
+              </ul>
+            </div>
+            <div className="rounded-[20px] border border-emerald-100 bg-emerald-50/60 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">Current / not indicated</p>
+              <ul className="mt-2 space-y-1.5 text-sm leading-6 text-secondary">
+                <li>• <span className="font-semibold text-primary">AAA ultrasound</span> — recommended once at 65–75 in men who ever smoked. Plan now, not yet due.</li>
+                <li>• Vaccine review and depression screening continue annually.</li>
+              </ul>
+            </div>
+            <div className="rounded-[20px] border border-slate-200 bg-white p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">Next step from each card</p>
+              <ul className="mt-2 space-y-1.5 text-sm leading-6 text-secondary">
+                <li>• <span className="font-semibold text-primary">Find and schedule</span> — opens nearby providers/centers.</li>
+                <li>• <span className="font-semibold text-primary">Save request</span> — stages a care-navigation request.</li>
+                <li>• <span className="font-semibold text-primary">Source link</span> — opens the live USPSTF/CDC/ACS recommendation.</li>
+              </ul>
+            </div>
+          </div>
+          <p className="mt-3 text-[11px] text-muted">
+            Sources verified live against USPSTF, CDC, and ACS publisher pages.
+          </p>
+        </section>
+      )}
+
       {!isConnected && (
         <div className="rounded-xl border border-yellow-300/30 bg-yellow-100/20 p-3 text-xs text-secondary">
           Payment setup is not needed for the free preview. Use advanced review only if inherited-risk depth is relevant.

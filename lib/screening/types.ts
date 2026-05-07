@@ -42,7 +42,15 @@ export type ScreeningRiskCategory =
   | "symptomatic"
   | "unknown"
 
-export type ScreeningSourceSystem = "USPSTF" | "NCCN" | "ACG" | "USMSTF" | "ACS" | "LOCAL" | "PENDING"
+export type ScreeningSourceSystem =
+  | "USPSTF"
+  | "NCCN"
+  | "ACG"
+  | "USMSTF"
+  | "ACS"
+  | "LOCAL"
+  | "PENDING"
+  | "Clinician / genetics review"
 
 export type GuidelineSource = {
   id: string

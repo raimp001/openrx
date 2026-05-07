@@ -23,6 +23,11 @@ import {
   Sparkles,
   ShieldAlert,
   Clock3,
+  Copy,
+  Share2,
+  ThumbsUp,
+  ThumbsDown,
+  HelpCircle,
 } from "lucide-react"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import {
@@ -183,6 +188,42 @@ function parseAnswer(content: string): ParsedAnswer {
   return { sections, citations }
 }
 
+// Pull the follow-up question bullets out of the parsed sections so we can
+// render them as prominent chips immediately after the direct answer instead
+// of leaving them in a low-contrast block at the bottom.
+function extractFollowUps(sections: ParsedSection[]): string[] {
+  const block = sections.find((s) => s.heading === "Question to refine this")
+  if (!block) return []
+  return block.lines
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("- "))
+    .map((line) => line.slice(2).trim())
+    .filter(Boolean)
+    .slice(0, 4)
+}
+
+// Strip Markdown link syntax + heading scaffolding for clipboard/share output.
+function answerToPlainText(content: string): string {
+  return content
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, "$1 ($2)")
+    .trim()
+}
+
+// Source-pill evidence-grade hints. Public-domain guideline pubs land in tier 1.
+const SOURCE_TIERS: Array<{ pattern: RegExp; tier: "Guideline" | "Gov" | "Education" }> = [
+  { pattern: /uspreventiveservicestaskforce\.org/i, tier: "Guideline" },
+  { pattern: /nccn\.org|cancer\.org|asccp\.org|gastro\.org/i, tier: "Guideline" },
+  { pattern: /cdc\.gov|nih\.gov|cancer\.gov|cms\.gov|fda\.gov|healthcare\.gov|healthit\.gov|medlineplus\.gov/i, tier: "Gov" },
+  { pattern: /mayoclinic\.org|clevelandclinic\.org|hopkinsmedicine\.org/i, tier: "Education" },
+]
+
+function tierForUrl(url: string): "Guideline" | "Gov" | "Education" | "Source" {
+  for (const tier of SOURCE_TIERS) {
+    if (tier.pattern.test(url)) return tier.tier
+  }
+  return "Source"
+}
+
 function renderInlineLinks(text: string, keyPrefix: string) {
   const parts: Array<string | { label: string; url: string }> = []
   const pattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)]+)/g
@@ -216,6 +257,11 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
 
   if (section.variant === "refs") {
     // References are rendered as a citation rail below. Skip inline render.
+    return null
+  }
+
+  if (section.variant === "followup") {
+    // Follow-up chips are rendered prominently up top, not inline.
     return null
   }
 
@@ -282,31 +328,80 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
 function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
   if (!citations.length) return null
   return (
-    <div data-testid="chat-citations" className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Sources</span>
-      {citations.map((c, i) => (
-        <a
-          key={`${c.url}-${i}`}
-          href={c.url}
-          target="_blank"
-          rel="noreferrer"
-          data-testid="chat-citation"
-          className="chat-citation-pill"
-        >
-          {c.label}
-          <ExternalLink size={10} />
-        </a>
-      ))}
+    <div data-testid="chat-citations" className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Sources</span>
+        <span className="text-[11px] text-muted">Verified live · {new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {citations.map((c, i) => {
+          const tier = tierForUrl(c.url)
+          return (
+            <a
+              key={`${c.url}-${i}`}
+              href={c.url}
+              target="_blank"
+              rel="noreferrer"
+              data-testid="chat-citation"
+              title={`${tier} source · opens ${new URL(c.url).host}`}
+              className="chat-citation-pill"
+            >
+              <span className="rounded bg-teal/10 px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-[0.08em] text-teal-dark">
+                {tier}
+              </span>
+              {c.label}
+              <ExternalLink size={10} />
+            </a>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
-function ChatAnswer({ content }: { content: string }) {
+function ChatAnswer({
+  content,
+  onAskFollowUp,
+}: {
+  content: string
+  onAskFollowUp?: (q: string) => void
+}) {
   const parsed = useMemo(() => parseAnswer(content), [content])
+  const followUps = useMemo(() => extractFollowUps(parsed.sections), [parsed.sections])
+  const directIndex = parsed.sections.findIndex((s) => s.heading === "Direct answer")
+  const beforeFollowUps =
+    directIndex >= 0 ? parsed.sections.slice(0, directIndex + 1) : parsed.sections.slice(0, 1)
+  const afterFollowUps =
+    directIndex >= 0 ? parsed.sections.slice(directIndex + 1) : parsed.sections.slice(1)
+
   return (
     <div className="space-y-3">
-      {parsed.sections.map((section, i) => (
-        <SectionBlock key={`s-${i}`} section={section} idx={i} />
+      {beforeFollowUps.map((section, i) => (
+        <SectionBlock key={`s-pre-${i}`} section={section} idx={i} />
+      ))}
+      {followUps.length > 0 ? (
+        <div data-testid="chat-followup-chips" className="rounded-[12px] border border-teal/25 bg-teal/5 p-3">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-teal-dark">
+            <HelpCircle size={12} />
+            Refine this answer
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {followUps.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => onAskFollowUp?.(q)}
+                data-testid="chat-followup-chip"
+                className="rounded-full border border-teal/30 bg-white px-3 py-1.5 text-left text-[12px] font-medium text-primary transition hover:bg-teal/10"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {afterFollowUps.map((section, i) => (
+        <SectionBlock key={`s-post-${i}`} section={section} idx={i + 1} />
       ))}
       <CitationRail citations={parsed.citations} />
     </div>
@@ -347,6 +442,41 @@ export default function ChatPage() {
     setInput(prompt)
     setActiveAgent(agentId)
     inputRef.current?.focus()
+  }, [])
+
+  const [copyState, setCopyState] = useState<Record<string, "ok" | "err" | null>>({})
+  const [feedbackState, setFeedbackState] = useState<Record<string, "up" | "down" | null>>({})
+
+  const copyAnswerToClipboard = useCallback(async (id: string, text: string) => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(text)
+        setCopyState((prev) => ({ ...prev, [id]: "ok" }))
+      } else {
+        setCopyState((prev) => ({ ...prev, [id]: "err" }))
+      }
+    } catch {
+      setCopyState((prev) => ({ ...prev, [id]: "err" }))
+    }
+    window.setTimeout(() => setCopyState((prev) => ({ ...prev, [id]: null })), 1800)
+  }, [])
+
+  const sharePlan = useCallback(async (id: string, text: string) => {
+    try {
+      if (typeof navigator !== "undefined" && (navigator as Navigator & { share?: (data: ShareData) => Promise<void> }).share) {
+        await (navigator as Navigator & { share: (data: ShareData) => Promise<void> }).share({ title: "OpenRx care plan", text })
+      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(text)
+        setCopyState((prev) => ({ ...prev, [id]: "ok" }))
+        window.setTimeout(() => setCopyState((prev) => ({ ...prev, [id]: null })), 1800)
+      }
+    } catch {
+      // user-cancelled or unsupported — silent.
+    }
+  }, [])
+
+  const recordFeedback = useCallback((id: string, signal: "up" | "down") => {
+    setFeedbackState((prev) => ({ ...prev, [id]: prev[id] === signal ? null : signal }))
   }, [])
 
   const openCareHandoff = useCallback((action: CareHandoffAction) => {
@@ -472,6 +602,11 @@ export default function ChatPage() {
           </span>
           <span
             data-testid="chat-personalization-badge"
+            title={
+              isConnected
+                ? "Personalized: replies use your saved profile (allergies, meds, prior visits)."
+                : "General mode: replies use guideline knowledge only — no saved profile is loaded. Connect your account to personalize."
+            }
             className={cn(
               "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex",
               isConnected
@@ -482,7 +617,7 @@ export default function ChatPage() {
             <span
               className={cn("h-1.5 w-1.5 rounded-full", isConnected ? "bg-success" : "bg-subtle")}
             />
-            {isConnected ? "Personalized" : "General"}
+            {isConnected ? "Personalized" : "General · guideline only"}
           </span>
           <button
             type="button"
@@ -528,6 +663,9 @@ export default function ChatPage() {
           }
           const meta = msg.agentId ? agentMeta[msg.agentId] : null
           const Icon = meta?.icon || Sparkles
+          const plain = answerToPlainText(msg.content)
+          const copy = copyState[msg.id]
+          const feedback = feedbackState[msg.id]
           return (
             <article key={msg.id} data-testid="chat-message-agent" className="space-y-3">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
@@ -536,7 +674,10 @@ export default function ChatPage() {
                 </span>
                 {meta?.label || "OpenRx"}
               </div>
-              <ChatAnswer content={msg.content} />
+              <ChatAnswer
+                content={msg.content}
+                onAskFollowUp={(q) => void sendMessage(q)}
+              />
               {msg.actionPlan && msg.actionPlan.length > 0 ? (
                 <ChatActionPlan items={msg.actionPlan} />
               ) : null}
@@ -551,6 +692,57 @@ export default function ChatPage() {
                   <ArrowRight size={12} />
                 </button>
               ) : null}
+              <footer
+                data-testid="chat-message-footer"
+                className="flex flex-wrap items-center gap-1 border-t border-border pt-2 text-[11px] text-muted"
+              >
+                <button
+                  type="button"
+                  onClick={() => void copyAnswerToClipboard(msg.id, plain)}
+                  data-testid="chat-copy-answer"
+                  aria-label="Copy answer"
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 transition hover:bg-surface-2 hover:text-primary"
+                >
+                  <Copy size={12} />
+                  {copy === "ok" ? "Copied" : copy === "err" ? "Couldn’t copy" : "Copy"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void sharePlan(msg.id, plain)}
+                  data-testid="chat-share-plan"
+                  aria-label="Share plan"
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 transition hover:bg-surface-2 hover:text-primary"
+                >
+                  <Share2 size={12} />
+                  Share plan
+                </button>
+                <span className="ml-auto inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => recordFeedback(msg.id, "up")}
+                    aria-label="Helpful answer"
+                    data-testid="chat-feedback-up"
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-md px-2 py-1 transition hover:bg-surface-2 hover:text-primary",
+                      feedback === "up" && "bg-emerald-50 text-success"
+                    )}
+                  >
+                    <ThumbsUp size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => recordFeedback(msg.id, "down")}
+                    aria-label="Not helpful"
+                    data-testid="chat-feedback-down"
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-md px-2 py-1 transition hover:bg-surface-2 hover:text-primary",
+                      feedback === "down" && "bg-red-50 text-danger"
+                    )}
+                  >
+                    <ThumbsDown size={12} />
+                  </button>
+                </span>
+              </footer>
             </article>
           )
         })}

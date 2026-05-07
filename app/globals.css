@@ -62,6 +62,23 @@ a {
   border-radius: 8px;
 }
 
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 2px;
+  box-shadow: none;
+  border-radius: 8px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18);
+}
+
 .skip-link {
   position: absolute;
   left: -9999px;
@@ -202,7 +219,8 @@ a {
 
   .eyebrow-pill {
     @apply inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
-    border-color: var(--paper-border);
+    border-color: var(--paper-border-strong);
+    box-shadow: 0 1px 0 rgba(11, 27, 51, 0.04);
   }
 
   .metric-chip,

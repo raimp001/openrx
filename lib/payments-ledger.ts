@@ -1059,12 +1059,18 @@ function warnLedgerFallback(error: unknown): void {
 
 async function getLedgerSnapshotFromDatabase(params?: { walletAddress?: string }): Promise<LedgerSnapshot> {
   const walletAddress = params?.walletAddress ? normalizeAddress(params.walletAddress) : undefined
-  const [paymentRows, receiptRows, refundRows, attestationRows, entryRows] = await Promise.all([
-    prisma.ledgerPaymentRecord.findMany({ orderBy: { createdAt: "desc" } }),
-    prisma.ledgerReceiptRecord.findMany({ orderBy: { issuedAt: "desc" } }),
-    prisma.ledgerRefundRecord.findMany({ orderBy: { requestedAt: "desc" } }),
-    prisma.ledgerAttestationRecord.findMany({ orderBy: { createdAt: "desc" } }),
-    prisma.ledgerEntryRecord.findMany({ orderBy: { createdAt: "desc" } }),
+  const paymentWhere = walletAddress ? { walletAddress } : {}
+  const [paymentRows, refundRows] = await Promise.all([
+    prisma.ledgerPaymentRecord.findMany({ where: paymentWhere, orderBy: { createdAt: "desc" }, take: 500 }),
+    prisma.ledgerRefundRecord.findMany({ where: walletAddress ? { walletAddress } : {}, orderBy: { requestedAt: "desc" }, take: 500 }),
+  ])
+  const paymentIds = paymentRows.map((row) => row.id)
+  const refundIds = refundRows.map((row) => row.id)
+  const subjectIds = [...paymentIds, ...refundIds]
+  const [receiptRows, attestationRows, entryRows] = await Promise.all([
+    prisma.ledgerReceiptRecord.findMany({ where: paymentIds.length ? { paymentId: { in: paymentIds } } : {}, orderBy: { issuedAt: "desc" }, take: 500 }),
+    prisma.ledgerAttestationRecord.findMany({ where: subjectIds.length ? { subjectId: { in: subjectIds } } : {}, orderBy: { createdAt: "desc" }, take: 500 }),
+    prisma.ledgerEntryRecord.findMany({ where: paymentIds.length ? { paymentId: { in: paymentIds } } : {}, orderBy: { createdAt: "desc" }, take: 1000 }),
   ])
 
   const store: LedgerStore = {

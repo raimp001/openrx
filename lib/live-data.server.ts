@@ -144,6 +144,7 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
                 doctor: { include: { user: true } },
               },
               orderBy: { scheduledAt: "asc" },
+              take: 50,
             },
             prescriptions: {
               include: {
@@ -151,15 +152,19 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
                 medications: true,
               },
               orderBy: { issuedAt: "desc" },
+              take: 50,
             },
             labResults: {
               orderBy: { testDate: "desc" },
+              take: 30,
             },
             vitalSigns: {
               orderBy: { recordedAt: "desc" },
+              take: 30,
             },
             medicalRecords: {
               orderBy: { recordDate: "desc" },
+              take: 50,
             },
           },
         },
@@ -167,16 +172,19 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
           include: {
             receiver: { include: { doctorProfile: true } },
           },
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: "desc" },
+          take: 50,
         },
         receivedMessages: {
           include: {
             sender: { include: { doctorProfile: true } },
           },
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: "desc" },
+          take: 50,
         },
         payments: {
           orderBy: { createdAt: "desc" },
+          take: 30,
         },
       },
     })
@@ -186,9 +194,16 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
 
   const patient = user.patientProfile
 
+  const patientDoctorIds = new Set([
+    ...patient.appointments.map((a) => a.doctorId),
+    ...patient.prescriptions.map((p) => p.doctorId),
+  ].filter(Boolean))
+
   const doctors = await prisma.doctorProfile.findMany({
+    where: patientDoctorIds.size > 0 ? { id: { in: Array.from(patientDoctorIds) } } : {},
     include: { user: true },
     orderBy: [{ isVerified: "desc" }, { updatedAt: "desc" }],
+    take: 50,
   })
 
   const physicians = doctors.map((doctor) => ({

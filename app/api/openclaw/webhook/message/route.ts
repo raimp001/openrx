@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import crypto from "crypto"
 import { openclawClient } from "@/lib/openclaw/client"
 
 // Webhook endpoint for incoming patient messages from any channel
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
       )
     }
     const signature = req.headers.get("x-openclaw-signature")
-    if (!signature || signature !== webhookSecret) {
+    if (!signature || signature.length !== webhookSecret.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(webhookSecret))) {
       return NextResponse.json(
         { error: "Invalid webhook signature." },
         { status: 401 }

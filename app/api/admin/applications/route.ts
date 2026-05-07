@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import crypto from "crypto"
 import {
   listNetworkApplications,
   reviewNetworkApplication,
@@ -19,7 +20,8 @@ function isAuthorizedAdminRequest(request: NextRequest): boolean {
   const required = process.env.OPENRX_ADMIN_API_KEY
   if (!required) return false
   const received = request.headers.get("x-admin-api-key") || ""
-  return received === required
+  if (received.length !== required.length) return false
+  return crypto.timingSafeEqual(Buffer.from(received), Buffer.from(required))
 }
 
 function parseStateList(value?: string | string[]): string[] {

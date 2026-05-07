@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Bot, Heart, LayoutDashboard, Menu, MessageSquare, Stethoscope, UserCircle, X } from "lucide-react"
+import { Bot, Heart, LayoutDashboard, Menu, MessageSquare, PhoneCall, Stethoscope, UserCircle, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { BrandMark, BrandWordmark } from "@/components/brand-logo"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/dashboard", label: "My care", icon: LayoutDashboard, primary: true },
   { href: "/screening", label: "Screenings", icon: Heart },
   { href: "/providers", label: "Find care", icon: Stethoscope },
+  { href: "/outreach", label: "Outreach", icon: PhoneCall },
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/onboarding", label: "Setup", icon: UserCircle },
 ]

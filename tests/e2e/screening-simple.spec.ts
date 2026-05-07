@@ -439,3 +439,89 @@ test("chat prompt autorun answers after landing submit without a second send", a
   await expect(page.getByText("Review the bill amount")).toBeVisible()
   expect(postedMessage).toBe("Explain this bill")
 })
+
+test("chat answers cancer screening questions inline with guideline links", async ({ page }) => {
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+
+  await page.goto("/chat")
+  await page.getByTestId("chat-input").fill("What cancer screening does a 50-year-old woman need?")
+  await page.getByTestId("chat-send-button").click()
+
+  await expect(page).toHaveURL(/\/chat/)
+  await expect(page).not.toHaveURL(/\/screening/)
+  await expect(page.getByText("Direct answer")).toBeVisible()
+  await expect(page.getByText("Breast cancer screening").first()).toBeVisible()
+  await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
+  await expect(page.getByText("Cervical cancer screening").first()).toBeVisible()
+  await expect(page.getByRole("link", { name: /USPSTF.*Breast cancer screening/i }).first()).toBeVisible()
+  await expect(page.getByRole("button", { name: "Open screening plan" })).toHaveCount(0)
+})
+
+test("landing screening suggestion opens chat and does not redirect to screening page", async ({ page }) => {
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+
+  await page.goto("/")
+  await page.getByRole("button", { name: "What screening is due?" }).click()
+
+  await expect(page).toHaveURL(/\/chat\?/)
+  await expect(page).not.toHaveURL(/\/screening/)
+  await expect(page.getByText("Direct answer")).toBeVisible()
+  await expect(page.getByRole("link", { name: /CDC: Cancer screening tests/i })).toBeVisible()
+})
+
+test("chat keeps medication symptom and prevention questions in conversation", async ({ page }) => {
+  const routedAgents: string[] = []
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+  await page.route(/\/api\/openclaw\/chat$/, async (route) => {
+    const body = route.request().postDataJSON() as { agentId?: string; message?: string }
+    routedAgents.push(body.agentId || "")
+    const response = body.agentId === "triage"
+      ? "If chest pain or trouble breathing is present, seek emergency care now. I can also help organize follow-up after urgent symptoms are addressed."
+      : body.agentId === "rx"
+        ? "For medication questions, confirm the exact drug, dose, kidney history, allergies, and prescriber. Do not stop prescribed medication without clinician guidance."
+        : "For prevention, I can answer here first and cite guideline-backed steps before any scheduling handoff."
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ response, agentId: body.agentId || "coordinator" }),
+    })
+  })
+
+  await page.goto("/chat")
+  await page.getByTestId("chat-input").fill("Medication question: can I take ibuprofen with lisinopril?")
+  await page.getByTestId("chat-send-button").click()
+  await expect(page.getByText("For medication questions")).toBeVisible()
+  await expect(page).toHaveURL(/\/chat/)
+
+  await page.getByTestId("chat-input").fill("I have chest pain and shortness of breath")
+  await page.getByTestId("chat-send-button").click()
+  await expect(page.getByText("seek emergency care now")).toBeVisible()
+  await expect(page).toHaveURL(/\/chat/)
+
+  await page.getByTestId("chat-input").fill("What vaccines should a 55-year-old man ask about?")
+  await page.getByTestId("chat-send-button").click()
+  await expect(page.getByText("guideline-backed steps")).toBeVisible()
+  await expect(page).toHaveURL(/\/chat/)
+
+  expect(routedAgents).toContain("rx")
+  expect(routedAgents).toContain("triage")
+  expect(routedAgents).toContain("wellness")
+})

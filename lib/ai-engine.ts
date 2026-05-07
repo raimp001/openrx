@@ -4,6 +4,7 @@ import { OPENCLAW_CONFIG } from "./openclaw/config"
 import { getLiveSnapshotByWallet } from "./live-data.server"
 import { parseScreeningIntakeNarrative } from "./screening-intake"
 import { nextStepLabel, recommendScreenings, screeningIntakeFromLegacy } from "./screening/recommend"
+import { getGuidelineSource } from "./screening/sources"
 import type { ScreeningRecommendation } from "./screening/types"
 
 // ── AI Clients ────────────────────────────────────────────
@@ -89,29 +90,29 @@ function delay(ms: number): Promise<void> {
 
 function buildFallbackAgentResponse(agentId: string, message: string): string {
   const trimmedMessage = message.trim()
-  const contextLine = trimmedMessage ? `I’m looking at: “${trimmedMessage.slice(0, 140)}${trimmedMessage.length > 140 ? "..." : ""}”` : "I can help with the next step."
+  const contextLine = trimmedMessage ? `Direct answer: I’m looking at “${trimmedMessage.slice(0, 140)}${trimmedMessage.length > 140 ? "..." : ""}.”` : "Direct answer: I can help with the next step."
 
   switch (agentId) {
     case "rx":
-      return `${contextLine}\n\nFor medications, the safest next move is to confirm the medication name, dose, remaining supply, preferred pharmacy, and prescriber. If this is urgent or you are out of medication, call the pharmacy or prescribing office now while OpenRx queues the refill workflow.`
+      return `${contextLine}\n\nWhat to do now\nConfirm the exact medication names, doses, kidney history, allergies, pregnancy status if relevant, and why the medication is being used. Do not stop or combine prescribed medication without clinician/pharmacist guidance. If this is a refill emergency or you are out of a critical medicine, call the pharmacy or prescriber now.\n\nReferences\n- [MedlinePlus: Medicines](https://medlineplus.gov/medicines.html)\n- [FDA: Drug interactions](https://www.fda.gov/drugs/resources-you-drugs/drug-interactions-what-you-should-know)\n\nSafety note\nThis is medication-safety education, not a prescription change or substitute for a clinician/pharmacist review.`
     case "scheduling":
-      return `${contextLine}\n\nFor scheduling, pick the visit type, preferred time window, location preference, and insurance plan. OpenRx can then turn that into a booking request and surface any prep instructions or copay questions.`
+      return `${contextLine}\n\nWhat to do now\nTell me the visit type, location, urgency, preferred time window, and insurance plan. If the question is clinical, I’ll answer first; if you ask to find care, OpenRx can then search options and prepare a scheduling request.\n\nReferences\n- [MedlinePlus: Choosing a primary care provider](https://medlineplus.gov/ency/article/001939.htm)\n\nSafety note\nOpenRx can stage a scheduling request, but it does not confirm appointments or place medical orders by itself.`
     case "billing":
-      return `${contextLine}\n\nFor billing, gather the claim number, date of service, insurer, amount owed, and any denial reason. OpenRx can help separate patient balance, insurance balance, and appeal next steps.`
+      return `${contextLine}\n\nWhat to do now\nUse the claim number, date of service, insurer, amount owed, EOB/denial reason, and whether the provider is in-network. OpenRx can separate patient responsibility from insurer responsibility and draft next questions for the plan or billing office.\n\nReferences\n- [CMS: Understanding health care bills](https://www.cms.gov/medical-bill-rights/help/guides/understanding-health-care-bills)\n\nSafety note\nThis is billing navigation, not a legal determination or coverage guarantee.`
     case "prior-auth":
-      return `${contextLine}\n\nFor prior authorization, the next step is to confirm the drug or procedure, payer, diagnosis, urgency, and supporting clinical notes. If there is a denial, OpenRx should prepare the appeal evidence before resubmission.`
+      return `${contextLine}\n\nWhat to do now\nConfirm the drug/procedure, payer, diagnosis, urgency, prior treatments, and supporting clinical notes. If there is a denial, collect the denial reason and deadline before drafting an appeal.\n\nReferences\n- [CMS: Electronic prior authorization](https://www.cms.gov/priorities/electronic-prior-authorization/overview)\n\nSafety note\nOpenRx can help prepare and track prior-auth work, but it cannot guarantee approval.`
     case "screening":
-      return `${contextLine}\n\nFor screening, start with age, sex at birth if relevant, family history, symptoms, smoking history, and prior screening dates. OpenRx should prioritize the highest-impact prevention step first.`
+      return `${contextLine}\n\nWhat to do now\nShare age, sex used for screening intervals, family history, symptoms, smoking pack-years/quit date, and prior screening dates. I’ll answer directly in chat and cite the relevant guideline links.\n\nReferences\n- [USPSTF recommendations](https://www.uspreventiveservicestaskforce.org/uspstf/recommendation-topics/uspstf-a-and-b-recommendations)\n- [CDC cancer screening tests](https://www.cdc.gov/cancer/prevention/screening.html)\n\nSafety note\nThis is screening decision support, not a diagnosis or order.`
     case "trials":
-      return `${contextLine}\n\nFor trials, confirm the condition, stage or mutation if known, travel radius, current treatment, and recent labs. OpenRx can then rank studies as possible leads, not final eligibility decisions.`
+      return `${contextLine}\n\nWhat to do now\nConfirm condition, stage, mutation/biomarker if known, current treatment, recent labs, and travel radius. I can summarize likely trial leads, but final eligibility must come from the study team.\n\nReferences\n- [ClinicalTrials.gov](https://clinicaltrials.gov/)\n- [NCI: Clinical trials information](https://www.cancer.gov/research/participate/clinical-trials)\n\nSafety note\nTrial matching is informational and does not determine eligibility.`
     case "triage":
-      return `${contextLine}\n\nIf symptoms include chest pain, trouble breathing, stroke symptoms, severe allergic reaction, or sudden weakness, call 911 now. Otherwise, note onset, severity, associated symptoms, medications, and whether same-day care is needed.`
+      return `${contextLine}\n\nWhat to do now\nIf symptoms include chest pain, trouble breathing, stroke symptoms, severe allergic reaction, severe bleeding, sudden weakness, or fainting, call 911 or seek emergency care now. Otherwise, tell me onset, severity, associated symptoms, medications, and whether symptoms are worsening.\n\nReferences\n- [MedlinePlus: When to use the emergency room](https://medlineplus.gov/ency/patientinstructions/000593.htm)\n- [CDC: Stroke signs and symptoms](https://www.cdc.gov/stroke/signs-symptoms/index.html)\n\nSafety note\nThis is safety triage guidance, not a diagnosis. Emergency symptoms should not wait for chat.`
     case "second-opinion":
-      return `${contextLine}\n\nFor a second opinion, collect the diagnosis, current plan, key test results, medications, and the specific decision you are unsure about. OpenRx should turn that into clinician-ready questions.`
+      return `${contextLine}\n\nWhat to do now\nShare the diagnosis, current plan, key test results, medications, and the decision you are unsure about. I’ll turn that into clinician-ready questions and identify what information is missing.\n\nReferences\n- [NCI: Finding health care services](https://www.cancer.gov/about-cancer/managing-care/services)\n\nSafety note\nThis supports preparation for medical review; it does not replace an examining clinician.`
     case "onboarding":
-      return `${contextLine}\n\nFor setup, start with identity, contact details, insurance, primary care, pharmacy, medications, and care preferences. OpenRx should ask one question at a time and keep the setup moving.`
+      return `${contextLine}\n\nWhat to do now\nStart with only what is needed: contact preference, primary care, pharmacy, medications, insurance if you want cost/network help, and the care goal you want OpenRx to handle first.\n\nReferences\n- [HealthIT.gov: Patient access to health information](https://www.healthit.gov/topic/patient-access-health-information)\n\nSafety note\nOnly share sensitive data when you want OpenRx to use it for care navigation.`
     default:
-      return `${contextLine}\n\nOpenRx can route this to the right care workflow. Start with the concrete goal, any deadlines, and the blocker: appointment, medication, bill, screening, message, or referral.`
+      return `${contextLine}\n\nWhat to do now\nAsk the clinical question in plain language and include the few details that change the answer: age, sex when relevant, symptoms, medication names/doses, diagnosis, prior test dates, and urgency. I’ll answer in chat first and only hand off when an action is needed.\n\nReferences\n- [MedlinePlus](https://medlineplus.gov/)\n- [CDC](https://www.cdc.gov/)\n\nSafety note\nOpenRx is clinical decision support and care navigation, not a diagnosis or substitute for clinician judgment.`
   }
 }
 
@@ -146,17 +147,89 @@ function conciseStatus(status: ScreeningRecommendation["status"]): string {
   return status.replace(/_/g, " ")
 }
 
+function screeningGroupTitle(rec: ScreeningRecommendation): "Due now" | "Needs clinician review" | "Upcoming or depends" | "Current / not indicated" {
+  if (
+    rec.requiresClinicianReview ||
+    rec.status === "urgent_clinician_review" ||
+    rec.status === "high_risk" ||
+    rec.status === "needs_clinician_review" ||
+    rec.status === "surveillance_or_follow_up"
+  ) {
+    return "Needs clinician review"
+  }
+  if (rec.status === "due") return "Due now"
+  if (rec.status === "not_due") return "Current / not indicated"
+  return "Upcoming or depends"
+}
+
+function sourceMarkdown(rec: ScreeningRecommendation): string {
+  const source = getGuidelineSource(rec.sourceId)
+  if (source?.url) {
+    return `[${source.organization} ${source.topic} (${source.versionOrDate})](${source.url})`
+  }
+  if (source?.organization === "PENDING") {
+    return "High-risk interval logic not fully encoded; use clinician/genetics review rather than invented intervals."
+  }
+  return `${rec.sourceSystem}${rec.sourceVersion ? ` ${rec.sourceVersion}` : ""}`
+}
+
 function formatScreeningRecommendation(rec: ScreeningRecommendation, index: number): string {
   const nextStep = rec.nextSteps[0] ? nextStepLabel(rec.nextSteps[0]) : rec.recommendedNextStep
   const review = rec.requiresClinicianReview ? " Clinician review is needed before using this as a routine screening interval." : ""
 
   return [
-    `${index}. ${rec.screeningName}`,
-    `Status: ${conciseStatus(rec.status)} (${rec.riskCategory.replace(/_/g, " ")}).`,
+    `${index}. ${rec.screeningName} — ${conciseStatus(rec.status)} (${rec.riskCategory.replace(/_/g, " ")}).`,
     `Why: ${rec.patientFriendlyExplanation}${review}`,
     `Next: ${nextStep}. ${rec.recommendedNextStep}`,
-    `Source: ${rec.sourceSystem}${rec.sourceVersion ? ` ${rec.sourceVersion}` : ""}.`,
+    `Source: ${sourceMarkdown(rec)}.`,
   ].join("\n")
+}
+
+function formatScreeningGroups(recommendations: ScreeningRecommendation[]): string[] {
+  const order: Array<ReturnType<typeof screeningGroupTitle>> = [
+    "Due now",
+    "Needs clinician review",
+    "Upcoming or depends",
+    "Current / not indicated",
+  ]
+  const grouped = new Map<string, ScreeningRecommendation[]>()
+  recommendations.forEach((rec) => {
+    const group = screeningGroupTitle(rec)
+    grouped.set(group, [...(grouped.get(group) || []), rec])
+  })
+
+  return order.flatMap((group) => {
+    const items = grouped.get(group) || []
+    if (items.length === 0) return []
+    return [
+      group,
+      ...items.map((rec, index) => formatScreeningRecommendation(rec, index + 1)),
+    ]
+  })
+}
+
+function buildReferenceList(recommendations: ScreeningRecommendation[]): string[] {
+  const links = new Map<string, string>()
+  recommendations.forEach((rec) => {
+    const source = getGuidelineSource(rec.sourceId)
+    if (source?.url) links.set(`${source.organization}: ${source.topic}`, source.url)
+  })
+  links.set("CDC: Cancer screening tests", "https://www.cdc.gov/cancer/prevention/screening.html")
+  links.set("ACS: Cancer screening guidelines", "https://www.cancer.org/cancer/screening/american-cancer-society-guidelines-for-the-early-detection-of-cancer.html")
+  return Array.from(links.entries()).map(([label, url]) => `- [${label}](${url})`)
+}
+
+function buildFollowUpQuestion(recommendations: ScreeningRecommendation[]): string | null {
+  if (recommendations.some((rec) => rec.id === "lung-smoking-history-needed" || rec.id === "lung-smoking-history-clarify")) {
+    return "One follow-up that would sharpen this: has the patient ever smoked at least 20 pack-years, and if former, how many years since quitting?"
+  }
+  if (recommendations.some((rec) => rec.id === "uspstf-average-risk-cervical")) {
+    return "One follow-up if relevant: does the patient have a cervix, and when was the last Pap/HPV test?"
+  }
+  if (recommendations.some((rec) => rec.status === "needs_clinician_review" || rec.status === "high_risk")) {
+    return "One follow-up that would help: what were the exact family diagnosis ages, genetic test result, and prior screening dates?"
+  }
+  return null
 }
 
 function summarizeParsedScreeningInput(message: string): string {
@@ -177,10 +250,10 @@ export function buildDeterministicScreeningResponse(message: string): string {
 
   if (!parsed.ready) {
     return [
-      "I can help with screening, but I need one more line of context to do it safely.",
+      "Direct answer: I can help, but I need one missing detail before giving screening guidance safely.",
       parsed.clarificationQuestion || "Share your age, sex used for screening intervals, symptoms, family history, smoking history, and prior screening dates if known.",
       "",
-      "OpenRx can organize the next step, but it does not replace a clinician or guarantee that a test is ordered or covered.",
+      "Safety note: OpenRx is clinical decision support, not a diagnosis, medical order, or insurance approval.",
     ].join("\n")
   }
 
@@ -193,27 +266,28 @@ export function buildDeterministicScreeningResponse(message: string): string {
     conditions: parsed.extracted.conditions,
   }))
 
-  const actionable = engineResult.recommendations
-    .filter((rec) => rec.status !== "not_due")
-    .slice(0, 4)
-  const recommendations = actionable.length ? actionable : engineResult.recommendations.slice(0, 3)
+  const recommendations = engineResult.recommendations
 
   if (recommendations.length === 0) {
     return [
-      `Based on what you shared (${summarizeParsedScreeningInput(message)}), I do not have enough source-backed detail to show a screening recommendation safely.`,
+      `Direct answer: based on what you shared (${summarizeParsedScreeningInput(message)}), I do not have enough source-backed detail to show a screening recommendation safely.`,
       "Next: request care navigation or add prior screening dates, symptoms, family history diagnosis ages, and smoking pack-years if relevant.",
-      "OpenRx can organize the next step, but it does not replace a clinician.",
+      "Safety note: OpenRx is clinical decision support, not a diagnosis, medical order, or insurance approval.",
     ].join("\n")
   }
 
   const summary = summarizeParsedScreeningInput(message)
+  const followUp = buildFollowUpQuestion(recommendations)
   return [
-    `Based on what you shared: ${summary}.`,
+    `Direct answer: based on what you shared (${summary}), here is the screening plan I can support in chat right now.`,
     "",
-    ...recommendations.map((rec, index) => formatScreeningRecommendation(rec, index + 1)),
+    ...formatScreeningGroups(recommendations),
     "",
-    "What OpenRx should do next: start a navigation request, prepare a clinician summary, and confirm prior screening dates/family diagnosis age before treating this as routine screening.",
-    "Safety note: this is guideline-based education and care navigation support, not a diagnosis, medical order, or insurance approval guarantee.",
+    ...(followUp ? ["Question to refine this", followUp, ""] : []),
+    "References",
+    ...buildReferenceList(recommendations),
+    "",
+    "Safety note: this is guideline-based clinical decision support and care navigation education. It does not diagnose disease, replace clinician judgment, place an order, or guarantee insurance coverage.",
   ].join("\n\n")
 }
 
@@ -386,10 +460,17 @@ ${patientContext}
 IMPORTANT RULES:
 - You ARE ${agent.name}. Stay in character.
 - Use the patient data above to give SPECIFIC answers (reference their actual meds, appointments, claims by name).
-- Be concise — most responses should be 2-4 sentences unless the user asks for detail.
-- If you need to hand off to another agent, end your message with [HANDOFF:agentId] (e.g., [HANDOFF:scheduling]).
+- Behave like a clinical evidence chat assistant: answer directly in this chat first. Do not tell the user to open another page just to see clinical guidance.
+- For clinical, medication, symptom, screening, prevention, billing, or prior-auth questions, use this visible structure when useful:
+  Direct answer
+  What to do now
+  References
+  Safety note
+- Include 2-5 relevant, trustworthy inline Markdown links in References when guidelines or patient education sources are relevant. Prefer USPSTF, CDC, NIH/NCI, MedlinePlus, FDA, CMS, and major society guideline pages.
+- Ask at most one concise follow-up question when a missing detail changes the answer. Otherwise provide the best cautious answer from available context.
+- Keep actions optional. Only include [HANDOFF:agentId] when the user explicitly asks to find care, schedule, submit, pay, appeal, or otherwise take an operational action.
 - Available agents to hand off to: ${(agent.canMessage as readonly string[]).join(", ")}
-- Never make up data that isn't in the patient context above.`
+- Never make up patient-specific data, citations, orders, coverage, or diagnoses that are not supported by the patient context or cited source.`
 
   const conv = getConversation(sessionKey)
 
@@ -431,7 +512,7 @@ IMPORTANT RULES:
       } else {
         const completion = await claude.messages.create({
           model: "claude-sonnet-4-6",
-          max_tokens: 600,
+          max_tokens: 1200,
           system: systemPrompt,
           messages: anthropicMessages,
         })
@@ -448,8 +529,8 @@ IMPORTANT RULES:
           ...conv,
           { role: "user", content: message },
         ],
-        max_tokens: 500,
-        temperature: 0.7,
+        max_tokens: 1000,
+        temperature: 0.3,
       })
       response = completion.choices[0]?.message?.content || "I couldn't process that. Could you try again?"
     }

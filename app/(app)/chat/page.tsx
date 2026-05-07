@@ -40,13 +40,14 @@ import {
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
 const QUICK_PROMPTS = [
+  { label: "Cancer screening", prompt: "What cancer screening does a 50-year-old woman need?", agentId: "screening" as AgentId },
+  { label: "Symptom safety", prompt: "I have chest pain and shortness of breath. What should I do?", agentId: "triage" as AgentId },
+  { label: "Medication question", prompt: "Medication question: can I take ibuprofen with lisinopril?", agentId: "rx" as AgentId },
   { label: "Next appointment", prompt: "When is my next appointment and what should I bring?", agentId: "scheduling" as AgentId },
-  { label: "Medication refills", prompt: "Which of my medications need refills soon?", agentId: "rx" as AgentId },
   { label: "Bill questions", prompt: "Do I have any unpaid bills or denied claims I should address?", agentId: "billing" as AgentId },
-  { label: "Prior auth status", prompt: "What is the status of my pending prior authorizations?", agentId: "prior-auth" as AgentId },
-  { label: "Lab results", prompt: "Can you summarize my recent lab results and flag anything abnormal?", agentId: "coordinator" as AgentId },
   { label: "Wellness tips", prompt: "Based on my health history, what preventive care steps should I take this year?", agentId: "wellness" as AgentId },
-  { label: "Screening risk", prompt: "Run my preventive risk screening and prioritize top actions for this month.", agentId: "screening" as AgentId },
+  { label: "Lab results", prompt: "Can you summarize my recent lab results and flag anything abnormal?", agentId: "coordinator" as AgentId },
+  { label: "Prior auth status", prompt: "What is the status of my pending prior authorizations?", agentId: "prior-auth" as AgentId },
   { label: "Second opinion", prompt: "Review my diabetes care plan and give me key clinician questions for a second opinion.", agentId: "second-opinion" as AgentId },
   { label: "Find trials", prompt: "Find recruiting clinical trials relevant to my health profile and explain likely fit.", agentId: "trials" as AgentId },
 ]
@@ -77,6 +78,80 @@ const agentMeta: Record<string, { label: string; icon: typeof Bot; color: string
   devops: { label: "Product status", icon: Bot, color: "text-secondary" },
 }
 
+function renderInlineLinks(text: string, keyPrefix: string) {
+  const parts: Array<string | { label: string; url: string }> = []
+  const pattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)]+)/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index))
+    parts.push({
+      label: match[1] || match[3],
+      url: match[2] || match[3],
+    })
+    lastIndex = pattern.lastIndex
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex))
+
+  return parts.map((part, index) => {
+    if (typeof part === "string") return <span key={`${keyPrefix}-${index}`}>{part}</span>
+    return (
+      <a
+        key={`${keyPrefix}-${index}`}
+        href={part.url}
+        target="_blank"
+        rel="noreferrer"
+        className="font-semibold text-teal underline decoration-teal/25 underline-offset-4 transition hover:text-teal-dark hover:decoration-teal"
+      >
+        {part.label}
+      </a>
+    )
+  })
+}
+
+function RichChatContent({ content }: { content: string }) {
+  const headingLabels = new Set([
+    "Direct answer",
+    "Due now",
+    "Needs clinician review",
+    "Upcoming or depends",
+    "Current / not indicated",
+    "Question to refine this",
+    "What to do now",
+    "References",
+    "Safety note",
+  ])
+
+  return (
+    <div className="space-y-2 text-sm leading-7">
+      {content.split("\n").map((line, index) => {
+        const trimmed = line.trim()
+        if (!trimmed) return <div key={`blank-${index}`} className="h-1" />
+        if (headingLabels.has(trimmed)) {
+          return (
+            <p key={`heading-${index}`} className="pt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
+              {trimmed}
+            </p>
+          )
+        }
+        if (trimmed.startsWith("- ")) {
+          return (
+            <p key={`bullet-${index}`} className="pl-4 text-secondary before:-ml-4 before:mr-2 before:text-teal before:content-['•']">
+              {renderInlineLinks(trimmed.slice(2), `line-${index}`)}
+            </p>
+          )
+        }
+        return (
+          <p key={`line-${index}`} className="text-primary">
+            {renderInlineLinks(trimmed, `line-${index}`)}
+          </p>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function ChatPage() {
   const { isConnected, walletAddress, getWalletAuthHeaders } = useWalletIdentity()
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -84,11 +159,11 @@ export default function ChatPage() {
       id: "welcome",
       role: "agent",
       content:
-        "Welcome to OpenRx. Ask about referrals, coverage, medications, appointments, screenings, or confusing results.\n\n" +
+        "Welcome to OpenRx. Ask a clinical question and I’ll answer here first, with source links when guidelines apply.\n\n" +
         (isConnected
           ? "Your account is connected, so replies can use your saved profile.\n\n"
           : "") +
-        "How can I help you today?",
+        "Try: “What cancer screening does a 50-year-old woman need?”",
       agentId: "coordinator",
       timestamp: new Date(),
     },
@@ -106,11 +181,11 @@ export default function ChatPage() {
     id: "welcome",
     role: "agent",
     content:
-      "Welcome to OpenRx. Ask about referrals, coverage, medications, appointments, screenings, or confusing results.\n\n" +
+      "Welcome to OpenRx. Ask a clinical question and I’ll answer here first, with source links when guidelines apply.\n\n" +
       (isConnected
         ? "Your account is connected, so replies can use your saved profile.\n\n"
         : "") +
-      "How can I help you today?",
+      "Try: “What cancer screening does a 50-year-old woman need?”",
     agentId: "coordinator",
     timestamp: new Date(),
   }
@@ -275,7 +350,7 @@ export default function ChatPage() {
       <AppPageHeader
         eyebrow="Ask"
         title="Ask OpenRx."
-        description="One question at a time. OpenRx will route the care work quietly."
+        description="Clinical answers first. Source links and care actions stay inside the conversation unless a real handoff is needed."
         meta={
           <>
             {gatewayStatus === "checking" ? (
@@ -304,7 +379,7 @@ export default function ChatPage() {
         <div className="border-b border-[rgba(82,108,139,0.12)] px-4 py-3 sm:px-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-semibold text-primary">{activeMeta.label}</p>
-            <p className="text-xs text-muted">Ask. Review. Move.</p>
+            <p className="text-xs text-muted">Ask. Answer. Act.</p>
           </div>
           {messages.length <= 1 ? (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -357,6 +432,7 @@ export default function ChatPage() {
                       )}
                     </div>
                     <div
+                      data-testid={msg.role === "agent" ? "chat-message-agent" : "chat-message-user"}
                       className={cn(
                         "max-w-[86%] rounded-[20px] px-4 py-3",
                         msg.role === "user" ? "bg-white text-primary" : "bg-[rgba(245,249,255,0.78)] text-primary"
@@ -375,7 +451,7 @@ export default function ChatPage() {
                           ) : null}
                         </div>
                       ) : null}
-                      <p className="whitespace-pre-line text-sm leading-7">{msg.content}</p>
+                      <RichChatContent content={msg.content} />
                       {msg.routingInfo ? <p className="mt-2 text-[10px] italic text-muted">{msg.routingInfo}</p> : null}
                       {msg.action ? (
                         <button
@@ -415,6 +491,7 @@ export default function ChatPage() {
           <div className="flex items-end gap-2">
             <input
               ref={inputRef}
+              data-testid="chat-input"
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -426,6 +503,7 @@ export default function ChatPage() {
             />
             <button
               type="button"
+              data-testid="chat-send-button"
               onClick={() => sendMessage()}
               disabled={isLoading || !input.trim()}
               aria-label="Send message"

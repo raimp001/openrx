@@ -195,17 +195,7 @@ export function resolveCareHandoff(message: string, agentId: string): CareHandof
     (hasClinicalContext(lowered) && includesAny(lowered, ["what should", "what do i need", "recommend", "recs"]))
 
   if (looksLikeScreening) {
-    return {
-      label: "Open screening plan",
-      href: "/screening?handoff=chat",
-      storageKey: SCREENING_HANDOFF_STORAGE_KEY,
-      payload: {
-        source: "chat",
-        narrative: trimmed,
-        autorun: true,
-        createdAt: now,
-      },
-    }
+    return null
   }
 
   const looksLikeCareSearch =

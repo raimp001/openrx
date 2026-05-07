@@ -11,8 +11,8 @@ import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
 
 const trustNotes = [
   "No account first",
-  "Screening, care search, bills",
-  "Clinician-safe handoffs",
+  "Clinical answers in chat",
+  "Sources included inline",
 ]
 
 export default function LandingPage() {
@@ -43,13 +43,13 @@ export default function LandingPage() {
         <section id="ask-openrx" className="mx-auto w-full max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(82,108,139,0.12)] bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
             <Stethoscope size={13} className="text-accent" />
-            Ask. Route. Finish.
+            Ask. Answer. Act.
           </div>
           <h1 className="mx-auto mt-7 max-w-4xl font-serif text-[clamp(3.8rem,10vw,8.8rem)] leading-[0.82] tracking-[-0.085em] text-primary">
             Ask OpenRx.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-secondary">
-            One sentence in. The right care path out.
+            Clinical questions answered directly. Care actions when you ask for them.
           </p>
 
           <div className="mt-7">

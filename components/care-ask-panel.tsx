@@ -50,7 +50,7 @@ type CareAskPanelProps = {
 const defaultSuggestions: CareAskSuggestion[] = [
   {
     label: "What screening is due?",
-    prompt: "I want to know which preventive screenings may be due and what I should do next.",
+    prompt: "What cancer screening does a 50-year-old woman need?",
     topic: "screening",
   },
   {
@@ -78,20 +78,20 @@ const defaultLanes: BackgroundLane[] = [
   },
   {
     label: "Route to the service",
-    detail: "Clear screening and care-search questions open the right workflow directly instead of making you pick a page.",
+    detail: "Screening questions are answered in chat first. Care-search questions can still open a directory when the user asks for it.",
     icon: Sparkles,
   },
   {
     label: "Prepare the handoff",
-    detail: "The next page keeps your question attached, then runs the check or search without a second form.",
+    detail: "If action is needed, OpenRx keeps the next step visible without making the answer depend on another page.",
     icon: CheckCircle2,
   },
 ]
 
 export function CareAskPanel({
   eyebrow = "Ask OpenRx",
-  title = "Ask once. Open the right care path.",
-  description = "Use plain English. OpenRx routes screening, care search, billing, medication, and follow-up questions without asking you to choose the system first.",
+  title = "Ask once. Get the answer here.",
+  description = "Use plain English. Screening and clinical guidance answer directly in chat; care search, billing, medication, and follow-up actions stay available when needed.",
   placeholder = "Ask what screening is due, where to go, what a bill means, or what to do next...",
   defaultPrompt = "",
   suggestions = defaultSuggestions,
@@ -199,7 +199,7 @@ export function CareAskPanel({
               >
                 <div className={cn("hidden items-center gap-2 text-xs sm:flex", minimal && "sr-only", dark ? "text-white/56" : "text-muted")}>
                   <MessageSquareText size={13} />
-                  Routes to screening, care search, billing, meds, or follow-up.
+                  Answers first. Actions only when they help.
                 </div>
                 <button
                   type="submit"
@@ -291,7 +291,7 @@ export const dashboardCareAskSuggestions: CareAskSuggestion[] = [
   },
   {
     label: "Plan preventive care",
-    prompt: "Tell me which screenings, vaccines, or preventive tasks should be scheduled next.",
+    prompt: "What screenings, vaccines, or preventive tasks should be considered for a 55-year-old man?",
     topic: "screening",
   },
 ]
@@ -304,12 +304,12 @@ export const patientBackgroundLanes: BackgroundLane[] = [
   },
   {
     label: "Start the right workflow",
-    detail: "If the answer needs scheduling, billing, medication, or screening follow-up, it gets routed there.",
+    detail: "OpenRx answers in chat first, then offers a handoff only when a real action is needed.",
     icon: Sparkles,
   },
   {
     label: "Return with actions",
-    detail: "You get a short answer, links to the right page, and the next safest step to take.",
+    detail: "You get the answer, source links, and the next safest step without hunting through pages.",
     icon: Receipt,
   },
 ]

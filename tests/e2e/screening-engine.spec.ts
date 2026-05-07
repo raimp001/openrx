@@ -10,7 +10,6 @@ import {
 } from "@/lib/screening-evidence"
 import {
   PROVIDER_HANDOFF_STORAGE_KEY,
-  SCREENING_HANDOFF_STORAGE_KEY,
   resolveCareHandoff,
 } from "@/lib/care-handoff"
 import type { ScreeningIntake } from "@/lib/screening/types"
@@ -159,6 +158,20 @@ test("screening parser handles compact demographic and prior screening shorthand
   expect(result.recommendations.some((rec) => rec.id === "hereditary-prostate-screening-review")).toBe(true)
 })
 
+test("screening chat answers common age-sex prompts directly with source links", () => {
+  const parsed = parseScreeningIntakeNarrative("What cancer screening does a 50-year-old woman need?")
+  const response = buildDeterministicScreeningResponse("What cancer screening does a 50-year-old woman need?")
+
+  expect(parsed.extracted.age).toBe(50)
+  expect(parsed.extracted.gender).toBe("female")
+  expect(response).toContain("Direct answer")
+  expect(response).toContain("Breast cancer screening")
+  expect(response).toContain("Colorectal cancer screening")
+  expect(response).toContain("Cervical cancer screening")
+  expect(response).toContain("References")
+  expect(response).toContain("https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/breast-cancer-screening")
+})
+
 test("assessment promotes actionable inherited-risk recommendations instead of only a low risk score", () => {
   const assessment = assessHealthScreening({
     age: 58,
@@ -261,14 +274,14 @@ test("OpenAI clinical evidence prompt is citation-oriented and does not include 
   expect(prompt).not.toContain("0x55826e51751c49e6e2a2d9840745787f7fd977bd")
 })
 
-test("chat screening handoff preserves clinical context for one-click recommendations", () => {
+test("chat screening questions stay in chat instead of forcing a screening-page handoff", () => {
   const action = resolveCareHandoff("I am 58 male, father had prostate cancer at 52, BRCA mutation carrier. What recs?", "screening")
+  const response = buildDeterministicScreeningResponse("I am 58 male, father had prostate cancer at 52, BRCA mutation carrier. What recs?")
 
-  expect(action?.label).toBe("Open screening plan")
-  expect(action?.href).toBe("/screening?handoff=chat")
-  expect(action?.storageKey).toBe(SCREENING_HANDOFF_STORAGE_KEY)
-  expect(action?.payload.autorun).toBe(true)
-  expect(JSON.stringify(action?.payload).toLowerCase()).toContain("brca")
+  expect(action).toBeNull()
+  expect(response).toContain("Direct answer")
+  expect(response).toContain("Genetic counseling")
+  expect(response).toContain("References")
 })
 
 test("chat care-network handoff preserves provider query for automatic search", () => {

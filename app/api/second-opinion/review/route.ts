@@ -79,12 +79,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use Claude when available; fall back to heuristic engine
+    const heuristicResult = reviewSecondOpinion(body)
+
     const opinion = process.env.ANTHROPIC_API_KEY
       ? await reviewWithClaude(body)
-      : reviewSecondOpinion(body)
+      : heuristicResult
 
-    return NextResponse.json({ ...opinion, poweredBy: process.env.ANTHROPIC_API_KEY ? "claude" : "heuristic" })
+    // Always merge heuristic red flags — LLM may omit safety-critical findings
+    const mergedRedFlags = Array.from(new Set([
+      ...opinion.redFlags,
+      ...heuristicResult.redFlags,
+    ]))
+
+    return NextResponse.json({
+      ...opinion,
+      redFlags: mergedRedFlags,
+      poweredBy: process.env.ANTHROPIC_API_KEY ? "claude" : "heuristic",
+    })
   } catch (err) {
     console.error("Second-opinion error:", err)
     return NextResponse.json(

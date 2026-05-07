@@ -1,4 +1,6 @@
 import { requireAuth } from "@/lib/api-auth"
+import { canAccessCareTeam } from "@/lib/clinic-auth"
+import { logPhiAccess } from "@/lib/audit"
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
@@ -14,8 +16,13 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const skip = (page - 1) * limit
 
+    const isStaffOrAdmin = canAccessCareTeam(auth.session.role)
+
     // Get single patient by userId
     if (userId) {
+      if (!isStaffOrAdmin && auth.session.userId !== userId) {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      }
       const patient = await prisma.patientProfile.findUnique({
         where: { userId },
         include: {
@@ -46,11 +53,18 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
       }
 
+      logPhiAccess({ userId: auth.session.userId, action: "read", resourceType: "patient", resourceId: patient.id })
       return NextResponse.json(patient)
     }
 
     // Get single patient by patientId
     if (patientId) {
+      if (!isStaffOrAdmin) {
+        const owns = await prisma.patientProfile.findUnique({ where: { id: patientId }, select: { userId: true } })
+        if (!owns || owns.userId !== auth.session.userId) {
+          return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+        }
+      }
       const patient = await prisma.patientProfile.findUnique({
         where: { id: patientId },
         include: {
@@ -82,10 +96,15 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
       }
 
+      logPhiAccess({ userId: auth.session.userId, action: "read", resourceType: "patient", resourceId: patient.id })
       return NextResponse.json(patient)
     }
 
-    // List all patients with optional search
+    // List/search restricted to staff and admin
+    if (!isStaffOrAdmin) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    }
+
     const where = search
       ? {
           user: {

@@ -83,6 +83,7 @@ async function resolveRoleFromWallet(headers: Headers): Promise<{ userId?: strin
 }
 
 function getTrustedRole(headers: Headers): { userId?: string; role?: ClinicRole } {
+  if (process.env.NODE_ENV === "production") return {}
   const trustHeader = (process.env.OPENRX_TRUST_ROLE_HEADER || "false").toLowerCase() === "true"
   if (!trustHeader) return {}
 

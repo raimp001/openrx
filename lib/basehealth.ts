@@ -756,20 +756,8 @@ export function reviewSecondOpinion(input: SecondOpinionInput): SecondOpinionRes
     redFlags.push("Neurologic warning symptoms reported; same-day clinician follow-up is advised.")
   }
 
-  let agreement: SecondOpinionResult["agreement"] = "partial-agreement"
-  let confidence: SecondOpinionResult["confidence"] = "moderate"
-
-  const matchesDiabetesPath =
-    diagnosisLower.includes("diabetes") &&
-    planLower.includes("metformin") &&
-    (planLower.includes("a1c") || planLower.includes("lifestyle"))
-  if (matchesDiabetesPath) {
-    agreement = "supports-current-plan"
-    confidence = "high"
-  } else if (plan.length < 40 || diagnosis.length < 10) {
-    agreement = "needs-clinician-review"
-    confidence = "low"
-  }
+  const agreement: SecondOpinionResult["agreement"] = "needs-clinician-review"
+  const confidence: SecondOpinionResult["confidence"] = "low"
 
   const keyQuestions = [
     "What objective markers would confirm that this treatment is working in 90 days?",
@@ -800,12 +788,7 @@ export function reviewSecondOpinion(input: SecondOpinionInput): SecondOpinionRes
   if (diagnosisLower.includes("cardio") || diagnosisLower.includes("hypertension")) specialistSuggestions.push("Cardiology")
   if (specialistSuggestions.length === 0) specialistSuggestions.push("Primary Care Follow-up")
 
-  const summary =
-    agreement === "supports-current-plan"
-      ? "The current plan aligns with guideline-consistent chronic care management, but should still be reviewed by your clinician."
-      : agreement === "partial-agreement"
-      ? "The plan appears directionally appropriate, but there are unresolved details worth clarifying with your clinician."
-      : "The available details are too limited for confidence; a direct clinician review is strongly recommended."
+  const summary = "The available details are too limited for confidence; a direct clinician review is strongly recommended."
 
   return {
     generatedAt: new Date().toISOString(),

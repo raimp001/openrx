@@ -544,7 +544,7 @@ async function verifyAndRecordPaymentInFileStore(input: VerifyPaymentInput): Pro
   const store = getFileStore()
   const walletAddress = normalizeAddress(input.walletAddress)
 
-  let payment =
+  const payment =
     (input.paymentId ? store.payments.find((candidate) => candidate.id === input.paymentId) : undefined) ||
     (input.intentId ? store.payments.find((candidate) => candidate.intentId === input.intentId) : undefined)
 
@@ -1344,7 +1344,7 @@ async function verifyAndRecordPaymentInDatabase(input: VerifyPaymentInput): Prom
 }> {
   const walletAddress = normalizeAddress(input.walletAddress)
 
-  let paymentRow =
+  const paymentRow =
     (input.paymentId
       ? await prisma.ledgerPaymentRecord.findUnique({ where: { id: input.paymentId } })
       : null) ||

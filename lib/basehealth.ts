@@ -743,9 +743,7 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
 export function reviewSecondOpinion(input: SecondOpinionInput): SecondOpinionResult {
   const patient = resolvePatient(input.patient)
   const diagnosis = input.diagnosis.trim()
-  const plan = input.currentPlan.trim()
   const diagnosisLower = diagnosis.toLowerCase()
-  const planLower = plan.toLowerCase()
 
   const redFlags: string[] = []
   const symptomText = (input.symptoms || []).join(" ").toLowerCase()

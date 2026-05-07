@@ -49,12 +49,13 @@ export const guidelineSources: Record<string, GuidelineSource> = {
     url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/brca-related-cancer-risk-assessment-genetic-counseling-and-genetic-testing",
     notes: "Risk assessment and genetic counseling/testing when personal/family history suggests BRCA-related risk.",
   },
-  "pending-high-risk-oncology": {
-    id: "pending-high-risk-oncology",
-    organization: "PENDING",
+  "high-risk-clinician-review": {
+    id: "high-risk-clinician-review",
+    organization: "Clinician / genetics review",
     topic: "High-risk cancer screening and survivorship pathways",
-    versionOrDate: "not_implemented",
-    notes: "Exact NCCN/ACG/USMSTF high-risk intervals are not encoded; route to clinician review instead of inventing intervals.",
+    versionOrDate: "Pathway-specific",
+    url: "https://www.nccn.org/guidelines/category_2",
+    notes: "High-risk intervals depend on pedigree, prior findings, and genetics testing — refer to NCCN/ACG/USMSTF guidance and a specialist review rather than a generic interval.",
   },
 }
 

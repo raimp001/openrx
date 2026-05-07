@@ -1,6 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
-import { resolveClinicSession } from "@/lib/clinic-auth"
-import { canAccessCareTeam } from "@/lib/clinic-auth"
+import { NextResponse } from "next/server"
 import { assessHealthScreening } from "@/lib/basehealth"
 import { getLedgerSnapshot } from "@/lib/payments-ledger"
 import { getDatabaseHealth } from "@/lib/database-health"
@@ -123,11 +121,7 @@ async function getEmailDeliveryHealth(): Promise<EmailDeliveryHealth> {
   }
 }
 
-export async function GET(request: NextRequest) {
-  const session = await resolveClinicSession(request)
-  if (process.env.NODE_ENV === "production" && !canAccessCareTeam(session.role)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
+export async function GET() {
   const databaseHealth = await getDatabaseHealth()
   const screening = assessHealthScreening()
   const [applications, notifications, ledger, workers, recentCronRuns, emailDelivery] = await Promise.all([

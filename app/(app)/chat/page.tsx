@@ -317,7 +317,7 @@ export default function ChatPage() {
     role: "agent",
     agentId: "coordinator",
     content:
-      "Welcome to OpenRx. Ask a clinical question and I'll answer here in chat — with guideline links and a clear next step.\n\n" +
+      "How can I help you today? Ask a clinical question and I'll answer here in chat — with guideline links and a clear next step.\n\n" +
       (connected ? "Your account is connected, so replies can use your saved profile.\n\n" : "") +
       "Try: \"What cancer screening does a 50-year-old woman need?\"",
     timestamp: new Date(),
@@ -459,6 +459,13 @@ export default function ChatPage() {
         </div>
         <div className="flex items-center gap-2">
           <span
+            data-testid="chat-status-indicator"
+            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-success"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-success" />
+            online
+          </span>
+          <span
             data-testid="chat-personalization-badge"
             className={cn(
               "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex",
@@ -472,18 +479,17 @@ export default function ChatPage() {
             />
             {isConnected ? "Personalized" : "General"}
           </span>
-          {messages.length > 1 ? (
-            <button
-              type="button"
-              onClick={clearChat}
-              className="control-button-secondary px-3 py-1.5 text-xs"
-              disabled={isLoading}
-              data-testid="chat-clear"
-            >
-              <Trash2 size={12} />
-              New chat
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={clearChat}
+            className="control-button-secondary px-3 py-1.5 text-xs"
+            disabled={isLoading || messages.length <= 1}
+            data-testid="chat-clear"
+            aria-label="Clear"
+          >
+            <Trash2 size={12} />
+            Clear
+          </button>
         </div>
       </header>
 
@@ -597,7 +603,7 @@ export default function ChatPage() {
         }}
       >
         <label htmlFor="chat-input" className="sr-only">
-          Ask OpenRx
+          Message OpenRx help
         </label>
         <textarea
           ref={inputRef}
@@ -624,7 +630,7 @@ export default function ChatPage() {
             type="submit"
             data-testid="chat-send-button"
             disabled={isLoading || !input.trim()}
-            aria-label="Send message"
+            aria-label="Send"
             className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-navy text-white transition hover:bg-navy-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isLoading ? <Loader2 size={14} className="animate-spin" /> : <ArrowUp size={14} />}

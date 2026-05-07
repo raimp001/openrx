@@ -29,8 +29,10 @@ import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
 import {
   PROVIDER_HANDOFF_STORAGE_KEY,
-  SCHEDULING_HANDOFF_STORAGE_KEY,
   isFreshCareHandoff,
+  safeSessionGetItem,
+  safeSessionRemoveItem,
+  schedulingHrefFromHandoff,
   type ProviderHandoffPayload,
   type SchedulingHandoffPayload,
 } from "@/lib/care-handoff"
@@ -177,19 +179,25 @@ export default function ProvidersPage() {
 
     const params = new URLSearchParams(window.location.search)
     const prompt = params.get("q") || params.get("query") || ""
-    const stored = parseProviderHandoff(window.sessionStorage.getItem(PROVIDER_HANDOFF_STORAGE_KEY))
-    window.sessionStorage.removeItem(PROVIDER_HANDOFF_STORAGE_KEY)
+    const stored = parseProviderHandoff(safeSessionGetItem(PROVIDER_HANDOFF_STORAGE_KEY))
+    safeSessionRemoveItem(PROVIDER_HANDOFF_STORAGE_KEY)
 
     const nextQuery = stored?.query || prompt
     if (!nextQuery.trim()) return
 
     setQuery(nextQuery.trim())
+    const handoffSource = params.get("handoff")
     setHandoffNotice(
-      stored?.source === "link"
+      stored?.source === "link" || handoffSource === "screening"
         ? "Loaded the screening recommendation and started the care-network search here."
         : "Loaded your chat context and started the care-network search here."
     )
-    if (stored?.autorun || params.get("autorun") === "1" || params.get("handoff") === "chat") {
+    if (
+      stored?.autorun ||
+      params.get("autorun") === "1" ||
+      params.get("handoff") === "chat" ||
+      params.get("handoff") === "screening"
+    ) {
       void searchDirectory(nextQuery.trim())
     }
   }, [searchDirectory])
@@ -258,8 +266,8 @@ export default function ProvidersPage() {
             />
             <StepRow
               icon={BadgeCheck}
-              title="We parse and verify"
-              description="OpenRx resolves service type and location, then pulls NPI-backed candidates from CMS data."
+              title="We parse and match"
+              description="OpenRx resolves service type and location, then pulls CMS NPI-backed directory candidates."
             />
             <StepRow
               icon={Building2}
@@ -296,6 +304,7 @@ export default function ProvidersPage() {
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
                 <ClinicalInput
                   id="provider-search"
+                  data-testid="provider-search-input"
                   type="text"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
@@ -308,6 +317,7 @@ export default function ProvidersPage() {
 
             <div className="flex flex-wrap gap-2">
               <button
+                data-testid="provider-search-button"
                 onClick={() => searchDirectory()}
                 disabled={isLoading}
                 className="control-button-primary"
@@ -325,8 +335,8 @@ export default function ProvidersPage() {
             </div>
 
             {autoLocationNote ? <p className="text-sm text-accent">{autoLocationNote}</p> : null}
-            {handoffNotice ? <p className="text-sm text-accent">{handoffNotice}</p> : null}
-            {error ? <p className="text-sm text-soft-red">{error}</p> : null}
+            {handoffNotice ? <p data-testid="provider-handoff-notice" className="text-sm text-accent">{handoffNotice}</p> : null}
+            {error ? <p data-testid="provider-search-error" className="text-sm text-soft-red">{error}</p> : null}
           </div>
 
           <div className="overflow-hidden rounded-[24px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_60%,#173B83_100%)] p-4 text-white shadow-[0_16px_34px_rgba(47,107,255,0.14)] sm:p-5">
@@ -465,6 +475,7 @@ export default function ProvidersPage() {
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button
                       type="button"
+                      data-testid="provider-schedule-button"
                       onClick={() => openSchedulingFromProvider(topMatch, query || `Schedule ${topMatch.specialty || topMatch.kind} with ${topMatch.name}`)}
                       className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[12px] font-semibold text-primary transition hover:bg-white/92"
                     >
@@ -615,8 +626,7 @@ function openSchedulingFromProvider(item: CareDirectoryMatch, reason: string) {
     query: reason,
     createdAt: Date.now(),
   }
-  window.sessionStorage.setItem(SCHEDULING_HANDOFF_STORAGE_KEY, JSON.stringify(payload))
-  window.location.href = "/scheduling?handoff=provider"
+  window.location.href = schedulingHrefFromHandoff(payload)
 }
 
 function ResultGroup({
@@ -643,6 +653,7 @@ function ResultGroup({
         {items.map((item) => (
           <div
             key={`${item.kind}-${item.npi}`}
+            data-testid="provider-result-card"
             className="surface-card p-5 transition hover:-translate-y-0.5"
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
@@ -660,7 +671,7 @@ function ResultGroup({
                         : "bg-yellow-100 text-yellow-800"
                     )}
                   >
-                    {item.confidence === "high" ? "Verified" : "Unverified"}
+                    {item.confidence === "high" ? "Strong match" : "Review match"}
                   </span>
                   <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-teal/10 text-teal uppercase">
                     {item.status === "A" ? "Active" : item.status}
@@ -690,6 +701,7 @@ function ResultGroup({
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     type="button"
+                    data-testid="provider-schedule-button"
                     onClick={() => openSchedulingFromProvider(item, query || `Schedule ${item.specialty || item.kind} with ${item.name}`)}
                     className="inline-flex items-center gap-1 rounded-full bg-midnight px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-[#12211d]"
                   >

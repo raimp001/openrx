@@ -30,7 +30,12 @@ import {
 import { useState, useEffect, useRef, useCallback } from "react"
 import { AppPageHeader } from "@/components/layout/app-page"
 import { OpsBadge } from "@/components/ui/ops-primitives"
-import { resolveCareHandoff, type CareHandoffAction } from "@/lib/care-handoff"
+import {
+  fallbackHrefForCareHandoff,
+  resolveCareHandoff,
+  safeSessionSetItem,
+  type CareHandoffAction,
+} from "@/lib/care-handoff"
 
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
@@ -123,8 +128,8 @@ export default function ChatPage() {
 
   const openCareHandoff = useCallback((action: CareHandoffAction) => {
     if (typeof window === "undefined") return
-    window.sessionStorage.setItem(action.storageKey, JSON.stringify(action.payload))
-    window.location.href = action.href
+    const stored = safeSessionSetItem(action.storageKey, JSON.stringify(action.payload))
+    window.location.href = stored ? action.href : fallbackHrefForCareHandoff(action)
   }, [])
 
   // Preload questions from homepage/dashboard ask panels. If the user explicitly

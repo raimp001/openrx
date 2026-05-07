@@ -1,7 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import {
   PROVIDER_HANDOFF_STORAGE_KEY,
-  SCHEDULING_HANDOFF_STORAGE_KEY,
   SCREENING_HANDOFF_STORAGE_KEY,
 } from "@/lib/care-handoff"
 
@@ -93,12 +92,14 @@ test("simple screening intake returns free recommendations", async ({ page }) =>
   await page.goto("/screening")
 
   await page
-    .getByLabel("Tell us your history in plain English")
+    .getByTestId("screening-narrative-input")
     .fill("I am 58, smoker, family history of stroke and diabetes.")
 
-  await page.getByRole("button", { name: "Get My Free Recommendations" }).click()
+  await page.getByTestId("screening-submit-preview").click()
 
   await expect(page.getByText("Recommended Screenings")).toBeVisible()
+  await expect(page.getByTestId("screening-section-due_now")).toBeVisible()
+  await expect(page.getByTestId("screening-recommendation-card")).toHaveCount(1)
   await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
   await expect(page.getByText("Evidence Sources")).toBeVisible()
   await expect(page.getByText("Failed to compute screening assessment.")).toHaveCount(0)
@@ -168,19 +169,77 @@ test("screening recommendation can hand off directly to care search", async ({ p
 
   await page.goto("/screening")
   await page
-    .getByLabel("Tell us your history in plain English")
+    .getByTestId("screening-narrative-input")
     .fill("I am 58 and need colorectal cancer screening.")
-  await page.getByRole("button", { name: "Get My Free Recommendations" }).click()
-  await page.getByRole("button", { name: "Find and schedule" }).first().click()
+  await page.getByTestId("screening-submit-preview").click()
+  await page.getByTestId("recommendation-find-schedule").first().click()
 
-  await expect(page).toHaveURL(/\/providers\?handoff=screening/)
+  await expect(page).toHaveURL(/\/providers\?handoff=screening&autorun=1&q=/)
   await expect(page.getByText("Loaded the screening recommendation")).toBeVisible()
   await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
   expect(providerQuery.toLowerCase()).toContain("gastroenterology")
   expect(providerQuery.toLowerCase()).toContain("colonoscopy")
 })
 
+test("screening recommendation handoff still works when sessionStorage is unavailable", async ({ page }) => {
+  await mockScreeningApis(page)
+  let providerQuery = ""
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "sessionStorage", {
+      configurable: true,
+      get() {
+        throw new DOMException("Blocked in sandbox", "SecurityError")
+      },
+    })
+  })
+  await page.route(/\/api\/providers\/search.*/, async (route) => {
+    providerQuery = new URL(route.request().url()).searchParams.get("q") || ""
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ready: true,
+        parsed: {
+          raw: providerQuery,
+          serviceTypes: ["provider"],
+          city: "",
+          state: "",
+          zip: "",
+          query: providerQuery,
+        },
+        prompt: { id: "care-search", image: "", text: "" },
+        count: 1,
+        matches: [
+          {
+            kind: "provider",
+            npi: "1234567890",
+            name: "OpenRx Gastroenterology",
+            specialty: "Gastroenterology",
+            taxonomyCode: "207RG0100X",
+            status: "A",
+            confidence: "high",
+            fullAddress: "100 Care Way, Portland, OR 97204",
+            phone: "503-555-0101",
+          },
+        ],
+      }),
+    })
+  })
+
+  await page.goto("/screening")
+  await page.getByTestId("screening-narrative-input").fill("I am 58 and need colorectal cancer screening.")
+  await page.getByTestId("screening-submit-preview").click()
+  await page.getByTestId("recommendation-find-schedule").first().click()
+
+  await expect(page).toHaveURL(/\/providers\?handoff=screening&autorun=1&q=/)
+  await expect(page.getByText("Loaded the screening recommendation")).toBeVisible()
+  await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
+  expect(providerQuery.toLowerCase()).toContain("colonoscopy")
+})
+
 test("screening recommendation can find a provider and carry that provider into scheduling", async ({ page }) => {
+  const pageErrors: string[] = []
+  page.on("pageerror", (error) => pageErrors.push(error.message))
   await mockScreeningApis(page)
   await page.route(/\/api\/providers\/search.*/, async (route) => {
     await route.fulfill({
@@ -240,21 +299,20 @@ test("screening recommendation can find a provider and carry that provider into 
 
   await page.goto("/screening")
   await page
-    .getByLabel("Tell us your history in plain English")
+    .getByTestId("screening-narrative-input")
     .fill("I am 58 and need colorectal cancer screening.")
-  await page.getByRole("button", { name: "Get My Free Recommendations" }).click()
-  await page.getByRole("button", { name: "Find and schedule" }).first().click()
+  await page.getByTestId("screening-submit-preview").click()
+  await page.getByTestId("recommendation-find-schedule").first().click()
 
-  await expect(page).toHaveURL(/\/providers\?handoff=screening/)
-  await page.getByRole("button", { name: "Schedule" }).first().click()
-  await expect(page).toHaveURL(/\/scheduling\?handoff=provider/)
+  await expect(page).toHaveURL(/\/providers\?handoff=screening&autorun=1&q=/)
+  await page.getByTestId("provider-schedule-button").first().click()
+  await expect(page).toHaveURL(/\/scheduling\?handoff=provider&source=provider&providerName=/)
+  await expect(page.getByTestId("scheduling-handoff-card")).toBeVisible()
   await expect(page.getByText("Ready to request this visit.")).toBeVisible()
   await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
-  await page.getByRole("button", { name: "Request appointment" }).click()
+  await page.getByTestId("scheduling-request-button").click()
   await expect(page.getByText("Scheduling request staged.")).toBeVisible()
-
-  const stored = await page.evaluate((key) => window.sessionStorage.getItem(key), SCHEDULING_HANDOFF_STORAGE_KEY)
-  expect(stored).toBeNull()
+  expect(pageErrors).toEqual([])
 })
 
 test("provider handoff from chat auto-searches without a second button press", async ({ page }) => {

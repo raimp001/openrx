@@ -13,7 +13,11 @@ import {
   Sparkles,
 } from "lucide-react"
 import { useState } from "react"
-import { resolveCareHandoff } from "@/lib/care-handoff"
+import {
+  fallbackHrefForCareHandoff,
+  resolveCareHandoff,
+  safeSessionSetItem,
+} from "@/lib/care-handoff"
 import { cn } from "@/lib/utils"
 
 type CareAskSuggestion = {
@@ -109,8 +113,8 @@ export function CareAskPanel({
 
     const action = resolveCareHandoff(trimmed, topic || "coordinator")
     if (action && typeof window !== "undefined") {
-      window.sessionStorage.setItem(action.storageKey, JSON.stringify(action.payload))
-      router.push(action.href)
+      const stored = safeSessionSetItem(action.storageKey, JSON.stringify(action.payload))
+      router.push(stored ? action.href : fallbackHrefForCareHandoff(action))
       return
     }
 

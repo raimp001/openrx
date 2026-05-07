@@ -11,6 +11,8 @@ import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import {
   SCHEDULING_HANDOFF_STORAGE_KEY,
   isFreshCareHandoff,
+  safeSessionGetItem,
+  safeSessionRemoveItem,
   type SchedulingHandoffPayload,
 } from "@/lib/care-handoff"
 
@@ -39,6 +41,28 @@ function parseSchedulingHandoff(raw: string | null): SchedulingHandoffPayload | 
     }
   } catch {
     return null
+  }
+}
+
+function parseSchedulingHandoffFromParams(params: URLSearchParams): SchedulingHandoffPayload | null {
+  if (params.get("handoff") !== "provider") return null
+  const providerName = params.get("providerName")?.trim()
+  const reason = params.get("reason")?.trim()
+  if (!providerName || !reason) return null
+  return {
+    source:
+      params.get("source") === "screening" || params.get("source") === "chat"
+        ? params.get("source") as "screening" | "chat"
+        : "provider",
+    providerName,
+    providerKind: params.get("providerKind") || "provider",
+    specialty: params.get("specialty") || undefined,
+    npi: params.get("npi") || undefined,
+    phone: params.get("phone") || undefined,
+    fullAddress: params.get("fullAddress") || undefined,
+    reason,
+    query: params.get("query") || undefined,
+    createdAt: Date.now(),
   }
 }
 
@@ -88,10 +112,13 @@ export default function SchedulingPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const stored = parseSchedulingHandoff(window.sessionStorage.getItem(SCHEDULING_HANDOFF_STORAGE_KEY))
-    window.sessionStorage.removeItem(SCHEDULING_HANDOFF_STORAGE_KEY)
-    if (stored) {
-      setSchedulingHandoff(stored)
+    const params = new URLSearchParams(window.location.search)
+    const fromParams = parseSchedulingHandoffFromParams(params)
+    const stored = parseSchedulingHandoff(safeSessionGetItem(SCHEDULING_HANDOFF_STORAGE_KEY))
+    safeSessionRemoveItem(SCHEDULING_HANDOFF_STORAGE_KEY)
+    const nextHandoff = fromParams || stored
+    if (nextHandoff) {
+      setSchedulingHandoff(nextHandoff)
       setRequestStatus("")
       setView("upcoming")
     }
@@ -196,7 +223,10 @@ export default function SchedulingPage() {
       />
 
       {schedulingHandoff ? (
-        <section className="surface-card border-teal/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,250,247,0.88))] p-5 sm:p-6">
+        <section
+          data-testid="scheduling-handoff-card"
+          className="surface-card border-teal/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,250,247,0.88))] p-5 sm:p-6"
+        >
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
               <p className="section-title">Scheduling handoff</p>
@@ -242,6 +272,7 @@ export default function SchedulingPage() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   type="button"
+                  data-testid="scheduling-request-button"
                   onClick={() => setRequestStatus("Scheduling request staged. Next: call the provider, send the referral/order context, and confirm coverage before the visit.")}
                   className="control-button-primary px-4 py-2 text-xs"
                 >

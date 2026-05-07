@@ -36,6 +36,76 @@ export interface CareHandoffAction {
   payload: ScreeningHandoffPayload | ProviderHandoffPayload | SchedulingHandoffPayload
 }
 
+export function safeSessionGetItem(key: string): string | null {
+  if (typeof window === "undefined") return null
+  try {
+    return window.sessionStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+export function safeSessionSetItem(key: string, value: string): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    window.sessionStorage.setItem(key, value)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function safeSessionRemoveItem(key: string): void {
+  if (typeof window === "undefined") return
+  try {
+    window.sessionStorage.removeItem(key)
+  } catch {
+    // Storage can be blocked in sandboxed iframes. Handoffs should still work
+    // through URL parameters for non-PHI operational context.
+  }
+}
+
+export function providerSearchHrefFromHandoff(query: string, source: ProviderHandoffPayload["source"] = "link") {
+  const params = new URLSearchParams({
+    handoff: source === "chat" ? "chat" : "screening",
+    autorun: "1",
+    q: query,
+  })
+  return `/providers?${params.toString()}`
+}
+
+export function schedulingHrefFromHandoff(payload: SchedulingHandoffPayload) {
+  const params = new URLSearchParams({
+    handoff: "provider",
+    source: payload.source,
+    providerName: payload.providerName,
+    providerKind: payload.providerKind,
+    reason: payload.reason,
+  })
+  if (payload.specialty) params.set("specialty", payload.specialty)
+  if (payload.npi) params.set("npi", payload.npi)
+  if (payload.phone) params.set("phone", payload.phone)
+  if (payload.fullAddress) params.set("fullAddress", payload.fullAddress)
+  if (payload.query) params.set("query", payload.query)
+  return `/scheduling?${params.toString()}`
+}
+
+export function fallbackHrefForCareHandoff(action: CareHandoffAction) {
+  if (action.storageKey === PROVIDER_HANDOFF_STORAGE_KEY) {
+    return providerSearchHrefFromHandoff((action.payload as ProviderHandoffPayload).query, (action.payload as ProviderHandoffPayload).source)
+  }
+  if (action.storageKey === SCHEDULING_HANDOFF_STORAGE_KEY) {
+    return schedulingHrefFromHandoff(action.payload as SchedulingHandoffPayload)
+  }
+  const payload = action.payload as ScreeningHandoffPayload
+  const params = new URLSearchParams({
+    handoff: payload.source,
+    autorun: payload.autorun ? "1" : "0",
+    prompt: payload.narrative,
+  })
+  return `/screening?${params.toString()}`
+}
+
 const SCREENING_TERMS = [
   "screening",
   "risk",

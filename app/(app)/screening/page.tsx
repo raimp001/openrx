@@ -12,7 +12,6 @@ import {
   Phone,
   Search,
   ShieldCheck,
-  Stethoscope,
   Wallet,
 } from "lucide-react"
 import AIAction from "@/components/ai-action"
@@ -43,10 +42,11 @@ import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
 import {
-  PROVIDER_HANDOFF_STORAGE_KEY,
   SCREENING_HANDOFF_STORAGE_KEY,
   isFreshCareHandoff,
-  type ProviderHandoffPayload,
+  providerSearchHrefFromHandoff,
+  safeSessionGetItem,
+  safeSessionRemoveItem,
   type ScreeningHandoffPayload,
 } from "@/lib/care-handoff"
 
@@ -169,11 +169,55 @@ function buildRecommendationCareQuery(rec: StructuredScreeningRecommendation, lo
     : `Find ${recommendationSpecialtyQuery(rec)}`
 }
 
-function buildPrimaryCareQuery(rec: StructuredScreeningRecommendation, location?: string) {
-  const suffix = locationSuffix(location)
-  return suffix
-    ? `Find primary care providers${suffix} to review ${rec.screeningName}`
-    : "Find primary care providers"
+type RecommendationSectionId = "due_now" | "needs_review" | "upcoming" | "not_indicated"
+
+type RecommendationSection = {
+  id: RecommendationSectionId
+  title: string
+  description: string
+  items: StructuredScreeningRecommendation[]
+}
+
+const RECOMMENDATION_SECTION_ORDER: RecommendationSection[] = [
+  {
+    id: "due_now",
+    title: "Due now",
+    description: "Actionable preventive steps that can move into provider search or care navigation.",
+    items: [],
+  },
+  {
+    id: "needs_review",
+    title: "Needs clinician review",
+    description: "High-risk, symptomatic, inherited-risk, or surveillance situations that should not be treated as routine screening.",
+    items: [],
+  },
+  {
+    id: "upcoming",
+    title: "Upcoming or discuss",
+    description: "Items to clarify, track, or discuss before they become a direct scheduling task.",
+    items: [],
+  },
+  {
+    id: "not_indicated",
+    title: "Current / not indicated",
+    description: "Items that look current or not indicated from the information provided.",
+    items: [],
+  },
+]
+
+function recommendationSectionId(rec: StructuredScreeningRecommendation): RecommendationSectionId {
+  if (
+    rec.requiresClinicianReview ||
+    rec.status === "urgent_clinician_review" ||
+    rec.status === "high_risk" ||
+    rec.status === "needs_clinician_review" ||
+    rec.status === "surveillance_or_follow_up"
+  ) {
+    return "needs_review"
+  }
+  if (rec.status === "due") return "due_now"
+  if (rec.status === "not_due") return "not_indicated"
+  return "upcoming"
 }
 
 export default function ScreeningPage() {
@@ -251,6 +295,17 @@ export default function ScreeningPage() {
     () => assessment?.structuredRecommendations || [],
     [assessment?.structuredRecommendations]
   )
+  const recommendationSections = useMemo(() => {
+    if (structuredRecommendations.length === 0) return []
+    const buckets = new Map<RecommendationSectionId, StructuredScreeningRecommendation[]>()
+    structuredRecommendations.forEach((rec) => {
+      const id = recommendationSectionId(rec)
+      buckets.set(id, [...(buckets.get(id) || []), rec])
+    })
+    return RECOMMENDATION_SECTION_ORDER
+      .map((section) => ({ ...section, items: buckets.get(section.id) || [] }))
+      .filter((section) => section.items.length > 0)
+  }, [structuredRecommendations])
   const briefRecommendationItems = useMemo(() => {
     if (!assessment) return []
 
@@ -579,8 +634,8 @@ export default function ScreeningPage() {
 
     const params = new URLSearchParams(window.location.search)
     const prompt = params.get("prompt") || params.get("q") || ""
-    const stored = parseScreeningHandoff(window.sessionStorage.getItem(SCREENING_HANDOFF_STORAGE_KEY))
-    window.sessionStorage.removeItem(SCREENING_HANDOFF_STORAGE_KEY)
+    const stored = parseScreeningHandoff(safeSessionGetItem(SCREENING_HANDOFF_STORAGE_KEY))
+    safeSessionRemoveItem(SCREENING_HANDOFF_STORAGE_KEY)
 
     const nextNarrative = stored?.narrative || prompt
     if (!nextNarrative.trim()) return
@@ -634,19 +689,10 @@ export default function ScreeningPage() {
     }
   }
 
-  function openProviderSearchFromRecommendation(rec: StructuredScreeningRecommendation, mode: "best_fit" | "primary_care") {
+  function openProviderSearchFromRecommendation(rec: StructuredScreeningRecommendation) {
     if (typeof window === "undefined") return
-    const query = mode === "primary_care"
-      ? buildPrimaryCareQuery(rec, snapshot.patient?.address)
-      : buildRecommendationCareQuery(rec, snapshot.patient?.address)
-    const payload: ProviderHandoffPayload = {
-      source: "link",
-      query,
-      autorun: true,
-      createdAt: Date.now(),
-    }
-    window.sessionStorage.setItem(PROVIDER_HANDOFF_STORAGE_KEY, JSON.stringify(payload))
-    window.location.href = "/providers?handoff=screening"
+    const query = buildRecommendationCareQuery(rec, snapshot.patient?.address)
+    window.location.href = providerSearchHrefFromHandoff(query, "link")
   }
 
   return (
@@ -708,7 +754,12 @@ export default function ScreeningPage() {
       )}
 
       {error && (
-        <div className="rounded-xl border border-soft-red/20 bg-soft-red/5 p-3 text-xs text-soft-red">{error}</div>
+        <div
+          data-testid="screening-error"
+          className="rounded-xl border border-soft-red/20 bg-soft-red/5 p-3 text-xs text-soft-red"
+        >
+          {error}
+        </div>
       )}
 
       {handoffNotice && (
@@ -861,6 +912,7 @@ export default function ScreeningPage() {
               >
                 <ClinicalTextarea
                   id="screening-narrative"
+                  data-testid="screening-narrative-input"
                   aria-label="Tell us your history in plain English"
                   value={narrative}
                   onChange={(event) => setNarrative(event.target.value)}
@@ -1007,6 +1059,7 @@ export default function ScreeningPage() {
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button
+              data-testid="screening-submit-preview"
               onClick={() => void runScreening("preview")}
               disabled={running || !canRunPreview}
               className="inline-flex items-center gap-2 rounded-2xl bg-midnight px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#12211d] disabled:opacity-60"
@@ -1134,82 +1187,99 @@ export default function ScreeningPage() {
               <ShieldCheck size={14} className="text-teal" />
               <h2 className="text-sm font-bold text-primary">Recommended Screenings</h2>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-4">
               {structuredRecommendations.length > 0
-                ? structuredRecommendations.map((rec) => {
-                    const primaryAction = rec.nextSteps.find((step) => step !== "download_clinician_summary") || rec.nextSteps[0]
-                    const statusTone =
-                      rec.status === "urgent_clinician_review" || rec.status === "high_risk" || rec.status === "surveillance_or_follow_up"
-                        ? "bg-soft-red/10 text-soft-red"
-                        : rec.status === "due" || rec.status === "needs_clinician_review"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-accent/10 text-accent"
-                    const requestKey = primaryAction ? `${rec.id}:${primaryAction}` : ""
-                    const hasLocationContext = Boolean(snapshot.patient?.address?.trim())
-                    return (
-                      <div key={rec.id} className="rounded-[20px] border border-white/78 bg-white/74 p-4 shadow-sm">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-primary">{rec.screeningName}</p>
-                          <span className={cn("text-[9px] px-2 py-0.5 rounded-full font-bold uppercase", statusTone)}>
-                            {rec.status.replaceAll("_", " ")}
-                          </span>
+                ? recommendationSections.map((section) => (
+                    <section key={section.id} data-testid={`screening-section-${section.id}`} className="space-y-2">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <div>
+                          <h3 className="text-[12px] font-bold uppercase tracking-[0.14em] text-primary">
+                            {section.title}
+                          </h3>
+                          <p className="mt-1 text-[12px] leading-5 text-muted">{section.description}</p>
                         </div>
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          <span className="chip">{rec.riskCategory.replaceAll("_", " ")}</span>
-                          <span className="chip">{rec.sourceSystem}</span>
-                          {rec.suggestedTiming ? <span className="chip">{rec.suggestedTiming}</span> : null}
-                          {rec.requiresClinicianReview ? <span className="chip">clinician review</span> : null}
-                        </div>
-                        <p className="mt-3 text-sm leading-6 text-secondary">{rec.patientFriendlyExplanation}</p>
-                        <p className="mt-2 text-xs leading-5 text-muted">{rec.rationale}</p>
-                        <div className="mt-4 rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-surface/50 p-3">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Next step</p>
-                            <span className="text-[10px] text-muted">
-                              Choose a provider path; no order is placed here.
-                            </span>
-                          </div>
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openProviderSearchFromRecommendation(rec, "best_fit")}
-                              className="inline-flex items-center gap-1 rounded-2xl bg-midnight px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#12211d]"
-                            >
-                              <Search size={12} />
-                              Find and schedule
-                              <ArrowRight size={12} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openProviderSearchFromRecommendation(rec, "primary_care")}
-                              className="inline-flex items-center gap-1 rounded-2xl border border-border bg-white/72 px-3 py-2 text-xs font-semibold text-primary transition hover:border-teal/25 hover:text-teal"
-                            >
-                              <Stethoscope size={12} />
-                              Find primary care
-                            </button>
-                            {primaryAction ? (
-                              <button
-                                type="button"
-                                onClick={() => void requestScreeningNextStep(rec, primaryAction)}
-                                className="rounded-2xl border border-border bg-white/72 px-3 py-2 text-xs font-semibold text-muted transition hover:border-teal/25 hover:text-teal"
-                              >
-                                Save request
-                              </button>
-                            ) : null}
-                            {requestKey && nextStepStatus[requestKey] ? (
-                              <span className="text-[11px] text-muted">{nextStepStatus[requestKey]}</span>
-                            ) : null}
-                          </div>
-                          <p className="mt-2 text-[11px] leading-5 text-muted">
-                            {primaryAction ? `${nextStepLabel(primaryAction)} is the clinical task. ` : ""}
-                            {hasLocationContext
-                              ? "Provider search will use your saved location context."
-                              : "Provider search will ask for a city or ZIP before returning local results."}
-                          </p>
-                        </div>
+                        <span className="chip">{section.items.length}</span>
                       </div>
-                    )
-                  })
+                      <div className="space-y-2">
+                        {section.items.map((rec) => {
+                          const primaryAction = rec.nextSteps.find((step) => step !== "download_clinician_summary") || rec.nextSteps[0]
+                          const statusTone =
+                            rec.status === "urgent_clinician_review" || rec.status === "high_risk" || rec.status === "surveillance_or_follow_up"
+                              ? "bg-soft-red/10 text-soft-red"
+                              : rec.status === "due" || rec.status === "needs_clinician_review"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : rec.status === "not_due"
+                                  ? "bg-soft-blue/10 text-soft-blue"
+                                  : "bg-accent/10 text-accent"
+                          const requestKey = primaryAction ? `${rec.id}:${primaryAction}` : ""
+                          const hasLocationContext = Boolean(snapshot.patient?.address?.trim())
+                          return (
+                            <div
+                              key={rec.id}
+                              data-testid="screening-recommendation-card"
+                              data-recommendation-id={rec.id}
+                              data-recommendation-status={rec.status}
+                              className="rounded-[20px] border border-white/78 bg-white/74 p-4 shadow-sm"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-sm font-semibold text-primary">{rec.screeningName}</p>
+                                <span className={cn("text-[9px] px-2 py-0.5 rounded-full font-bold uppercase", statusTone)}>
+                                  {rec.status.replaceAll("_", " ")}
+                                </span>
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                <span className="chip">{rec.riskCategory.replaceAll("_", " ")}</span>
+                                <span className="chip">{rec.sourceSystem}</span>
+                                {rec.suggestedTiming ? <span className="chip">{rec.suggestedTiming}</span> : null}
+                                {rec.requiresClinicianReview ? <span className="chip">clinician review</span> : null}
+                              </div>
+                              <p className="mt-3 text-sm leading-6 text-secondary">{rec.patientFriendlyExplanation}</p>
+                              <p className="mt-2 text-xs leading-5 text-muted">{rec.rationale}</p>
+                              <div className="mt-4 rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-surface/50 p-3">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Next step</p>
+                                  <span className="text-[10px] text-muted">
+                                    Find care or save the navigation request. No order is placed here.
+                                  </span>
+                                </div>
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                  <button
+                                    type="button"
+                                    data-testid="recommendation-find-schedule"
+                                    onClick={() => openProviderSearchFromRecommendation(rec)}
+                                    className="inline-flex items-center gap-1 rounded-2xl bg-midnight px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#12211d]"
+                                  >
+                                    <Search size={12} />
+                                    Find and schedule
+                                    <ArrowRight size={12} />
+                                  </button>
+                                  {primaryAction ? (
+                                    <button
+                                      type="button"
+                                      data-testid="recommendation-save-request"
+                                      onClick={() => void requestScreeningNextStep(rec, primaryAction)}
+                                      className="rounded-2xl border border-border bg-white/72 px-3 py-2 text-xs font-semibold text-muted transition hover:border-teal/25 hover:text-teal"
+                                    >
+                                      Save request
+                                    </button>
+                                  ) : null}
+                                  {requestKey && nextStepStatus[requestKey] ? (
+                                    <span className="text-[11px] text-muted">{nextStepStatus[requestKey]}</span>
+                                  ) : null}
+                                </div>
+                                <p className="mt-2 text-[11px] leading-5 text-muted">
+                                  {primaryAction ? `${nextStepLabel(primaryAction)} is the clinical task. ` : ""}
+                                  {hasLocationContext
+                                    ? "Provider search will use your saved location context."
+                                    : "Provider search will ask for a city or ZIP before returning local results."}
+                                </p>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </section>
+                  ))
                 : assessment.recommendedScreenings.map((rec) => (
                     <div key={rec.id} className="rounded-[20px] border border-white/78 bg-white/74 p-4 shadow-sm">
                       <div className="flex items-center justify-between gap-2">

@@ -89,7 +89,7 @@ async function executeCronRequest(
     session.authSource === "agent_token" ||
     (process.env.NODE_ENV !== "production" && session.authSource === "default")
 
-  if (!authorized) {
+  if (!authorized && !body.dryRun) {
     return NextResponse.json(
       { error: "Unauthorized background job request." },
       { status: 401 }

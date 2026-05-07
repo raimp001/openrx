@@ -2,9 +2,10 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Bot, Heart, LayoutDashboard, Menu, MessageSquare, Stethoscope, UserCircle, X } from "lucide-react"
+import { Bot, Heart, LayoutDashboard, Menu, MessageSquare, PhoneCall, Stethoscope, UserCircle, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { BrandMark, BrandWordmark } from "@/components/brand-logo"
+import ChatHistorySidebar from "@/components/chat/chat-history-sidebar"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { cn } from "@/lib/utils"
 
@@ -13,17 +14,24 @@ const navItems = [
   { href: "/dashboard", label: "My care", icon: LayoutDashboard, primary: true },
   { href: "/screening", label: "Screenings", icon: Heart },
   { href: "/providers", label: "Find care", icon: Stethoscope },
+  { href: "/outreach", label: "Outreach", icon: PhoneCall },
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/onboarding", label: "Setup", icon: UserCircle },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const isChatRoute = pathname === "/chat" || pathname?.startsWith("/chat/")
   const [mobileOpen, setMobileOpen] = useState(false)
   const { snapshot } = useLiveSnapshot()
   const unreadCount = snapshot.messages.filter((message) => !message.read).length
 
   const visibleItems = useMemo(() => navItems, [])
+
+  useEffect(() => {
+    if (isChatRoute) return
+    document.documentElement.style.setProperty("--openrx-sidebar-width", "76px")
+  }, [isChatRoute])
 
   useEffect(() => {
     setMobileOpen(false)
@@ -36,6 +44,10 @@ export default function Sidebar() {
     document.addEventListener("keydown", handleEscape)
     return () => document.removeEventListener("keydown", handleEscape)
   }, [])
+
+  if (isChatRoute) {
+    return <ChatHistorySidebar />
+  }
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(`${href}/`)
 

@@ -23,6 +23,7 @@ const ROUTES = [
   "/chat",
   "/wallet",
   "/dashboard/care-team",
+  "/outreach",
   "/emergency-card",
   "/join-network",
   "/onboarding",

@@ -3,51 +3,49 @@ import { cn } from "@/lib/utils"
 type BrandMarkProps = {
   className?: string
   iconClassName?: string
-  size?: "sm" | "md"
+  size?: "sm" | "md" | "lg"
+  tone?: "light" | "dark"
 }
 
-export function BrandMark({ className, iconClassName, size = "md" }: BrandMarkProps) {
-  const isSmall = size === "sm"
+const SIZE_PX: Record<NonNullable<BrandMarkProps["size"]>, { box: number; svg: number }> = {
+  sm: { box: 32, svg: 18 },
+  md: { box: 40, svg: 22 },
+  lg: { box: 56, svg: 32 },
+}
+
+/**
+ * OpenRx mark: a geometric decision lens. The nested diamond reads as a
+ * clinical signal moving from question to handoff without using a literal cross
+ * or Rx glyph, and remains legible at favicon size.
+ */
+export function BrandMark({ className, iconClassName, size = "md", tone = "dark" }: BrandMarkProps) {
+  const dims = SIZE_PX[size]
+  const isLight = tone === "light"
 
   return (
     <div
       className={cn(
-        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-[16px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(145deg,#07111F_0%,#10254A_56%,#064B5A_100%)] shadow-[0_16px_38px_rgba(8,24,46,0.16)]",
-        isSmall ? "h-9 w-9" : "h-11 w-11",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-[10px]",
+        isLight
+          ? "border border-[rgba(15,23,42,0.10)] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
+          : "border border-[rgba(15,23,42,0.32)] bg-[#0B1B33] shadow-[0_2px_6px_rgba(11,27,51,0.18)]",
         className
       )}
+      style={{ width: dims.box, height: dims.box }}
     >
-      <div className="absolute inset-[1px] rounded-[14px] bg-[radial-gradient(circle_at_26%_18%,rgba(95,140,255,0.44),transparent_38%),radial-gradient(circle_at_78%_82%,rgba(17,167,183,0.38),transparent_34%),linear-gradient(160deg,#07111F_0%,#10254A_56%,#064B5A_100%)]" />
-      <div className="absolute inset-x-2 top-1 h-px bg-gradient-to-r from-transparent via-white/32 to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_16%,rgba(125,211,252,0.26),transparent_42%),radial-gradient(circle_at_78%_80%,rgba(45,212,191,0.28),transparent_36%)]" />
       <svg
-        width={isSmall ? 22 : 26}
-        height={isSmall ? 22 : 26}
-        viewBox="0 0 32 32"
+        width={dims.svg}
+        height={dims.svg}
+        viewBox="0 0 24 24"
         fill="none"
         className={cn("relative", iconClassName)}
         aria-hidden
       >
-        <path
-          d="M23.9 8.65A11.2 11.2 0 1 0 27.05 17.05"
-          stroke="rgba(255,255,255,0.9)"
-          strokeWidth="2.35"
-          strokeLinecap="round"
-        />
-        <path
-          d="M9.85 16.35 14.1 20.55 22.8 10.9"
-          stroke="#9CB9FF"
-          strokeWidth="2.45"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M22.75 10.9c1.45 1.55 2.15 3.35 2.15 5.5 0 4.75-3.55 8.5-8.62 8.5-2.05 0-3.78-.48-5.22-1.43"
-          stroke="rgba(17,167,183,0.82)"
-          strokeWidth="1.55"
-          strokeLinecap="round"
-        />
-        <circle cx="23" cy="10.65" r="2.15" fill="#11A7B7" />
-        <circle cx="14.1" cy="20.55" r="1.45" fill="#5F8CFF" />
+        <path d="M12 2.9 21.1 12 12 21.1 2.9 12 12 2.9Z" fill={isLight ? "rgba(11,27,51,0.04)" : "rgba(255,255,255,0.08)"} stroke={isLight ? "#0B1B33" : "rgba(255,255,255,0.78)"} strokeWidth="1.7" />
+        <path d="M12 7.35 16.65 12 12 16.65 7.35 12 12 7.35Z" fill={isLight ? "rgba(15,118,110,0.08)" : "rgba(45,212,191,0.14)"} stroke={isLight ? "#0F766E" : "#7DD3FC"} strokeWidth="1.55" />
+        <path d="M12 9.85 14.15 12 12 14.15 9.85 12 12 9.85Z" fill={isLight ? "#0F766E" : "#2DD4BF"} />
+        <path d="M5.25 12h4M14.75 12h4" stroke={isLight ? "#0B1B33" : "rgba(255,255,255,0.82)"} strokeWidth="1.45" strokeLinecap="round" />
       </svg>
     </div>
   )
@@ -59,6 +57,7 @@ type BrandWordmarkProps = {
   subtitleClassName?: string
   titleClassName?: string
   titleAs?: "p" | "span"
+  tone?: "light" | "dark"
 }
 
 export function BrandWordmark({
@@ -67,16 +66,20 @@ export function BrandWordmark({
   subtitleClassName,
   titleClassName,
   titleAs = "p",
+  tone = "light",
 }: BrandWordmarkProps) {
   const Title = titleAs
+  const titleColor = tone === "dark" ? "text-white" : "text-primary"
+  const subtitleColor = tone === "dark" ? "text-white/56" : "text-muted"
+
   return (
     <div className={cn("min-w-0", className)}>
-      <Title className={cn("truncate text-[15px] font-semibold tracking-[-0.05em] text-primary", titleClassName)}>
+      <Title className={cn("truncate text-[15px] font-semibold tracking-[-0.02em]", titleColor, titleClassName)}>
         OpenRx
       </Title>
       {subtitle ? (
-        <p className={cn("text-[9px] font-semibold uppercase tracking-[0.16em] text-muted", subtitleClassName)}>
-          Screening to follow-up
+        <p className={cn("text-[10px] font-medium uppercase tracking-[0.18em]", subtitleColor, subtitleClassName)}>
+          Clinical handoffs
         </p>
       ) : null}
     </div>

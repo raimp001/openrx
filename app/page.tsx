@@ -1,55 +1,67 @@
 "use client"
 
 import Link from "next/link"
-import {
-  CheckCircle2,
-  Stethoscope,
-} from "lucide-react"
-import { BrandMark, BrandWordmark } from "@/components/brand-logo"
+import { ShieldCheck, FileText, Sparkles } from "lucide-react"
+import { BrandMark } from "@/components/brand-logo"
 import { CareAskPanel } from "@/components/care-ask-panel"
-import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
 
-const trustNotes = [
-  "No account first",
-  "Screening, care search, bills",
-  "Clinician-safe handoffs",
+const trustNotes: Array<{ icon: typeof Sparkles; label: string }> = [
+  { icon: Sparkles, label: "Answer-first chat — no extra forms" },
+  { icon: FileText, label: "Sources from USPSTF, CDC, ACS, NCCN" },
+  { icon: ShieldCheck, label: "Decision support, not a diagnosis" },
 ]
 
 export default function LandingPage() {
-  const scrollRef = useScrollReveal()
-
   return (
-    <div ref={scrollRef} className="relative min-h-screen overflow-hidden bg-surface">
-      <div className="pointer-events-none absolute left-1/2 top-[-18rem] h-[48rem] w-[48rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(29,78,216,0.11),transparent_68%)] blur-3xl" />
-
-      <header className="relative z-50">
-        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-5 sm:px-6">
-          <Link href="/" className="flex items-center gap-3" aria-label="OpenRx home">
+    <div className="relative min-h-screen bg-surface">
+      <header className="border-b border-border/70 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-5 sm:px-6">
+          <Link href="/" className="flex items-center gap-2.5" aria-label="OpenRx home">
             <BrandMark size="sm" />
-            <BrandWordmark titleClassName="text-[15px] font-semibold text-primary" subtitle={false} />
+            <span className="text-[15px] font-semibold tracking-tight text-primary">OpenRx</span>
           </Link>
-          <nav className="flex items-center gap-1 text-sm font-medium text-secondary">
-            <Link href="/privacy-explained" className="rounded-full px-3 py-2 transition hover:bg-white hover:text-primary">
+          <nav className="flex items-center gap-1 text-[13px] font-medium text-muted">
+            <Link
+              href="/privacy-explained"
+              className="rounded-md px-3 py-1.5 transition hover:bg-surface-2 hover:text-primary"
+            >
               Privacy
             </Link>
-            <Link href="/dashboard" className="hidden rounded-full px-3 py-2 transition hover:bg-white hover:text-primary sm:inline-flex">
-              Demo
+            <Link
+              href="/dashboard"
+              className="hidden rounded-md px-3 py-1.5 transition hover:bg-surface-2 hover:text-primary sm:inline-flex"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/chat"
+              className="ml-1 inline-flex items-center gap-1.5 rounded-md bg-navy px-3 py-1.5 text-white transition hover:bg-navy-hover"
+            >
+              Open chat
             </Link>
           </nav>
         </div>
       </header>
 
-      <main className="relative mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col px-5 pb-10 pt-8 sm:px-6 lg:justify-center lg:pt-0">
-        <section id="ask-openrx" className="mx-auto w-full max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(82,108,139,0.12)] bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
-            <Stethoscope size={13} className="text-accent" />
-            Ask. Route. Finish.
-          </div>
-          <h1 className="mx-auto mt-7 max-w-4xl font-serif text-[clamp(3.8rem,10vw,8.8rem)] leading-[0.82] tracking-[-0.085em] text-primary">
-            Ask OpenRx.
+      <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-3xl flex-col px-5 pb-12 pt-12 sm:px-6 sm:pt-16 lg:justify-center lg:pt-0">
+        <section
+          id="ask-openrx"
+          aria-labelledby="landing-heading"
+          className="mx-auto w-full text-center"
+        >
+          <span className="eyebrow-pill mx-auto">
+            <Sparkles size={11} className="text-teal" />
+            Clinical answers, in chat
+          </span>
+          <h1
+            id="landing-heading"
+            className="mx-auto mt-5 max-w-2xl text-balance text-[clamp(2.4rem,5vw,3.6rem)] font-semibold leading-[1.05] tracking-[-0.022em] text-primary"
+          >
+            Ask a clinical question. Get the answer in chat — with sources.
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-secondary">
-            One sentence in. The right care path out.
+          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-7 text-muted">
+            OpenRx answers screening, medication, and preventive-care questions directly in the
+            conversation. Guideline links inline. No extra forms unless they&apos;re truly needed.
           </p>
 
           <div className="mt-7">
@@ -57,37 +69,33 @@ export default function LandingPage() {
               eyebrow=""
               title=""
               description=""
-              placeholder="Ask about screening, finding care, a bill, or what to do next..."
+              placeholder="Ask about screening, medications, a bill, or what to do next…"
               minimal
-              className="mx-auto border-[rgba(82,108,139,0.14)] bg-white/88 text-left shadow-[0_24px_80px_rgba(8,24,46,0.10)]"
+              className="mx-auto"
             />
           </div>
 
-          <div className="mx-auto mt-4 flex max-w-xl flex-wrap justify-center gap-2">
-            {trustNotes.map((note) => (
-              <span key={note} className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-muted">
-                <CheckCircle2 size={12} className="text-accent" />
-                {note}
-              </span>
+          <ul className="mx-auto mt-6 flex max-w-xl flex-wrap justify-center gap-x-5 gap-y-2 text-[12px] text-muted">
+            {trustNotes.map(({ icon: Icon, label }) => (
+              <li key={label} className="inline-flex items-center gap-1.5">
+                <Icon size={12} className="text-teal" />
+                {label}
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
 
-        <footer className="mt-auto flex flex-col items-center justify-between gap-4 pt-12 text-xs text-muted sm:flex-row">
+        <footer className="mt-auto flex flex-col items-center justify-between gap-4 pt-16 text-[12px] text-muted sm:flex-row">
           <div className="flex items-center gap-2">
-            <BrandMark size="sm" />
+            <BrandMark size="sm" tone="light" />
             <span>OpenRx</span>
+            <span aria-hidden>·</span>
+            <span>2026</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link href="/dashboard" className="hover:text-primary">
-              Demo
-            </Link>
-            <Link href="/join-network" className="hover:text-primary">
-              Join network
-            </Link>
-            <Link href="/privacy-explained" className="hover:text-primary">
-              Privacy
-            </Link>
+            <Link href="/dashboard" className="hover:text-primary">Demo dashboard</Link>
+            <Link href="/join-network" className="hover:text-primary">For clinicians</Link>
+            <Link href="/privacy-explained" className="hover:text-primary">Privacy</Link>
           </div>
         </footer>
       </main>

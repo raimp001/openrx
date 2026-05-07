@@ -55,7 +55,6 @@ const CONDITION_KEYWORDS = [
   "asthma",
   "heart disease",
   "stroke",
-  "cancer",
 ]
 
 const SCREENING_HISTORY_KEYWORDS = [
@@ -176,6 +175,7 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
 
   const ageMatch =
     lowered.match(/\bage\s*(?:is|=|:)?\s*(\d{1,3})\b/) ||
+    lowered.match(/\b(\d{1,3})[-\s]*(?:years?[-\s]*old|year[-\s]*old)\b/) ||
     lowered.match(/\b(\d{1,3})\s*(?:years?\s*old|yo|y\/o)\b/) ||
     lowered.match(/\bi am\s+(\d{1,3})\b/) ||
     lowered.match(/\b(\d{2})\s*(?:m|male|man|f|female|woman)\b/)
@@ -211,6 +211,13 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     ...CONDITION_KEYWORDS.filter((keyword) => lowered.includes(keyword)),
     ...smokingContext,
   ])
+
+  const personalCancerMatch = lowered.match(
+    /\b(?:personal history of|history of|survivor of|treated for|diagnosed with|i had|i have had)\s+([^.!?\n]{0,42}?(?:cancer|carcinoma|melanoma))\b/
+  )
+  if (personalCancerMatch?.[1]) {
+    conditions.push(`personal history of ${personalCancerMatch[1].trim()}`)
+  }
 
   SCREENING_HISTORY_KEYWORDS.forEach((keyword) => {
     const found = keyword.length <= 3 ? hasWord(lowered, keyword) : lowered.includes(keyword)

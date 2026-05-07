@@ -43,6 +43,36 @@ test("Ask page sends a patient question through the OpenClaw chat surface", asyn
   await expect(page.getByText("How can I help you today?")).toBeVisible()
 })
 
+test("Ask page saves and restores a clinical chat from the history sidebar", async ({ page }) => {
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+
+  const question = `What screening is due for a 57-year-old man?`
+
+  await page.goto("/chat")
+  await page.getByTestId("chat-input").fill(question)
+  await page.getByTestId("chat-send-button").click()
+
+  await expect(page.getByTestId("chat-message-agent").filter({ hasText: "Direct answer" }).last()).toBeVisible()
+  await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
+  await expect(page).toHaveURL(/\/chat\?c=/)
+  const history = page.locator('aside[aria-label="Chat history"]:visible')
+  await expect(history).toBeVisible()
+  await expect(history.getByTestId("chat-history-item").filter({ hasText: "57-year-old man" }).first()).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByTestId("chat-message-user").filter({ hasText: question })).toBeVisible()
+  await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
+
+  await history.getByTestId("chat-history-search").fill("57-year-old")
+  await expect(history.getByTestId("chat-history-item").filter({ hasText: "57-year-old man" }).first()).toBeVisible()
+})
+
 test("Medication pricing search returns verified details and visible pricing", async ({ page }) => {
   await page.route(/\/api\/drug-prices\?/, async (route) => {
     const url = new URL(route.request().url())

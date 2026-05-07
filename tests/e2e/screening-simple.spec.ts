@@ -1,7 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import {
   PROVIDER_HANDOFF_STORAGE_KEY,
-  SCHEDULING_HANDOFF_STORAGE_KEY,
   SCREENING_HANDOFF_STORAGE_KEY,
 } from "@/lib/care-handoff"
 
@@ -93,12 +92,14 @@ test("simple screening intake returns free recommendations", async ({ page }) =>
   await page.goto("/screening")
 
   await page
-    .getByLabel("Tell us your history in plain English")
+    .getByTestId("screening-narrative-input")
     .fill("I am 58, smoker, family history of stroke and diabetes.")
 
-  await page.getByRole("button", { name: "Get My Free Recommendations" }).click()
+  await page.getByTestId("screening-submit-preview").click()
 
   await expect(page.getByText("Recommended Screenings")).toBeVisible()
+  await expect(page.getByTestId("screening-section-due_now")).toBeVisible()
+  await expect(page.getByTestId("screening-recommendation-card")).toHaveCount(1)
   await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
   await expect(page.getByText("Evidence Sources")).toBeVisible()
   await expect(page.getByText("Failed to compute screening assessment.")).toHaveCount(0)
@@ -168,19 +169,77 @@ test("screening recommendation can hand off directly to care search", async ({ p
 
   await page.goto("/screening")
   await page
-    .getByLabel("Tell us your history in plain English")
+    .getByTestId("screening-narrative-input")
     .fill("I am 58 and need colorectal cancer screening.")
-  await page.getByRole("button", { name: "Get My Free Recommendations" }).click()
-  await page.getByRole("button", { name: "Find and schedule" }).first().click()
+  await page.getByTestId("screening-submit-preview").click()
+  await page.getByTestId("recommendation-find-schedule").first().click()
 
-  await expect(page).toHaveURL(/\/providers\?handoff=screening/)
+  await expect(page).toHaveURL(/\/providers\?handoff=screening&autorun=1&q=/)
   await expect(page.getByText("Loaded the screening recommendation")).toBeVisible()
   await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
   expect(providerQuery.toLowerCase()).toContain("gastroenterology")
   expect(providerQuery.toLowerCase()).toContain("colonoscopy")
 })
 
+test("screening recommendation handoff still works when sessionStorage is unavailable", async ({ page }) => {
+  await mockScreeningApis(page)
+  let providerQuery = ""
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "sessionStorage", {
+      configurable: true,
+      get() {
+        throw new DOMException("Blocked in sandbox", "SecurityError")
+      },
+    })
+  })
+  await page.route(/\/api\/providers\/search.*/, async (route) => {
+    providerQuery = new URL(route.request().url()).searchParams.get("q") || ""
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ready: true,
+        parsed: {
+          raw: providerQuery,
+          serviceTypes: ["provider"],
+          city: "",
+          state: "",
+          zip: "",
+          query: providerQuery,
+        },
+        prompt: { id: "care-search", image: "", text: "" },
+        count: 1,
+        matches: [
+          {
+            kind: "provider",
+            npi: "1234567890",
+            name: "OpenRx Gastroenterology",
+            specialty: "Gastroenterology",
+            taxonomyCode: "207RG0100X",
+            status: "A",
+            confidence: "high",
+            fullAddress: "100 Care Way, Portland, OR 97204",
+            phone: "503-555-0101",
+          },
+        ],
+      }),
+    })
+  })
+
+  await page.goto("/screening")
+  await page.getByTestId("screening-narrative-input").fill("I am 58 and need colorectal cancer screening.")
+  await page.getByTestId("screening-submit-preview").click()
+  await page.getByTestId("recommendation-find-schedule").first().click()
+
+  await expect(page).toHaveURL(/\/providers\?handoff=screening&autorun=1&q=/)
+  await expect(page.getByText("Loaded the screening recommendation")).toBeVisible()
+  await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
+  expect(providerQuery.toLowerCase()).toContain("colonoscopy")
+})
+
 test("screening recommendation can find a provider and carry that provider into scheduling", async ({ page }) => {
+  const pageErrors: string[] = []
+  page.on("pageerror", (error) => pageErrors.push(error.message))
   await mockScreeningApis(page)
   await page.route(/\/api\/providers\/search.*/, async (route) => {
     await route.fulfill({
@@ -240,21 +299,20 @@ test("screening recommendation can find a provider and carry that provider into 
 
   await page.goto("/screening")
   await page
-    .getByLabel("Tell us your history in plain English")
+    .getByTestId("screening-narrative-input")
     .fill("I am 58 and need colorectal cancer screening.")
-  await page.getByRole("button", { name: "Get My Free Recommendations" }).click()
-  await page.getByRole("button", { name: "Find and schedule" }).first().click()
+  await page.getByTestId("screening-submit-preview").click()
+  await page.getByTestId("recommendation-find-schedule").first().click()
 
-  await expect(page).toHaveURL(/\/providers\?handoff=screening/)
-  await page.getByRole("button", { name: "Schedule" }).first().click()
-  await expect(page).toHaveURL(/\/scheduling\?handoff=provider/)
+  await expect(page).toHaveURL(/\/providers\?handoff=screening&autorun=1&q=/)
+  await page.getByTestId("provider-schedule-button").first().click()
+  await expect(page).toHaveURL(/\/scheduling\?handoff=provider&source=provider&providerName=/)
+  await expect(page.getByTestId("scheduling-handoff-card")).toBeVisible()
   await expect(page.getByText("Ready to request this visit.")).toBeVisible()
   await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
-  await page.getByRole("button", { name: "Request appointment" }).click()
+  await page.getByTestId("scheduling-request-button").click()
   await expect(page.getByText("Scheduling request staged.")).toBeVisible()
-
-  const stored = await page.evaluate((key) => window.sessionStorage.getItem(key), SCHEDULING_HANDOFF_STORAGE_KEY)
-  expect(stored).toBeNull()
+  expect(pageErrors).toEqual([])
 })
 
 test("provider handoff from chat auto-searches without a second button press", async ({ page }) => {
@@ -380,4 +438,145 @@ test("chat prompt autorun answers after landing submit without a second send", a
 
   await expect(page.getByText("Review the bill amount")).toBeVisible()
   expect(postedMessage).toBe("Explain this bill")
+})
+
+test("chat answers cancer screening questions inline with guideline links", async ({ page }) => {
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+
+  await page.goto("/chat")
+  await page.getByTestId("chat-input").fill("What cancer screening does a 50-year-old woman need?")
+  await page.getByTestId("chat-send-button").click()
+
+  await expect(page).toHaveURL(/\/chat/)
+  await expect(page).not.toHaveURL(/\/screening/)
+  await expect(page.getByText("Direct answer")).toBeVisible()
+  await expect(page.getByText("Breast cancer screening").first()).toBeVisible()
+  await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
+  await expect(page.getByText("Cervical cancer screening").first()).toBeVisible()
+  await expect(page.getByRole("link", { name: /USPSTF.*Breast cancer screening/i }).first()).toBeVisible()
+  await expect(page.getByRole("button", { name: "Open screening plan" })).toHaveCount(0)
+})
+
+test("landing screening suggestion opens chat and does not redirect to screening page", async ({ page }) => {
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+
+  await page.goto("/")
+  await page.getByRole("button", { name: "What screening is due?" }).click()
+
+  await expect(page).toHaveURL(/\/chat\?/)
+  await expect(page).not.toHaveURL(/\/screening/)
+  await expect(page.getByText("Direct answer")).toBeVisible()
+  await expect(page.getByRole("link", { name: /CDC: Cancer screening tests/i })).toBeVisible()
+})
+
+test("chat keeps medication symptom and prevention questions in conversation", async ({ page }) => {
+  const routedAgents: string[] = []
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+  await page.route(/\/api\/openclaw\/chat$/, async (route) => {
+    const body = route.request().postDataJSON() as { agentId?: string; message?: string }
+    routedAgents.push(body.agentId || "")
+    const response = body.agentId === "triage"
+      ? "If chest pain or trouble breathing is present, seek emergency care now. I can also help organize follow-up after urgent symptoms are addressed."
+      : body.agentId === "rx"
+        ? "For medication questions, confirm the exact drug, dose, kidney history, allergies, and prescriber. Do not stop prescribed medication without clinician guidance."
+        : "For prevention, I can answer here first and cite guideline-backed steps before any scheduling handoff."
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ response, agentId: body.agentId || "coordinator" }),
+    })
+  })
+
+  await page.goto("/chat")
+  await page.getByTestId("chat-input").fill("Medication question: can I take ibuprofen with lisinopril?")
+  await page.getByTestId("chat-send-button").click()
+  await expect(page.getByText("For medication questions")).toBeVisible()
+  await expect(page).toHaveURL(/\/chat/)
+
+  await page.getByTestId("chat-input").fill("I have chest pain and shortness of breath")
+  await page.getByTestId("chat-send-button").click()
+  await expect(page.getByText("seek emergency care now")).toBeVisible()
+  await expect(page).toHaveURL(/\/chat/)
+
+  await page.getByTestId("chat-input").fill("What vaccines should a 55-year-old man ask about?")
+  await page.getByTestId("chat-send-button").click()
+  await expect(page.getByText("guideline-backed steps")).toBeVisible()
+  await expect(page).toHaveURL(/\/chat/)
+
+  expect(routedAgents).toContain("rx")
+  expect(routedAgents).toContain("triage")
+  expect(routedAgents).toContain("wellness")
+})
+
+test("chat renders structured screening sections and a citation rail", async ({ page }) => {
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+
+  await page.goto("/chat")
+  await page.getByTestId("chat-input").fill("What cancer screening does a 50-year-old woman need?")
+  await page.getByTestId("chat-send-button").click()
+
+  // Structured section testids exposed by the redesigned answer renderer
+  await expect(page.getByTestId("chat-section-direct-answer")).toBeVisible()
+  await expect(page.getByTestId("chat-section-due-now")).toBeVisible()
+  await expect(page.getByTestId("chat-section-references")).toHaveCount(0) // refs render as a rail
+  await expect(page.getByTestId("chat-citations")).toBeVisible()
+
+  // Citations row exposes guideline pills with testids
+  const citations = page.getByTestId("chat-citation")
+  await expect(citations.first()).toBeVisible()
+  expect(await citations.count()).toBeGreaterThan(0)
+})
+
+test("chat shows quick prompts on first load and hides them after first send", async ({ page }) => {
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+  await page.route(/\/api\/openclaw\/chat$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        response:
+          "Direct answer: ack.\n\nWhat to do now\nNothing to do.\n\nReferences\n- [CDC](https://www.cdc.gov/)\n\nSafety note\nDecision support only.",
+        agentId: "coordinator",
+      }),
+    })
+  })
+
+  await page.goto("/chat")
+  await expect(page.getByTestId("chat-quick-prompts")).toBeVisible()
+
+  await page.getByTestId("chat-input").fill("Hello")
+  await page.getByTestId("chat-send-button").click()
+
+  await expect(page.getByTestId("chat-message-agent").first()).toBeVisible()
+  await expect(page.getByTestId("chat-quick-prompts")).toHaveCount(0)
 })

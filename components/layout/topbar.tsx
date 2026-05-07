@@ -30,6 +30,7 @@ function shortenAddress(address: string): string {
 
 export default function Topbar() {
   const pathname = usePathname()
+  const isChatRoute = pathname === "/chat" || pathname?.startsWith("/chat/")
   const { snapshot, getPhysician } = useLiveSnapshot()
   const { isConnected, profile, walletAddress } = useWalletIdentity()
   const displayName = isConnected
@@ -182,6 +183,10 @@ export default function Topbar() {
   useEffect(() => {
     setActiveIndex(-1)
   }, [query])
+
+  if (isChatRoute) {
+    return null
+  }
 
   return (
     <header className="sticky top-0 z-30 px-4 pt-3 sm:px-6 lg:px-8">

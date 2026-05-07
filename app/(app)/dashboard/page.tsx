@@ -178,11 +178,23 @@ export default function DashboardPage() {
         suggestions={dashboardCareAskSuggestions}
       />
 
+      {!isConnected ? (
+        <div
+          data-testid="dashboard-demo-banner"
+          className="rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-2 text-[12px] text-amber-800"
+        >
+          <span className="mr-2 rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-900">
+            Demo
+          </span>
+          You’re viewing example data. Connect an account to see your live care brief.
+        </div>
+      ) : null}
+
       <section className="grid gap-3 md:grid-cols-4">
-        <CareMetric label="Needs attention" value={attentionCount} />
-        <CareMetric label="Labs flagged" value={abnormalLabCount} />
-        <CareMetric label="Vaccines due" value={dueVaccines.length} />
-        <CareMetric label="Claims denied" value={deniedClaims.length} />
+        <CareMetric label={isConnected ? "Needs attention" : "Needs attention (demo)"} value={attentionCount} />
+        <CareMetric label={isConnected ? "Labs flagged" : "Labs flagged (demo)"} value={abnormalLabCount} />
+        <CareMetric label={isConnected ? "Vaccines due" : "Vaccines due (demo)"} value={dueVaccines.length} />
+        <CareMetric label={isConnected ? "Claims denied" : "Claims denied (demo)"} value={deniedClaims.length} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">

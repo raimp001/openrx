@@ -72,7 +72,7 @@ test("BRCA2 routes to hereditary genetics and high-risk review", () => {
 
   expect(hereditary?.status).toBe("high_risk")
   expect(hereditary?.riskCategory).toBe("hereditary_risk")
-  expect(hereditary?.sourceSystem).toBe("PENDING")
+  expect(hereditary?.sourceSystem).toBe("Clinician / genetics review")
   expect(hereditary?.nextSteps).toContain("request_genetic_counseling")
 })
 
@@ -170,6 +170,20 @@ test("screening chat answers common age-sex prompts directly with source links",
   expect(response).toContain("Cervical cancer screening")
   expect(response).toContain("References")
   expect(response).toContain("https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/breast-cancer-screening")
+  // Engineering placeholder must never reach the patient-facing chat output.
+  expect(response).not.toContain("not fully encoded")
+  expect(response).not.toContain("PENDING")
+})
+
+test("screening chat output uses clinical-facing high-risk language instead of engineering placeholders", () => {
+  const response = buildDeterministicScreeningResponse(
+    "I am 58 male, father had prostate cancer at 52, BRCA2 mutation carrier",
+  )
+
+  expect(response).not.toContain("not fully encoded")
+  expect(response).not.toContain("invented intervals")
+  // Either the high-risk pathway shows up by source label, or no Pending tag leaks through.
+  expect(response).not.toContain("PENDING")
 })
 
 test("assessment promotes actionable inherited-risk recommendations instead of only a low risk score", () => {

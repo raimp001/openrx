@@ -1,14 +1,35 @@
 "use client"
 
 import Link from "next/link"
-import { ShieldCheck, FileText, Sparkles } from "lucide-react"
+import { ShieldCheck, FileText, Sparkles, Activity, Microscope, Heart } from "lucide-react"
 import { BrandMark } from "@/components/brand-logo"
 import { CareAskPanel } from "@/components/care-ask-panel"
 
 const trustNotes: Array<{ icon: typeof Sparkles; label: string }> = [
   { icon: Sparkles, label: "Answer-first chat — no extra forms" },
-  { icon: FileText, label: "Sources from USPSTF, CDC, ACS, NCCN" },
+  { icon: FileText, label: "Sources: USPSTF · CDC · ACS · NCCN" },
   { icon: ShieldCheck, label: "Decision support, not a diagnosis" },
+]
+
+const missionPillars: Array<{ icon: typeof Sparkles; title: string; detail: string }> = [
+  {
+    icon: Microscope,
+    title: "Early detection",
+    detail:
+      "Risk-stratified screening recommendations from USPSTF, ACS, NCCN — grouped by Due now / Discuss / Current.",
+  },
+  {
+    icon: Heart,
+    title: "Care navigation",
+    detail:
+      "Concrete pathway steps for colorectal, breast, lung, cervical, and prostate screening — with referral, coverage, and prep cues.",
+  },
+  {
+    icon: Activity,
+    title: "Action-oriented",
+    detail:
+      "Each answer surfaces what to do next, where to click, and who to ask — not a wall of text.",
+  },
 ]
 
 export default function LandingPage() {
@@ -84,6 +105,32 @@ export default function LandingPage() {
             ))}
           </ul>
         </section>
+
+        <section
+          aria-labelledby="mission-heading"
+          className="mx-auto mt-14 grid w-full max-w-3xl gap-3 sm:grid-cols-3"
+        >
+          <h2 id="mission-heading" className="sr-only">
+            Why OpenRx exists
+          </h2>
+          {missionPillars.map(({ icon: Icon, title, detail }) => (
+            <div
+              key={title}
+              className="rounded-[16px] border border-border bg-white p-4 text-left shadow-card"
+            >
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-teal/10 text-teal-dark">
+                <Icon size={14} />
+              </span>
+              <p className="mt-3 text-[14px] font-semibold text-primary">{title}</p>
+              <p className="mt-1.5 text-[12px] leading-5 text-muted">{detail}</p>
+            </div>
+          ))}
+        </section>
+
+        <p className="mx-auto mt-6 max-w-xl text-center text-[11px] leading-5 text-muted">
+          Scope: preventive screening guidance, care navigation, and clinical decision support — not a substitute for a clinician.
+          OpenRx never stores data you don’t share, and uses session-only context for general questions.
+        </p>
 
         <footer className="mt-auto flex flex-col items-center justify-between gap-4 pt-16 text-[12px] text-muted sm:flex-row">
           <div className="flex items-center gap-2">

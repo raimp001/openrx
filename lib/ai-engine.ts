@@ -88,15 +88,177 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+// Care-navigation pathway library — concrete steps for "how do I schedule X" /
+// "find care for X" intent. Lead with substance, not a survey.
+interface CarePathway {
+  match: RegExp
+  title: string
+  summary: string
+  steps: string[]
+  followUps: string[]
+  references: Array<{ label: string; url: string }>
+}
+
+const CARE_PATHWAYS: CarePathway[] = [
+  {
+    match: /\b(colon|colorectal|colonoscop|fit-?dna|cologuard)\b/i,
+    title: "colorectal cancer screening",
+    summary:
+      "USPSTF recommends colorectal cancer screening for average-risk adults ages 45–75 (selective 76–85). Common options: colonoscopy every 10 years, FIT every year, or stool DNA-FIT every 1–3 years. Family history or symptoms move you to a clinician-driven pathway sooner.",
+    steps: [
+      "Confirm risk tier: average risk vs first-degree relative with CRC/advanced polyps, known Lynch/FAP, IBD, or new GI symptoms (bleeding, change in stools, weight loss).",
+      "Choose the test with your clinician: colonoscopy (gold standard, sedation, prep) or stool-based FIT/FIT-DNA (no prep, but a positive result still requires colonoscopy).",
+      "Get the order or referral: a PCP can order stool tests directly; colonoscopy usually needs a GI referral or direct-access scheduling at a colonoscopy center.",
+      "Verify coverage: under the ACA, screening colonoscopy and FIT/FIT-DNA are typically $0 cost-share — confirm the CPT/diagnosis code with the plan so a polyp removal is not reclassified as diagnostic.",
+      "Schedule and prep: book the procedure 4–8 weeks out, follow the bowel-prep instructions exactly, and arrange a ride home if sedation is used.",
+    ],
+    followUps: [
+      "Are you average risk, or do you have family history, prior polyps, IBD, or symptoms?",
+      "Do you prefer colonoscopy or a stool-based test (FIT / FIT-DNA)?",
+      "Do you have a PCP and an in-network gastroenterology option?",
+    ],
+    references: [
+      { label: "USPSTF: Colorectal cancer screening (2021)", url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening" },
+      { label: "ACS: Colorectal cancer screening guidelines", url: "https://www.cancer.org/cancer/types/colon-rectal-cancer/detection-diagnosis-staging/acs-recommendations.html" },
+      { label: "CDC: Colorectal cancer screening tests", url: "https://www.cdc.gov/colorectal-cancer/screening/index.html" },
+    ],
+  },
+  {
+    match: /\b(mammogram|breast\s*cancer)\b/i,
+    title: "breast cancer screening",
+    summary:
+      "USPSTF (2024) recommends biennial mammography for average-risk people assigned female at birth ages 40–74. Personal/family history of breast or ovarian cancer or known BRCA may move you to earlier or supplemental screening (MRI).",
+    steps: [
+      "Confirm risk: family history of breast/ovarian/prostate/pancreatic cancer, prior chest-wall radiation, or known BRCA/PALB2/CHEK2.",
+      "If average risk: ask your PCP or OB/GYN for a mammography order or use a direct-access mammography center.",
+      "If high risk: request genetic counseling and discuss adding annual breast MRI (typically alternating with mammogram every 6 months).",
+      "Verify coverage: screening mammogram is $0 cost-share under ACA; diagnostic follow-up imaging may have cost-share — ask before booking.",
+      "Schedule at an accredited center (ACR-accredited / FDA-certified) and bring prior images for comparison.",
+    ],
+    followUps: [
+      "Any first-degree relatives with breast, ovarian, prostate, or pancreatic cancer?",
+      "Have you had a mammogram before? If so, where, so prior images can be sent over?",
+      "Do you want help finding an in-network mammography center?",
+    ],
+    references: [
+      { label: "USPSTF: Breast cancer screening (2024)", url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/breast-cancer-screening" },
+      { label: "ACS: Breast cancer screening", url: "https://www.cancer.org/cancer/types/breast-cancer/screening-tests-and-early-detection.html" },
+    ],
+  },
+  {
+    match: /\b(lung|ldct|low[-\s]?dose\s*ct)\b/i,
+    title: "lung cancer screening",
+    summary:
+      "USPSTF recommends annual low-dose CT (LDCT) for adults 50–80 with a 20+ pack-year smoking history who currently smoke or quit within the last 15 years. Shared decision-making and a smoking-cessation plan are required for coverage.",
+    steps: [
+      "Confirm eligibility: age 50–80, ≥20 pack-years, current smoker or quit ≤15 years ago, and able to tolerate curative treatment.",
+      "Schedule a shared decision-making visit with a PCP — required by CMS for Medicare coverage and by most commercial plans.",
+      "Get the LDCT order and a referral to a radiology center that participates in an ACR-designated lung cancer screening registry.",
+      "Plan the follow-up: results are scored on Lung-RADS; positive findings route to pulmonology, sometimes biopsy. Build that pathway in before the scan.",
+      "Pair every screen with active tobacco-cessation support — counseling plus pharmacotherapy (NRT, varenicline, or bupropion).",
+    ],
+    followUps: [
+      "What is your pack-year history (packs/day × years)?",
+      "If you quit, how many years ago?",
+      "Do you want a referral for tobacco-cessation support alongside the scan?",
+    ],
+    references: [
+      { label: "USPSTF: Lung cancer screening (2021)", url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/lung-cancer-screening" },
+      { label: "CMS: Lung cancer screening with LDCT", url: "https://www.cms.gov/medicare-coverage-database/view/ncacal-decision-memo.aspx?proposed=N&NCAId=304" },
+    ],
+  },
+  {
+    match: /\b(cervical|pap|hpv)\b/i,
+    title: "cervical cancer screening",
+    summary:
+      "USPSTF recommends cervical cancer screening for people with a cervix ages 21–65: cytology every 3 years (21–29), and 21+ options (cytology every 3 yrs, hr-HPV every 5 yrs, or co-test every 5 yrs) for ages 30–65.",
+    steps: [
+      "Confirm screening eligibility: cervix present, age 21–65, no high-risk history (HIV, immunocompromise, in-utero DES, prior CIN/cervical cancer).",
+      "Choose the test with your clinician: Pap alone, primary hr-HPV, or HPV/Pap co-test.",
+      "Schedule with PCP or OB/GYN. Many plans cover screening at $0 cost-share — verify coding (Z01.419 / Z11.51) before the visit.",
+      "If a result is abnormal, expect ASCCP-guided follow-up: repeat testing, colposcopy, or biopsy. Do not skip the loop-closure visit.",
+    ],
+    followUps: [
+      "When was your last Pap or HPV test, and what was the result?",
+      "Have you had the HPV vaccine series?",
+    ],
+    references: [
+      { label: "USPSTF: Cervical cancer screening", url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/cervical-cancer-screening" },
+      { label: "ACS: Cervical cancer screening guidelines", url: "https://www.cancer.org/cancer/types/cervical-cancer/detection-diagnosis-staging/screening.html" },
+    ],
+  },
+  {
+    match: /\b(prostate|psa)\b/i,
+    title: "prostate cancer screening",
+    summary:
+      "USPSTF recommends shared decision-making for PSA-based screening in men 55–69 (Grade C); recommends against routine screening at 70+. Black men and those with first-degree relatives diagnosed at <65 may benefit from earlier discussion (45–50).",
+    steps: [
+      "Schedule a shared decision-making visit with a PCP or urology to weigh benefit vs over-diagnosis.",
+      "If proceeding, draw a baseline PSA; many clinicians use age-adjusted thresholds and PSA velocity rather than a single cut-off.",
+      "Plan the follow-up pathway in advance: elevated PSA usually triggers repeat PSA, free PSA / PSA density, MRI, and only then biopsy.",
+      "If you have family or African ancestry risk, ask about starting the conversation at 45 and discuss BRCA-related risk.",
+    ],
+    followUps: [
+      "Any first-degree relatives with prostate, breast, ovarian, or pancreatic cancer?",
+      "Have you had a PSA before, and what was the result?",
+    ],
+    references: [
+      { label: "USPSTF: Prostate cancer screening", url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/prostate-cancer-screening" },
+      { label: "ACS: Prostate cancer screening", url: "https://www.cancer.org/cancer/types/prostate-cancer/detection-diagnosis-staging/acs-recommendations.html" },
+    ],
+  },
+]
+
+const SCHEDULING_INTENT_RE = /\b(schedule|book|set\s*up|how\s+do\s+i\s+(?:get|schedule|book)|where\s+do\s+i\s+(?:go|book))\b/i
+const FIND_CARE_INTENT_RE = /\b(find|search|look\s+for|near\s+me|in\s+network)\b/i
+
+function detectCarePathway(message: string): CarePathway | null {
+  if (!message) return null
+  return CARE_PATHWAYS.find((p) => p.match.test(message)) || null
+}
+
+export function buildCareNavigationResponse(message: string): string | null {
+  if (!message) return null
+  const pathway = detectCarePathway(message)
+  if (!pathway) return null
+  const isAction = SCHEDULING_INTENT_RE.test(message) || FIND_CARE_INTENT_RE.test(message)
+  if (!isAction) return null
+
+  const stepLines = pathway.steps.map((step, i) => `- Step ${i + 1}. ${step}`)
+  const refs = pathway.references.map((r) => `- [${r.label}](${r.url})`)
+  const followUps = pathway.followUps.slice(0, 2).map((q) => `- ${q}`)
+
+  return [
+    `Direct answer: here is the practical pathway to schedule ${pathway.title} — concrete steps, not a survey.`,
+    "",
+    pathway.summary,
+    "",
+    "What to do now",
+    ...stepLines,
+    "",
+    "Question to refine this",
+    ...followUps,
+    "",
+    "References",
+    ...refs,
+    "",
+    "Safety note",
+    "OpenRx surfaces guideline-based steps and care-navigation help. It does not place orders, confirm appointments, or guarantee insurance coverage by itself.",
+  ].join("\n")
+}
+
 function buildFallbackAgentResponse(agentId: string, message: string): string {
   const trimmedMessage = message.trim()
+  const careAnswer = buildCareNavigationResponse(trimmedMessage)
+  if (careAnswer) return careAnswer
+
   const contextLine = trimmedMessage ? `Direct answer: I’m looking at “${trimmedMessage.slice(0, 140)}${trimmedMessage.length > 140 ? "..." : ""}.”` : "Direct answer: I can help with the next step."
 
   switch (agentId) {
     case "rx":
       return `${contextLine}\n\nWhat to do now\nConfirm the exact medication names, doses, kidney history, allergies, pregnancy status if relevant, and why the medication is being used. Do not stop or combine prescribed medication without clinician/pharmacist guidance. If this is a refill emergency or you are out of a critical medicine, call the pharmacy or prescriber now.\n\nReferences\n- [MedlinePlus: Medicines](https://medlineplus.gov/medicines.html)\n- [FDA: Drug interactions](https://www.fda.gov/drugs/resources-you-drugs/drug-interactions-what-you-should-know)\n\nSafety note\nThis is medication-safety education, not a prescription change or substitute for a clinician/pharmacist review.`
     case "scheduling":
-      return `${contextLine}\n\nWhat to do now\nTell me the visit type, location, urgency, preferred time window, and insurance plan. If the question is clinical, I’ll answer first; if you ask to find care, OpenRx can then search options and prepare a scheduling request.\n\nReferences\n- [MedlinePlus: Choosing a primary care provider](https://medlineplus.gov/ency/article/001939.htm)\n\nSafety note\nOpenRx can stage a scheduling request, but it does not confirm appointments or place medical orders by itself.`
+      return `Direct answer: here is the OpenRx care-navigation flow when the visit type is not clear yet.\n\nWhat to do now\n- Step 1. Name the visit type — preventive screening, sick/symptom visit, follow-up, specialist consult, or telehealth.\n- Step 2. Decide who can place the order: PCP-direct (most labs, FIT, mammogram), specialist referral (GI for colonoscopy, urology for PSA work-up), or self-referral if your plan allows.\n- Step 3. Check coverage and network — confirm in-network providers, prior-auth requirements, copay tier, and whether a referral is required to keep cost-share preventive.\n- Step 4. Pick a time window (mornings, evenings, telehealth) and reserve the slot directly with the provider; prepare any forms, fasting, or prep instructions.\n- Step 5. Add reminders and a same-day plan: transport, time off, and the follow-up route if the visit produces an abnormal result.\n\nReferences\n- [HealthCare.gov: Preventive care benefits](https://www.healthcare.gov/coverage/preventive-care-benefits/)\n- [MedlinePlus: Choosing a primary care provider](https://medlineplus.gov/ency/article/001939.htm)\n\nSafety note\nOpenRx can stage a scheduling request, but it does not confirm appointments or place medical orders by itself.`
     case "billing":
       return `${contextLine}\n\nWhat to do now\nUse the claim number, date of service, insurer, amount owed, EOB/denial reason, and whether the provider is in-network. OpenRx can separate patient responsibility from insurer responsibility and draft next questions for the plan or billing office.\n\nReferences\n- [CMS: Understanding health care bills](https://www.cms.gov/medical-bill-rights/help/guides/understanding-health-care-bills)\n\nSafety note\nThis is billing navigation, not a legal determination or coverage guarantee.`
     case "prior-auth":
@@ -164,11 +326,13 @@ function screeningGroupTitle(rec: ScreeningRecommendation): "Due now" | "Needs c
 
 function sourceMarkdown(rec: ScreeningRecommendation): string {
   const source = getGuidelineSource(rec.sourceId)
-  if (source?.url) {
-    return `[${source.organization} ${source.topic} (${source.versionOrDate})](${source.url})`
+  if (source && rec.sourceId === "high-risk-clinician-review") {
+    return source.url
+      ? `Evidence gap / high-risk pathway: clinician or genetics review recommended ([NCCN guidelines](${source.url}))`
+      : "Evidence gap / high-risk pathway: clinician or genetics review recommended."
   }
-  if (source?.organization === "PENDING") {
-    return "High-risk interval logic not fully encoded; use clinician/genetics review rather than invented intervals."
+  if (source?.url) {
+    return `[${source.organization}: ${source.topic}](${source.url})`
   }
   return `${rec.sourceSystem}${rec.sourceVersion ? ` ${rec.sourceVersion}` : ""}`
 }
@@ -216,7 +380,10 @@ function buildReferenceList(recommendations: ScreeningRecommendation[]): string[
   })
   links.set("CDC: Cancer screening tests", "https://www.cdc.gov/cancer/prevention/screening.html")
   links.set("ACS: Cancer screening guidelines", "https://www.cancer.org/cancer/screening/american-cancer-society-guidelines-for-the-early-detection-of-cancer.html")
-  return Array.from(links.entries()).map(([label, url]) => `- [${label}](${url})`)
+  return [
+    ...Array.from(links.entries()).map(([label, url]) => `- [${label}](${url})`),
+    `- Sources verified against the live publisher pages on ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}.`,
+  ]
 }
 
 function buildFollowUpQuestion(recommendations: ScreeningRecommendation[]): string | null {
@@ -278,8 +445,14 @@ export function buildDeterministicScreeningResponse(message: string): string {
 
   const summary = summarizeParsedScreeningInput(message)
   const followUp = buildFollowUpQuestion(recommendations)
+  const dueLeads = recommendations
+    .filter((rec) => rec.status === "due" || rec.status === "high_risk" || rec.status === "urgent_clinician_review")
+    .slice(0, 3)
+  const headline = dueLeads.length
+    ? `Direct answer: ${dueLeads.map((rec) => rec.screeningName.toLowerCase()).join(", ")} should move now. Profile: ${summary}.`
+    : `Direct answer: here is the guideline-aligned screening plan for ${summary}.`
   return [
-    `Direct answer: based on what you shared (${summary}), here is the screening plan I can support in chat right now.`,
+    headline,
     "",
     ...formatScreeningGroups(recommendations),
     "",
@@ -441,6 +614,24 @@ export async function runAgent(params: {
     addToConversation(sessionKey, "assistant", response)
     logAction("screening", "deterministic-screening-response", `${message.slice(0, 60)}...`, "portal")
     return { response, agentId: "screening" }
+  }
+
+  // Care-navigation pathway shortcut. When the user asks "how do I schedule
+  // colon cancer screening?" / "find a mammogram center near me" we answer
+  // with concrete, guideline-aligned steps instead of asking for visit type
+  // and insurance up front.
+  if (
+    (agentId === "scheduling" || agentId === "coordinator" || agentId === "wellness") &&
+    detectCarePathway(message) &&
+    (SCHEDULING_INTENT_RE.test(message) || FIND_CARE_INTENT_RE.test(message))
+  ) {
+    const response = buildCareNavigationResponse(message)
+    if (response) {
+      addToConversation(sessionKey, "user", message)
+      addToConversation(sessionKey, "assistant", response)
+      logAction(agentId, "care-pathway-response", `${message.slice(0, 60)}...`, "portal")
+      return { response, agentId }
+    }
   }
 
   const claude = getClaudeClient()

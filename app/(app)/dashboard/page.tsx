@@ -136,6 +136,17 @@ export default function DashboardPage() {
           title={isConnected && firstName ? `${firstName}, set up your care.` : "Set up your care."}
           description="Answer a few questions so OpenRx can personalize screenings, visits, medications, messages, and billing help."
         />
+        {!isConnected ? (
+          <div
+            data-testid="dashboard-demo-banner"
+            className="rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-2 text-[12px] text-amber-800"
+          >
+            <span className="mr-2 rounded bg-amber-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-900">
+              Demo
+            </span>
+            You&rsquo;re viewing example data. Connect an account to see your live care brief.
+          </div>
+        ) : null}
         <CareAskPanel
           compact
           title="You can ask first."

@@ -2,15 +2,14 @@
 
 import { useRouter } from "next/navigation"
 import {
-  ArrowRight,
-  Bot,
-  CheckCircle2,
-  ClipboardList,
-  FileText,
+  ArrowUp,
   Loader2,
-  MessageSquareText,
-  Receipt,
   Sparkles,
+  ClipboardList,
+  Receipt,
+  FileText,
+  CheckCircle2,
+  Bot,
 } from "lucide-react"
 import { useState } from "react"
 import {
@@ -73,26 +72,29 @@ const defaultSuggestions: CareAskSuggestion[] = [
 const defaultLanes: BackgroundLane[] = [
   {
     label: "Understand the ask",
-    detail: "You start with one sentence. OpenRx looks for screening, provider, billing, medication, or follow-up intent.",
+    detail:
+      "You start with one sentence. OpenRx looks for screening, provider, billing, medication, or follow-up intent.",
     icon: FileText,
   },
   {
-    label: "Route to the service",
-    detail: "Screening questions are answered in chat first. Care-search questions can still open a directory when the user asks for it.",
+    label: "Answer in chat",
+    detail:
+      "Screening and clinical questions answer directly in chat with guideline links. No extra forms unless they're essential.",
     icon: Sparkles,
   },
   {
-    label: "Prepare the handoff",
-    detail: "If action is needed, OpenRx keeps the next step visible without making the answer depend on another page.",
+    label: "Hand off only when needed",
+    detail:
+      "If a real action is needed — booking, paying a bill, prior auth — OpenRx prepares it from the same conversation.",
     icon: CheckCircle2,
   },
 ]
 
 export function CareAskPanel({
   eyebrow = "Ask OpenRx",
-  title = "Ask once. Get the answer here.",
-  description = "Use plain English. Screening and clinical guidance answer directly in chat; care search, billing, medication, and follow-up actions stay available when needed.",
-  placeholder = "Ask what screening is due, where to go, what a bill means, or what to do next...",
+  title = "Ask once. Get the answer in chat.",
+  description = "Use plain English. Screening and clinical guidance answer directly in chat; care search, billing, medication, and follow-up actions stay one step away.",
+  placeholder = "Ask what screening is due, what a bill means, or what to do next…",
   defaultPrompt = "",
   suggestions = defaultSuggestions,
   lanes = defaultLanes,
@@ -127,49 +129,60 @@ export function CareAskPanel({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-[34px] border p-4 shadow-[0_34px_90px_rgba(8,24,46,0.10)] sm:p-5",
-        minimal && "rounded-[30px] p-2 shadow-[0_22px_70px_rgba(8,24,46,0.09)] sm:p-2",
-        dark
-          ? "border-white/12 bg-[#07111f] text-white"
-          : "border-[rgba(82,108,139,0.14)] bg-[rgba(255,255,255,0.78)] text-primary backdrop-blur-2xl",
+        "relative overflow-hidden rounded-[16px] border bg-white p-4 sm:p-5",
+        minimal && "p-2 sm:p-2",
+        dark ? "border-white/15 bg-[#0B1B33] text-white" : "border-border text-primary",
+        !minimal && "shadow-card",
         className
       )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(47,107,255,0.13),transparent_34%),radial-gradient(circle_at_92%_20%,rgba(8,126,139,0.11),transparent_30%)]" />
       <div className="relative">
-        {!minimal && (eyebrow || title || description) ? <div className="flex flex-wrap items-center gap-3">
-          <span
-            className={cn(
-              "inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]",
-              dark ? "text-white/62" : "text-muted"
-            )}
-          >
-            <Bot size={12} />
-            {eyebrow}
-          </span>
-        </div> : null}
-
-        <div className={cn(minimal ? "grid gap-0" : "mt-3 grid gap-5", showLanes && !compact && !minimal ? "xl:grid-cols-[1.1fr_0.9fr] xl:items-start" : "lg:grid-cols-1")}>
-          <div>
-            {!minimal && title ? <h2
+        {!minimal && (eyebrow || title || description) ? (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span
               className={cn(
-                "max-w-3xl font-serif leading-[0.96] tracking-[-0.055em]",
-                compact ? "text-[clamp(1.8rem,3.4vw,2.7rem)]" : "text-[clamp(2.4rem,5vw,4.2rem)]",
-                dark ? "text-white" : "text-primary"
+                "inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]",
+                dark ? "text-white/64" : "text-muted"
               )}
             >
-              {title}
-            </h2> : null}
-            {!minimal && description ? <p className={cn("mt-3 max-w-xl text-sm leading-7", dark ? "text-white/68" : "text-secondary")}>
-              {description}
-            </p> : null}
+              <Bot size={11} />
+              {eyebrow}
+            </span>
+          </div>
+        ) : null}
+
+        <div
+          className={cn(
+            minimal ? "grid gap-0" : "grid gap-5",
+            showLanes && !compact && !minimal ? "xl:grid-cols-[1.1fr_0.9fr] xl:items-start" : ""
+          )}
+        >
+          <div>
+            {!minimal && title ? (
+              <h2
+                className={cn(
+                  "max-w-3xl font-semibold leading-[1.1] tracking-[-0.018em]",
+                  compact
+                    ? "text-[clamp(1.4rem,2.2vw,1.85rem)]"
+                    : "text-[clamp(1.6rem,2.6vw,2.1rem)]",
+                  dark ? "text-white" : "text-primary"
+                )}
+              >
+                {title}
+              </h2>
+            ) : null}
+            {!minimal && description ? (
+              <p className={cn("mt-2.5 max-w-xl text-[14px] leading-6", dark ? "text-white/72" : "text-muted")}>
+                {description}
+              </p>
+            ) : null}
 
             <form
               className={cn(
-                "overflow-hidden rounded-[28px] border shadow-[0_18px_50px_rgba(8,24,46,0.08)]",
-                !minimal && "mt-5",
-                minimal && "rounded-[26px] shadow-none",
-                dark ? "border-white/12 bg-white/[0.06]" : "border-[rgba(82,108,139,0.16)] bg-white/92"
+                "overflow-hidden rounded-[12px] border bg-white",
+                !minimal && "mt-4",
+                dark ? "border-white/15 bg-white/[0.04]" : "border-border-strong",
+                "shadow-card focus-within:border-teal/60 focus-within:shadow-focus"
               )}
               onSubmit={(event) => {
                 event.preventDefault()
@@ -181,51 +194,61 @@ export function CareAskPanel({
               </label>
               <textarea
                 id="openrx-care-ask"
+                data-testid="care-ask-input"
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
                 placeholder={placeholder}
-                rows={compact ? 2 : 2}
+                rows={2}
                 className={cn(
-                  "min-h-[104px] w-full resize-none bg-transparent px-4 py-4 text-[15px] leading-7 outline-none placeholder:text-muted sm:px-5",
-                  minimal && "min-h-[86px] px-4 py-4 text-[16px]",
-                  dark ? "text-white placeholder:text-white/42" : "text-primary"
+                  "min-h-[88px] w-full resize-none border-0 bg-transparent px-4 py-3 text-[15px] leading-6 outline-none placeholder:text-subtle sm:px-4",
+                  dark ? "text-white placeholder:text-white/50" : "text-primary"
                 )}
               />
               <div
                 className={cn(
-                  "flex flex-col gap-3 border-t px-3 py-3 sm:flex-row sm:items-center sm:justify-between",
-                  dark ? "border-white/10" : "border-[rgba(82,108,139,0.12)]"
+                  "flex items-center justify-between gap-2 px-3 pb-2 pt-1",
+                  dark ? "border-white/10" : "border-border"
                 )}
               >
-                <div className={cn("hidden items-center gap-2 text-xs sm:flex", minimal && "sr-only", dark ? "text-white/56" : "text-muted")}>
-                  <MessageSquareText size={13} />
-                  Answers first. Actions only when they help.
-                </div>
-                <button
-                  type="submit"
-                  disabled={isLaunching}
+                <span
                   className={cn(
-                    "inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition disabled:opacity-70",
-                    dark ? "bg-white text-primary hover:bg-white/90" : "bg-primary text-white shadow-[0_14px_34px_rgba(7,17,31,0.18)] hover:bg-[#12213a]"
+                    "hidden items-center gap-1.5 text-[11px] sm:inline-flex",
+                    dark ? "text-white/56" : "text-muted"
                   )}
                 >
-                  {isLaunching ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
-                  {minimal ? "Ask" : "Ask OpenRx"}
+                  Decision support — not a substitute for clinician judgment.
+                </span>
+                <button
+                  type="submit"
+                  data-testid="care-ask-submit"
+                  disabled={isLaunching}
+                  aria-label="Ask OpenRx"
+                  className={cn(
+                    "inline-flex h-9 w-9 items-center justify-center rounded-[10px] transition disabled:cursor-not-allowed disabled:opacity-50",
+                    dark ? "bg-white text-primary hover:bg-white/90" : "bg-navy text-white hover:bg-navy-hover"
+                  )}
+                >
+                  {isLaunching ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <ArrowUp size={14} />
+                  )}
                 </button>
               </div>
             </form>
 
             <div className={cn("mt-3 flex flex-wrap gap-2", minimal && "justify-center")}>
-              {suggestions.slice(0, 3).map((suggestion) => (
+              {suggestions.slice(0, 4).map((suggestion) => (
                 <button
                   key={suggestion.label}
                   type="button"
                   onClick={() => openChat(suggestion.prompt, suggestion.topic)}
+                  data-testid="care-ask-suggestion"
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-[12px] font-semibold transition",
+                    "rounded-full border px-3 py-1.5 text-[12px] font-medium transition",
                     dark
-                      ? "border-white/12 bg-white/[0.06] text-white/72 hover:bg-white/10 hover:text-white"
-                      : "border-[rgba(82,108,139,0.12)] bg-white/76 text-secondary hover:border-accent/24 hover:bg-[rgba(47,107,255,0.07)] hover:text-primary"
+                      ? "border-white/15 bg-white/[0.06] text-white/76 hover:bg-white/10 hover:text-white"
+                      : "border-border bg-white text-secondary hover:border-border-strong hover:bg-surface-2 hover:text-primary"
                   )}
                 >
                   {suggestion.label}
@@ -234,37 +257,53 @@ export function CareAskPanel({
             </div>
           </div>
 
-          {showLanes && !minimal ? <div className={cn("grid gap-3", compact && "sm:grid-cols-3")}>
-            {lanes.map((lane, index) => (
-              <div
-                key={lane.label}
-                className={cn(
-                  "rounded-[22px] border p-4",
-                  dark ? "border-white/10 bg-white/[0.055]" : "border-[rgba(82,108,139,0.12)] bg-white/74"
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-                      dark ? "bg-white/10 text-white" : "bg-[rgba(47,107,255,0.08)] text-accent"
-                    )}
-                  >
-                    <lane.icon size={16} strokeWidth={1.7} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]", dark ? "text-white/42" : "text-muted")}>
-                        0{index + 1}
-                      </span>
-                      <p className={cn("text-sm font-semibold", dark ? "text-white" : "text-primary")}>{lane.label}</p>
+          {showLanes && !minimal ? (
+            <div className={cn("grid gap-3", compact && "sm:grid-cols-3")}>
+              {lanes.map((lane, index) => (
+                <div
+                  key={lane.label}
+                  className={cn(
+                    "rounded-[14px] border p-4",
+                    dark ? "border-white/12 bg-white/[0.05]" : "border-border bg-white"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]",
+                        dark ? "bg-white/10 text-white" : "bg-teal-50 text-teal-dark"
+                      )}
+                    >
+                      <lane.icon size={15} strokeWidth={1.8} />
                     </div>
-                    <p className={cn("mt-2 text-[12px] leading-6", dark ? "text-white/62" : "text-secondary")}>{lane.detail}</p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "text-[10px] font-semibold uppercase tracking-[0.12em]",
+                            dark ? "text-white/48" : "text-muted"
+                          )}
+                        >
+                          0{index + 1}
+                        </span>
+                        <p className={cn("text-[14px] font-semibold", dark ? "text-white" : "text-primary")}>
+                          {lane.label}
+                        </p>
+                      </div>
+                      <p
+                        className={cn(
+                          "mt-1.5 text-[13px] leading-6",
+                          dark ? "text-white/68" : "text-muted"
+                        )}
+                      >
+                        {lane.detail}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div> : null}
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
@@ -303,8 +342,8 @@ export const patientBackgroundLanes: BackgroundLane[] = [
     icon: ClipboardList,
   },
   {
-    label: "Start the right workflow",
-    detail: "OpenRx answers in chat first, then offers a handoff only when a real action is needed.",
+    label: "Answer in chat first",
+    detail: "OpenRx responds in chat with sources, then offers a handoff only when an action is needed.",
     icon: Sparkles,
   },
   {

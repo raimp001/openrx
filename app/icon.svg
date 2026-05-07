@@ -1,22 +1,5 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="32" height="32" rx="9" fill="url(#bg)"/>
-  <rect x="1" y="1" width="30" height="30" rx="8" fill="url(#inner)"/>
-  <path d="M23.9 8.65A11.2 11.2 0 1 0 27.05 17.05" stroke="rgba(255,255,255,0.9)" stroke-width="2.35" stroke-linecap="round"/>
-  <path d="M9.85 16.35 14.1 20.55 22.8 10.9" stroke="#9CB9FF" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M22.75 10.9c1.45 1.55 2.15 3.35 2.15 5.5 0 4.75-3.55 8.5-8.62 8.5-2.05 0-3.78-.48-5.22-1.43" stroke="rgba(17,167,183,0.82)" stroke-width="1.55" stroke-linecap="round"/>
-  <circle cx="23" cy="10.65" r="2.15" fill="#11A7B7"/>
-  <circle cx="14.1" cy="20.55" r="1.45" fill="#5F8CFF"/>
-  <path d="M7.25 2.35h17.5" stroke="rgba(255,255,255,0.32)" stroke-linecap="round"/>
-  <defs>
-    <linearGradient id="bg" x1="4" y1="2" x2="30" y2="31" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#07111F"/>
-      <stop offset="0.56" stop-color="#10254A"/>
-      <stop offset="1" stop-color="#064B5A"/>
-    </linearGradient>
-    <radialGradient id="inner" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(8.5 6) rotate(50) scale(30 26)">
-      <stop stop-color="#244C9D"/>
-      <stop offset="0.45" stop-color="#10254A"/>
-      <stop offset="1" stop-color="#064B5A"/>
-    </radialGradient>
-  </defs>
+  <rect width="32" height="32" rx="7" fill="#0B1B33"/>
+  <path d="M22.5 12.5a6 6 0 1 0 1.05 5.05" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="23.4" cy="11.6" r="1.8" fill="#5EEAD4"/>
 </svg>

@@ -525,3 +525,58 @@ test("chat keeps medication symptom and prevention questions in conversation", a
   expect(routedAgents).toContain("triage")
   expect(routedAgents).toContain("wellness")
 })
+
+test("chat renders structured screening sections and a citation rail", async ({ page }) => {
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+
+  await page.goto("/chat")
+  await page.getByTestId("chat-input").fill("What cancer screening does a 50-year-old woman need?")
+  await page.getByTestId("chat-send-button").click()
+
+  // Structured section testids exposed by the redesigned answer renderer
+  await expect(page.getByTestId("chat-section-direct-answer")).toBeVisible()
+  await expect(page.getByTestId("chat-section-due-now")).toBeVisible()
+  await expect(page.getByTestId("chat-section-references")).toHaveCount(0) // refs render as a rail
+  await expect(page.getByTestId("chat-citations")).toBeVisible()
+
+  // Citations row exposes guideline pills with testids
+  const citations = page.getByTestId("chat-citation")
+  await expect(citations.first()).toBeVisible()
+  expect(await citations.count()).toBeGreaterThan(0)
+})
+
+test("chat shows quick prompts on first load and hides them after first send", async ({ page }) => {
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+  await page.route(/\/api\/openclaw\/chat$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        response:
+          "Direct answer: ack.\n\nWhat to do now\nNothing to do.\n\nReferences\n- [CDC](https://www.cdc.gov/)\n\nSafety note\nDecision support only.",
+        agentId: "coordinator",
+      }),
+    })
+  })
+
+  await page.goto("/chat")
+  await expect(page.getByTestId("chat-quick-prompts")).toBeVisible()
+
+  await page.getByTestId("chat-input").fill("Hello")
+  await page.getByTestId("chat-send-button").click()
+
+  await expect(page.getByTestId("chat-message-agent").first()).toBeVisible()
+  await expect(page.getByTestId("chat-quick-prompts")).toHaveCount(0)
+})

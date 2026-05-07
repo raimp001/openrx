@@ -13,55 +13,75 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        surface: "#F7FAFF",
-        primary: "#07111F",
-        secondary: "#334155",
-        muted: "#526173",
-        border: "#C9D6E6",
+        // ── Surface tiers (calm, near-white, slight cool cast) ──
+        surface: "#F8FAFC",       // page background (slate-50)
+        "surface-2": "#F1F5F9",   // raised muted area (slate-100)
+
+        // ── Text ladder (WCAG AA on white at all sizes) ──
+        primary: "#0B1B33",       // ink — almost-black navy
+        secondary: "#1E293B",     // body text (slate-800)
+        muted: "#475569",         // captions, helper text (slate-600)
+        subtle: "#64748B",        // placeholders, disabled (slate-500)
+
+        // ── Borders / dividers ──
+        border: "#E2E8F0",        // slate-200, default rule
+        "border-strong": "#CBD5E1", // slate-300, when you need it visible
+
+        // ── Brand colors ──
+        // Primary action — deep navy, matches the brand mark.
+        navy: {
+          DEFAULT: "#0B1B33",
+          hover: "#172A4D",
+          50: "#F1F5F9",
+          100: "#E2E8F0",
+          900: "#0B1B33",
+        },
+        // Accent — muted clinical teal (use sparingly, never on body text)
         teal: {
-          DEFAULT: "#1D4ED8",
-          light: "#3B82F6",
-          dark: "#173EA5",
-          50: "#EFF6FF",
-          100: "#DBEAFE",
-          500: "#1D4ED8",
-          600: "#173EA5",
+          DEFAULT: "#0F766E",
+          light: "#14B8A6",
+          dark: "#115E59",
+          50: "#F0FDFA",
+          100: "#CCFBF1",
+          500: "#0F766E",
+          600: "#115E59",
         },
-        coral: {
-          DEFAULT: "#B74124",
-          light: "#CF5C3A",
-          dark: "#8F2D18",
-        },
-        // Keep legacy names so existing sub-pages don't break
+        // Semantic
+        success: "#047857",
+        warning: "#B45309",
+        danger: "#B91C1C",
+
+        // ── Legacy aliases (so existing sub-pages keep compiling) ──
+        accent: "#0F766E",
+        coral: { DEFAULT: "#B45309", light: "#D97706", dark: "#92400E" },
         terra: {
-          DEFAULT: "#B74124",
-          light: "#CF5C3A",
-          dark: "#8F2D18",
-          50: "#FFF4F0",
-          100: "#FFE4DB",
-          200: "#FFC5B6",
-          500: "#B74124",
-          600: "#8F2D18",
-          700: "#9F311C",
+          DEFAULT: "#B45309",
+          light: "#D97706",
+          dark: "#92400E",
+          50: "#FFFBEB",
+          100: "#FEF3C7",
+          200: "#FDE68A",
+          500: "#B45309",
+          600: "#92400E",
+          700: "#78350F",
         },
-        cream: "#F7FAFF",
-        pampas: "#F7FAFF",
-        sand: "#C9D6E6",
-        cloudy: "#526173",
+        cream: "#F8FAFC",
+        pampas: "#F8FAFC",
+        sand: "#CBD5E1",
+        cloudy: "#475569",
         warm: {
-          900: "#07111F",
-          800: "#07111F",
-          700: "#1E2C42",
+          900: "#0B1B33",
+          800: "#0B1B33",
+          700: "#1E293B",
           600: "#334155",
-          500: "#526173",
-          300: "#B9C6D8",
-          100: "#EAF1FA",
+          500: "#475569",
+          300: "#94A3B8",
+          100: "#E2E8F0",
         },
-        accent: "#1D4ED8",
         "soft-red": "#B91C1C",
         "soft-blue": "#1D4ED8",
-        midnight: "#09090B",
-        night: "#09090B",
+        midnight: "#0B1B33",
+        night: "#0B1B33",
       },
       fontFamily: {
         serif: ["var(--font-serif)", "Georgia", "serif"],
@@ -69,45 +89,46 @@ const config: Config = {
         mono: ["var(--font-geist-mono)", "monospace"],
       },
       fontSize: {
-        "display-xl": ["clamp(3rem, 5.5vw, 5rem)", { lineHeight: "0.95", letterSpacing: "-0.035em" }],
-        "display-lg": ["clamp(2.4rem, 4.5vw, 3.8rem)", { lineHeight: "0.97", letterSpacing: "-0.03em" }],
-        "display": ["clamp(1.8rem, 3.5vw, 2.8rem)", { lineHeight: "1.05", letterSpacing: "-0.025em" }],
+        "display-xl": ["clamp(2.6rem, 4.6vw, 4.2rem)", { lineHeight: "1.05", letterSpacing: "-0.025em" }],
+        "display-lg": ["clamp(2.1rem, 3.6vw, 3.2rem)", { lineHeight: "1.08", letterSpacing: "-0.022em" }],
+        "display": ["clamp(1.7rem, 2.6vw, 2.4rem)", { lineHeight: "1.15", letterSpacing: "-0.018em" }],
       },
       borderRadius: {
-        card: "20px",
-        button: "9999px",
+        card: "16px",
+        button: "10px",
         nav: "10px",
       },
       boxShadow: {
-        "card": "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)",
-        "card-hover": "0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)",
-        "soft-card": "0 18px 60px rgba(8,24,46,0.08)",
-        "topbar": "0 1px 0 rgba(0,0,0,0.04)",
+        card: "0 1px 2px rgba(11,27,51,0.04), 0 4px 12px rgba(11,27,51,0.04)",
+        "card-hover": "0 2px 6px rgba(11,27,51,0.06), 0 8px 24px rgba(11,27,51,0.06)",
+        "soft-card": "0 8px 28px rgba(11,27,51,0.06)",
+        topbar: "0 1px 0 rgba(11,27,51,0.06)",
+        focus: "0 0 0 3px rgba(15,118,110,0.18)",
       },
       opacity: opacityScale,
       keyframes: {
         "fade-in": {
-          from: { opacity: "0", transform: "translateY(6px)" },
+          from: { opacity: "0", transform: "translateY(4px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "slide-up": {
-          from: { opacity: "0", transform: "translateY(20px)" },
+          from: { opacity: "0", transform: "translateY(12px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "hero-fade": {
-          from: { opacity: "0", transform: "translateY(24px)" },
+          from: { opacity: "0", transform: "translateY(16px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "scale-in": {
-          from: { opacity: "0", transform: "scale(0.96)" },
+          from: { opacity: "0", transform: "scale(0.98)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
       },
       animation: {
-        "fade-in": "fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-        "slide-up": "slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
-        "hero-fade": "hero-fade 0.8s cubic-bezier(0.16, 1, 0.3, 1) both",
-        "scale-in": "scale-in 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+        "fade-in": "fade-in 0.25s ease-out",
+        "slide-up": "slide-up 0.35s ease-out",
+        "hero-fade": "hero-fade 0.5s ease-out both",
+        "scale-in": "scale-in 0.2s ease-out",
       },
     },
   },

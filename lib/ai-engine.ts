@@ -65,6 +65,11 @@ function getConversation(sessionKey: string): ConversationMessage[] {
       if (oldestKey) conversations.delete(oldestKey)
     }
     conversations.set(sessionKey, [])
+  } else {
+    // LRU: move accessed entry to end of Map iteration order
+    const existing = conversations.get(sessionKey)!
+    conversations.delete(sessionKey)
+    conversations.set(sessionKey, existing)
   }
   return conversations.get(sessionKey)!
 }

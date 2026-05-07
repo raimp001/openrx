@@ -26,14 +26,23 @@ export function normalizeGene(value: string): HereditaryRiskGene | null {
   const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "")
   if (normalized in hereditaryRiskPathways) return normalized as HereditaryRiskGene
   if (normalized === "BRCAMUTATION" || normalized === "BRCACARRIER") return "BRCA"
-  if (normalized === "LYNCH") return "MLH1"
+  if (normalized === "LYNCH" || normalized === "LYNCHSYNDROME") return "MLH1"
   if (normalized === "FAP") return "APC"
   return null
 }
 
+const LYNCH_GENES: HereditaryRiskGene[] = ["MLH1", "MSH2", "MSH6", "PMS2", "EPCAM"]
+
 export function getPathwaysForGenes(genes: string[]): string[] {
   const pathways = new Set<string>()
   for (const gene of genes) {
+    const upper = gene.trim().toUpperCase().replace(/[^A-Z0-9]/g, "")
+    if (upper === "LYNCH" || upper === "LYNCHSYNDROME") {
+      for (const lg of LYNCH_GENES) {
+        hereditaryRiskPathways[lg].forEach((pathway) => pathways.add(pathway))
+      }
+      continue
+    }
     const normalized = normalizeGene(gene)
     if (!normalized) continue
     hereditaryRiskPathways[normalized].forEach((pathway) => pathways.add(pathway))

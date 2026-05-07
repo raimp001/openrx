@@ -9,18 +9,67 @@
 }
 
 :root {
-  --focus-ring: 0 0 0 3px rgba(15, 118, 110, 0.22);
+  --color-bg-rgb: 248 250 252;
+  --color-surface-rgb: 255 255 255;
+  --color-surface-muted-rgb: 241 245 249;
+  --color-text-rgb: 11 27 51;
+  --color-secondary-rgb: 30 41 59;
+  --color-muted-rgb: 71 85 105;
+  --color-subtle-rgb: 100 116 139;
+  --color-border-rgb: 226 232 240;
+  --color-border-strong-rgb: 203 213 225;
+  --color-navy-rgb: 11 27 51;
+  --color-navy-hover-rgb: 23 42 77;
+  --color-accent-rgb: 15 118 110;
+  --color-accent-light-rgb: 20 184 166;
+  --color-accent-dark-rgb: 17 94 89;
+  --color-accent-50-rgb: 240 253 250;
+  --color-accent-100-rgb: 204 251 241;
+  --color-success-rgb: 4 120 87;
+  --color-warning-rgb: 180 83 9;
+  --color-danger-rgb: 185 28 28;
+  --focus-ring: 0 0 0 3px rgb(var(--color-accent-rgb) / 0.22);
   --shell-shadow: 0 8px 28px rgba(11, 27, 51, 0.06);
   --panel-shadow: 0 4px 14px rgba(11, 27, 51, 0.05);
-  --paper: #f8fafc;
-  --paper-deep: #f1f5f9;
-  --paper-ink: #0b1b33;
-  --paper-secondary: #1e293b;
-  --paper-muted: #475569;
-  --paper-subtle: #64748b;
-  --paper-border: #e2e8f0;
-  --paper-border-strong: #cbd5e1;
-  --glass: rgba(255, 255, 255, 0.96);
+  --paper: rgb(var(--color-bg-rgb));
+  --paper-deep: rgb(var(--color-surface-muted-rgb));
+  --paper-ink: rgb(var(--color-text-rgb));
+  --paper-secondary: rgb(var(--color-secondary-rgb));
+  --paper-muted: rgb(var(--color-muted-rgb));
+  --paper-subtle: rgb(var(--color-subtle-rgb));
+  --paper-border: rgb(var(--color-border-rgb));
+  --paper-border-strong: rgb(var(--color-border-strong-rgb));
+  --glass: rgb(var(--color-surface-rgb) / 0.96);
+  --openrx-sidebar-width: 76px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-rgb: 10 15 24;
+    --color-surface-rgb: 17 24 35;
+    --color-surface-muted-rgb: 24 34 48;
+    --color-text-rgb: 238 244 250;
+    --color-secondary-rgb: 198 211 224;
+    --color-muted-rgb: 158 174 190;
+    --color-subtle-rgb: 126 145 164;
+    --color-border-rgb: 48 65 85;
+    --color-border-strong-rgb: 71 91 113;
+    --color-navy-rgb: 45 212 191;
+    --color-navy-hover-rgb: 94 234 212;
+    --color-accent-rgb: 45 212 191;
+    --color-accent-light-rgb: 94 234 212;
+    --color-accent-dark-rgb: 20 184 166;
+    --color-accent-50-rgb: 15 47 51;
+    --color-accent-100-rgb: 19 78 74;
+    --color-success-rgb: 52 211 153;
+    --color-warning-rgb: 251 191 36;
+    --color-danger-rgb: 248 113 113;
+    --glass: rgb(var(--color-surface-rgb) / 0.86);
+    --shell-shadow: 0 18px 60px rgba(0, 0, 0, 0.30);
+    --panel-shadow: 0 14px 46px rgba(0, 0, 0, 0.24);
+    color-scheme: dark;
+  }
 }
 
 html {
@@ -35,7 +84,9 @@ body {
 body {
   position: relative;
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: #f8fafc;
+  background:
+    radial-gradient(circle at 18% -10%, rgb(var(--color-accent-rgb) / 0.08), transparent 28%),
+    linear-gradient(180deg, rgb(var(--color-bg-rgb)) 0%, rgb(var(--color-surface-muted-rgb)) 100%);
   color: var(--paper-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -52,8 +103,8 @@ a {
 }
 
 ::selection {
-  background: rgba(15, 118, 110, 0.18);
-  color: #0b1b33;
+  background: rgb(var(--color-accent-rgb) / 0.18);
+  color: var(--paper-ink);
 }
 
 *:focus-visible {
@@ -68,7 +119,7 @@ a {
   top: 0;
   z-index: 120;
   padding: 0.6rem 0.9rem;
-  background: #0b1b33;
+  background: rgb(var(--color-text-rgb));
   color: #fff;
   font-weight: 600;
   font-size: 0.875rem;
@@ -91,12 +142,12 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(15, 23, 42, 0.16);
+  background: rgb(var(--color-muted-rgb) / 0.28);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 23, 42, 0.28);
+  background: rgb(var(--color-muted-rgb) / 0.42);
 }
 
 .reveal {
@@ -125,9 +176,6 @@ a {
 }
 
 @layer base {
-  /* Headings: keep the system sans for a clinical, software feel.
-     Earlier theme used a serif on every heading which read more like an
-     editorial site than a clinical SaaS product. */
   h1, h2, h3, h4 {
     font-family: var(--font-sans), system-ui, sans-serif;
     letter-spacing: -0.018em;
@@ -150,8 +198,9 @@ a {
 
 @layer utilities {
   .surface-card {
-    @apply rounded-[16px] border bg-white;
+    @apply rounded-[16px] border;
     border-color: var(--paper-border);
+    background: rgb(var(--color-surface-rgb) / 0.92);
     box-shadow: var(--panel-shadow);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
@@ -161,13 +210,17 @@ a {
   }
 
   .surface-muted {
-    @apply rounded-[14px] border bg-[#F8FAFC];
+    @apply rounded-[14px] border;
     border-color: var(--paper-border);
+    background: rgb(var(--color-surface-muted-rgb) / 0.88);
   }
 
   .surface-hero {
-    @apply rounded-[20px] border bg-white;
+    @apply rounded-[20px] border;
     border-color: var(--paper-border);
+    background:
+      radial-gradient(circle at 14% 0%, rgb(var(--color-accent-rgb) / 0.08), transparent 28%),
+      rgb(var(--color-surface-rgb) / 0.92);
     box-shadow: var(--panel-shadow);
   }
 
@@ -180,8 +233,9 @@ a {
   }
 
   .execution-step {
-    @apply rounded-[12px] border bg-white p-4;
+    @apply rounded-[12px] border p-4;
     border-color: var(--paper-border);
+    background: rgb(var(--color-surface-rgb) / 0.84);
   }
 
   .section-title {
@@ -193,7 +247,7 @@ a {
   }
 
   .sidebar-scroll::-webkit-scrollbar-thumb {
-    background: rgba(15, 23, 42, 0.14);
+    background: rgb(var(--color-muted-rgb) / 0.22);
   }
 
   .text-gradient-teal {
@@ -201,14 +255,16 @@ a {
   }
 
   .eyebrow-pill {
-    @apply inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
     border-color: var(--paper-border);
+    background: rgb(var(--color-surface-rgb) / 0.90);
   }
 
   .metric-chip,
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border bg-white px-2.5 py-1 text-[11px] font-medium text-secondary;
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium text-secondary;
     border-color: var(--paper-border);
+    background: rgb(var(--color-surface-rgb) / 0.88);
   }
 
   .app-shell-panel,
@@ -221,8 +277,9 @@ a {
   }
 
   .control-input {
-    @apply mt-2 w-full rounded-[10px] border bg-white px-3.5 py-2.5 text-sm text-primary shadow-sm transition placeholder:text-subtle focus:border-teal/50 focus:outline-none focus:ring-2 focus:ring-teal/20;
+    @apply mt-2 w-full rounded-[10px] border px-3.5 py-2.5 text-sm text-primary shadow-sm transition placeholder:text-subtle focus:border-teal/50 focus:outline-none focus:ring-2 focus:ring-teal/20;
     border-color: var(--paper-border);
+    background: rgb(var(--color-surface-rgb) / 0.94);
   }
 
   .control-select {
@@ -230,7 +287,7 @@ a {
   }
 
   .control-button {
-    @apply inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .control-button-primary {
@@ -239,8 +296,9 @@ a {
   }
 
   .control-button-secondary {
-    @apply control-button border bg-white text-secondary hover:border-border-strong hover:text-primary;
+    @apply control-button border text-secondary hover:border-border-strong hover:text-primary;
     border-color: var(--paper-border);
+    background: rgb(var(--color-surface-rgb) / 0.90);
   }
 
   .control-button-accent {
@@ -263,13 +321,15 @@ a {
 
   .shell-rail {
     border-color: var(--paper-border);
-    background: #ffffff;
+    background: rgb(var(--color-surface-rgb) / 0.92);
     box-shadow: 1px 0 0 rgba(11, 27, 51, 0.04);
+    backdrop-filter: blur(18px);
   }
 
   .shell-pill {
-    @apply inline-flex items-center gap-2 rounded-full border bg-white px-2.5 py-1 text-[11px] font-medium text-secondary;
+    @apply inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-medium text-secondary;
     border-color: var(--paper-border);
+    background: rgb(var(--color-surface-rgb) / 0.90);
   }
 
   .shell-kicker {
@@ -280,7 +340,6 @@ a {
     @apply surface-card relative overflow-hidden;
   }
 
-  /* Cinematic dark panels in legacy sub-pages — keep usable contrast */
   .text-white\/42,
   .text-white\/48,
   .text-white\/50,
@@ -308,10 +367,10 @@ a {
     color: rgba(255, 255, 255, 0.92);
   }
 
-  /* Chat surface utilities */
   .chat-bubble-agent {
-    @apply rounded-[14px] border bg-white px-4 py-3 text-[15px] leading-7 text-secondary;
+    @apply rounded-[14px] border px-4 py-3 text-[15px] leading-7 text-secondary;
     border-color: var(--paper-border);
+    background: rgb(var(--color-surface-rgb) / 0.90);
   }
 
   .chat-bubble-user {
@@ -319,20 +378,40 @@ a {
   }
 
   .chat-bubble-system {
-    @apply rounded-[10px] border bg-[#F1F5F9] px-3 py-2 text-[12px] leading-5 text-muted;
+    @apply rounded-[10px] border px-3 py-2 text-[12px] leading-5 text-muted;
     border-color: var(--paper-border);
+    background: rgb(var(--color-surface-muted-rgb) / 0.90);
   }
 
   .chat-section-heading {
-    @apply mt-4 mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted first:mt-0;
+    @apply mb-2 mt-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted first:mt-0;
   }
 
   .chat-citation-pill {
-    @apply inline-flex items-center gap-1.5 rounded-full border bg-white px-2.5 py-1 text-[11px] font-medium text-secondary transition hover:border-teal/50 hover:bg-teal-50 hover:text-teal-dark;
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium text-secondary transition hover:border-teal/50 hover:bg-teal-50 hover:text-teal-dark;
     border-color: var(--paper-border);
+    background: rgb(var(--color-surface-rgb) / 0.88);
   }
 
   .typing-dot {
     animation: typing-dot 1.2s ease-in-out infinite;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .bg-white,
+  [class*="bg-white/"],
+  [class*="bg-[rgba(255,255,255"] {
+    background-color: rgb(var(--color-surface-rgb) / 0.78) !important;
+  }
+
+  [class*="border-[rgba"] {
+    border-color: rgb(var(--color-border-rgb) / 0.42) !important;
+  }
+
+  .bg-navy.text-white,
+  .control-button-primary,
+  .control-button-accent {
+    color: #07111f !important;
   }
 }

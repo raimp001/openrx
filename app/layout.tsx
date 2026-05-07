@@ -28,12 +28,18 @@ export const metadata: Metadata = {
     description:
       "Screening, medication, and preventive-care questions answered directly in chat with guideline links inline.",
     type: "website",
+    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "OpenRx clinical chat workspace" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "OpenRx — Clinical answers, in chat",
     description:
       "Ask a clinical question. Get a complete answer in chat with guideline links — USPSTF, CDC, ACS, NCCN.",
+    images: ["/og-image.svg"],
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/apple-touch-icon.svg",
   },
 }
 
@@ -50,9 +56,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body
-        className={`${inter.variable} ${GeistMono.variable} ${fraunces.variable} min-h-screen bg-surface text-primary antialiased`}
-      >
+      <body className={`${inter.variable} ${GeistMono.variable} ${fraunces.variable} min-h-screen bg-surface text-primary antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

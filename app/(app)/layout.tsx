@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </a>
       <Sidebar />
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(47,107,255,0.045),transparent_20%),radial-gradient(circle_at_88%_8%,rgba(47,107,255,0.035),transparent_18%),linear-gradient(180deg,rgba(255,255,255,0.08),transparent_24%)]" />
-      <div className="relative lg:ml-[76px]">
+      <div className="relative lg:ml-[var(--openrx-sidebar-width,76px)]">
         <Topbar />
         {showDatabaseBanner && (
           <div className="mx-auto mt-4 w-full max-w-[1380px] px-4 sm:px-6 lg:px-8">

@@ -1,0 +1,16 @@
+<svg width="220" height="58" viewBox="0 0 220 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2" y="7" width="44" height="44" rx="14" fill="url(#bg)"/>
+  <path d="M24 15 38 29 24 43 10 29 24 15Z" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.78)" stroke-width="2.4"/>
+  <path d="M24 22 31 29 24 36 17 29 24 22Z" fill="rgba(45,212,191,0.16)" stroke="#7DD3FC" stroke-width="2"/>
+  <path d="M24 25.5 27.5 29 24 32.5 20.5 29 24 25.5Z" fill="#2DD4BF"/>
+  <path d="M13 29h6.5M28.5 29H35" stroke="rgba(255,255,255,0.82)" stroke-width="2" stroke-linecap="round"/>
+  <text x="58" y="31" fill="#07111F" font-family="Sora, Inter, system-ui, sans-serif" font-size="23" font-weight="700" letter-spacing="-1.1">OpenRx</text>
+  <text x="59" y="46" fill="#526173" font-family="Sora, Inter, system-ui, sans-serif" font-size="9" font-weight="700" letter-spacing="1.8">CLINICAL HANDOFFS</text>
+  <defs>
+    <linearGradient id="bg" x1="8" y1="9" x2="44" y2="49" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#07111F"/>
+      <stop offset="0.58" stop-color="#10254A"/>
+      <stop offset="1" stop-color="#075E66"/>
+    </linearGradient>
+  </defs>
+</svg>

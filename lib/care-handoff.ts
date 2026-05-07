@@ -233,16 +233,9 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
 
   if (screeningKeywords) {
     pushUnique({
-      id: "check-screening-eligibility",
-      label: "Review screening eligibility",
-      description: "Run the OpenRx screening engine against this patient context.",
-      href: `/screening?handoff=chat&autorun=1&prompt=${encodeURIComponent(trimmed)}`,
-      kind: "screening",
-    })
-    pushUnique({
       id: "schedule-screening",
-      label: "Find a screening center",
-      description: "Search nearby imaging, lab, or endoscopy partners.",
+      label: "Find care options",
+      description: "Search nearby primary care, imaging, lab, GI, or screening options for the next step.",
       href: `/providers?handoff=chat&autorun=1&q=${encodeURIComponent(trimmed)}`,
       kind: "lab",
     })

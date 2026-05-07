@@ -4,6 +4,7 @@ import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 import { cn } from "@/lib/utils"
 import { executeWorkflow } from "@/lib/openclaw/orchestrator"
 import { useWalletIdentity } from "@/lib/wallet-context"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   ArrowRight,
   ArrowUp,
@@ -80,6 +81,25 @@ interface ChatMessage {
   action?: CareHandoffAction
   actionPlan?: ActionPlanItem[]
   timestamp: Date
+}
+
+type StoredChatMessage = {
+  id: string
+  role: "user" | "agent" | "system"
+  content: string
+  agentId?: string
+  collaborators?: string[]
+  routingInfo?: string
+  createdAt: string
+}
+
+type StoredConversationResponse = {
+  conversation?: {
+    id: string
+    title: string
+    messages: StoredChatMessage[]
+  }
+  error?: string
 }
 
 const agentMeta: Record<string, { label: string; icon: typeof Bot }> = {
@@ -314,6 +334,8 @@ function ChatAnswer({ content }: { content: string }) {
 }
 
 export default function ChatPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { isConnected, walletAddress, getWalletAuthHeaders } = useWalletIdentity()
 
   const buildWelcome = useCallback((connected: boolean): ChatMessage => ({
@@ -328,6 +350,8 @@ export default function ChatPage() {
   }), [])
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [buildWelcome(isConnected)])
+  const [conversationId, setConversationId] = useState("")
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false)
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [activeAgent, setActiveAgent] = useState<AgentId>("coordinator")
@@ -338,16 +362,83 @@ export default function ChatPage() {
   const autoSubmittedPromptRef = useRef(false)
 
   const clearChat = useCallback(() => {
+    setConversationId("")
     setMessages([buildWelcome(isConnected)])
     setErrorBanner(null)
+    router.push("/chat")
+    window.dispatchEvent(new CustomEvent("openrx:new-chat"))
     inputRef.current?.focus()
-  }, [buildWelcome, isConnected])
+  }, [buildWelcome, isConnected, router])
 
   const sendQuickPrompt = useCallback((prompt: string, agentId: AgentId) => {
     setInput(prompt)
     setActiveAgent(agentId)
     inputRef.current?.focus()
   }, [])
+
+  const loadConversation = useCallback(async (id: string) => {
+    setIsLoadingConversation(true)
+    try {
+      const headers = walletAddress ? await getWalletAuthHeaders() : {}
+      const response = await fetch(`/api/chat/conversations/${encodeURIComponent(id)}`, {
+        headers,
+        credentials: "include",
+      })
+      const body = (await response.json().catch(() => ({}))) as StoredConversationResponse
+      if (!response.ok || !body.conversation) {
+        setErrorBanner("That saved chat could not be opened. Start a new question or choose another chat.")
+        setMessages([buildWelcome(isConnected)])
+        return
+      }
+
+      let lastUserPrompt = ""
+      setConversationId(body.conversation.id)
+      setMessages(
+        body.conversation.messages.map((message) => {
+          if (message.role === "user") lastUserPrompt = message.content
+          const agentId = message.agentId || "coordinator"
+          return {
+            id: message.id,
+            role: message.role,
+            content: message.content,
+            agentId: message.agentId,
+            collaborators: message.collaborators,
+            routingInfo: message.routingInfo,
+            actionPlan: message.role === "agent" ? buildActionPlan(lastUserPrompt, agentId) : undefined,
+            timestamp: new Date(message.createdAt),
+          }
+        })
+      )
+    } finally {
+      setIsLoadingConversation(false)
+    }
+  }, [buildWelcome, getWalletAuthHeaders, isConnected, walletAddress])
+
+  useEffect(() => {
+    const handler = () => {
+      setConversationId("")
+      setInput("")
+      setErrorBanner(null)
+      setMessages([buildWelcome(isConnected)])
+      inputRef.current?.focus()
+    }
+    window.addEventListener("openrx:new-chat", handler)
+    return () => window.removeEventListener("openrx:new-chat", handler)
+  }, [buildWelcome, isConnected])
+
+  useEffect(() => {
+    const id = searchParams.get("c") || searchParams.get("conversationId") || ""
+    if (!id) {
+      setConversationId("")
+      if (!searchParams.get("prompt")) {
+        setMessages([buildWelcome(isConnected)])
+      }
+      return
+    }
+    if (id !== conversationId) {
+      void loadConversation(id)
+    }
+  }, [buildWelcome, conversationId, isConnected, loadConversation, searchParams])
 
   const openCareHandoff = useCallback((action: CareHandoffAction) => {
     if (typeof window === "undefined") return
@@ -379,7 +470,7 @@ export default function ChatPage() {
   const sendMessage = useCallback(
     async (messageOverride?: string, agentOverride?: AgentId) => {
       const nextInput = (messageOverride ?? input).trim()
-      if (!nextInput || isLoading) return
+      if (!nextInput || isLoading || isLoadingConversation) return
 
       const userMsg: ChatMessage = {
         id: `user-${Date.now()}`,
@@ -411,6 +502,9 @@ export default function ChatPage() {
             message: userMsg.content,
             agentId: workflow.route.primaryAgent,
             walletAddress,
+            conversationId: conversationId || undefined,
+            collaborators: workflow.route.collaborators,
+            routingInfo: workflow.route.reasoning,
           }),
         })
         const data = await res.json()
@@ -426,6 +520,11 @@ export default function ChatPage() {
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, agentMsg])
+        if (data.conversationId && data.conversationId !== conversationId) {
+          setConversationId(data.conversationId)
+          router.replace(`/chat?c=${encodeURIComponent(data.conversationId)}`, { scroll: false })
+        }
+        window.dispatchEvent(new CustomEvent("openrx:chat-history-refresh"))
       } catch {
         setInput(savedInput)
         setErrorBanner("Connection error. Your message was restored — try sending again.")
@@ -433,7 +532,7 @@ export default function ChatPage() {
         setIsLoading(false)
       }
     },
-    [input, isLoading, activeAgent, walletAddress, getWalletAuthHeaders]
+    [input, isLoading, isLoadingConversation, activeAgent, walletAddress, getWalletAuthHeaders, conversationId, router]
   )
 
   useEffect(() => {
@@ -506,6 +605,13 @@ export default function ChatPage() {
         aria-relevant="additions"
         aria-label="Chat conversation"
       >
+        {isLoadingConversation ? (
+          <div className="mx-auto max-w-sm rounded-[14px] border border-border bg-white px-4 py-3 text-center text-sm text-muted" data-testid="chat-loading-conversation">
+            <Loader2 size={15} className="mx-auto mb-2 animate-spin text-teal-dark" />
+            Restoring the clinical thread...
+          </div>
+        ) : null}
+
         {messages.map((msg) => {
           if (msg.role === "system") {
             return (
@@ -626,7 +732,7 @@ export default function ChatPage() {
             }
           }}
           placeholder="Ask a clinical question — e.g., what screening is due for a 55-year-old?"
-          disabled={isLoading}
+          disabled={isLoading || isLoadingConversation}
           rows={2}
           className="block max-h-[160px] min-h-[56px] w-full resize-none border-0 bg-transparent px-2 py-2 text-[15px] leading-6 text-primary outline-none placeholder:text-subtle disabled:opacity-60"
         />
@@ -637,7 +743,7 @@ export default function ChatPage() {
           <button
             type="submit"
             data-testid="chat-send-button"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || isLoadingConversation || !input.trim()}
             aria-label="Send"
             className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-navy text-white transition hover:bg-navy-hover disabled:cursor-not-allowed disabled:opacity-40"
           >

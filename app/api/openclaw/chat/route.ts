@@ -1,15 +1,20 @@
 import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { runAgent, runCoordinator } from "@/lib/ai-engine"
+import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
+import { appendChatExchange } from "@/lib/chat-history-store"
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { message, agentId, sessionId, walletAddress } = body as {
+    const { message, agentId, sessionId, walletAddress, conversationId, collaborators, routingInfo } = body as {
       message: string
       agentId: string
       sessionId?: string
       walletAddress?: string
+      conversationId?: string
+      collaborators?: string[]
+      routingInfo?: string
     }
 
     const validAgents = [
@@ -61,13 +66,28 @@ export async function POST(req: NextRequest) {
       ? await runCoordinator(message, sessionId, effectiveWalletAddress)
       : await runAgent({ agentId, message, sessionId, walletAddress: effectiveWalletAddress })
 
-    return NextResponse.json({
+    const owner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
+    if ("response" in owner) return owner.response
+
+    const conversation = await appendChatExchange({
+      ownerKey: owner.ownerKey,
+      conversationId,
+      userContent: message.trim(),
+      agentContent: result.response,
+      agentId: result.agentId,
+      collaborators: Array.isArray(collaborators) ? collaborators : undefined,
+      routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
+    })
+
+    return attachChatHistoryCookie(NextResponse.json({
       sessionId: sessionId || `session-${Date.now()}`,
+      conversationId: conversation.id,
+      conversationTitle: conversation.title,
       response: result.response,
       agentId: result.agentId,
       handoff: result.handoff || null,
       live: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
-    })
+    }), owner)
   } catch (error) {
     console.error("Chat API error:", error)
     return NextResponse.json(

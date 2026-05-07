@@ -4,6 +4,8 @@ const opacityScale = Object.fromEntries(
   Array.from({ length: 101 }, (_, value) => [String(value), String(value / 100)])
 )
 
+const withAlpha = (variable: string) => `rgb(var(${variable}) / <alpha-value>)`
+
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -13,75 +15,63 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Surface tiers (calm, near-white, slight cool cast) ──
-        surface: "#F8FAFC",       // page background (slate-50)
-        "surface-2": "#F1F5F9",   // raised muted area (slate-100)
-
-        // ── Text ladder (WCAG AA on white at all sizes) ──
-        primary: "#0B1B33",       // ink — almost-black navy
-        secondary: "#1E293B",     // body text (slate-800)
-        muted: "#475569",         // captions, helper text (slate-600)
-        subtle: "#64748B",        // placeholders, disabled (slate-500)
-
-        // ── Borders / dividers ──
-        border: "#E2E8F0",        // slate-200, default rule
-        "border-strong": "#CBD5E1", // slate-300, when you need it visible
-
-        // ── Brand colors ──
-        // Primary action — deep navy, matches the brand mark.
+        surface: withAlpha("--color-bg-rgb"),
+        "surface-2": withAlpha("--color-surface-muted-rgb"),
+        primary: withAlpha("--color-text-rgb"),
+        secondary: withAlpha("--color-secondary-rgb"),
+        muted: withAlpha("--color-muted-rgb"),
+        subtle: withAlpha("--color-subtle-rgb"),
+        border: withAlpha("--color-border-rgb"),
+        "border-strong": withAlpha("--color-border-strong-rgb"),
         navy: {
-          DEFAULT: "#0B1B33",
-          hover: "#172A4D",
-          50: "#F1F5F9",
-          100: "#E2E8F0",
-          900: "#0B1B33",
+          DEFAULT: withAlpha("--color-navy-rgb"),
+          hover: withAlpha("--color-navy-hover-rgb"),
+          50: withAlpha("--color-surface-muted-rgb"),
+          100: withAlpha("--color-border-rgb"),
+          900: withAlpha("--color-navy-rgb"),
         },
-        // Accent — muted clinical teal (use sparingly, never on body text)
         teal: {
-          DEFAULT: "#0F766E",
-          light: "#14B8A6",
-          dark: "#115E59",
-          50: "#F0FDFA",
-          100: "#CCFBF1",
-          500: "#0F766E",
-          600: "#115E59",
+          DEFAULT: withAlpha("--color-accent-rgb"),
+          light: withAlpha("--color-accent-light-rgb"),
+          dark: withAlpha("--color-accent-dark-rgb"),
+          50: withAlpha("--color-accent-50-rgb"),
+          100: withAlpha("--color-accent-100-rgb"),
+          500: withAlpha("--color-accent-rgb"),
+          600: withAlpha("--color-accent-dark-rgb"),
         },
-        // Semantic
-        success: "#047857",
-        warning: "#B45309",
-        danger: "#B91C1C",
-
-        // ── Legacy aliases (so existing sub-pages keep compiling) ──
-        accent: "#0F766E",
-        coral: { DEFAULT: "#B45309", light: "#D97706", dark: "#92400E" },
+        success: withAlpha("--color-success-rgb"),
+        warning: withAlpha("--color-warning-rgb"),
+        danger: withAlpha("--color-danger-rgb"),
+        accent: withAlpha("--color-accent-rgb"),
+        coral: { DEFAULT: withAlpha("--color-warning-rgb"), light: "#D97706", dark: "#92400E" },
         terra: {
-          DEFAULT: "#B45309",
+          DEFAULT: withAlpha("--color-warning-rgb"),
           light: "#D97706",
           dark: "#92400E",
           50: "#FFFBEB",
           100: "#FEF3C7",
           200: "#FDE68A",
-          500: "#B45309",
+          500: withAlpha("--color-warning-rgb"),
           600: "#92400E",
           700: "#78350F",
         },
-        cream: "#F8FAFC",
-        pampas: "#F8FAFC",
-        sand: "#CBD5E1",
-        cloudy: "#475569",
+        cream: withAlpha("--color-bg-rgb"),
+        pampas: withAlpha("--color-bg-rgb"),
+        sand: withAlpha("--color-border-strong-rgb"),
+        cloudy: withAlpha("--color-muted-rgb"),
         warm: {
-          900: "#0B1B33",
-          800: "#0B1B33",
-          700: "#1E293B",
-          600: "#334155",
-          500: "#475569",
-          300: "#94A3B8",
-          100: "#E2E8F0",
+          900: withAlpha("--color-text-rgb"),
+          800: withAlpha("--color-text-rgb"),
+          700: withAlpha("--color-secondary-rgb"),
+          600: withAlpha("--color-secondary-rgb"),
+          500: withAlpha("--color-muted-rgb"),
+          300: withAlpha("--color-subtle-rgb"),
+          100: withAlpha("--color-border-rgb"),
         },
-        "soft-red": "#B91C1C",
+        "soft-red": withAlpha("--color-danger-rgb"),
         "soft-blue": "#1D4ED8",
-        midnight: "#0B1B33",
-        night: "#0B1B33",
+        midnight: withAlpha("--color-navy-rgb"),
+        night: withAlpha("--color-navy-rgb"),
       },
       fontFamily: {
         serif: ["var(--font-serif)", "Georgia", "serif"],
@@ -91,7 +81,7 @@ const config: Config = {
       fontSize: {
         "display-xl": ["clamp(2.6rem, 4.6vw, 4.2rem)", { lineHeight: "1.05", letterSpacing: "-0.025em" }],
         "display-lg": ["clamp(2.1rem, 3.6vw, 3.2rem)", { lineHeight: "1.08", letterSpacing: "-0.022em" }],
-        "display": ["clamp(1.7rem, 2.6vw, 2.4rem)", { lineHeight: "1.15", letterSpacing: "-0.018em" }],
+        display: ["clamp(1.7rem, 2.6vw, 2.4rem)", { lineHeight: "1.15", letterSpacing: "-0.018em" }],
       },
       borderRadius: {
         card: "16px",
@@ -103,7 +93,7 @@ const config: Config = {
         "card-hover": "0 2px 6px rgba(11,27,51,0.06), 0 8px 24px rgba(11,27,51,0.06)",
         "soft-card": "0 8px 28px rgba(11,27,51,0.06)",
         topbar: "0 1px 0 rgba(11,27,51,0.06)",
-        focus: "0 0 0 3px rgba(15,118,110,0.18)",
+        focus: "0 0 0 3px rgb(var(--color-accent-rgb) / 0.18)",
       },
       opacity: opacityScale,
       keyframes: {

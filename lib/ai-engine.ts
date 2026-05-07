@@ -216,7 +216,7 @@ function buildReferenceList(recommendations: ScreeningRecommendation[]): string[
   })
   links.set("CDC: Cancer screening tests", "https://www.cdc.gov/cancer/prevention/screening.html")
   links.set("ACS: Cancer screening guidelines", "https://www.cancer.org/cancer/screening/american-cancer-society-guidelines-for-the-early-detection-of-cancer.html")
-  return Array.from(links.entries()).map(([label, url]) => `- [${label}](${url})`)
+  return Array.from(links.entries()).map(([label, url], index) => `${index + 1}. [${label}](${url})`)
 }
 
 function buildFollowUpQuestion(recommendations: ScreeningRecommendation[]): string | null {

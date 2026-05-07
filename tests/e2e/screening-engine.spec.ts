@@ -164,10 +164,12 @@ test("screening chat answers common age-sex prompts directly with source links",
 
   expect(parsed.extracted.age).toBe(50)
   expect(parsed.extracted.gender).toBe("female")
+  expect(parsed.extracted.conditions).not.toContain("cancer")
   expect(response).toContain("Direct answer")
   expect(response).toContain("Breast cancer screening")
   expect(response).toContain("Colorectal cancer screening")
   expect(response).toContain("Cervical cancer screening")
+  expect(response).not.toContain("Cancer follow-up plan")
   expect(response).toContain("References")
   expect(response).toContain("https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/breast-cancer-screening")
 })

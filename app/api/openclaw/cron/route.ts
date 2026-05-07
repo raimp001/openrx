@@ -22,7 +22,14 @@ async function authorizeBackgroundRequest(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const { session } = await authorizeBackgroundRequest(request)
+  const { session, authorized } = await authorizeBackgroundRequest(request)
+
+  if (!authorized) {
+    return NextResponse.json(
+      { error: "Unauthorized background job request." },
+      { status: 401 }
+    )
+  }
 
   const search = request.nextUrl.searchParams
   const dueOnly = search.get("dueOnly") === "true"

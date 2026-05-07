@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server"
+import { canAccessCareTeam, resolveClinicSession } from "@/lib/clinic-auth"
 import { getCallProvider } from "@/lib/clinician-calls/provider"
 import { normalizePhone } from "@/lib/clinician-calls/utils"
 import type { CallSessionRequest } from "@/lib/clinician-calls/types"
 
 export const runtime = "nodejs"
+
+async function requireCareTeam(request: NextRequest) {
+  const session = await resolveClinicSession(request)
+  if (!canAccessCareTeam(session.role)) {
+    return {
+      response: NextResponse.json({ error: "Care-team access required." }, { status: 403 }),
+    } as const
+  }
+  return { session } as const
+}
 
 // In-memory rate limiter — enough to slow down accidental loops in dev.
 // Production must use a distributed limiter and abuse-detection pipeline.
@@ -26,7 +37,10 @@ function getClientIp(request: NextRequest): string {
   return forwarded.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "local"
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireCareTeam(request)
+  if ("response" in auth) return auth.response
+
   const provider = getCallProvider()
   const capabilities = provider.capabilities()
   const recent = await provider.listRecent(20)
@@ -38,6 +52,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireCareTeam(request)
+  if ("response" in auth) return auth.response
+
   const ip = getClientIp(request)
   if (!rateLimit(`call-start:${ip}`, 10, 60_000)) {
     return NextResponse.json({ error: "Too many call requests. Slow down." }, { status: 429 })

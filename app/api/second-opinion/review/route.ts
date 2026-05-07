@@ -47,7 +47,12 @@ async function reviewWithClaude(input: SecondOpinionInput): Promise<SecondOpinio
   })
 
   const text = resp.content.find((b) => b.type === "text")?.text || ""
-  const raw = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text) as Partial<SecondOpinionResult>
+  let raw: Partial<SecondOpinionResult>
+  try {
+    raw = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text) as Partial<SecondOpinionResult>
+  } catch {
+    return reviewSecondOpinion(input)
+  }
 
   return {
     generatedAt: new Date().toISOString(),

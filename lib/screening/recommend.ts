@@ -161,8 +161,11 @@ function legacySymptoms(symptoms: string[]): ScreeningIntake["symptoms"] {
 
 function legacyCancerHistory(conditions: string[]): ScreeningIntake["personalHistory"]["cancers"] {
   return conditions
-    .filter((entry) => includesAny(normalized(entry), ["personal history", "history of", "survivor", "treated for"]))
     .filter((entry) => includesAny(normalized(entry), ["cancer", "carcinoma", "melanoma"]))
+    .filter((entry) =>
+      includesAny(normalized(entry), ["personal history", "history of", "survivor", "treated for"]) ||
+      !includesAny(normalized(entry), ["family", "mother", "father", "brother", "sister", "parent"])
+    )
     .map((entry) => ({ type: parseCancerType(entry), diagnosisAge: parseDiagnosisAge(entry) }))
 }
 
@@ -215,12 +218,16 @@ export function screeningIntakeFromLegacy(input: LegacyScreeningInput = {}): Scr
       hysterectomy: conditions.some((entry) => normalized(entry).includes("hysterectomy")),
       cervixPresent: conditions.some((entry) => normalized(entry).includes("cervix present")) || undefined,
     },
-    familyHistory: familyHistory.map((entry) => ({
-      relationship: parseRelationship(entry),
-      cancerType: parseCancerType(entry),
-      diagnosisAge: parseDiagnosisAge(entry),
-      knownMutation: uniqueGenes[0],
-    })),
+    familyHistory: familyHistory.map((entry) => {
+      const entryUpper = normalized(entry).toUpperCase()
+      const matchedGene = uniqueGenes.find((gene) => entryUpper.includes(gene))
+      return {
+        relationship: parseRelationship(entry),
+        cancerType: parseCancerType(entry),
+        diagnosisAge: parseDiagnosisAge(entry),
+        knownMutation: matchedGene,
+      }
+    }),
     genetics: {
       knownPathogenicVariants: uniqueGenes.map((gene) => ({ gene, classification: "pathogenic" as const })),
     },

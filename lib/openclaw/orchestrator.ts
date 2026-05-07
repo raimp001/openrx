@@ -363,7 +363,7 @@ export function routeUserMessage(message: string): {
     }
   }
 
-  if (lower.includes("deploy") || lower.includes("system") || lower.includes("server") || lower.includes("status") || lower.includes("uptime") || lower.includes("error rate")) {
+  if (lower.includes("deploy") || lower.includes("server") || lower.includes("uptime") || lower.includes("error rate") || lower.includes("ci/cd") || lower.includes("build pipeline")) {
     return {
       primaryAgent: "devops",
       collaborators: [],

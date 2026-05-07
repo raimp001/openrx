@@ -51,10 +51,18 @@ export function detectRedFlags(intake: ScreeningIntake): RedFlagFinding[] {
       nextSteps: ["request_specialist_review", "request_referral"],
     })
   }
-  if (symptoms.neurologicDeficit || symptoms.severePain) {
+  if (symptoms.neurologicDeficit) {
     findings.push({
-      key: symptoms.neurologicDeficit ? "neurologicDeficit" : "severePain",
-      label: symptoms.neurologicDeficit ? "New neurologic deficit" : "Severe new pain",
+      key: "neurologicDeficit",
+      label: "New neurologic deficit",
+      cancerContext: "urgent symptom evaluation",
+      nextSteps: ["seek_urgent_care", "request_specialist_review"],
+    })
+  }
+  if (symptoms.severePain) {
+    findings.push({
+      key: "severePain",
+      label: "Severe new pain",
       cancerContext: "urgent symptom evaluation",
       nextSteps: ["seek_urgent_care", "request_specialist_review"],
     })

@@ -197,7 +197,7 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
     full_name: doctor.user.name || "Unknown clinician",
     specialty: doctor.specialty,
     credentials: doctor.licenseNumber,
-    phone: doctor.user.walletAddress || "",
+    phone: "",
     available_days: [],
     available_start: "",
     available_end: "",
@@ -247,6 +247,8 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
 
   const vitals: LiveVital[] = patient.vitalSigns.map((vital) => {
     const bp = parseBloodPressure(vital.bloodPressure)
+    const glucoseMatch = typeof vital.notes === "string" ? vital.notes.match(/Blood glucose:\s*(\d+(?:\.\d+)?)\s*mg\/dL/i) : null
+    const bloodGlucose = glucoseMatch ? Number(glucoseMatch[1]) : undefined
     return {
       id: vital.id,
       patient_id: patient.id,
@@ -254,7 +256,7 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
       systolic: bp.systolic,
       diastolic: bp.diastolic,
       heart_rate: vital.heartRate || undefined,
-      blood_glucose: undefined,
+      blood_glucose: bloodGlucose,
       weight_lbs: kgToLbs(vital.weight),
       oxygen_saturation: typeof vital.oxygenSaturation === "number" ? Math.round(vital.oxygenSaturation) : undefined,
       temperature_f: toFahrenheit(vital.temperature),
@@ -271,7 +273,7 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
     lab_facility: lab.orderedBy || "External Lab",
     ordered_at: lab.testDate.toISOString(),
     resulted_at: lab.testDate.toISOString(),
-    status: lab.isAbnormal ? "reviewed" : "reviewed",
+    status: lab.isAbnormal ? "abnormal" : "reviewed",
     results: parseLabRows(lab.results, lab.isAbnormal),
     notes: lab.notes || "",
   }))

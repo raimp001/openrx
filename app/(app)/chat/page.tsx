@@ -6,7 +6,6 @@ import { executeWorkflow } from "@/lib/openclaw/orchestrator"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
-  ArrowRight,
   ArrowUp,
   Bot,
   Calendar,
@@ -30,11 +29,7 @@ import {
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import {
   buildActionPlan,
-  fallbackHrefForCareHandoff,
-  resolveCareHandoff,
-  safeSessionSetItem,
   type ActionPlanItem,
-  type CareHandoffAction,
 } from "@/lib/care-handoff"
 import { ChatActionPlan } from "@/components/chat-action-plan"
 
@@ -73,29 +68,33 @@ const QUICK_PROMPTS: Array<{ label: string; prompt: string; agentId: AgentId }> 
   },
 ]
 
-const SERVICE_LINKS: Array<{ label: string; description: string; href: string; icon: typeof Stethoscope }> = [
+const SERVICE_LINKS: Array<{ label: string; description: string; prompt: string; agentId: AgentId; icon: typeof Stethoscope }> = [
   {
     label: "Find physicians",
     description: "Primary care, GI, imaging, labs",
-    href: "/providers",
+    prompt: "Help me find the right physician or service. Ask me for my ZIP code/location and what kind of care I need, one question at a time.",
+    agentId: "scheduling",
     icon: Stethoscope,
   },
   {
     label: "Schedule follow-up",
     description: "Turn an answer into a visit",
-    href: "/scheduling",
+    prompt: "Help me prepare a follow-up visit request. Ask me the minimum details needed, one question at a time.",
+    agentId: "scheduling",
     icon: Calendar,
   },
   {
     label: "Coverage help",
     description: "Bills, estimates, prior auth",
-    href: "/billing",
+    prompt: "Help me understand coverage, cost, or prior authorization. Ask me what service, plan, and bill/denial detail you need.",
+    agentId: "billing",
     icon: Receipt,
   },
   {
     label: "Clinical trials",
     description: "Cancer studies by condition",
-    href: "/clinical-trials",
+    prompt: "Help me understand whether a clinical trial search makes sense. Ask me diagnosis, stage, biomarkers, and location one question at a time.",
+    agentId: "trials",
     icon: FlaskConical,
   },
 ]
@@ -107,7 +106,6 @@ interface ChatMessage {
   agentId?: string
   collaborators?: string[]
   routingInfo?: string
-  action?: CareHandoffAction
   actionPlan?: ActionPlanItem[]
   timestamp: Date
 }
@@ -496,12 +494,6 @@ export default function ChatPage() {
     }
   }, [buildWelcome, conversationId, isConnected, loadConversation, searchParams])
 
-  const openCareHandoff = useCallback((action: CareHandoffAction) => {
-    if (typeof window === "undefined") return
-    const stored = safeSessionSetItem(action.storageKey, JSON.stringify(action.payload))
-    window.location.href = stored ? action.href : fallbackHrefForCareHandoff(action)
-  }, [])
-
   // Preload questions from URL
   useEffect(() => {
     if (seededPromptRef.current || typeof window === "undefined") return
@@ -562,20 +554,18 @@ export default function ChatPage() {
       setErrorBanner(null)
 
       const workflow = executeWorkflow(userMsg.content)
-      if (workflow.route.primaryAgent !== currentAgent) {
-        setActiveAgent(workflow.route.primaryAgent)
-      }
+      const selectedAgent = agentOverride || workflow.route.primaryAgent || currentAgent
+      if (selectedAgent !== currentAgent) setActiveAgent(selectedAgent)
 
       // Insert an empty agent message that will be filled in via streaming.
       const placeholder: ChatMessage = {
         id: agentMsgId,
         role: "agent",
         content: "",
-        agentId: workflow.route.primaryAgent,
+        agentId: selectedAgent,
         collaborators: workflow.route.collaborators,
         routingInfo: workflow.route.reasoning,
-        action: resolveCareHandoff(userMsg.content, workflow.route.primaryAgent) || undefined,
-        actionPlan: buildActionPlan(userMsg.content, workflow.route.primaryAgent),
+        actionPlan: buildActionPlan(userMsg.content, selectedAgent),
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, placeholder])
@@ -596,7 +586,7 @@ export default function ChatPage() {
           },
           body: JSON.stringify({
             message: userMsg.content,
-            agentId: workflow.route.primaryAgent,
+            agentId: selectedAgent,
             walletAddress,
             conversationId: conversationId || undefined,
             collaborators: workflow.route.collaborators,
@@ -615,7 +605,7 @@ export default function ChatPage() {
             },
             body: JSON.stringify({
               message: userMsg.content,
-              agentId: workflow.route.primaryAgent,
+              agentId: selectedAgent,
               walletAddress,
               conversationId: conversationId || undefined,
               collaborators: workflow.route.collaborators,
@@ -902,9 +892,12 @@ export default function ChatPage() {
             {SERVICE_LINKS.map((item) => {
               const Icon = item.icon
               return (
-                <a
-                  key={item.href}
-                  href={item.href}
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => {
+                    void sendMessage(item.prompt, item.agentId)
+                  }}
                   className="group rounded-[16px] border border-white/12 bg-white/[0.045] p-3 text-left transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.08]"
                 >
                   <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg border border-white/12 bg-white/[0.07] text-cyan-200">
@@ -914,7 +907,7 @@ export default function ChatPage() {
                   <span className="mt-1 block text-[12px] leading-5 text-zinc-400 group-hover:text-zinc-200">
                     {item.description}
                   </span>
-                </a>
+                </button>
               )
             })}
           </nav>
@@ -1037,20 +1030,14 @@ export default function ChatPage() {
                     {isStreamingThis ? <StreamingCursor /> : null}
                   </div>
                   {msg.actionPlan && msg.actionPlan.length > 0 && !isStreamingThis ? (
-                    <ChatActionPlan items={msg.actionPlan} />
+                    <ChatActionPlan
+                      items={msg.actionPlan}
+                      onPrompt={(prompt) => {
+                        void sendMessage(prompt)
+                      }}
+                    />
                   ) : null}
                   <div className="flex items-center gap-2">
-                    {msg.action && !isStreamingThis ? (
-                      <button
-                        type="button"
-                        onClick={() => openCareHandoff(msg.action!)}
-                        data-testid="chat-action-button"
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-300 px-3.5 py-2 text-xs font-semibold text-black transition hover:bg-cyan-200"
-                      >
-                        {msg.action.label}
-                        <ArrowRight size={12} />
-                      </button>
-                    ) : null}
                     {!isStreamingThis && msg.content.trim() ? <CopyButton text={msg.content} /> : null}
                   </div>
                 </>

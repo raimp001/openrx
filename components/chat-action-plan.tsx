@@ -10,6 +10,7 @@ export interface ChatActionPlanItem {
   label: string
   description: string
   href: string
+  prompt?: string
   // Optional icon hint — falls back to a sensible default per kind.
   kind: "schedule" | "screening" | "lab" | "referral" | "message" | "call" | "education"
 }
@@ -30,44 +31,59 @@ interface ChatActionPlanProps {
   // are explicit exits from the chat, not hidden redirects.
   title?: string
   testIdPrefix?: string
+  onPrompt?: (prompt: string) => void
 }
 
-export function ChatActionPlan({ items, title = "Next links", testIdPrefix = "chat-action" }: ChatActionPlanProps) {
+export function ChatActionPlan({ items, title = "Ask next", testIdPrefix = "chat-action", onPrompt }: ChatActionPlanProps) {
   if (!items.length) return null
+  const allPromptActions = items.every((item) => item.prompt && onPrompt)
   return (
     <section
       data-testid={`${testIdPrefix}-plan`}
       aria-label={title}
-      className="rounded-[14px] border border-white/16 bg-white/[0.055] p-3"
+      className="rounded-[14px] border border-white/12 bg-white/[0.04] p-3"
     >
-      <header className="flex items-center justify-between">
+      <header className="mb-2 flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">{title}</p>
-        <span className="text-[10px] uppercase tracking-[0.14em] text-zinc-400">{items.length} option{items.length === 1 ? "" : "s"}</span>
+        <span className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+          {allPromptActions ? "stays in chat" : "optional links"}
+        </span>
       </header>
-      <ul className="mt-2 space-y-1.5">
+      <ul className="flex flex-wrap gap-2">
         {items.map((item) => {
           const Icon = KIND_ICON[item.kind]
           const external = /^https?:\/\//.test(item.href)
+          const content = (
+            <>
+              <Icon size={12} />
+              <span>{item.label}</span>
+              {item.prompt ? null : <ArrowRight size={12} />}
+            </>
+          )
           return (
             <li key={item.id}>
-              <a
-                href={item.href}
-                target={external ? "_blank" : undefined}
-                rel={external ? "noreferrer" : undefined}
-                data-testid={`${testIdPrefix}-plan-item`}
-                className="group flex items-start justify-between gap-3 rounded-[11px] border border-white/12 bg-black/30 px-3 py-2.5 text-[13px] transition hover:border-cyan-200/35 hover:bg-white/[0.085]"
-              >
-                <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-md border border-white/12 bg-white/[0.075] text-cyan-200">
-                    <Icon size={13} />
-                  </span>
-                  <span>
-                    <span className="block font-medium text-zinc-100">{item.label}</span>
-                    <span className="block text-[12px] leading-5 text-zinc-400">{item.description}</span>
-                  </span>
-                </div>
-                <ArrowRight size={14} className="mt-1 shrink-0 text-zinc-400 transition group-hover:text-cyan-200" />
-              </a>
+              {item.prompt && onPrompt ? (
+                <button
+                  type="button"
+                  onClick={() => onPrompt(item.prompt!)}
+                  title={item.description}
+                  data-testid={`${testIdPrefix}-plan-item`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/20 bg-cyan-200/[0.08] px-3 py-1.5 text-[12px] font-semibold text-cyan-100 transition hover:border-cyan-200/40 hover:bg-cyan-200/[0.14]"
+                >
+                  {content}
+                </button>
+              ) : (
+                <a
+                  href={item.href}
+                  target={external ? "_blank" : undefined}
+                  rel={external ? "noreferrer" : undefined}
+                  title={item.description}
+                  data-testid={`${testIdPrefix}-plan-item`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.055] px-3 py-1.5 text-[12px] font-semibold text-zinc-100 transition hover:border-white/25 hover:bg-white/[0.09]"
+                >
+                  {content}
+                </a>
+              )}
             </li>
           )
         })}

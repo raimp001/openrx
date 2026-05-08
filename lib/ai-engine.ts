@@ -162,27 +162,11 @@ function screeningGroupTitle(rec: ScreeningRecommendation): "Due now" | "Needs c
   return "Upcoming or depends"
 }
 
-function sourceMarkdown(rec: ScreeningRecommendation): string {
-  const source = getGuidelineSource(rec.sourceId)
-  if (source?.url) {
-    return `[${source.organization} ${source.topic} (${source.versionOrDate})](${source.url})`
-  }
-  if (source?.organization === "PENDING") {
-    return "High-risk interval logic not fully encoded; use clinician/genetics review rather than invented intervals."
-  }
-  return `${rec.sourceSystem}${rec.sourceVersion ? ` ${rec.sourceVersion}` : ""}`
-}
-
-function formatScreeningRecommendation(rec: ScreeningRecommendation, index: number): string {
+function formatScreeningRecommendation(rec: ScreeningRecommendation): string {
   const nextStep = rec.nextSteps[0] ? nextStepLabel(rec.nextSteps[0]) : rec.recommendedNextStep
-  const review = rec.requiresClinicianReview ? " Clinician review is needed before using this as a routine screening interval." : ""
+  const review = rec.requiresClinicianReview ? " Review this with a clinician." : ""
 
-  return [
-    `${index}. ${rec.screeningName} — ${conciseStatus(rec.status)} (${rec.riskCategory.replace(/_/g, " ")}).`,
-    `Why: ${rec.patientFriendlyExplanation}${review}`,
-    `Next: ${nextStep}. ${rec.recommendedNextStep}`,
-    `Source: ${sourceMarkdown(rec)}.`,
-  ].join("\n")
+  return `- ${rec.screeningName}: ${conciseStatus(rec.status)}. ${rec.patientFriendlyExplanation}${review} Next: ${nextStep}.`
 }
 
 function formatScreeningGroups(recommendations: ScreeningRecommendation[]): string[] {
@@ -203,7 +187,7 @@ function formatScreeningGroups(recommendations: ScreeningRecommendation[]): stri
     if (items.length === 0) return []
     return [
       group,
-      ...items.map((rec, index) => formatScreeningRecommendation(rec, index + 1)),
+      ...items.map((rec) => formatScreeningRecommendation(rec)),
     ]
   })
 }
@@ -279,7 +263,7 @@ export function buildDeterministicScreeningResponse(message: string): string {
   const summary = summarizeParsedScreeningInput(message)
   const followUp = buildFollowUpQuestion(recommendations)
   return [
-    `Direct answer: based on what you shared (${summary}), here is the screening plan I can support in chat right now.`,
+    `Direct answer: based on what you shared (${summary}), these are the key next steps.`,
     "",
     ...formatScreeningGroups(recommendations),
     "",
@@ -287,7 +271,7 @@ export function buildDeterministicScreeningResponse(message: string): string {
     "References",
     ...buildReferenceList(recommendations),
     "",
-    "Safety note: this is guideline-based clinical decision support and care navigation education. It does not diagnose disease, replace clinician judgment, place an order, or guarantee insurance coverage.",
+    "Safety note: this is decision support, not a diagnosis, order, or coverage guarantee.",
   ].join("\n\n")
 }
 
@@ -461,6 +445,7 @@ IMPORTANT RULES:
 - You ARE ${agent.name}. Stay in character.
 - Use the patient data above to give SPECIFIC answers (reference their actual meds, appointments, claims by name).
 - Behave like a clinical evidence chat assistant: answer directly in this chat first. Do not tell the user to open another page just to see clinical guidance.
+- Keep patient-facing answers short, plain, and skimmable. Prefer 3-6 bullets. Avoid long paragraphs. Use simple words.
 - For clinical, medication, symptom, screening, prevention, billing, or prior-auth questions, use this visible structure when useful:
   Direct answer
   What to do now
@@ -683,6 +668,7 @@ IMPORTANT RULES:
 - You ARE ${agent.name}. Stay in character.
 - Use the patient data above to give SPECIFIC answers (reference their actual meds, appointments, claims by name).
 - Behave like a clinical evidence chat assistant: answer directly in this chat first. Do not tell the user to open another page just to see clinical guidance.
+- Keep patient-facing answers short, plain, and skimmable. Prefer 3-6 bullets. Avoid long paragraphs. Use simple words.
 - For clinical, medication, symptom, screening, prevention, billing, or prior-auth questions, use this visible structure when useful:
   Direct answer
   What to do now

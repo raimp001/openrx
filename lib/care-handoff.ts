@@ -191,6 +191,7 @@ export interface ActionPlanItem {
   label: string
   description: string
   href: string
+  prompt?: string
   kind: "schedule" | "screening" | "lab" | "referral" | "message" | "call" | "education"
 }
 
@@ -258,81 +259,93 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
   const screeningKeywords = includesAny(lowered, SCREENING_TERMS) || agentId === "screening"
   const careSearchKeywords = includesAny(lowered, CARE_SEARCH_TERMS) || agentId === "scheduling"
   const billingKeywords = includesAny(lowered, BILLING_TERMS) || agentId === "billing"
+  const askInChat = (task: string) =>
+    `${task}. Ask me only the missing details you need, one question at a time. Keep it short and patient-friendly. Context: ${trimmed}`
 
   if (screeningKeywords) {
     const providerQuery = providerQueryForScreening(trimmed)
     pushUnique({
       id: "schedule-screening",
-      label: "Find physicians or services",
+      label: "find physicians",
       description: "Search the right clinician, imaging center, lab, or screening site for this recommendation.",
       href: `/providers?handoff=chat&autorun=1&q=${encodeURIComponent(providerQuery)}`,
+      prompt: askInChat(`Help me find the right physician, clinic, imaging center, lab, or screening site. Start by asking for location/ZIP and insurance if needed. Search intent: ${providerQuery}`),
       kind: "lab",
     })
     pushUnique({
       id: "schedule-followup",
-      label: "Schedule clinician follow-up",
+      label: "schedule follow-up",
       description: "Use this answer as context for a visit to confirm and order the study.",
       href: `/scheduling?handoff=chat&reason=${encodeURIComponent(`screening follow-up: ${trimmed}`)}`,
+      prompt: askInChat("Help me schedule an appointment or prepare a follow-up visit request for the right clinician"),
       kind: "schedule",
     })
   } else if (careSearchKeywords) {
     pushUnique({
       id: "find-provider",
-      label: "Search the care network",
+      label: "find care nearby",
       description: "Find an in-network provider for this need.",
       href: `/providers?handoff=chat&autorun=1&q=${encodeURIComponent(trimmed)}`,
+      prompt: askInChat("Help me find realistic care options nearby"),
       kind: "referral",
     })
     pushUnique({
       id: "schedule-appointment",
-      label: "Book an appointment",
+      label: "schedule a visit",
       description: "Hand off to scheduling with this context.",
       href: "/scheduling?handoff=chat",
+      prompt: askInChat("Help me schedule an appointment request"),
       kind: "schedule",
     })
   } else if (billingKeywords) {
     pushUnique({
       id: "open-billing",
-      label: "Review coverage & billing",
+      label: "explain coverage",
       description: "Open the billing workspace for this question.",
       href: "/billing?handoff=chat",
+      prompt: askInChat("Help me understand the coverage, bill, or EOB"),
       kind: "education",
     })
     pushUnique({
       id: "open-prior-auth",
-      label: "Open prior auth",
+      label: "prior auth help",
       description: "If a service is being denied, draft a PA.",
       href: "/prior-auth?handoff=chat",
+      prompt: askInChat("Help me understand whether prior authorization may be needed"),
       kind: "referral",
     })
   } else if (agentId === "rx" || /\b(medication|prescription|drug|interaction|refill|pharmacy)\b/.test(lowered)) {
     pushUnique({
       id: "find-pharmacy",
-      label: "Find a pharmacy",
+      label: "find a pharmacy",
       description: "Search nearby pharmacies and check stock.",
       href: "/pharmacy?handoff=chat",
+      prompt: askInChat("Help me find a pharmacy or medication access option"),
       kind: "referral",
     })
     pushUnique({
       id: "review-prescriptions",
-      label: "Review medications",
+      label: "review meds",
       description: "Open the prescription list for reconciliation.",
       href: "/prescriptions?handoff=chat",
+      prompt: askInChat("Help me review the medication question safely"),
       kind: "education",
     })
   } else if (agentId === "triage" || /\b(symptom|pain|fever|cough|chest|shortness|stroke)\b/.test(lowered)) {
     pushUnique({
       id: "triage-followup",
-      label: "Find urgent or primary care",
+      label: "find urgent care",
       description: "Search care options that can evaluate symptoms. Use emergency care for severe symptoms.",
       href: `/providers?handoff=chat&autorun=1&q=${encodeURIComponent(`urgent or primary care for ${trimmed}`)}`,
+      prompt: askInChat("Help me find urgent care or primary care nearby and decide what type of care is appropriate for these symptoms"),
       kind: "referral",
     })
     pushUnique({
       id: "triage-safety",
-      label: "Ask what needs urgent care",
+      label: "check red flags",
       description: "Stay in chat and clarify red flags before choosing the next step.",
       href: `/chat?prompt=${encodeURIComponent(`What symptoms or red flags would make this urgent: ${trimmed}`)}`,
+      prompt: askInChat("Ask me the key red-flag questions to decide whether this needs urgent care"),
       kind: "message",
     })
   }

@@ -12,11 +12,6 @@ import {
   Bot,
 } from "lucide-react"
 import { useState } from "react"
-import {
-  fallbackHrefForCareHandoff,
-  resolveCareHandoff,
-  safeSessionSetItem,
-} from "@/lib/care-handoff"
 import { cn } from "@/lib/utils"
 
 type CareAskSuggestion = {
@@ -112,13 +107,6 @@ export function CareAskPanel({
     setIsLaunching(true)
     const params = new URLSearchParams()
     const trimmed = nextPrompt.trim()
-
-    const action = resolveCareHandoff(trimmed, topic || "coordinator")
-    if (action && typeof window !== "undefined") {
-      const stored = safeSessionSetItem(action.storageKey, JSON.stringify(action.payload))
-      router.push(stored ? action.href : fallbackHrefForCareHandoff(action))
-      return
-    }
 
     if (trimmed) params.set("prompt", trimmed)
     if (topic) params.set("topic", topic)

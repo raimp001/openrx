@@ -232,7 +232,7 @@ function parseAnswer(content: string): ParsedAnswer {
 
 function renderInlineLinks(text: string, keyPrefix: string) {
   const parts: Array<string | { label: string; url: string }> = []
-  const pattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)]+)/g
+  const pattern = /\[([^\]]+)\]\(((?:https?:\/\/|tel:)[^)\s]+)\)|((?:https?:\/\/|tel:)[^\s)]+)/g
   let lastIndex = 0
   let match: RegExpExecArray | null
   while ((match = pattern.exec(text)) !== null) {
@@ -247,8 +247,8 @@ function renderInlineLinks(text: string, keyPrefix: string) {
       <a
         key={`${keyPrefix}-${index}`}
         href={part.url}
-        target="_blank"
-        rel="noreferrer"
+        target={part.url.startsWith("tel:") ? undefined : "_blank"}
+        rel={part.url.startsWith("tel:") ? undefined : "noreferrer"}
         className="font-medium text-cyan-200 underline decoration-cyan-200/40 underline-offset-2 transition hover:text-cyan-100 hover:decoration-cyan-100"
       >
         {part.label}
@@ -420,9 +420,11 @@ export default function ChatPage() {
   const abortRef = useRef<AbortController | null>(null)
   const seededPromptRef = useRef(false)
   const autoSubmittedPromptRef = useRef(false)
+  const localSessionIdRef = useRef(`chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
 
   const clearChat = useCallback(() => {
     setConversationId("")
+    localSessionIdRef.current = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     setMessages([buildWelcome(isConnected)])
     setErrorBanner(null)
     router.push("/chat")
@@ -447,6 +449,7 @@ export default function ChatPage() {
 
       let lastUserPrompt = ""
       setConversationId(body.conversation.id)
+      localSessionIdRef.current = body.conversation.id
       setMessages(
         body.conversation.messages.map((message) => {
           if (message.role === "user") lastUserPrompt = message.content
@@ -471,6 +474,7 @@ export default function ChatPage() {
   useEffect(() => {
     const handler = () => {
       setConversationId("")
+      localSessionIdRef.current = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       setInput("")
       setErrorBanner(null)
       setMessages([buildWelcome(isConnected)])
@@ -555,6 +559,7 @@ export default function ChatPage() {
 
       const workflow = executeWorkflow(userMsg.content)
       const selectedAgent = agentOverride || workflow.route.primaryAgent || currentAgent
+      const effectiveSessionId = localSessionIdRef.current
       if (selectedAgent !== currentAgent) setActiveAgent(selectedAgent)
 
       // Insert an empty agent message that will be filled in via streaming.
@@ -587,6 +592,7 @@ export default function ChatPage() {
           body: JSON.stringify({
             message: userMsg.content,
             agentId: selectedAgent,
+            sessionId: effectiveSessionId,
             walletAddress,
             conversationId: conversationId || undefined,
             collaborators: workflow.route.collaborators,
@@ -606,6 +612,7 @@ export default function ChatPage() {
             body: JSON.stringify({
               message: userMsg.content,
               agentId: selectedAgent,
+              sessionId: effectiveSessionId,
               walletAddress,
               conversationId: conversationId || undefined,
               collaborators: workflow.route.collaborators,

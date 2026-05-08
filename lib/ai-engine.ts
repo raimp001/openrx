@@ -5,6 +5,7 @@ import { getLiveSnapshotByWallet } from "./live-data.server"
 import { parseScreeningIntakeNarrative } from "./screening-intake"
 import { nextStepLabel, recommendScreenings, screeningIntakeFromLegacy } from "./screening/recommend"
 import { getGuidelineSource } from "./screening/sources"
+import { parseCareSearchQuery, searchNpiCareDirectory } from "./npi-care-search"
 import type { ScreeningRecommendation } from "./screening/types"
 
 // ── AI Clients ────────────────────────────────────────────
@@ -134,6 +135,8 @@ const SCREENING_QUERY_TERMS = [
 ]
 
 const SCREENING_ELIGIBLE_AGENTS = new Set(["screening", "wellness", "coordinator"])
+const CARE_SEARCH_ELIGIBLE_AGENTS = new Set(["scheduling", "coordinator"])
+const ZIP_ONLY_PATTERN = /^\s*\d{5}(?:-\d{4})?\s*$/
 
 function looksLikeScreeningQuestion(agentId: string, message: string): boolean {
   if (!SCREENING_ELIGIBLE_AGENTS.has(agentId)) return false
@@ -141,6 +144,112 @@ function looksLikeScreeningQuestion(agentId: string, message: string): boolean {
   const lowered = message.toLowerCase()
   if (/\b(?:hx|fhx|fam hx)\b/.test(lowered)) return true
   return SCREENING_QUERY_TERMS.some((term) => lowered.includes(term))
+}
+
+function looksLikeCareSearchQuestion(agentId: string, message: string): boolean {
+  const lowered = message.toLowerCase()
+  if (agentId === "scheduling") return true
+  if (!CARE_SEARCH_ELIGIBLE_AGENTS.has(agentId)) return false
+  return /\b(find|search|near me|nearby|primary care|pcp|physician|doctor|clinic|radiology|imaging|mammogram|ldct|colonoscopy|lab|laboratory)\b/.test(lowered)
+}
+
+function lastCareSearchContext(messages: ConversationMessage[]): string {
+  const userMessages = messages
+    .filter((message) => message.role === "user")
+    .map((message) => message.content)
+    .reverse()
+
+  return userMessages.find((message) => /\b(find|search|primary care|pcp|physician|doctor|clinic|radiology|imaging|mammogram|ldct|colonoscopy|lab|laboratory)\b/i.test(message)) || ""
+}
+
+function buildCareSearchQuery(message: string, history: ConversationMessage[]): string {
+  const trimmed = message.trim()
+  const previous = lastCareSearchContext(history)
+  if (ZIP_ONLY_PATTERN.test(trimmed) && previous) {
+    return `${previous} near ${trimmed}`
+  }
+  if (/\b\d{5}(?:-\d{4})?\b/.test(trimmed) && previous && !/\b(find|search|primary care|pcp|physician|doctor|clinic|radiology|imaging|mammogram|ldct|colonoscopy|lab|laboratory)\b/i.test(trimmed)) {
+    return `${previous} ${trimmed}`
+  }
+  return trimmed
+}
+
+function phoneHref(phone: string): string {
+  const cleaned = phone.replace(/[^\d+]/g, "")
+  if (!cleaned) return ""
+  if (cleaned.startsWith("+")) return `tel:${cleaned}`
+  if (cleaned.length === 10) return `tel:+1${cleaned}`
+  return `tel:${cleaned}`
+}
+
+async function buildCareSearchChatResponse(message: string, history: ConversationMessage[]): Promise<string> {
+  const query = buildCareSearchQuery(message, history)
+  const parsed = parseCareSearchQuery(query)
+
+  if (!parsed.ready) {
+    return [
+      "Direct answer",
+      "I can help find public clinic phone numbers, but I need the ZIP code first.",
+      "",
+      "Question to refine this",
+      parsed.clarificationQuestion || "What ZIP code should I search near?",
+      "",
+      "Safety note",
+      "OpenRx can list public directory options. It cannot book directly unless that clinic is connected to OpenRx.",
+    ].join("\n\n")
+  }
+
+  try {
+    const result = await searchNpiCareDirectory(query, { limit: 8 })
+    const withPhones = result.matches.filter((match) => match.phone).slice(0, 5)
+    const matches = withPhones.length ? withPhones : result.matches.slice(0, 5)
+    const location = result.parsed.zip || [result.parsed.city, result.parsed.state].filter(Boolean).join(", ")
+
+    if (matches.length === 0) {
+      return [
+        "Direct answer",
+        `I could not find a clean match near ${location || "that area"}.`,
+        "",
+        "What to do now",
+        "- Send me a nearby ZIP code, city, or a larger radius and I can search more people around that area.",
+        "- You can also tell me the exact service: primary care, GI/colonoscopy, mammogram, lung CT, lab, or genetics.",
+        "",
+        "Safety note",
+        "NPI directory results are public listings, not a guarantee that a clinic accepts your insurance or is taking new patients.",
+      ].join("\n\n")
+    }
+
+    const lines = matches.map((match, index) => {
+      const phone = match.phone ? `[${match.phone}](${phoneHref(match.phone)})` : "phone not listed"
+      const specialty = match.specialty || "clinic"
+      const address = match.fullAddress || "address not listed"
+      return `- ${index + 1}. ${match.name}: ${phone}. ${specialty}. ${address}.`
+    })
+
+    return [
+      "Direct answer",
+      `Here are public clinic options near ${location || "that area"}. Call first to confirm they take your insurance and are accepting new patients.`,
+      "",
+      "What to do now",
+      ...lines,
+      "- If none of these work, tell me and I can search more people around that area.",
+      "",
+      "Safety note",
+      "OpenRx is not booking directly yet unless the clinic joins the platform. These are NPI public directory matches, so call to verify availability, insurance, and whether they can order the study.",
+    ].join("\n\n")
+  } catch {
+    return [
+      "Direct answer",
+      "I could not reach the public NPI clinic directory right now.",
+      "",
+      "What to do now",
+      "- Send me the ZIP code again in a moment, or give a nearby city/state and I can retry.",
+      "- If the first search fails, let me know and I can search more people around that area.",
+      "",
+      "Safety note",
+      "OpenRx can list contact options, but direct booking depends on clinics joining the platform.",
+    ].join("\n\n")
+  }
 }
 
 function conciseStatus(status: ScreeningRecommendation["status"]): string {
@@ -427,6 +536,15 @@ export async function runAgent(params: {
     return { response, agentId: "screening" }
   }
 
+  if (looksLikeCareSearchQuestion(agentId, message)) {
+    const history = getConversation(sessionKey)
+    const response = await buildCareSearchChatResponse(message, history)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("scheduling", "npi-care-search-response", `${message.slice(0, 60)}...`, "portal")
+    return { response, agentId: "scheduling" }
+  }
+
   const claude = getClaudeClient()
 
   // Keep the demo path useful even when the hosted model provider is unavailable.
@@ -650,6 +768,16 @@ export async function* runAgentStream(params: {
     logAction("screening", "deterministic-screening-response", `${message.slice(0, 60)}...`, "portal")
     yield response
     return { agentId: "screening", finalText: response }
+  }
+
+  if (looksLikeCareSearchQuestion(agentId, message)) {
+    const history = getConversation(sessionKey)
+    const response = await buildCareSearchChatResponse(message, history)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("scheduling", "npi-care-search-response", `${message.slice(0, 60)}...`, "portal")
+    yield response
+    return { agentId: "scheduling", finalText: response }
   }
 
   const claude = getClaudeClient()

@@ -82,10 +82,31 @@ export function chatOwnerKeyFromSession(sessionId: string): string {
   return `session:${crypto.createHash("sha256").update(normalizeOwnerSecret(sessionId)).digest("hex")}`
 }
 
+// Patterns for direct-identifier PHI that should never end up in a sidebar
+// preview. Replacements use a short label so the title still reads naturally.
+const PHI_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
+  { pattern: /\b[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, replacement: "[email]" },
+  // SSN-like 9-digit groupings, hyphenated or spaced.
+  { pattern: /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g, replacement: "[id]" },
+  // North-American style phones (10/11 digits, separators or parens).
+  { pattern: /\+?1?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g, replacement: "[phone]" },
+  // Other long digit runs that look like identifiers (MRN/policy/credit card).
+  { pattern: /\b\d{9,}\b/g, replacement: "[id]" },
+]
+
+function scrubDirectIdentifiers(input: string): string {
+  let out = input
+  for (const { pattern, replacement } of PHI_PATTERNS) {
+    out = out.replace(pattern, replacement)
+  }
+  return out
+}
+
 export function generateConversationTitle(message: string): string {
-  const cleaned = message
+  const scrubbed = scrubDirectIdentifiers(message)
+  const cleaned = scrubbed
     .replace(/https?:\/\/\S+/g, "")
-    .replace(/[^\w\s?'":,.-]/g, " ")
+    .replace(/[^\w\s?'":,.\[\]-]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
 
@@ -102,7 +123,7 @@ export function generateConversationTitle(message: string): string {
 function previewFromMessages(messages: ChatHistoryMessage[]): string {
   const lastMessage = [...messages].reverse().find((message) => message.role !== "system")
   if (!lastMessage) return "No messages yet"
-  return cleanContent(lastMessage.content)
+  return scrubDirectIdentifiers(cleanContent(lastMessage.content))
     .replace(/^Direct answer:\s*/i, "")
     .replace(/^Direct answer\s*/i, "")
     .replace(/^References\s*/i, "")

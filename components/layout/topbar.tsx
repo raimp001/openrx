@@ -190,7 +190,7 @@ export default function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 px-4 pt-3 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-[1240px] items-center gap-3 rounded-full border border-[rgba(82,108,139,0.12)] bg-[rgba(247,250,255,0.76)] px-3 py-2 shadow-[0_18px_54px_rgba(8,24,46,0.06)] backdrop-blur-2xl">
+      <div className="mx-auto flex max-w-[1240px] items-center gap-3 rounded-full border border-white/10 bg-[#101010]/82 px-3 py-2 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
         <div className="min-w-0 shrink-0 pl-1 lg:min-w-[132px]">
           <p className="truncate text-sm font-semibold text-primary">{pageInfo.label}</p>
         </div>
@@ -213,7 +213,7 @@ export default function Topbar() {
             aria-expanded={isOpen && !!results}
             aria-activedescendant={activeIndex >= 0 ? `search-result-${activeIndex}` : undefined}
               placeholder="Search your care plan"
-              className="w-full rounded-full border border-transparent bg-white/76 py-2.5 pl-10 pr-14 text-sm text-primary placeholder:text-muted transition focus:border-accent/25 focus:ring-1 focus:ring-accent/10"
+              className="w-full rounded-full border border-white/10 bg-white/[0.06] py-2.5 pl-10 pr-14 text-sm text-primary placeholder:text-muted transition focus:border-accent/35 focus:ring-1 focus:ring-accent/20"
             />
             {query ? (
               <button
@@ -227,13 +227,13 @@ export default function Topbar() {
                 <X size={13} />
               </button>
             ) : (
-              <span className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-full border border-white/85 bg-white/86 px-2 py-1 text-[10px] font-medium text-muted lg:flex">
+              <span className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-full border border-white/12 bg-white/[0.08] px-2 py-1 text-[10px] font-medium text-muted lg:flex">
                 <Command size={9} /> K
               </span>
             )}
 
             {isOpen && results ? (
-              <div className="surface-card absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-[22px] bg-[rgba(255,255,255,0.98)]">
+              <div className="surface-card absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-[22px] bg-[#101010]/95">
                 {results.total === 0 ? (
                   <div className="px-4 py-3 text-sm text-secondary">No results for “{query}”</div>
                 ) : (
@@ -254,8 +254,8 @@ export default function Topbar() {
                                 role="option"
                                 aria-selected={activeIndex === rowIndex}
                                 className={cn(
-                                  "flex items-center gap-3 px-4 py-3 text-sm transition hover:bg-[rgba(239,246,255,0.82)]",
-                                  activeIndex === rowIndex && "bg-[rgba(239,246,255,0.82)]"
+                                  "flex items-center gap-3 px-4 py-3 text-sm transition hover:bg-white/[0.08]",
+                                  activeIndex === rowIndex && "bg-white/[0.08]"
                                 )}
                               >
                                 <Icon size={14} className="text-teal" />
@@ -275,8 +275,8 @@ export default function Topbar() {
                                 role="option"
                                 aria-selected={activeIndex === rowIndex}
                                 className={cn(
-                                  "flex items-center gap-3 px-4 py-3 text-sm transition hover:bg-[rgba(239,246,255,0.82)]",
-                                  activeIndex === rowIndex && "bg-[rgba(239,246,255,0.82)]"
+                                  "flex items-center gap-3 px-4 py-3 text-sm transition hover:bg-white/[0.08]",
+                                  activeIndex === rowIndex && "bg-white/[0.08]"
                                 )}
                               >
                                 <Calendar size={14} className="text-muted" />
@@ -300,8 +300,8 @@ export default function Topbar() {
                                 role="option"
                                 aria-selected={activeIndex === rowIndex}
                                 className={cn(
-                                  "flex items-center gap-3 px-4 py-3 text-sm transition hover:bg-[rgba(239,246,255,0.82)]",
-                                  activeIndex === rowIndex && "bg-[rgba(239,246,255,0.82)]"
+                                  "flex items-center gap-3 px-4 py-3 text-sm transition hover:bg-white/[0.08]",
+                                  activeIndex === rowIndex && "bg-white/[0.08]"
                                 )}
                               >
                                 <Pill size={14} className="text-muted" />
@@ -322,7 +322,7 @@ export default function Topbar() {
         ) : (
           <Link
             href="/chat"
-            className="hidden flex-1 items-center justify-between gap-4 rounded-full bg-white/72 px-4 py-2.5 text-sm text-secondary transition hover:bg-white/92 hover:text-primary lg:flex"
+            className="hidden flex-1 items-center justify-between gap-4 rounded-full border border-white/10 bg-white/[0.055] px-4 py-2.5 text-sm text-secondary transition hover:bg-white/[0.09] hover:text-primary lg:flex"
           >
             <span className="inline-flex items-center gap-2">
               <Bot size={15} className="text-teal" />
@@ -335,7 +335,7 @@ export default function Topbar() {
         <div className="ml-auto flex items-center gap-1.5">
           <Link
             href="/chat"
-            className="hidden h-10 items-center gap-2 rounded-full bg-primary px-4 text-[13px] font-semibold text-white shadow-[0_12px_28px_rgba(7,17,31,0.18)] transition hover:bg-[#12213a] md:inline-flex"
+            className="hidden h-10 items-center gap-2 rounded-full bg-cyan-200 px-4 text-[13px] font-semibold text-black shadow-[0_12px_28px_rgba(103,232,249,0.14)] transition hover:bg-cyan-100 md:inline-flex"
           >
             <Bot size={15} />
             Ask
@@ -343,7 +343,7 @@ export default function Topbar() {
 
           <Link
             href="/messages"
-            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/70 text-secondary transition hover:bg-white hover:text-primary"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-secondary transition hover:bg-white/[0.1] hover:text-primary"
             aria-label="Messages"
           >
             <Bell size={16} strokeWidth={1.6} />
@@ -357,9 +357,9 @@ export default function Topbar() {
           {isConnected ? (
             <Link
               href="/profile"
-              className="flex h-10 items-center gap-2 rounded-full bg-white/70 pl-1.5 pr-3 transition hover:bg-white"
+              className="flex h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] pl-1.5 pr-3 transition hover:bg-white/[0.1]"
             >
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-white">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-[10px] font-semibold text-black">
                 {displayName ? displayName.charAt(0).toUpperCase() : "?"}
               </div>
               <div className="hidden text-left sm:block">
@@ -369,11 +369,11 @@ export default function Topbar() {
               </div>
             </Link>
           ) : isOnboarding ? (
-            <span className="hidden rounded-full bg-white/70 px-3 py-2 text-[12px] font-semibold text-secondary sm:inline-flex">
+            <span className="hidden rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-[12px] font-semibold text-secondary sm:inline-flex">
               Setup
             </span>
           ) : (
-            <Link href="/onboarding" className="h-10 rounded-full bg-white/70 px-4 py-2.5 text-[13px] font-semibold text-primary transition hover:bg-white">
+            <Link href="/onboarding" className="h-10 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2.5 text-[13px] font-semibold text-primary transition hover:bg-white/[0.1]">
               Setup
             </Link>
           )}

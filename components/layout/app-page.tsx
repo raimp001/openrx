@@ -78,14 +78,14 @@ export function AppPageHeader({
       {variant === "hero" ? (
         <div
           className={cn(
-            "relative mt-6 grid gap-2 rounded-[22px] border border-[rgba(82,108,139,0.12)] bg-white/52 p-2 backdrop-blur sm:grid-cols-4",
+            "relative mt-6 grid gap-2 rounded-[22px] border border-white/10 bg-white/[0.055] p-2 backdrop-blur sm:grid-cols-4",
             align === "center" && "mx-auto max-w-2xl"
           )}
           aria-label="OpenRx care pathway"
         >
           {executionLoop.map((item, index) => (
             <div key={item} className="flex items-center gap-2 rounded-[16px] px-3 py-2">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-white">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-[10px] font-semibold text-black">
                 {index + 1}
               </span>
               <span className="text-[12px] font-semibold text-primary">{item}</span>

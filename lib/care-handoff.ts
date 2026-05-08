@@ -215,7 +215,35 @@ const SOURCE_LINKS: Array<{ pattern: RegExp; label: string; url: string }> = [
     label: "USPSTF: Cervical cancer screening",
     url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/cervical-cancer-screening",
   },
+  {
+    pattern: /\b(prostate|psa)\b/i,
+    label: "USPSTF: Prostate cancer screening discussion",
+    url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/prostate-cancer-screening",
+  },
 ]
+
+function providerQueryForScreening(message: string) {
+  const lowered = message.toLowerCase()
+  if (/\b(colon|colorectal|fit-?dna|colonoscop|sigmoidoscop)\b/.test(lowered)) {
+    return `gastroenterology or colonoscopy center for ${message}`
+  }
+  if (/\b(mammogram|breast|brca)\b/.test(lowered)) {
+    return `mammography center or high-risk breast clinic for ${message}`
+  }
+  if (/\b(lung|ldct|smoker|smoking)\b/.test(lowered)) {
+    return `low-dose CT lung screening imaging center for ${message}`
+  }
+  if (/\b(cervical|pap|hpv)\b/.test(lowered)) {
+    return `primary care or gynecology cervical screening for ${message}`
+  }
+  if (/\b(prostate|psa)\b/.test(lowered)) {
+    return `primary care or urology PSA screening discussion for ${message}`
+  }
+  if (/\b(brca|lynch|mutation|germline|family history)\b/.test(lowered)) {
+    return `genetic counseling or high-risk cancer clinic for ${message}`
+  }
+  return `primary care or preventive screening services for ${message}`
+}
 
 export function buildActionPlan(message: string, agentId: string): ActionPlanItem[] {
   const trimmed = message.trim()
@@ -232,18 +260,19 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
   const billingKeywords = includesAny(lowered, BILLING_TERMS) || agentId === "billing"
 
   if (screeningKeywords) {
+    const providerQuery = providerQueryForScreening(trimmed)
     pushUnique({
       id: "schedule-screening",
       label: "Find physicians or services",
-      description: "Search primary care, GI, imaging, lab, or screening locations for this next step.",
-      href: `/providers?handoff=chat&autorun=1&q=${encodeURIComponent(trimmed)}`,
+      description: "Search the right clinician, imaging center, lab, or screening site for this recommendation.",
+      href: `/providers?handoff=chat&autorun=1&q=${encodeURIComponent(providerQuery)}`,
       kind: "lab",
     })
     pushUnique({
       id: "schedule-followup",
       label: "Schedule clinician follow-up",
-      description: "Book a visit to confirm and order the study.",
-      href: "/scheduling?handoff=chat&reason=screening-followup",
+      description: "Use this answer as context for a visit to confirm and order the study.",
+      href: `/scheduling?handoff=chat&reason=${encodeURIComponent(`screening follow-up: ${trimmed}`)}`,
       kind: "schedule",
     })
   } else if (careSearchKeywords) {

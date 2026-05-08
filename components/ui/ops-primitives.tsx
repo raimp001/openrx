@@ -154,8 +154,8 @@ export function OpsTabButton({
       className={cn(
         "rounded-button border px-3 py-1.5 text-[11px] font-medium transition",
         active
-          ? "border-teal bg-teal text-white"
-          : "border-border bg-white text-secondary hover:border-teal/30 hover:text-primary"
+          ? "border-cyan-200 bg-cyan-200 text-black"
+          : "border-border bg-white/[0.055] text-secondary hover:border-teal/30 hover:bg-white/[0.09] hover:text-primary"
       )}
     >
       {children}
@@ -176,7 +176,7 @@ export function OpsEmptyState({
 }) {
   return (
     <div className={cn("surface-muted flex flex-col items-center justify-center gap-3 px-6 py-12 text-center", className)}>
-      <div className="flex h-12 w-12 items-center justify-center rounded-card bg-white text-muted shadow-sm">
+      <div className="flex h-12 w-12 items-center justify-center rounded-card border border-white/10 bg-white/[0.06] text-muted shadow-sm">
         <Icon size={22} strokeWidth={1.5} />
       </div>
       <div>

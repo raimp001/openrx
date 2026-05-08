@@ -65,7 +65,7 @@ export default function Sidebar() {
         <button
           onClick={() => setMobileOpen(false)}
           aria-label="Close navigation"
-          className="rounded-full p-2 text-muted transition hover:bg-white hover:text-primary lg:hidden"
+          className="rounded-full p-2 text-muted transition hover:bg-white/10 hover:text-primary lg:hidden"
         >
           <X size={15} />
         </button>
@@ -74,7 +74,7 @@ export default function Sidebar() {
       <div className="px-3 pb-3 lg:px-2">
         <Link
           href="/chat"
-          className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-black lg:h-12 lg:px-0"
+          className="flex items-center justify-center gap-2 rounded-2xl bg-cyan-200 px-4 py-3 text-sm font-semibold text-black transition hover:bg-cyan-100 lg:h-12 lg:px-0"
           title="Ask OpenRx"
         >
           <Bot size={15} />
@@ -94,8 +94,8 @@ export default function Sidebar() {
                 className={cn(
                   "group flex items-center gap-3 rounded-[16px] px-3 py-2.5 text-[13px] font-medium transition lg:h-11 lg:justify-center lg:px-0",
                   active
-                    ? "bg-white text-primary shadow-[0_12px_28px_rgba(8,24,46,0.08)]"
-                    : "text-secondary hover:bg-white/72 hover:text-primary"
+                    ? "bg-cyan-200/10 text-primary ring-1 ring-cyan-200/18"
+                    : "text-secondary hover:bg-white/8 hover:text-primary"
                 )}
               >
                 <item.icon size={15} className={active ? "text-primary" : "text-muted group-hover:text-primary"} strokeWidth={1.7} />
@@ -114,7 +114,7 @@ export default function Sidebar() {
       <div className="px-3 py-3 lg:px-2">
         <Link
           href="/privacy-explained"
-          className="block rounded-[14px] px-3 py-2 text-[12px] font-medium text-muted transition hover:bg-white/72 hover:text-primary lg:px-0 lg:text-center"
+          className="block rounded-[14px] px-3 py-2 text-[12px] font-medium text-muted transition hover:bg-white/8 hover:text-primary lg:px-0 lg:text-center"
           title="Privacy"
         >
           <span className="lg:sr-only">Privacy</span>
@@ -128,7 +128,7 @@ export default function Sidebar() {
     <>
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 rounded-full border border-[rgba(82,108,139,0.12)] bg-white/92 p-2.5 text-secondary shadow-card transition hover:text-primary lg:hidden"
+        className="fixed left-4 top-4 z-50 rounded-full border border-white/12 bg-[#101010]/92 p-2.5 text-secondary shadow-card transition hover:border-white/20 hover:text-primary lg:hidden"
         aria-label="Open navigation"
       >
         <Menu size={18} />

@@ -628,7 +628,6 @@ export default function ChatPage() {
           setMessages((prev) => prev.map((m) => (m.id === agentMsgId ? { ...m, content: text } : m)))
           if (data.conversationId && data.conversationId !== conversationId) {
             setConversationId(data.conversationId)
-            router.replace(`/chat?c=${encodeURIComponent(data.conversationId)}`, { scroll: false })
           }
           window.dispatchEvent(new CustomEvent("openrx:chat-history-refresh"))
           return
@@ -666,7 +665,6 @@ export default function ChatPage() {
               }
               if (parsed.conversationId && parsed.conversationId !== conversationId) {
                 setConversationId(parsed.conversationId)
-                router.replace(`/chat?c=${encodeURIComponent(parsed.conversationId)}`, { scroll: false })
               }
               window.dispatchEvent(new CustomEvent("openrx:chat-history-refresh"))
             } catch {
@@ -743,7 +741,7 @@ export default function ChatPage() {
         setStreamingId(null)
       }
     },
-    [input, isLoading, isLoadingConversation, activeAgent, walletAddress, getWalletAuthHeaders, conversationId, router]
+    [input, isLoading, isLoadingConversation, activeAgent, walletAddress, getWalletAuthHeaders, conversationId]
   )
 
   useEffect(() => {

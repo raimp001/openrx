@@ -196,3 +196,60 @@ Standard Next.js App Router pattern: `app/api/<route>/route.ts`
 ### Database changes
 
 Edit `prisma/schema.prisma` → run `npx prisma migrate dev` → update types
+
+## Coinbase Developer Documentation
+
+OpenRx uses Coinbase Base / USDC for payments via wagmi + onchainkit. Reference docs for the wider Coinbase Developer Platform (CDP):
+
+### Getting Started
+- [CDP Docs](https://docs.cdp.coinbase.com/index) — main entry point
+- [Quickstart](https://docs.cdp.coinbase.com/get-started/quickstart) — products, workflows, concepts
+- [Authentication](https://docs.cdp.coinbase.com/get-started/authentication/overview) — API keys, request signing
+- [JWT Authentication](https://docs.cdp.coinbase.com/get-started/authentication/jwt-authentication) — server-side API access
+- [Security Best Practices](https://docs.cdp.coinbase.com/get-started/authentication/security-best-practices)
+- [Supported Networks](https://docs.cdp.coinbase.com/get-started/supported-networks)
+
+### CDP CLI & MCP
+- [CDP CLI Overview](https://docs.cdp.coinbase.com/get-started/build-with-ai/cdp-cli/overview) — CLI + MCP server for the CDP API
+- [CDP CLI Quickstart](https://docs.cdp.coinbase.com/get-started/build-with-ai/cdp-cli/quickstart)
+- [CDP CLI MCP Integration](https://docs.cdp.coinbase.com/get-started/build-with-ai/cdp-cli/mcp) — typed tool access for AI agents
+
+### API Reference
+- [API Reference](https://docs.cdp.coinbase.com/api-reference)
+- [CDP API v2](https://docs.cdp.coinbase.com/api-reference/v2/introduction)
+- [Authentication (API v2)](https://docs.cdp.coinbase.com/api-reference/v2/authentication)
+- [Errors](https://docs.cdp.coinbase.com/api-reference/v2/errors)
+- [JSON-RPC API](https://docs.cdp.coinbase.com/api-reference/json-rpc-api/core)
+- [Payment APIs Overview](https://docs.cdp.coinbase.com/api-reference/payment-apis/overview)
+- [Idempotency](https://docs.cdp.coinbase.com/api-reference/v2/idempotency)
+- [Rate Limits](https://docs.cdp.coinbase.com/api-reference/v2/rate-limits)
+
+### Wallet & Payment Products
+- [Server Wallets v2](https://docs.cdp.coinbase.com/server-wallets/v2/introduction/welcome) — managed custodial wallets
+- [Embedded Wallets](https://docs.cdp.coinbase.com/embedded-wallets/welcome) — user-facing self-custody
+- [Onramp](https://docs.cdp.coinbase.com/onramp/headless-onramp/overview) — fiat-to-crypto onboarding
+- [Paymaster Quickstart](https://docs.cdp.coinbase.com/paymaster/guides/quickstart) — gas sponsorship
+- [x402 Welcome](https://docs.cdp.coinbase.com/x402/welcome) — HTTP-native payments for monetizing APIs
+- [Webhooks Overview](https://docs.cdp.coinbase.com/webhooks/overview)
+- [Verify Webhook Signatures](https://docs.cdp.coinbase.com/webhooks/verify-signatures)
+
+### AI & Agent Tooling
+- [AgentKit](https://docs.cdp.coinbase.com/agent-kit/welcome) — AI agents that use CDP tools
+- [AgentKit Quickstart](https://docs.cdp.coinbase.com/agent-kit/getting-started/quickstart)
+- [AgentKit MCP Extension](https://docs.cdp.coinbase.com/agent-kit/core-concepts/model-context-protocol)
+- [Agentic Wallet](https://docs.cdp.coinbase.com/agentic-wallet/welcome) — wallet for autonomous AI workflows
+- [Agentic Wallet MCP](https://docs.cdp.coinbase.com/agentic-wallet/mcp/welcome)
+
+### SDKs
+- [SDK Overview](https://docs.cdp.coinbase.com/sdks)
+- [TypeScript SDK](https://docs.cdp.coinbase.com/sdks/cdp-sdks-v2/typescript)
+- [Python SDK](https://docs.cdp.coinbase.com/sdks/cdp-sdks-v2/python)
+- [CDP Hooks](https://docs.cdp.coinbase.com/sdks/cdp-sdks-v2/frontend/@coinbase/cdp-hooks) — React hooks for auth & transactions
+- [React SDK](https://docs.cdp.coinbase.com/sdks/cdp-sdks-v2/frontend/@coinbase/cdp-react)
+
+### Tutorials & Demos
+- [Demo Apps](https://docs.cdp.coinbase.com/get-started/demo-apps/explore)
+- [Automated Mass Payouts](https://docs.cdp.coinbase.com/get-started/demo-apps/app-examples/automated-mass-payouts)
+- [Onchain Commerce Shop](https://docs.cdp.coinbase.com/get-started/demo-apps/app-examples/onchain-commerce-shop)
+- [Aave Lending Integration](https://docs.cdp.coinbase.com/get-started/demo-apps/app-examples/aave-lending)
+

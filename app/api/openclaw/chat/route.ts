@@ -66,32 +66,57 @@ export async function POST(req: NextRequest) {
       ? await runCoordinator(message, sessionId, effectiveWalletAddress)
       : await runAgent({ agentId, message, sessionId, walletAddress: effectiveWalletAddress })
 
-    const owner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
-    if ("response" in owner) return owner.response
+    // Try to persist the exchange in chat history — but never block the response.
+    let savedConversationId = conversationId || ""
+    let savedTitle = ""
+    let owner: Awaited<ReturnType<typeof resolveChatHistoryOwner>> | null = null
+    try {
+      owner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
+      if (owner && !("response" in owner)) {
+        const conversation = await appendChatExchange({
+          ownerKey: owner.ownerKey,
+          conversationId,
+          userContent: message.trim(),
+          agentContent: result.response,
+          agentId: result.agentId,
+          collaborators: Array.isArray(collaborators) ? collaborators : undefined,
+          routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
+        })
+        savedConversationId = conversation.id
+        savedTitle = conversation.title
+      }
+    } catch (historyError) {
+      console.error("Chat history storage failed (response still returned):", historyError)
+    }
 
-    const conversation = await appendChatExchange({
-      ownerKey: owner.ownerKey,
-      conversationId,
-      userContent: message.trim(),
-      agentContent: result.response,
-      agentId: result.agentId,
-      collaborators: Array.isArray(collaborators) ? collaborators : undefined,
-      routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
-    })
-
-    return attachChatHistoryCookie(NextResponse.json({
+    const response = NextResponse.json({
       sessionId: sessionId || `session-${Date.now()}`,
-      conversationId: conversation.id,
-      conversationTitle: conversation.title,
+      conversationId: savedConversationId,
+      conversationTitle: savedTitle,
       response: result.response,
       agentId: result.agentId,
       handoff: result.handoff || null,
       live: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
-    }), owner)
+    })
+
+    if (owner && !("response" in owner)) {
+      return attachChatHistoryCookie(response, owner)
+    }
+    return response
   } catch (error) {
     console.error("Chat API error:", error)
+    const message_str = error instanceof Error ? error.message : ""
+    const status = typeof error === "object" && error !== null && "status" in error
+      ? Number((error as { status?: unknown }).status)
+      : undefined
+    if (status === 401 || message_str.includes("API key")) {
+      return NextResponse.json(
+        { error: "AI service configuration issue. The care team has been notified — please try again shortly." },
+        { status: 502 }
+      )
+    }
     return NextResponse.json(
-      { error: "Failed to process message" },
+      { error: "Something went wrong while processing your request. Please try again." },
       { status: 500 }
     )
   }

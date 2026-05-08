@@ -37,6 +37,7 @@ type ChatHistoryFile = {
 }
 
 const MAX_CONVERSATIONS_PER_OWNER = 80
+const MAX_PINNED_CONVERSATIONS_PER_OWNER = 20
 const MAX_MESSAGES_PER_CONVERSATION = 80
 const MAX_MESSAGE_CHARS = 12000
 const STORE_PATH =
@@ -153,15 +154,30 @@ function sortConversations(a: ChatConversation, b: ChatConversation): number {
 }
 
 function enforceOwnerLimit(store: ChatHistoryFile, ownerKey: string) {
-  const ownerConversations = store.conversations
-    .filter((conversation) => conversation.ownerKey === ownerKey && !conversation.pinned)
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  const owned = store.conversations.filter((c) => c.ownerKey === ownerKey)
+  const sortedByRecency = [...owned].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )
 
-  const excess = ownerConversations.slice(MAX_CONVERSATIONS_PER_OWNER)
-  if (excess.length === 0) return
+  const pinned = sortedByRecency.filter((c) => c.pinned)
+  const unpinned = sortedByRecency.filter((c) => !c.pinned)
 
-  const excessIds = new Set(excess.map((conversation) => conversation.id))
-  store.conversations = store.conversations.filter((conversation) => !excessIds.has(conversation.id))
+  // Cap pinned count: oldest-pinned beyond the cap loses its pin (not deleted).
+  const excessPinnedIds = new Set(
+    pinned.slice(MAX_PINNED_CONVERSATIONS_PER_OWNER).map((c) => c.id)
+  )
+  if (excessPinnedIds.size > 0) {
+    for (const conversation of store.conversations) {
+      if (excessPinnedIds.has(conversation.id)) conversation.pinned = false
+    }
+  }
+
+  // Evict oldest unpinned beyond the total cap (counting pinned toward the cap).
+  const allowedUnpinned = Math.max(0, MAX_CONVERSATIONS_PER_OWNER - Math.min(pinned.length, MAX_PINNED_CONVERSATIONS_PER_OWNER))
+  const excessUnpinnedIds = new Set(unpinned.slice(allowedUnpinned).map((c) => c.id))
+  if (excessUnpinnedIds.size > 0) {
+    store.conversations = store.conversations.filter((c) => !excessUnpinnedIds.has(c.id))
+  }
 }
 
 export async function listChatConversations(ownerKey: string): Promise<ChatConversationSummary[]> {
@@ -280,7 +296,19 @@ export async function updateChatConversation(params: {
     if (typeof params.title === "string") {
       conversation.title = generateConversationTitle(params.title)
     }
-    if (typeof params.pinned === "boolean") conversation.pinned = params.pinned
+    if (typeof params.pinned === "boolean") {
+      if (params.pinned && !conversation.pinned) {
+        const currentPinned = store.conversations.filter(
+          (c) => c.ownerKey === params.ownerKey && c.pinned
+        ).length
+        if (currentPinned >= MAX_PINNED_CONVERSATIONS_PER_OWNER) {
+          throw new Error(
+            `Pin limit reached (${MAX_PINNED_CONVERSATIONS_PER_OWNER}). Unpin a chat first.`
+          )
+        }
+      }
+      conversation.pinned = params.pinned
+    }
     if (typeof params.archived === "boolean") conversation.archived = params.archived
     conversation.updatedAt = nowIso()
     return conversation

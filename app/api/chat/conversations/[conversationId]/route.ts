@@ -49,13 +49,19 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const owner = await resolveChatHistoryOwner(request, body.walletAddress)
   if ("response" in owner) return owner.response
 
-  const conversation = await updateChatConversation({
-    ownerKey: owner.ownerKey,
-    conversationId: context.params.conversationId,
-    title: body.title,
-    pinned: body.pinned,
-    archived: body.archived,
-  })
+  let conversation: Awaited<ReturnType<typeof updateChatConversation>>
+  try {
+    conversation = await updateChatConversation({
+      ownerKey: owner.ownerKey,
+      conversationId: context.params.conversationId,
+      title: body.title,
+      pinned: body.pinned,
+      archived: body.archived,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Update failed."
+    return attachChatHistoryCookie(NextResponse.json({ error: message }, { status: 409 }), owner)
+  }
 
   if (!conversation) {
     return attachChatHistoryCookie(NextResponse.json({ error: "Conversation not found." }, { status: 404 }), owner)

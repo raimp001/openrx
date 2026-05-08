@@ -549,7 +549,115 @@ export default function ChatPage() {
     }, 80)
   }, [sendMessage])
 
-  const showQuickPrompts = messages.length <= 1
+  const showEmptyHero = messages.length <= 1 && !isLoadingConversation
+
+  const composer = (
+    <form
+      className={cn(
+        "rounded-[16px] border border-border-strong bg-white p-2 shadow-card transition focus-within:border-teal/60 focus-within:shadow-focus",
+        showEmptyHero ? "shadow-[0_24px_60px_rgba(8,24,46,0.08)]" : "sticky bottom-2 mb-2"
+      )}
+      onSubmit={(event) => {
+        event.preventDefault()
+        void sendMessage()
+      }}
+    >
+      <label htmlFor="chat-input" className="sr-only">
+        Ask OpenRx a clinical question
+      </label>
+      <textarea
+        ref={inputRef}
+        id="chat-input"
+        data-testid="chat-input"
+        value={input}
+        onChange={(event) => setInput(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault()
+            void sendMessage()
+          }
+        }}
+        placeholder={
+          showEmptyHero
+            ? "Ask a clinical question…"
+            : "Ask a clinical question — e.g., what screening is due for a 55-year-old?"
+        }
+        disabled={isLoading || isLoadingConversation}
+        rows={showEmptyHero ? 3 : 2}
+        className={cn(
+          "block w-full resize-none border-0 bg-transparent px-3 py-2 text-primary outline-none placeholder:text-subtle disabled:opacity-60",
+          showEmptyHero ? "max-h-[220px] min-h-[88px] text-[16px] leading-7" : "max-h-[160px] min-h-[56px] text-[15px] leading-6"
+        )}
+        autoFocus={showEmptyHero}
+      />
+      <div className="flex items-center justify-between gap-2 px-1 pb-0.5 pt-1">
+        <p className="text-[11px] text-muted">
+          Decision support — not a substitute for clinician judgment.
+        </p>
+        <button
+          type="submit"
+          data-testid="chat-send-button"
+          disabled={isLoading || isLoadingConversation || !input.trim()}
+          aria-label="Send"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-navy text-white transition hover:bg-navy-hover disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {isLoading ? <Loader2 size={14} className="animate-spin" /> : <ArrowUp size={14} />}
+        </button>
+      </div>
+    </form>
+  )
+
+  if (showEmptyHero) {
+    return (
+      <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-3xl animate-fade-in flex-col items-center justify-center px-4 py-12 sm:px-6">
+        <div className="mb-8 flex flex-col items-center gap-2 text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+            <Sparkles size={11} className="text-teal-dark" />
+            Ask OpenRx
+          </span>
+          <h1 className="mt-2 text-balance text-[clamp(1.9rem,4vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.02em] text-primary">
+            How can I help you today?
+          </h1>
+          <p className="max-w-xl text-[14px] leading-6 text-muted">
+            Ask a clinical question and I&apos;ll answer here in chat — sourced from USPSTF, CDC, ACS, and NCCN guidelines.
+            {isConnected ? " Your account is connected, so replies can use your saved profile." : ""}
+          </p>
+        </div>
+
+        <div className="w-full max-w-2xl">
+          {composer}
+        </div>
+
+        {errorBanner ? (
+          <div
+            role="alert"
+            data-testid="chat-error"
+            className="mt-4 flex w-full max-w-2xl items-center gap-2 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-danger"
+          >
+            <AlertTriangle size={14} />
+            {errorBanner}
+          </div>
+        ) : null}
+
+        <div data-testid="chat-quick-prompts" className="mt-6 flex w-full max-w-2xl flex-wrap justify-center gap-2">
+          {QUICK_PROMPTS.map((qp) => (
+            <button
+              key={qp.label}
+              type="button"
+              onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
+              className="rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-secondary transition hover:border-border-strong hover:bg-surface-2 hover:text-primary"
+            >
+              {qp.label}
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-8 text-[11px] text-muted">
+          Decision support sourced from USPSTF · CDC · ACS · NCCN guidelines.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-3xl animate-fade-in flex-col px-1">
@@ -692,65 +800,7 @@ export default function ChatPage() {
         </div>
       ) : null}
 
-      {/* Quick prompts (only when chat is empty) */}
-      {showQuickPrompts ? (
-        <div data-testid="chat-quick-prompts" className="mb-3 flex flex-wrap gap-2">
-          {QUICK_PROMPTS.map((qp) => (
-            <button
-              key={qp.label}
-              type="button"
-              onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
-              className="rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-secondary transition hover:border-border-strong hover:bg-surface-2 hover:text-primary"
-            >
-              {qp.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {/* Composer */}
-      <form
-        className="sticky bottom-2 mb-2 rounded-[14px] border border-border-strong bg-white p-2 shadow-card focus-within:border-teal/60 focus-within:shadow-focus"
-        onSubmit={(event) => {
-          event.preventDefault()
-          void sendMessage()
-        }}
-      >
-        <label htmlFor="chat-input" className="sr-only">
-          Message OpenRx help
-        </label>
-        <textarea
-          ref={inputRef}
-          id="chat-input"
-          data-testid="chat-input"
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault()
-              void sendMessage()
-            }
-          }}
-          placeholder="Ask a clinical question — e.g., what screening is due for a 55-year-old?"
-          disabled={isLoading || isLoadingConversation}
-          rows={2}
-          className="block max-h-[160px] min-h-[56px] w-full resize-none border-0 bg-transparent px-2 py-2 text-[15px] leading-6 text-primary outline-none placeholder:text-subtle disabled:opacity-60"
-        />
-        <div className="flex items-center justify-between gap-2 px-1 pb-0.5 pt-1">
-          <p className="text-[11px] text-muted">
-            Decision support — not a substitute for clinician judgment.
-          </p>
-          <button
-            type="submit"
-            data-testid="chat-send-button"
-            disabled={isLoading || isLoadingConversation || !input.trim()}
-            aria-label="Send"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-navy text-white transition hover:bg-navy-hover disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {isLoading ? <Loader2 size={14} className="animate-spin" /> : <ArrowUp size={14} />}
-          </button>
-        </div>
-      </form>
+      {composer}
     </div>
   )
 }

@@ -75,7 +75,7 @@ export default function LandingPage() {
             />
           </div>
 
-          <ul className="mx-auto mt-6 flex max-w-xl flex-wrap justify-center gap-x-5 gap-y-2 text-[12px] text-muted">
+          <ul className="mx-auto mt-6 flex max-w-xl flex-wrap justify-center gap-x-5 gap-y-2 text-[13px] text-muted">
             {trustNotes.map(({ icon: Icon, label }) => (
               <li key={label} className="inline-flex items-center gap-1.5">
                 <Icon size={12} className="text-teal" />

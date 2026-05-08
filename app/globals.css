@@ -14,10 +14,10 @@
   --color-surface-muted-rgb: 241 245 249;
   --color-text-rgb: 11 27 51;
   --color-secondary-rgb: 30 41 59;
-  --color-muted-rgb: 71 85 105;
-  --color-subtle-rgb: 100 116 139;
-  --color-border-rgb: 226 232 240;
-  --color-border-strong-rgb: 203 213 225;
+  --color-muted-rgb: 51 65 85;
+  --color-subtle-rgb: 71 85 105;
+  --color-border-rgb: 203 213 225;
+  --color-border-strong-rgb: 180 195 212;
   --color-navy-rgb: 11 27 51;
   --color-navy-hover-rgb: 23 42 77;
   --color-accent-rgb: 15 118 110;
@@ -249,7 +249,7 @@ a {
   }
 
   .section-title {
-    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-muted;
+    @apply text-[12px] font-semibold uppercase tracking-[0.12em] text-muted;
   }
 
   .sidebar-scroll::-webkit-scrollbar {
@@ -265,7 +265,7 @@ a {
   }
 
   .eyebrow-pill {
-    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.1em] text-muted;
     border-color: var(--paper-border);
     background: rgb(var(--color-surface-rgb) / 0.90);
   }
@@ -283,7 +283,7 @@ a {
   }
 
   .control-label {
-    @apply block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
+    @apply block text-[12px] font-semibold uppercase tracking-[0.1em] text-muted;
   }
 
   .control-input {
@@ -343,7 +343,7 @@ a {
   }
 
   .shell-kicker {
-    @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-muted;
+    @apply text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
   }
 
   .editorial-panel {

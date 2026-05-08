@@ -10,6 +10,8 @@ import {
   ArrowUp,
   Bot,
   Calendar,
+  Check,
+  Copy,
   Receipt,
   ShieldCheck,
   Pill,
@@ -360,6 +362,37 @@ function ChatAnswer({ content }: { content: string }) {
   )
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1400)
+    } catch {
+      // Clipboard may be unavailable in some browsers/contexts.
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      data-testid="chat-copy-button"
+      aria-label={copied ? "Copied" : "Copy answer"}
+      className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] font-medium text-zinc-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+    >
+      {copied ? <Check size={11} /> : <Copy size={11} />}
+      {copied ? "Copied" : "Copy"}
+    </button>
+  )
+}
+
+function StreamingCursor() {
+  return (
+    <span className="ml-0.5 inline-block h-[14px] w-[2px] translate-y-[2px] animate-pulse bg-cyan-300/80 align-middle" aria-hidden />
+  )
+}
+
 export default function ChatPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -381,10 +414,12 @@ export default function ChatPage() {
   const [isLoadingConversation, setIsLoadingConversation] = useState(false)
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [streamingId, setStreamingId] = useState<string | null>(null)
   const [activeAgent, setActiveAgent] = useState<AgentId>("coordinator")
   const [errorBanner, setErrorBanner] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
   const seededPromptRef = useRef(false)
   const autoSubmittedPromptRef = useRef(false)
 
@@ -488,6 +523,22 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isLoading])
 
+  // Auto-grow textarea (Claude-style — grows with content, capped at max).
+  useEffect(() => {
+    const node = inputRef.current
+    if (!node) return
+    node.style.height = "auto"
+    const next = Math.min(node.scrollHeight, 220)
+    node.style.height = `${next}px`
+  }, [input])
+
+  const stopGeneration = useCallback(() => {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setIsLoading(false)
+    setStreamingId(null)
+  }, [])
+
   const sendMessage = useCallback(
     async (messageOverride?: string, agentOverride?: AgentId) => {
       const nextInput = (messageOverride ?? input).trim()
@@ -502,9 +553,12 @@ export default function ChatPage() {
 
       const savedInput = nextInput
       const currentAgent = agentOverride || activeAgent
+      const agentMsgId = `agent-${Date.now()}`
+
       setMessages((prev) => [...prev, userMsg])
       setInput("")
       setIsLoading(true)
+      setStreamingId(agentMsgId)
       setErrorBanner(null)
 
       const workflow = executeWorkflow(userMsg.content)
@@ -512,11 +566,32 @@ export default function ChatPage() {
         setActiveAgent(workflow.route.primaryAgent)
       }
 
+      // Insert an empty agent message that will be filled in via streaming.
+      const placeholder: ChatMessage = {
+        id: agentMsgId,
+        role: "agent",
+        content: "",
+        agentId: workflow.route.primaryAgent,
+        collaborators: workflow.route.collaborators,
+        routingInfo: workflow.route.reasoning,
+        action: resolveCareHandoff(userMsg.content, workflow.route.primaryAgent) || undefined,
+        actionPlan: buildActionPlan(userMsg.content, workflow.route.primaryAgent),
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, placeholder])
+
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      // Refocus the input so the user can keep typing while the model streams.
+      window.setTimeout(() => inputRef.current?.focus(), 0)
+
       try {
-        const res = await fetch("/api/openclaw/chat", {
+        const res = await fetch("/api/openclaw/chat/stream", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Accept: "text/event-stream",
             ...(walletAddress ? await getWalletAuthHeaders() : {}),
           },
           body: JSON.stringify({
@@ -527,30 +602,145 @@ export default function ChatPage() {
             collaborators: workflow.route.collaborators,
             routingInfo: workflow.route.reasoning,
           }),
+          signal: controller.signal,
         })
-        const data = await res.json()
-        const agentMsg: ChatMessage = {
-          id: `agent-${Date.now()}`,
-          role: "agent",
-          content: data.response || data.error || "I couldn't compose a response — try rephrasing.",
-          agentId: workflow.route.primaryAgent,
-          collaborators: workflow.route.collaborators,
-          routingInfo: workflow.route.reasoning,
-          action: resolveCareHandoff(userMsg.content, workflow.route.primaryAgent) || undefined,
-          actionPlan: buildActionPlan(userMsg.content, workflow.route.primaryAgent),
-          timestamp: new Date(),
+
+        if (!res.ok || !res.body) {
+          // Streaming endpoint failed — fall back to the legacy non-streaming endpoint.
+          const fallbackRes = await fetch("/api/openclaw/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(walletAddress ? await getWalletAuthHeaders() : {}),
+            },
+            body: JSON.stringify({
+              message: userMsg.content,
+              agentId: workflow.route.primaryAgent,
+              walletAddress,
+              conversationId: conversationId || undefined,
+              collaborators: workflow.route.collaborators,
+              routingInfo: workflow.route.reasoning,
+            }),
+            signal: controller.signal,
+          })
+          const data = await fallbackRes.json()
+          const text = data.response || data.error || "I couldn't compose a response — try rephrasing."
+          setMessages((prev) => prev.map((m) => (m.id === agentMsgId ? { ...m, content: text } : m)))
+          if (data.conversationId && data.conversationId !== conversationId) {
+            setConversationId(data.conversationId)
+            router.replace(`/chat?c=${encodeURIComponent(data.conversationId)}`, { scroll: false })
+          }
+          window.dispatchEvent(new CustomEvent("openrx:chat-history-refresh"))
+          return
         }
-        setMessages((prev) => [...prev, agentMsg])
-        if (data.conversationId && data.conversationId !== conversationId) {
-          setConversationId(data.conversationId)
-          router.replace(`/chat?c=${encodeURIComponent(data.conversationId)}`, { scroll: false })
+
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder("utf-8")
+        let buffer = ""
+        let accumulated = ""
+
+        const handleEvent = (event: string, data: string) => {
+          if (event === "delta") {
+            try {
+              const parsed = JSON.parse(data) as { text?: string }
+              if (parsed.text) {
+                accumulated += parsed.text
+                setMessages((prev) =>
+                  prev.map((m) => (m.id === agentMsgId ? { ...m, content: accumulated } : m))
+                )
+              }
+            } catch {
+              // Ignore malformed delta events
+            }
+          } else if (event === "done") {
+            try {
+              const parsed = JSON.parse(data) as {
+                conversationId?: string
+                conversationTitle?: string
+                finalText?: string
+              }
+              if (parsed.finalText) {
+                setMessages((prev) =>
+                  prev.map((m) => (m.id === agentMsgId ? { ...m, content: parsed.finalText! } : m))
+                )
+              }
+              if (parsed.conversationId && parsed.conversationId !== conversationId) {
+                setConversationId(parsed.conversationId)
+                router.replace(`/chat?c=${encodeURIComponent(parsed.conversationId)}`, { scroll: false })
+              }
+              window.dispatchEvent(new CustomEvent("openrx:chat-history-refresh"))
+            } catch {
+              // Ignore malformed done event
+            }
+          } else if (event === "error") {
+            try {
+              const parsed = JSON.parse(data) as { message?: string }
+              if (accumulated.length === 0) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === agentMsgId
+                      ? { ...m, content: parsed.message || "Stream interrupted. Please try again." }
+                      : m
+                  )
+                )
+              }
+            } catch {
+              // Ignore malformed error event
+            }
+          }
         }
-        window.dispatchEvent(new CustomEvent("openrx:chat-history-refresh"))
-      } catch {
-        setInput(savedInput)
-        setErrorBanner("Connection error. Your message was restored — try sending again.")
+
+        while (true) {
+          const { value, done } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          let boundary = buffer.indexOf("\n\n")
+          while (boundary !== -1) {
+            const block = buffer.slice(0, boundary)
+            buffer = buffer.slice(boundary + 2)
+            const lines = block.split("\n")
+            let event = "message"
+            const dataLines: string[] = []
+            for (const line of lines) {
+              if (line.startsWith("event: ")) event = line.slice(7).trim()
+              else if (line.startsWith("data: ")) dataLines.push(line.slice(6))
+            }
+            if (dataLines.length) handleEvent(event, dataLines.join("\n"))
+            boundary = buffer.indexOf("\n\n")
+          }
+        }
+
+        if (accumulated.length === 0) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === agentMsgId
+                ? { ...m, content: "I couldn't compose a response — try rephrasing." }
+                : m
+            )
+          )
+        }
+      } catch (error) {
+        const aborted = error instanceof Error && error.name === "AbortError"
+        if (aborted) {
+          // User stopped — keep whatever streamed so far. If nothing arrived, drop the placeholder.
+          setMessages((prev) => {
+            const placeholderIndex = prev.findIndex((m) => m.id === agentMsgId)
+            if (placeholderIndex === -1) return prev
+            const placeholder = prev[placeholderIndex]
+            if (!placeholder.content.trim()) return prev.filter((m) => m.id !== agentMsgId)
+            return prev.map((m) =>
+              m.id === agentMsgId ? { ...m, content: `${m.content}\n\n_Stopped._` } : m
+            )
+          })
+        } else {
+          setInput(savedInput)
+          setErrorBanner("Connection error. Your message was restored — try sending again.")
+          setMessages((prev) => prev.filter((m) => m.id !== agentMsgId))
+        }
       } finally {
+        abortRef.current = null
         setIsLoading(false)
+        setStreamingId(null)
       }
     },
     [input, isLoading, isLoadingConversation, activeAgent, walletAddress, getWalletAuthHeaders, conversationId, router]
@@ -604,32 +794,52 @@ export default function ChatPage() {
           if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault()
             void sendMessage()
+          } else if (event.key === "Escape" && isLoading) {
+            event.preventDefault()
+            stopGeneration()
           }
         }}
         placeholder="Ask what is due, what it means, or where to go next..."
-        disabled={isLoading || isLoadingConversation}
-        rows={placement === "hero" ? 3 : 2}
+        disabled={isLoadingConversation}
+        rows={1}
         className={cn(
-          "block max-h-[180px] w-full resize-none border-0 bg-transparent px-2 py-2 text-zinc-50 outline-none placeholder:text-zinc-400 disabled:opacity-60",
-          placement === "hero" ? "min-h-[86px] text-[16px] leading-7" : "min-h-[56px] text-[15px] leading-6"
+          "block w-full resize-none overflow-hidden border-0 bg-transparent px-2 py-2 text-zinc-50 outline-none placeholder:text-zinc-400",
+          placement === "hero" ? "min-h-[64px] text-[16px] leading-7" : "min-h-[44px] text-[15px] leading-6"
         )}
       />
       <div className="flex items-center justify-between gap-2 px-1 pb-0.5 pt-1">
         <p className={cn("text-left text-[11px] text-zinc-400", placement === "hero" && "hidden sm:block")}>
-          Direct answers, sources, and explicit links. Not a substitute for clinician judgment.
+          {isLoading
+            ? "Press Esc to stop. Streaming the answer…"
+            : "Direct answers, sources, and explicit links. Not a substitute for clinician judgment."}
         </p>
-        <button
-          type="submit"
-          data-testid="chat-send-button"
-          disabled={isLoading || isLoadingConversation || !input.trim()}
-          aria-label="Send"
-          className={cn(
-            "inline-flex items-center justify-center rounded-[12px] bg-white text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40",
-            placement === "hero" ? "h-11 w-11" : "h-9 w-9"
-          )}
-        >
-          {isLoading ? <Loader2 size={14} className="animate-spin" /> : <ArrowUp size={placement === "hero" ? 16 : 14} />}
-        </button>
+        {isLoading ? (
+          <button
+            type="button"
+            onClick={stopGeneration}
+            data-testid="chat-stop-button"
+            aria-label="Stop generating"
+            className={cn(
+              "inline-flex items-center justify-center rounded-[12px] border border-white/20 bg-white/[0.06] text-zinc-100 transition hover:border-white/40 hover:bg-white/[0.12]",
+              placement === "hero" ? "h-11 w-11" : "h-9 w-9"
+            )}
+          >
+            <span className={cn("rounded-[2px] bg-zinc-100", placement === "hero" ? "h-3 w-3" : "h-2.5 w-2.5")} />
+          </button>
+        ) : (
+          <button
+            type="submit"
+            data-testid="chat-send-button"
+            disabled={isLoadingConversation || !input.trim()}
+            aria-label="Send"
+            className={cn(
+              "inline-flex items-center justify-center rounded-[12px] bg-white text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40",
+              placement === "hero" ? "h-11 w-11" : "h-9 w-9"
+            )}
+          >
+            <ArrowUp size={placement === "hero" ? 16 : 14} />
+          </button>
+        )}
       </div>
     </form>
   )
@@ -798,48 +1008,58 @@ export default function ChatPage() {
           }
           const meta = msg.agentId ? agentMeta[msg.agentId] : null
           const Icon = meta?.icon || Sparkles
+          const isStreamingThis = streamingId === msg.id
+          const showEmptyStreamingIndicator = isStreamingThis && !msg.content.trim()
           return (
-            <article key={msg.id} data-testid="chat-message-agent" className="space-y-3">
+            <article key={msg.id} data-testid="chat-message-agent" className="animate-fade-in space-y-3">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300">
                 <span className="flex h-6 w-6 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-cyan-300">
                   <Icon size={12} />
                 </span>
                 {meta?.label || "OpenRx"}
+                {isStreamingThis ? (
+                  <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-zinc-500">
+                    streaming…
+                  </span>
+                ) : null}
               </div>
-              <ChatAnswer content={msg.content} />
-              {msg.actionPlan && msg.actionPlan.length > 0 ? (
-                <ChatActionPlan items={msg.actionPlan} />
-              ) : null}
-              {msg.action ? (
-                <button
-                  type="button"
-                  onClick={() => openCareHandoff(msg.action!)}
-                  data-testid="chat-action-button"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-300 px-3.5 py-2 text-xs font-semibold text-black transition hover:bg-cyan-200"
-                >
-                  {msg.action.label}
-                  <ArrowRight size={12} />
-                </button>
-              ) : null}
+              {showEmptyStreamingIndicator ? (
+                <div className="flex items-center gap-1 text-[14px] text-zinc-400" data-testid="chat-loading">
+                  Thinking
+                  <span className="ml-1 inline-flex items-center gap-1">
+                    <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "0ms" }} />
+                    <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "120ms" }} />
+                    <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "240ms" }} />
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <ChatAnswer content={msg.content} />
+                    {isStreamingThis ? <StreamingCursor /> : null}
+                  </div>
+                  {msg.actionPlan && msg.actionPlan.length > 0 && !isStreamingThis ? (
+                    <ChatActionPlan items={msg.actionPlan} />
+                  ) : null}
+                  <div className="flex items-center gap-2">
+                    {msg.action && !isStreamingThis ? (
+                      <button
+                        type="button"
+                        onClick={() => openCareHandoff(msg.action!)}
+                        data-testid="chat-action-button"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-300 px-3.5 py-2 text-xs font-semibold text-black transition hover:bg-cyan-200"
+                      >
+                        {msg.action.label}
+                        <ArrowRight size={12} />
+                      </button>
+                    ) : null}
+                    {!isStreamingThis && msg.content.trim() ? <CopyButton text={msg.content} /> : null}
+                  </div>
+                </>
+              )}
             </article>
           )
         })}
-
-        {isLoading ? (
-          <div className="flex items-center gap-3 text-zinc-400" data-testid="chat-loading">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md border border-white/10 bg-white/[0.06]">
-              <Sparkles size={12} className="text-cyan-300" />
-            </span>
-            <span className="flex items-center gap-1 text-[14px]">
-              Composing answer
-              <span className="ml-1 inline-flex items-center gap-1">
-                <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "0ms" }} />
-                <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "120ms" }} />
-                <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "240ms" }} />
-              </span>
-            </span>
-          </div>
-        ) : null}
 
         <div ref={messagesEndRef} />
       </div>

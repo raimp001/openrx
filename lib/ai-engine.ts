@@ -637,3 +637,138 @@ export async function runCoordinator(
 
   return result
 }
+
+// ── Streaming Agent ──────────────────────────────────────
+// Yields text chunks as the model generates them so the UI can render
+// progressively (Claude.ai-style). Falls back to one synchronous chunk
+// when neither Anthropic nor OpenAI keys are configured (preserving the
+// fallback experience).
+export async function* runAgentStream(params: {
+  agentId: string
+  message: string
+  sessionId?: string
+  walletAddress?: string
+}): AsyncGenerator<string, { agentId: string; finalText: string; handoff?: string }> {
+  const { agentId, message, sessionId, walletAddress } = params
+  const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === agentId)
+  if (!agent) {
+    return { agentId, finalText: "Unknown agent." }
+  }
+
+  const sessionKey = sessionId || `${agentId}-default`
+
+  // Deterministic screening path: emit the response in one chunk.
+  if (looksLikeScreeningQuestion(agentId, message)) {
+    const response = buildDeterministicScreeningResponse(message)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("screening", "deterministic-screening-response", `${message.slice(0, 60)}...`, "portal")
+    yield response
+    return { agentId: "screening", finalText: response }
+  }
+
+  const claude = getClaudeClient()
+  if (!claude && !process.env.OPENAI_API_KEY) {
+    const fallback = buildFallbackAgentResponse(agentId, message)
+    yield fallback
+    return { agentId, finalText: fallback }
+  }
+
+  const patientContext = await getPatientContext(walletAddress)
+  const systemPrompt = `${agent.systemPrompt}
+
+${patientContext}
+
+IMPORTANT RULES:
+- You ARE ${agent.name}. Stay in character.
+- Use the patient data above to give SPECIFIC answers (reference their actual meds, appointments, claims by name).
+- Behave like a clinical evidence chat assistant: answer directly in this chat first. Do not tell the user to open another page just to see clinical guidance.
+- For clinical, medication, symptom, screening, prevention, billing, or prior-auth questions, use this visible structure when useful:
+  Direct answer
+  What to do now
+  References
+  Safety note
+- Include 2-5 relevant, trustworthy inline Markdown links in References when guidelines or patient education sources are relevant. Prefer USPSTF, CDC, NIH/NCI, MedlinePlus, FDA, CMS, and major society guideline pages.
+- Ask at most one concise follow-up question when a missing detail changes the answer. Otherwise provide the best cautious answer from available context.
+- Keep actions optional. Only include [HANDOFF:agentId] when the user explicitly asks to find care, schedule, submit, pay, appeal, or otherwise take an operational action.
+- Available agents to hand off to: ${(agent.canMessage as readonly string[]).join(", ")}
+- Never make up patient-specific data, citations, orders, coverage, or diagnoses that are not supported by the patient context or cited source.`
+
+  const conv = getConversation(sessionKey)
+  let collected = ""
+
+  try {
+    if (claude) {
+      const anthropicMessages: Anthropic.MessageParam[] = [
+        ...conv.filter((m) => m.role !== "system").map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+        { role: "user", content: message },
+      ]
+
+      const stream = claude.messages.stream({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1200,
+        system: systemPrompt,
+        messages: anthropicMessages,
+      })
+
+      for await (const event of stream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          const chunk = event.delta.text
+          collected += chunk
+          yield chunk
+        }
+      }
+    } else {
+      const completion = await openai.chat.completions.create(
+        {
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...conv,
+            { role: "user", content: message },
+          ],
+          max_tokens: 1000,
+          temperature: 0.3,
+          stream: true,
+        },
+        { timeout: 30000 }
+      )
+
+      for await (const chunk of completion) {
+        const delta = chunk.choices?.[0]?.delta?.content
+        if (delta) {
+          collected += delta
+          yield delta
+        }
+      }
+    }
+
+    let handoff: string | undefined
+    let finalText = collected
+    const handoffMatch = finalText.match(/\[HANDOFF:(\w[\w-]*)\]/)
+    if (handoffMatch) {
+      handoff = handoffMatch[1]
+      finalText = finalText.replace(/\[HANDOFF:\w[\w-]*\]/, "").trim()
+    }
+
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", finalText)
+    logAction(agentId, "responded", `${message.slice(0, 60)}...`, "portal")
+
+    return { agentId, finalText, handoff }
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error)
+    const status = typeof error === "object" && error !== null && "status" in error
+      ? Number((error as { status?: unknown }).status)
+      : undefined
+    console.error(`Stream agent ${agentId} error:`, errMsg || error)
+    const errorNote = friendlyAIError(status, errMsg)
+    const fallback = buildFallbackAgentResponse(agentId, message)
+    const merged = `${errorNote}\n\n${fallback}`
+    if (collected.length === 0) yield merged
+    return { agentId, finalText: collected || merged }
+  }
+}

@@ -234,8 +234,8 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
   if (screeningKeywords) {
     pushUnique({
       id: "schedule-screening",
-      label: "Find care options",
-      description: "Search nearby primary care, imaging, lab, GI, or screening options for the next step.",
+      label: "Find physicians or services",
+      description: "Search primary care, GI, imaging, lab, or screening locations for this next step.",
       href: `/providers?handoff=chat&autorun=1&q=${encodeURIComponent(trimmed)}`,
       kind: "lab",
     })
@@ -294,17 +294,17 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
   } else if (agentId === "triage" || /\b(symptom|pain|fever|cough|chest|shortness|stroke)\b/.test(lowered)) {
     pushUnique({
       id: "triage-followup",
-      label: "Open triage workspace",
-      description: "Capture symptoms and route urgency.",
-      href: "/dashboard",
-      kind: "schedule",
+      label: "Find urgent or primary care",
+      description: "Search care options that can evaluate symptoms. Use emergency care for severe symptoms.",
+      href: `/providers?handoff=chat&autorun=1&q=${encodeURIComponent(`urgent or primary care for ${trimmed}`)}`,
+      kind: "referral",
     })
     pushUnique({
-      id: "triage-call",
-      label: "Call patient (private)",
-      description: "Use the OpenRx outreach line — your number stays private.",
-      href: "/outreach",
-      kind: "call",
+      id: "triage-safety",
+      label: "Ask what needs urgent care",
+      description: "Stay in chat and clarify red flags before choosing the next step.",
+      href: `/chat?prompt=${encodeURIComponent(`What symptoms or red flags would make this urgent: ${trimmed}`)}`,
+      kind: "message",
     })
   }
 

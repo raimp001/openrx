@@ -91,6 +91,15 @@ main#main-content:has([data-openrx-chat-workspace]) > div {
   max-width: none !important;
 }
 
+body:has([data-openrx-chat-workspace]) {
+  background: #050505;
+  color: #f4f4f5;
+}
+
+body:has([data-openrx-chat-workspace]) .pointer-events-none.fixed.inset-0 {
+  opacity: 0;
+}
+
 body {
   position: relative;
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -409,19 +418,19 @@ a {
 }
 
 @media (prefers-color-scheme: dark) {
-  .bg-white,
-  [class*="bg-white/"],
-  [class*="bg-[rgba(255,255,255"] {
+  body:not(:has([data-openrx-chat-workspace])) .bg-white,
+  body:not(:has([data-openrx-chat-workspace])) [class*="bg-white/"],
+  body:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,255,255"] {
     background-color: rgb(var(--color-surface-rgb) / 0.78) !important;
   }
 
-  [class*="border-[rgba"] {
+  body:not(:has([data-openrx-chat-workspace])) [class*="border-[rgba"] {
     border-color: rgb(var(--color-border-rgb) / 0.42) !important;
   }
 
-  .bg-navy.text-white,
-  .control-button-primary,
-  .control-button-accent {
+  body:not(:has([data-openrx-chat-workspace])) .bg-navy.text-white,
+  body:not(:has([data-openrx-chat-workspace])) .control-button-primary,
+  body:not(:has([data-openrx-chat-workspace])) .control-button-accent {
     color: #07111f !important;
   }
 }

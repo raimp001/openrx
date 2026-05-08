@@ -376,7 +376,7 @@ export default function ChatHistorySidebar() {
               {conversation.title}
             </span>
           </span>
-          <span className={cn("mt-0.5 line-clamp-1 block pr-7 text-[11px] leading-5", active ? "text-zinc-700" : "text-zinc-500")}>
+          <span className={cn("mt-0.5 line-clamp-1 block pr-7 text-[11px] leading-5", active ? "text-zinc-700" : "text-zinc-400")}>
             {conversation.lastMessagePreview}
           </span>
         </button>
@@ -422,7 +422,7 @@ export default function ChatHistorySidebar() {
             <button
               type="button"
               onClick={() => setCollapsed(true)}
-              className="hidden rounded-lg p-2 text-zinc-500 transition hover:bg-white/10 hover:text-white lg:inline-flex"
+              className="hidden rounded-lg p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white lg:inline-flex"
               aria-label="Collapse chat history"
               data-testid="chat-history-toggle"
             >
@@ -431,7 +431,7 @@ export default function ChatHistorySidebar() {
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/10 hover:text-white lg:hidden"
+              className="rounded-lg p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white lg:hidden"
               aria-label="Close chat history"
             >
               <X size={16} />
@@ -452,7 +452,7 @@ export default function ChatHistorySidebar() {
         <button
           type="button"
           onClick={createFolder}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/14 bg-white/[0.055] px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-white/24 hover:bg-white/[0.09] hover:text-white"
           data-testid="chat-folder-new"
         >
           <FolderPlus size={15} />
@@ -460,13 +460,13 @@ export default function ChatHistorySidebar() {
         </button>
 
         <div className="relative mt-3">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
             ref={searchRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search chats"
-            className="w-full rounded-xl border border-white/10 bg-[#111] py-2.5 pl-9 pr-3 text-sm text-zinc-100 placeholder:text-zinc-500 transition focus:border-cyan-400/40 focus:outline-none focus:ring-2 focus:ring-cyan-400/15"
+            className="w-full rounded-xl border border-white/14 bg-[#101010] py-2.5 pl-9 pr-3 text-sm text-zinc-50 placeholder:text-zinc-400 transition focus:border-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-cyan-300/15"
             data-testid="chat-history-search"
             aria-label="Search chats"
           />
@@ -496,24 +496,24 @@ export default function ChatHistorySidebar() {
           <div className="space-y-4">
             {pinnedConversations.length > 0 ? (
               <section aria-label="Pinned chats">
-                <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Pinned</p>
+                <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-300">Pinned</p>
                 <div className="space-y-1">{pinnedConversations.map(renderConversationRow)}</div>
               </section>
             ) : null}
 
             {issueFolders.map(([label, items]) => (
               <details key={label} open className="group/folder" aria-label={label}>
-                <summary className="mb-1.5 flex cursor-pointer list-none items-center justify-between rounded-lg px-2 py-1.5 text-[12px] font-medium text-zinc-300 transition hover:bg-white/[0.06] hover:text-white">
+                <summary className="mb-1.5 flex cursor-pointer list-none items-center justify-between rounded-lg px-2 py-1.5 text-[12px] font-medium text-zinc-200 transition hover:bg-white/[0.06] hover:text-white">
                   <span className="flex items-center gap-2">
-                    <Folder size={14} className="text-zinc-500" />
+                    <Folder size={14} className="text-zinc-400" />
                     {label}
                   </span>
-                  <span className="text-[11px] text-zinc-600">{items.length}</span>
+                  <span className="text-[11px] text-zinc-400">{items.length}</span>
                 </summary>
                 {items.length > 0 ? (
                   <div className="space-y-1">{items.map(renderConversationRow)}</div>
                 ) : (
-                  <p className="rounded-lg px-3 py-2 text-[12px] leading-5 text-zinc-600">Drop a chat here from the menu.</p>
+                  <p className="rounded-lg px-3 py-2 text-[12px] leading-5 text-zinc-400">Drop a chat here from the menu.</p>
                 )}
               </details>
             ))}
@@ -531,7 +531,7 @@ export default function ChatHistorySidebar() {
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[13px] font-semibold text-zinc-100">{accountLabel}</span>
-            <span className="block text-[11px] text-zinc-500">Settings and privacy</span>
+            <span className="block text-[11px] text-zinc-400">Settings and privacy</span>
           </span>
         </Link>
       </div>
@@ -555,7 +555,7 @@ export default function ChatHistorySidebar() {
       <button
         type="button"
         onClick={() => setCollapsed(false)}
-        className="mt-2 flex h-10 w-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-white/10 hover:text-white"
+        className="mt-2 flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-white/10 hover:text-white"
         aria-label="Expand chat history"
         data-testid="chat-history-toggle"
       >
@@ -567,7 +567,7 @@ export default function ChatHistorySidebar() {
           setCollapsed(false)
           window.setTimeout(() => searchRef.current?.focus(), 30)
         }}
-        className="mt-2 flex h-10 w-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-white/10 hover:text-white"
+        className="mt-2 flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-white/10 hover:text-white"
         aria-label="Search chats"
       >
         <Search size={17} />

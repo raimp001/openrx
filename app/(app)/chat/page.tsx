@@ -40,17 +40,17 @@ type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
 const QUICK_PROMPTS: Array<{ label: string; prompt: string; agentId: AgentId }> = [
   {
-    label: "Cancer screening for a 50-year-old woman",
+    label: "Cancer screening · 50F",
     prompt: "What cancer screening does a 50-year-old woman need?",
     agentId: "screening",
   },
   {
-    label: "Colon screening with family history",
+    label: "Colon cancer family history",
     prompt: "I am 46 with a father who had colon cancer at 52 — what screening do I need?",
     agentId: "screening",
   },
   {
-    label: "Lung screening for a long-term smoker",
+    label: "Lung screening · smoker",
     prompt: "I am 63, smoked 1 pack/day for 30 years, quit 6 years ago. Do I need lung screening?",
     agentId: "screening",
   },
@@ -68,6 +68,33 @@ const QUICK_PROMPTS: Array<{ label: string; prompt: string; agentId: AgentId }> 
     label: "Preventive care for a 55-year-old man",
     prompt: "What vaccines and preventive care should a 55-year-old man ask about?",
     agentId: "wellness",
+  },
+]
+
+const SERVICE_LINKS: Array<{ label: string; description: string; href: string; icon: typeof Stethoscope }> = [
+  {
+    label: "Find physicians",
+    description: "Primary care, GI, imaging, labs",
+    href: "/providers",
+    icon: Stethoscope,
+  },
+  {
+    label: "Schedule follow-up",
+    description: "Turn an answer into a visit",
+    href: "/scheduling",
+    icon: Calendar,
+  },
+  {
+    label: "Coverage help",
+    description: "Bills, estimates, prior auth",
+    href: "/billing",
+    icon: Receipt,
+  },
+  {
+    label: "Clinical trials",
+    description: "Cancer studies by condition",
+    href: "/clinical-trials",
+    icon: FlaskConical,
   },
 ]
 
@@ -222,7 +249,7 @@ function renderInlineLinks(text: string, keyPrefix: string) {
         href={part.url}
         target="_blank"
         rel="noreferrer"
-        className="text-cyan-300 underline decoration-cyan-300/35 underline-offset-2 transition hover:text-cyan-200 hover:decoration-cyan-200"
+        className="font-medium text-cyan-200 underline decoration-cyan-200/40 underline-offset-2 transition hover:text-cyan-100 hover:decoration-cyan-100"
       >
         {part.label}
       </a>
@@ -270,12 +297,12 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
       )}
     >
       {section.heading ? (
-        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]">
+        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-current">
           {Icon ? <Icon size={12} /> : null}
           {section.heading}
         </p>
       ) : null}
-      <div className="space-y-1.5 text-[14px] leading-6 text-zinc-200">
+      <div className="space-y-1.5 text-[14px] leading-6 text-zinc-100">
         {blocks.map((block, i) => {
           if (block.kind === "blank") return <div key={`b-${i}`} className="h-1" />
           if (block.kind === "bullet") {
@@ -289,7 +316,7 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
             )
           }
           return (
-            <p key={`b-${i}`} className="text-zinc-200">
+            <p key={`b-${i}`} className="text-zinc-100">
               {renderInlineLinks(block.text, `b-${i}`)}
             </p>
           )
@@ -302,8 +329,8 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
 function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
   if (!citations.length) return null
   return (
-    <div data-testid="chat-citations" className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Sources</span>
+    <div data-testid="chat-citations" className="mt-3 flex flex-wrap gap-2 border-t border-white/12 pt-3">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300">Sources</span>
       {citations.map((c, i) => (
         <a
           key={`${c.url}-${i}`}
@@ -311,7 +338,7 @@ function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
           target="_blank"
           rel="noreferrer"
           data-testid="chat-citation"
-          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-cyan-200 transition hover:border-cyan-300/40 hover:bg-cyan-300/10"
+          className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/20 bg-cyan-200/[0.08] px-2.5 py-1 text-[11px] font-medium text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-200/[0.14]"
         >
           {c.label}
           <ExternalLink size={10} />
@@ -553,7 +580,7 @@ export default function ChatPage() {
   const renderComposer = (placement: "hero" | "thread") => (
     <form
       className={cn(
-        "rounded-[18px] border border-white/12 bg-[#111] shadow-[0_22px_80px_rgba(0,0,0,0.40)] transition focus-within:border-cyan-300/45 focus-within:shadow-[0_0_0_3px_rgba(103,232,249,0.12),0_22px_80px_rgba(0,0,0,0.45)]",
+        "rounded-[18px] border border-white/16 bg-[#101010] shadow-[0_22px_80px_rgba(0,0,0,0.44)] transition focus-within:border-cyan-200/55 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.14),0_22px_80px_rgba(0,0,0,0.48)]",
         placement === "hero"
           ? "mx-auto w-full max-w-3xl p-3"
           : "sticky bottom-2 mb-2 p-2"
@@ -583,13 +610,13 @@ export default function ChatPage() {
         disabled={isLoading || isLoadingConversation}
         rows={placement === "hero" ? 3 : 2}
         className={cn(
-          "block max-h-[180px] w-full resize-none border-0 bg-transparent px-2 py-2 text-zinc-100 outline-none placeholder:text-zinc-500 disabled:opacity-60",
+          "block max-h-[180px] w-full resize-none border-0 bg-transparent px-2 py-2 text-zinc-50 outline-none placeholder:text-zinc-400 disabled:opacity-60",
           placement === "hero" ? "min-h-[86px] text-[16px] leading-7" : "min-h-[56px] text-[15px] leading-6"
         )}
       />
       <div className="flex items-center justify-between gap-2 px-1 pb-0.5 pt-1">
-        <p className={cn("text-left text-[11px] text-zinc-500", placement === "hero" && "hidden sm:block")}>
-          Decision support, with sources. Not a substitute for clinician judgment.
+        <p className={cn("text-left text-[11px] text-zinc-400", placement === "hero" && "hidden sm:block")}>
+          Direct answers, sources, and explicit links. Not a substitute for clinician judgment.
         </p>
         <button
           type="submit"
@@ -620,16 +647,16 @@ export default function ChatPage() {
           data-testid="chat-empty-state"
           className="flex min-h-screen flex-1 flex-col items-center justify-center px-3 py-12 text-center"
         >
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[12px] font-medium text-zinc-400">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-[12px] font-medium text-zinc-200">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             {isConnected ? "Personalized workspace" : "General clinical search"}
           </div>
-          <h1 className="max-w-3xl font-serif text-[clamp(2.5rem,7vw,5.6rem)] font-medium leading-[0.96] tracking-[-0.05em] text-white">
-            What should we move forward?
+          <h1 className="max-w-3xl text-[clamp(2.7rem,8vw,6.25rem)] font-semibold leading-[0.92] tracking-[-0.07em] text-white">
+            Ask OpenRx.
           </h1>
-          <p className="mt-5 max-w-2xl text-balance text-[16px] leading-7 text-zinc-300 sm:text-[18px]">
-            Ask about screenings, medications, results, referrals, bills, or the next care step.
-            OpenRx answers here with sources and a practical handoff.
+          <p className="mt-5 max-w-2xl text-balance text-[16px] leading-7 text-zinc-200 sm:text-[18px]">
+            Clinical answers, guideline links, and care-service actions in one black-box-simple chat.
+            Nothing moves you to another page unless you choose a link.
           </p>
 
           <div className="mt-9 w-full">{renderComposer("hero")}</div>
@@ -645,7 +672,7 @@ export default function ChatPage() {
             </div>
           ) : null}
 
-          <div data-testid="chat-quick-prompts" className="mt-5 grid w-full max-w-3xl gap-2 sm:grid-cols-2">
+          <div data-testid="chat-quick-prompts" className="mt-5 flex w-full max-w-3xl flex-wrap justify-center gap-2">
             {QUICK_PROMPTS.slice(0, 4).map((qp) => (
               <button
                 key={qp.label}
@@ -653,17 +680,38 @@ export default function ChatPage() {
                 onClick={() => {
                   void sendMessage(qp.prompt, qp.agentId)
                 }}
-                className="group rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-[13px] font-medium text-zinc-300 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/[0.07] hover:text-white"
+                className="group rounded-full border border-white/14 bg-white/[0.055] px-4 py-2.5 text-left text-[13px] font-medium text-zinc-100 transition hover:-translate-y-0.5 hover:border-cyan-200/35 hover:bg-white/[0.09] hover:text-white"
               >
-                <span className="block text-zinc-100">{qp.label}</span>
-                <span className="mt-1 block text-[12px] font-normal leading-5 text-zinc-500 group-hover:text-zinc-300">
-                  Answer in chat with sources and next steps
-                </span>
+                {qp.label}
               </button>
             ))}
           </div>
 
-          <p className="mt-5 max-w-2xl text-[12px] leading-5 text-zinc-500">
+          <nav
+            aria-label="Care service links"
+            className="mt-8 grid w-full max-w-3xl gap-2 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            {SERVICE_LINKS.map((item) => {
+              const Icon = item.icon
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="group rounded-[16px] border border-white/12 bg-white/[0.045] p-3 text-left transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.08]"
+                >
+                  <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg border border-white/12 bg-white/[0.07] text-cyan-200">
+                    <Icon size={15} />
+                  </span>
+                  <span className="block text-[13px] font-semibold text-white">{item.label}</span>
+                  <span className="mt-1 block text-[12px] leading-5 text-zinc-400 group-hover:text-zinc-200">
+                    {item.description}
+                  </span>
+                </a>
+              )
+            })}
+          </nav>
+
+          <p className="mt-6 max-w-2xl text-[12px] leading-5 text-zinc-400">
             For emergencies or severe symptoms, seek urgent medical care. OpenRx supports decisions; it does not replace your clinician.
           </p>
         </main>
@@ -672,9 +720,9 @@ export default function ChatPage() {
       {/* Header */}
       <header className="flex items-center justify-between border-b border-white/10 pb-3 pt-4">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Ask OpenRx</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">Ask OpenRx</p>
           <h1 className="text-[18px] font-semibold tracking-tight text-white">
-            Clinical answers, in chat
+            Clinical answers and care links
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -691,7 +739,7 @@ export default function ChatPage() {
               "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex",
               isConnected
                 ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-                : "border-white/10 bg-white/[0.04] text-zinc-400"
+                : "border-white/12 bg-white/[0.05] text-zinc-300"
             )}
           >
             <span
@@ -752,7 +800,7 @@ export default function ChatPage() {
           const Icon = meta?.icon || Sparkles
           return (
             <article key={msg.id} data-testid="chat-message-agent" className="space-y-3">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300">
                 <span className="flex h-6 w-6 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-cyan-300">
                   <Icon size={12} />
                 </span>

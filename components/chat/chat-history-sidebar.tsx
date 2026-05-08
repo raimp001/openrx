@@ -161,6 +161,22 @@ export default function ChatHistorySidebar() {
     }
   }, [loadConversations, router])
 
+  const filteredConversations = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return conversations
+    return conversations.filter((conversation) =>
+      `${conversation.title} ${conversation.lastMessagePreview}`.toLowerCase().includes(needle)
+    )
+  }, [conversations, query])
+
+  const grouped = useMemo(() => groupConversations(filteredConversations), [filteredConversations])
+
+  const startNewChat = useCallback(() => {
+    router.push("/chat")
+    setMobileOpen(false)
+    window.dispatchEvent(new CustomEvent("openrx:new-chat"))
+  }, [router])
+
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement
@@ -195,23 +211,7 @@ export default function ChatHistorySidebar() {
 
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
-  })
-
-  const filteredConversations = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    if (!needle) return conversations
-    return conversations.filter((conversation) =>
-      `${conversation.title} ${conversation.lastMessagePreview}`.toLowerCase().includes(needle)
-    )
-  }, [conversations, query])
-
-  const grouped = useMemo(() => groupConversations(filteredConversations), [filteredConversations])
-
-  const startNewChat = useCallback(() => {
-    router.push("/chat")
-    setMobileOpen(false)
-    window.dispatchEvent(new CustomEvent("openrx:new-chat"))
-  }, [router])
+  }, [pathname, startNewChat])
 
   const openConversation = useCallback((conversationId: string) => {
     router.push(`/chat?c=${encodeURIComponent(conversationId)}`)

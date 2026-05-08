@@ -2,6 +2,8 @@ import crypto from "crypto"
 import { promises as fs } from "fs"
 import os from "os"
 import path from "path"
+import { Prisma } from "@prisma/client"
+import { prisma } from "@/lib/db"
 
 export type ChatHistoryRole = "user" | "agent" | "system"
 
@@ -37,6 +39,7 @@ type ChatHistoryFile = {
 }
 
 const MAX_CONVERSATIONS_PER_OWNER = 80
+const MAX_PINNED_CONVERSATIONS_PER_OWNER = 20
 const MAX_MESSAGES_PER_CONVERSATION = 80
 const MAX_MESSAGE_CHARS = 12000
 const STORE_PATH =
@@ -47,6 +50,10 @@ let writeQueue = Promise.resolve()
 
 function nowIso() {
   return new Date().toISOString()
+}
+
+function isDatabaseEnabled(): boolean {
+  return Boolean(process.env.DATABASE_URL)
 }
 
 function cleanContent(content: string): string {
@@ -75,10 +82,31 @@ export function chatOwnerKeyFromSession(sessionId: string): string {
   return `session:${crypto.createHash("sha256").update(normalizeOwnerSecret(sessionId)).digest("hex")}`
 }
 
+// Patterns for direct-identifier PHI that should never end up in a sidebar
+// preview. Replacements use a short label so the title still reads naturally.
+const PHI_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
+  { pattern: /\b[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, replacement: "[email]" },
+  // SSN-like 9-digit groupings, hyphenated or spaced.
+  { pattern: /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g, replacement: "[id]" },
+  // North-American style phones (10/11 digits, separators or parens).
+  { pattern: /\+?1?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g, replacement: "[phone]" },
+  // Other long digit runs that look like identifiers (MRN/policy/credit card).
+  { pattern: /\b\d{9,}\b/g, replacement: "[id]" },
+]
+
+function scrubDirectIdentifiers(input: string): string {
+  let out = input
+  for (const { pattern, replacement } of PHI_PATTERNS) {
+    out = out.replace(pattern, replacement)
+  }
+  return out
+}
+
 export function generateConversationTitle(message: string): string {
-  const cleaned = message
+  const scrubbed = scrubDirectIdentifiers(message)
+  const cleaned = scrubbed
     .replace(/https?:\/\/\S+/g, "")
-    .replace(/[^\w\s?'":,.-]/g, " ")
+    .replace(/[^\w\s?'":,.\[\]-]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
 
@@ -92,7 +120,19 @@ export function generateConversationTitle(message: string): string {
   return `${(boundary > 28 ? truncated.slice(0, boundary) : truncated).replace(/[,.:-]+$/, "")}...`
 }
 
-async function readStore(): Promise<ChatHistoryFile> {
+function previewFromMessages(messages: ChatHistoryMessage[]): string {
+  const lastMessage = [...messages].reverse().find((message) => message.role !== "system")
+  if (!lastMessage) return "No messages yet"
+  return scrubDirectIdentifiers(cleanContent(lastMessage.content))
+    .replace(/^Direct answer:\s*/i, "")
+    .replace(/^Direct answer\s*/i, "")
+    .replace(/^References\s*/i, "")
+    .slice(0, 96)
+}
+
+// ── File engine ───────────────────────────────────────────────────────────
+
+async function readFileStore(): Promise<ChatHistoryFile> {
   try {
     const raw = await fs.readFile(STORE_PATH, "utf8")
     const parsed = JSON.parse(raw) as Partial<ChatHistoryFile>
@@ -108,33 +148,25 @@ async function readStore(): Promise<ChatHistoryFile> {
   }
 }
 
-async function writeStore(store: ChatHistoryFile): Promise<void> {
+async function writeFileStore(store: ChatHistoryFile): Promise<void> {
   await fs.mkdir(path.dirname(STORE_PATH), { recursive: true })
   const tempPath = `${STORE_PATH}.${process.pid}.${Date.now()}.tmp`
   await fs.writeFile(tempPath, JSON.stringify(store, null, 2), "utf8")
   await fs.rename(tempPath, STORE_PATH)
 }
 
-async function mutateStore<T>(mutator: (store: ChatHistoryFile) => T | Promise<T>): Promise<T> {
+async function mutateFileStore<T>(mutator: (store: ChatHistoryFile) => T | Promise<T>): Promise<T> {
   const run = writeQueue.then(async () => {
-    const store = await readStore()
+    const store = await readFileStore()
     const result = await mutator(store)
-    await writeStore(store)
+    await writeFileStore(store)
     return result
   })
   writeQueue = run.then(() => undefined, () => undefined)
   return run
 }
 
-function toSummary(conversation: ChatConversation): ChatConversationSummary {
-  const lastMessage = [...conversation.messages].reverse().find((message) => message.role !== "system")
-  const preview = lastMessage
-    ? cleanContent(lastMessage.content)
-        .replace(/^Direct answer:\s*/i, "")
-        .replace(/^Direct answer\s*/i, "")
-        .replace(/^References\s*/i, "")
-        .slice(0, 96)
-    : "No messages yet"
+function fileToSummary(conversation: ChatConversation): ChatConversationSummary {
   return {
     id: conversation.id,
     title: conversation.title,
@@ -143,7 +175,7 @@ function toSummary(conversation: ChatConversation): ChatConversationSummary {
     createdAt: conversation.createdAt,
     updatedAt: conversation.updatedAt,
     messageCount: conversation.messages.length,
-    lastMessagePreview: preview,
+    lastMessagePreview: previewFromMessages(conversation.messages),
   }
 }
 
@@ -152,28 +184,201 @@ function sortConversations(a: ChatConversation, b: ChatConversation): number {
   return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 }
 
-function enforceOwnerLimit(store: ChatHistoryFile, ownerKey: string) {
-  const ownerConversations = store.conversations
-    .filter((conversation) => conversation.ownerKey === ownerKey && !conversation.pinned)
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+function enforceFileOwnerLimit(store: ChatHistoryFile, ownerKey: string) {
+  const owned = store.conversations.filter((c) => c.ownerKey === ownerKey)
+  const sortedByRecency = [...owned].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )
 
-  const excess = ownerConversations.slice(MAX_CONVERSATIONS_PER_OWNER)
-  if (excess.length === 0) return
+  const pinned = sortedByRecency.filter((c) => c.pinned)
+  const unpinned = sortedByRecency.filter((c) => !c.pinned)
 
-  const excessIds = new Set(excess.map((conversation) => conversation.id))
-  store.conversations = store.conversations.filter((conversation) => !excessIds.has(conversation.id))
+  const excessPinnedIds = new Set(
+    pinned.slice(MAX_PINNED_CONVERSATIONS_PER_OWNER).map((c) => c.id)
+  )
+  if (excessPinnedIds.size > 0) {
+    for (const conversation of store.conversations) {
+      if (excessPinnedIds.has(conversation.id)) conversation.pinned = false
+    }
+  }
+
+  const allowedUnpinned = Math.max(
+    0,
+    MAX_CONVERSATIONS_PER_OWNER - Math.min(pinned.length, MAX_PINNED_CONVERSATIONS_PER_OWNER)
+  )
+  const excessUnpinnedIds = new Set(unpinned.slice(allowedUnpinned).map((c) => c.id))
+  if (excessUnpinnedIds.size > 0) {
+    store.conversations = store.conversations.filter((c) => !excessUnpinnedIds.has(c.id))
+  }
 }
 
+// ── Prisma engine ─────────────────────────────────────────────────────────
+
+type PrismaTx = Prisma.TransactionClient
+
+type ConversationRow = {
+  id: string
+  ownerKey: string
+  title: string
+  pinned: boolean
+  archived: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+type MessageRow = {
+  id: string
+  conversationId: string
+  role: string
+  content: string
+  agentId: string | null
+  collaborators: string[]
+  routingInfo: string | null
+  createdAt: Date
+}
+
+function rowToMessage(row: MessageRow): ChatHistoryMessage {
+  const message: ChatHistoryMessage = {
+    id: row.id,
+    role: row.role as ChatHistoryRole,
+    content: row.content,
+    createdAt: row.createdAt.toISOString(),
+  }
+  if (row.agentId) message.agentId = row.agentId
+  if (row.collaborators?.length) message.collaborators = row.collaborators
+  if (row.routingInfo) message.routingInfo = row.routingInfo
+  return message
+}
+
+function rowToConversation(
+  conversation: ConversationRow,
+  messages: MessageRow[]
+): ChatConversation {
+  return {
+    id: conversation.id,
+    ownerKey: conversation.ownerKey,
+    title: conversation.title,
+    pinned: conversation.pinned,
+    archived: conversation.archived,
+    createdAt: conversation.createdAt.toISOString(),
+    updatedAt: conversation.updatedAt.toISOString(),
+    messages: messages.map(rowToMessage),
+  }
+}
+
+async function enforcePrismaOwnerLimit(tx: PrismaTx, ownerKey: string): Promise<void> {
+  const owned = await tx.chatConversationRecord.findMany({
+    where: { ownerKey },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, pinned: true, updatedAt: true },
+  })
+
+  const pinned = owned.filter((c) => c.pinned)
+  const unpinned = owned.filter((c) => !c.pinned)
+
+  const excessPinnedIds = pinned.slice(MAX_PINNED_CONVERSATIONS_PER_OWNER).map((c) => c.id)
+  if (excessPinnedIds.length > 0) {
+    await tx.chatConversationRecord.updateMany({
+      where: { id: { in: excessPinnedIds } },
+      data: { pinned: false },
+    })
+  }
+
+  const allowedUnpinned = Math.max(
+    0,
+    MAX_CONVERSATIONS_PER_OWNER - Math.min(pinned.length, MAX_PINNED_CONVERSATIONS_PER_OWNER)
+  )
+  const excessUnpinnedIds = unpinned.slice(allowedUnpinned).map((c) => c.id)
+  if (excessUnpinnedIds.length > 0) {
+    await tx.chatConversationRecord.deleteMany({
+      where: { id: { in: excessUnpinnedIds } },
+    })
+  }
+}
+
+async function trimConversationMessages(tx: PrismaTx, conversationId: string): Promise<void> {
+  const total = await tx.chatMessageRecord.count({ where: { conversationId } })
+  if (total <= MAX_MESSAGES_PER_CONVERSATION) return
+  const overflow = await tx.chatMessageRecord.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: "asc" },
+    take: total - MAX_MESSAGES_PER_CONVERSATION,
+    select: { id: true },
+  })
+  if (overflow.length === 0) return
+  await tx.chatMessageRecord.deleteMany({
+    where: { id: { in: overflow.map((m) => m.id) } },
+  })
+}
+
+async function loadPrismaConversation(
+  tx: PrismaTx | typeof prisma,
+  ownerKey: string,
+  conversationId: string,
+  options: { allowArchived?: boolean } = {}
+): Promise<ChatConversation | null> {
+  const where: Prisma.ChatConversationRecordWhereInput = { id: conversationId, ownerKey }
+  if (!options.allowArchived) where.archived = false
+  const row = await tx.chatConversationRecord.findFirst({ where })
+  if (!row) return null
+  const messages = await tx.chatMessageRecord.findMany({
+    where: { conversationId: row.id },
+    orderBy: { createdAt: "asc" },
+  })
+  return rowToConversation(row, messages)
+}
+
+// ── Public API ────────────────────────────────────────────────────────────
+
 export async function listChatConversations(ownerKey: string): Promise<ChatConversationSummary[]> {
-  const store = await readStore()
+  if (isDatabaseEnabled()) {
+    const rows = await prisma.chatConversationRecord.findMany({
+      where: { ownerKey, archived: false },
+      orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
+      take: MAX_CONVERSATIONS_PER_OWNER * 2,
+    })
+    if (rows.length === 0) return []
+    const conversationIds = rows.map((row) => row.id)
+    const messages = await prisma.chatMessageRecord.findMany({
+      where: { conversationId: { in: conversationIds } },
+      orderBy: { createdAt: "asc" },
+    })
+    const messagesByConversation = new Map<string, MessageRow[]>()
+    for (const message of messages) {
+      const list = messagesByConversation.get(message.conversationId) || []
+      list.push(message)
+      messagesByConversation.set(message.conversationId, list)
+    }
+    return rows.map((row) => {
+      const conversationMessages = messagesByConversation.get(row.id) || []
+      return {
+        id: row.id,
+        title: row.title,
+        pinned: row.pinned,
+        archived: row.archived,
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+        messageCount: conversationMessages.length,
+        lastMessagePreview: previewFromMessages(conversationMessages.map(rowToMessage)),
+      }
+    })
+  }
+
+  const store = await readFileStore()
   return store.conversations
     .filter((conversation) => conversation.ownerKey === ownerKey && !conversation.archived)
     .sort(sortConversations)
-    .map(toSummary)
+    .map(fileToSummary)
 }
 
-export async function getChatConversation(ownerKey: string, conversationId: string): Promise<ChatConversation | null> {
-  const store = await readStore()
+export async function getChatConversation(
+  ownerKey: string,
+  conversationId: string
+): Promise<ChatConversation | null> {
+  if (isDatabaseEnabled()) {
+    return loadPrismaConversation(prisma, ownerKey, conversationId)
+  }
+  const store = await readFileStore()
   const conversation = store.conversations.find(
     (item) => item.ownerKey === ownerKey && item.id === conversationId && !item.archived
   )
@@ -185,21 +390,60 @@ export async function createChatConversation(params: {
   title?: string
   initialMessage?: ChatHistoryMessage
 }): Promise<ChatConversation> {
-  return mutateStore((store) => {
+  const title =
+    params.title?.trim() ||
+    (params.initialMessage
+      ? generateConversationTitle(params.initialMessage.content)
+      : "New clinical question")
+
+  if (isDatabaseEnabled()) {
+    return prisma.$transaction(async (tx) => {
+      const created = await tx.chatConversationRecord.create({
+        data: {
+          id: crypto.randomUUID(),
+          ownerKey: params.ownerKey,
+          title,
+          pinned: false,
+          archived: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      })
+      let messages: MessageRow[] = []
+      if (params.initialMessage) {
+        const message = await tx.chatMessageRecord.create({
+          data: {
+            id: params.initialMessage.id || crypto.randomUUID(),
+            conversationId: created.id,
+            role: params.initialMessage.role,
+            content: cleanMessageContent(params.initialMessage.content),
+            agentId: params.initialMessage.agentId,
+            collaborators: params.initialMessage.collaborators?.filter(Boolean) ?? [],
+            routingInfo: params.initialMessage.routingInfo,
+            createdAt: new Date(params.initialMessage.createdAt || Date.now()),
+          },
+        })
+        messages = [message]
+      }
+      await enforcePrismaOwnerLimit(tx, params.ownerKey)
+      return rowToConversation(created, messages)
+    })
+  }
+
+  return mutateFileStore((store) => {
     const createdAt = nowIso()
     const conversation: ChatConversation = {
       id: crypto.randomUUID(),
       ownerKey: params.ownerKey,
-      title: params.title?.trim() || (params.initialMessage ? generateConversationTitle(params.initialMessage.content) : "New clinical question"),
+      title,
       pinned: false,
       archived: false,
       createdAt,
       updatedAt: createdAt,
       messages: params.initialMessage ? [params.initialMessage] : [],
     }
-
     store.conversations.push(conversation)
-    enforceOwnerLimit(store, params.ownerKey)
+    enforceFileOwnerLimit(store, params.ownerKey)
     return conversation
   })
 }
@@ -213,27 +457,99 @@ export async function appendChatExchange(params: {
   collaborators?: string[]
   routingInfo?: string
 }): Promise<ChatConversation> {
-  return mutateStore((store) => {
+  const userContent = cleanMessageContent(params.userContent)
+  const agentContent = cleanMessageContent(params.agentContent)
+  const collaborators = params.collaborators?.filter(Boolean) ?? []
+
+  if (isDatabaseEnabled()) {
+    return prisma.$transaction(async (tx) => {
+      let conversation = params.conversationId
+        ? await tx.chatConversationRecord.findFirst({
+            where: { id: params.conversationId, ownerKey: params.ownerKey, archived: false },
+          })
+        : null
+
+      const now = new Date()
+      if (!conversation) {
+        conversation = await tx.chatConversationRecord.create({
+          data: {
+            id: crypto.randomUUID(),
+            ownerKey: params.ownerKey,
+            title: generateConversationTitle(params.userContent),
+            pinned: false,
+            archived: false,
+            createdAt: now,
+            updatedAt: now,
+          },
+        })
+      }
+
+      await tx.chatMessageRecord.createMany({
+        data: [
+          {
+            id: crypto.randomUUID(),
+            conversationId: conversation.id,
+            role: "user",
+            content: userContent,
+            createdAt: now,
+            collaborators: [],
+          },
+          {
+            id: crypto.randomUUID(),
+            conversationId: conversation.id,
+            role: "agent",
+            content: agentContent,
+            agentId: params.agentId,
+            collaborators,
+            routingInfo: params.routingInfo,
+            createdAt: new Date(now.getTime() + 1),
+          },
+        ],
+      })
+
+      const titleStillDefault = !conversation.title || conversation.title === "New clinical question"
+      conversation = await tx.chatConversationRecord.update({
+        where: { id: conversation.id },
+        data: {
+          updatedAt: new Date(),
+          ...(titleStillDefault ? { title: generateConversationTitle(params.userContent) } : {}),
+        },
+      })
+
+      await trimConversationMessages(tx, conversation.id)
+      await enforcePrismaOwnerLimit(tx, params.ownerKey)
+
+      const messages = await tx.chatMessageRecord.findMany({
+        where: { conversationId: conversation.id },
+        orderBy: { createdAt: "asc" },
+      })
+      return rowToConversation(conversation, messages)
+    })
+  }
+
+  return mutateFileStore((store) => {
     const timestamp = nowIso()
     let conversation = params.conversationId
       ? store.conversations.find(
-          (item) => item.ownerKey === params.ownerKey && item.id === params.conversationId && !item.archived
+          (item) =>
+            item.ownerKey === params.ownerKey &&
+            item.id === params.conversationId &&
+            !item.archived
         )
       : undefined
 
     const userMessage: ChatHistoryMessage = {
       id: crypto.randomUUID(),
       role: "user",
-      content: cleanMessageContent(params.userContent),
+      content: userContent,
       createdAt: timestamp,
     }
-
     const agentMessage: ChatHistoryMessage = {
       id: crypto.randomUUID(),
       role: "agent",
-      content: cleanMessageContent(params.agentContent),
+      content: agentContent,
       agentId: params.agentId,
-      collaborators: params.collaborators?.filter(Boolean),
+      collaborators,
       routingInfo: params.routingInfo,
       createdAt: timestamp,
     }
@@ -259,7 +575,7 @@ export async function appendChatExchange(params: {
       conversation.title = generateConversationTitle(params.userContent)
     }
 
-    enforceOwnerLimit(store, params.ownerKey)
+    enforceFileOwnerLimit(store, params.ownerKey)
     return conversation
   })
 }
@@ -271,7 +587,41 @@ export async function updateChatConversation(params: {
   pinned?: boolean
   archived?: boolean
 }): Promise<ChatConversation | null> {
-  return mutateStore((store) => {
+  if (isDatabaseEnabled()) {
+    return prisma.$transaction(async (tx) => {
+      const current = await tx.chatConversationRecord.findFirst({
+        where: { id: params.conversationId, ownerKey: params.ownerKey },
+      })
+      if (!current) return null
+
+      const data: Prisma.ChatConversationRecordUpdateInput = { updatedAt: new Date() }
+      if (typeof params.title === "string") {
+        data.title = generateConversationTitle(params.title)
+      }
+      if (typeof params.pinned === "boolean") {
+        if (params.pinned && !current.pinned) {
+          const currentPinned = await tx.chatConversationRecord.count({
+            where: { ownerKey: params.ownerKey, pinned: true },
+          })
+          if (currentPinned >= MAX_PINNED_CONVERSATIONS_PER_OWNER) {
+            throw new Error(
+              `Pin limit reached (${MAX_PINNED_CONVERSATIONS_PER_OWNER}). Unpin a chat first.`
+            )
+          }
+        }
+        data.pinned = params.pinned
+      }
+      if (typeof params.archived === "boolean") data.archived = params.archived
+
+      await tx.chatConversationRecord.update({
+        where: { id: current.id },
+        data,
+      })
+      return loadPrismaConversation(tx, params.ownerKey, current.id, { allowArchived: true })
+    })
+  }
+
+  return mutateFileStore((store) => {
     const conversation = store.conversations.find(
       (item) => item.ownerKey === params.ownerKey && item.id === params.conversationId
     )
@@ -280,15 +630,36 @@ export async function updateChatConversation(params: {
     if (typeof params.title === "string") {
       conversation.title = generateConversationTitle(params.title)
     }
-    if (typeof params.pinned === "boolean") conversation.pinned = params.pinned
+    if (typeof params.pinned === "boolean") {
+      if (params.pinned && !conversation.pinned) {
+        const currentPinned = store.conversations.filter(
+          (c) => c.ownerKey === params.ownerKey && c.pinned
+        ).length
+        if (currentPinned >= MAX_PINNED_CONVERSATIONS_PER_OWNER) {
+          throw new Error(
+            `Pin limit reached (${MAX_PINNED_CONVERSATIONS_PER_OWNER}). Unpin a chat first.`
+          )
+        }
+      }
+      conversation.pinned = params.pinned
+    }
     if (typeof params.archived === "boolean") conversation.archived = params.archived
     conversation.updatedAt = nowIso()
     return conversation
   })
 }
 
-export async function deleteChatConversation(ownerKey: string, conversationId: string): Promise<boolean> {
-  return mutateStore((store) => {
+export async function deleteChatConversation(
+  ownerKey: string,
+  conversationId: string
+): Promise<boolean> {
+  if (isDatabaseEnabled()) {
+    const result = await prisma.chatConversationRecord.deleteMany({
+      where: { id: conversationId, ownerKey },
+    })
+    return result.count > 0
+  }
+  return mutateFileStore((store) => {
     const before = store.conversations.length
     store.conversations = store.conversations.filter(
       (conversation) => !(conversation.ownerKey === ownerKey && conversation.id === conversationId)

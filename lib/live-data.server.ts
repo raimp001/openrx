@@ -199,12 +199,14 @@ export async function getLiveSnapshotByWallet(walletAddress?: string | null): Pr
     ...patient.prescriptions.map((p) => p.doctorId),
   ].filter(Boolean))
 
-  const doctors = await prisma.doctorProfile.findMany({
-    where: patientDoctorIds.size > 0 ? { id: { in: Array.from(patientDoctorIds) } } : {},
-    include: { user: true },
-    orderBy: [{ isVerified: "desc" }, { updatedAt: "desc" }],
-    take: 50,
-  })
+  const doctors = patientDoctorIds.size > 0
+    ? await prisma.doctorProfile.findMany({
+        where: { id: { in: Array.from(patientDoctorIds) } },
+        include: { user: true },
+        orderBy: [{ isVerified: "desc" }, { updatedAt: "desc" }],
+        take: 50,
+      })
+    : []
 
   const physicians = doctors.map((doctor) => ({
     id: doctor.id,

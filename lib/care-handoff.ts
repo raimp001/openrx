@@ -264,7 +264,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
   } else if (billingKeywords) {
     pushUnique({
       id: "open-billing",
-      label: "Review coverage &amp; billing",
+      label: "Review coverage & billing",
       description: "Open the billing workspace for this question.",
       href: "/billing?handoff=chat",
       kind: "education",

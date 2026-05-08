@@ -12,6 +12,30 @@ import { maskFull, normalizePhone, shortId } from "./utils"
 // Production must use a HIPAA-eligible telephony backend with persistent
 // CDR storage; the mock provider intentionally does not persist across restarts.
 const sessions = new Map<string, CallSession>()
+const MAX_SESSIONS = 200
+const COMPLETED_SESSION_TTL_MS = 60 * 60 * 1000 // 1 hour
+
+function pruneSessions(): void {
+  const now = Date.now()
+  // Drop completed/terminal sessions older than the TTL.
+  for (const [id, session] of Array.from(sessions.entries())) {
+    if (
+      (session.status === "completed" || session.status === "failed" || session.status === "cancelled") &&
+      session.endedAt &&
+      now - session.endedAt > COMPLETED_SESSION_TTL_MS
+    ) {
+      sessions.delete(id)
+    }
+  }
+  // Hard cap: if we still exceed MAX_SESSIONS, drop the oldest by createdAt.
+  if (sessions.size > MAX_SESSIONS) {
+    const sorted = Array.from(sessions.entries()).sort(
+      ([, a], [, b]) => a.createdAt - b.createdAt
+    )
+    const excess = sorted.slice(0, sessions.size - MAX_SESSIONS)
+    for (const [id] of excess) sessions.delete(id)
+  }
+}
 
 const DEFAULT_CALLER_IDS = [
   { label: "OpenRx Care Line", maskedNumber: "+1 (555) 010-2000" },
@@ -47,6 +71,7 @@ export function createMockCallProvider(): CallProvider {
       if (!phone) {
         throw new Error("Invalid patient phone number — expected E.164 format (e.g. +15551234567).")
       }
+      pruneSessions()
       const callerId =
         DEFAULT_CALLER_IDS.find((c) => c.label === input.callerIdLabel) || DEFAULT_CALLER_IDS[0]
 
@@ -114,6 +139,7 @@ export function createMockCallProvider(): CallProvider {
       return documented
     },
     async listRecent(limit = 20): Promise<CallSession[]> {
+      pruneSessions()
       const all = Array.from(sessions.values())
       all.sort((a, b) => b.createdAt - a.createdAt)
       return all.slice(0, limit)

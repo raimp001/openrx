@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
+import { canAccessCareTeam, resolveClinicSession } from "@/lib/clinic-auth"
 import { getCallProvider } from "@/lib/clinician-calls/provider"
 import type { CallNextStep, CallOutcome } from "@/lib/clinician-calls/types"
 
 export const runtime = "nodejs"
+
+async function requireCareTeam(request: NextRequest) {
+  const session = await resolveClinicSession(request)
+  if (!canAccessCareTeam(session.role)) {
+    return {
+      response: NextResponse.json({ error: "Care-team access required." }, { status: 403 }),
+    } as const
+  }
+  return { session } as const
+}
 
 const VALID_OUTCOMES: CallOutcome[] = [
   "reached_patient",
@@ -24,7 +35,10 @@ const VALID_NEXT_STEPS: CallNextStep[] = [
   "no_action",
 ]
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireCareTeam(request)
+  if ("response" in auth) return auth.response
+
   const provider = getCallProvider()
   const session = await provider.getCall(params.id)
   if (!session) return NextResponse.json({ error: "Call session not found." }, { status: 404 })
@@ -32,6 +46,9 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireCareTeam(request)
+  if ("response" in auth) return auth.response
+
   const provider = getCallProvider()
   let body: { action?: string; outcome?: string; notes?: string; nextSteps?: string[] }
   try {

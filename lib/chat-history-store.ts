@@ -21,6 +21,7 @@ export type ChatConversation = {
   id: string
   ownerKey: string
   title: string
+  folder?: string
   pinned: boolean
   archived: boolean
   createdAt: string
@@ -170,6 +171,7 @@ function fileToSummary(conversation: ChatConversation): ChatConversationSummary 
   return {
     id: conversation.id,
     title: conversation.title,
+    folder: conversation.folder,
     pinned: conversation.pinned,
     archived: conversation.archived,
     createdAt: conversation.createdAt,
@@ -436,6 +438,7 @@ export async function createChatConversation(params: {
       id: crypto.randomUUID(),
       ownerKey: params.ownerKey,
       title,
+      folder: undefined,
       pinned: false,
       archived: false,
       createdAt,
@@ -559,6 +562,7 @@ export async function appendChatExchange(params: {
         id: crypto.randomUUID(),
         ownerKey: params.ownerKey,
         title: generateConversationTitle(params.userContent),
+        folder: undefined,
         pinned: false,
         archived: false,
         createdAt: timestamp,
@@ -584,6 +588,7 @@ export async function updateChatConversation(params: {
   ownerKey: string
   conversationId: string
   title?: string
+  folder?: string
   pinned?: boolean
   archived?: boolean
 }): Promise<ChatConversation | null> {
@@ -629,6 +634,10 @@ export async function updateChatConversation(params: {
 
     if (typeof params.title === "string") {
       conversation.title = generateConversationTitle(params.title)
+    }
+    if (typeof params.folder === "string") {
+      const folder = generateConversationTitle(params.folder).slice(0, 42)
+      conversation.folder = folder || undefined
     }
     if (typeof params.pinned === "boolean") {
       if (params.pinned && !conversation.pinned) {

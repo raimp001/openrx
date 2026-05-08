@@ -81,6 +81,16 @@ body {
   min-height: 100%;
 }
 
+main#main-content:has([data-openrx-chat-workspace]) {
+  min-height: 100vh;
+  padding: 0 !important;
+  background: #050505;
+}
+
+main#main-content:has([data-openrx-chat-workspace]) > div {
+  max-width: none !important;
+}
+
 body {
   position: relative;
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;

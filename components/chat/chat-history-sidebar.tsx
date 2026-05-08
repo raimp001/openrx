@@ -6,6 +6,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Folder,
+  FolderPlus,
   Menu,
   MoreHorizontal,
   Pencil,
@@ -40,43 +42,11 @@ type FullConversationResponse = {
 }
 
 const COLLAPSED_KEY = "openrx.chat.sidebar.collapsed"
+const CUSTOM_FOLDERS_KEY = "openrx.chat.custom-folders"
+const FOLDER_ASSIGNMENTS_KEY = "openrx.chat.folder-assignments"
 
 function getConversationId(searchParams: URLSearchParams): string {
   return searchParams.get("c") || searchParams.get("conversationId") || ""
-}
-
-function monthLabel(date: Date): string {
-  return date.toLocaleString("en-US", { month: "long", year: "numeric" })
-}
-
-function daysBetween(now: Date, date: Date): number {
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
-  return Math.round((start - target) / 86_400_000)
-}
-
-function groupConversations(conversations: ChatConversationSummary[]) {
-  const now = new Date()
-  const groups = new Map<string, ChatConversationSummary[]>()
-
-  for (const conversation of conversations) {
-    const updatedAt = new Date(conversation.updatedAt)
-    const age = daysBetween(now, updatedAt)
-    const label =
-      age <= 0
-        ? "Today"
-        : age === 1
-          ? "Yesterday"
-          : age <= 7
-            ? "Previous 7 Days"
-            : age <= 30
-              ? "Previous 30 Days"
-              : monthLabel(updatedAt)
-
-    groups.set(label, [...(groups.get(label) || []), conversation])
-  }
-
-  return Array.from(groups.entries())
 }
 
 function safeLocalStorageGet(key: string): string | null {
@@ -91,8 +61,57 @@ function safeLocalStorageSet(key: string, value: string) {
   try {
     window.localStorage.setItem(key, value)
   } catch {
-    // Sandbox-safe: collapsed state is a convenience, not required for care.
+    // Sandbox-safe: local folder labels are convenience metadata.
   }
+}
+
+function parseStoredFolders(value: string | null): string[] {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    if (!Array.isArray(parsed)) return []
+    return parsed.map((item) => String(item).trim()).filter(Boolean).slice(0, 24)
+  } catch {
+    return []
+  }
+}
+
+function parseFolderAssignments(value: string | null): Record<string, string> {
+  if (!value) return {}
+  try {
+    const parsed = JSON.parse(value)
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {}
+    return Object.fromEntries(
+      Object.entries(parsed)
+        .map(([id, folder]) => [id, String(folder).trim()] as const)
+        .filter(([id, folder]) => Boolean(id && folder))
+    )
+  } catch {
+    return {}
+  }
+}
+
+function inferIssueFolder(conversation: ChatConversationSummary): string {
+  if (conversation.folder) return conversation.folder
+  const text = `${conversation.title} ${conversation.lastMessagePreview}`.toLowerCase()
+  if (/\b(screen|screening|colonoscopy|colon|colorectal|mammogram|breast|lung|ldct|pap|hpv|psa|brca|lynch|cancer)\b/.test(text)) {
+    return "Screening"
+  }
+  if (/\b(medication|meds|drug|rx|ibuprofen|lisinopril|pharmacy|refill)\b/.test(text)) return "Medications"
+  if (/\b(provider|doctor|primary care|pcp|specialist|referral|appointment|schedule|near me|find care)\b/.test(text)) {
+    return "Care access"
+  }
+  if (/\b(bill|claim|coverage|insurance|prior auth|authorization|cost|copay|denial)\b/.test(text)) return "Coverage"
+  if (/\b(chest pain|shortness|symptom|fever|cough|bleeding|triage|urgent)\b/.test(text)) return "Symptoms"
+  return "General"
+}
+
+function folderSort(a: string, b: string) {
+  const order = ["Screening", "Symptoms", "Medications", "Care access", "Coverage", "General"]
+  const ai = order.indexOf(a)
+  const bi = order.indexOf(b)
+  if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
+  return a.localeCompare(b)
 }
 
 export default function ChatHistorySidebar() {
@@ -104,6 +123,8 @@ export default function ChatHistorySidebar() {
   const [query, setQuery] = useState("")
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const [customFolders, setCustomFolders] = useState<string[]>([])
+  const [folderAssignments, setFolderAssignments] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const searchRef = useRef<HTMLInputElement>(null)
@@ -133,15 +154,28 @@ export default function ChatHistorySidebar() {
 
   useEffect(() => {
     setCollapsed(safeLocalStorageGet(COLLAPSED_KEY) === "true")
+    setCustomFolders(parseStoredFolders(safeLocalStorageGet(CUSTOM_FOLDERS_KEY)))
+    setFolderAssignments(parseFolderAssignments(safeLocalStorageGet(FOLDER_ASSIGNMENTS_KEY)))
   }, [])
 
   useEffect(() => {
-    document.documentElement.style.setProperty("--openrx-sidebar-width", collapsed ? "76px" : "320px")
+    document.documentElement.style.setProperty("--openrx-sidebar-width", collapsed ? "76px" : "308px")
     safeLocalStorageSet(COLLAPSED_KEY, collapsed ? "true" : "false")
     return () => {
       if (pathname !== "/chat") document.documentElement.style.setProperty("--openrx-sidebar-width", "76px")
     }
   }, [collapsed, pathname])
+
+  const saveCustomFolders = useCallback((folders: string[]) => {
+    const unique = Array.from(new Set(folders.map((folder) => folder.trim()).filter(Boolean))).slice(0, 24)
+    setCustomFolders(unique)
+    safeLocalStorageSet(CUSTOM_FOLDERS_KEY, JSON.stringify(unique))
+  }, [])
+
+  const saveFolderAssignments = useCallback((assignments: Record<string, string>) => {
+    setFolderAssignments(assignments)
+    safeLocalStorageSet(FOLDER_ASSIGNMENTS_KEY, JSON.stringify(assignments))
+  }, [])
 
   useEffect(() => {
     void loadConversations()
@@ -160,16 +194,6 @@ export default function ChatHistorySidebar() {
       window.removeEventListener("openrx:new-chat", newChat)
     }
   }, [loadConversations, router])
-
-  const filteredConversations = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    if (!needle) return conversations
-    return conversations.filter((conversation) =>
-      `${conversation.title} ${conversation.lastMessagePreview}`.toLowerCase().includes(needle)
-    )
-  }, [conversations, query])
-
-  const grouped = useMemo(() => groupConversations(filteredConversations), [filteredConversations])
 
   const startNewChat = useCallback(() => {
     router.push("/chat")
@@ -213,6 +237,30 @@ export default function ChatHistorySidebar() {
     return () => window.removeEventListener("keydown", handleKey)
   }, [pathname, startNewChat])
 
+  const filteredConversations = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return conversations
+    return conversations.filter((conversation) =>
+      `${conversation.title} ${conversation.lastMessagePreview} ${folderAssignments[conversation.id] || conversation.folder || ""}`.toLowerCase().includes(needle)
+    )
+  }, [conversations, folderAssignments, query])
+
+  const pinnedConversations = useMemo(
+    () => filteredConversations.filter((conversation) => conversation.pinned),
+    [filteredConversations]
+  )
+
+  const issueFolders = useMemo(() => {
+    const folderMap = new Map<string, ChatConversationSummary[]>()
+    for (const folder of customFolders) folderMap.set(folder, [])
+    for (const conversation of filteredConversations) {
+      if (conversation.pinned) continue
+      const folder = folderAssignments[conversation.id] || inferIssueFolder(conversation)
+      folderMap.set(folder, [...(folderMap.get(folder) || []), conversation])
+    }
+    return Array.from(folderMap.entries()).sort(([a], [b]) => folderSort(a, b))
+  }, [customFolders, filteredConversations, folderAssignments])
+
   const openConversation = useCallback((conversationId: string) => {
     router.push(`/chat?c=${encodeURIComponent(conversationId)}`)
     setMobileOpen(false)
@@ -220,7 +268,7 @@ export default function ChatHistorySidebar() {
 
   const patchConversation = useCallback(async (
     conversationId: string,
-    patch: { title?: string; pinned?: boolean; archived?: boolean }
+    patch: { title?: string; folder?: string; pinned?: boolean; archived?: boolean }
   ) => {
     const response = await fetch(`/api/chat/conversations/${conversationId}`, {
       method: "PATCH",
@@ -236,10 +284,26 @@ export default function ChatHistorySidebar() {
   }, [authHeaders, loadConversations, walletAddress])
 
   const renameConversation = useCallback(async (conversation: ChatConversationSummary) => {
-    const title = window.prompt("Rename this clinical thread", conversation.title)
+    const title = window.prompt("Rename chat", conversation.title)
     if (!title?.trim()) return
     await patchConversation(conversation.id, { title })
   }, [patchConversation])
+
+  const createFolder = useCallback(() => {
+    const folder = window.prompt("Create folder", "Screening follow-up")
+    const cleaned = folder?.trim()
+    if (!cleaned) return
+    saveCustomFolders([...customFolders, cleaned])
+  }, [customFolders, saveCustomFolders])
+
+  const moveConversation = useCallback(async (conversation: ChatConversationSummary) => {
+    const folder = window.prompt("Move to folder", folderAssignments[conversation.id] || conversation.folder || inferIssueFolder(conversation))
+    if (!folder?.trim()) return
+    const cleaned = folder.trim()
+    saveCustomFolders([...customFolders, cleaned])
+    saveFolderAssignments({ ...folderAssignments, [conversation.id]: cleaned })
+    await patchConversation(conversation.id, { folder: cleaned }).catch(() => undefined)
+  }, [customFolders, folderAssignments, patchConversation, saveCustomFolders, saveFolderAssignments])
 
   const deleteConversation = useCallback(async (conversation: ChatConversationSummary) => {
     const confirmed = window.confirm(`Delete "${conversation.title}"?`)
@@ -287,19 +351,78 @@ export default function ChatHistorySidebar() {
     ? profile?.fullName || (walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "Wallet")
     : "Anonymous mode"
 
+  const renderConversationRow = (conversation: ChatConversationSummary) => {
+    const active = conversation.id === activeConversationId
+    const focusIndex = filteredConversations.findIndex((item) => item.id === conversation.id)
+    return (
+      <div
+        key={conversation.id}
+        className={cn(
+          "group relative rounded-xl transition",
+          active ? "bg-white text-black" : "hover:bg-white/[0.08]"
+        )}
+      >
+        <button
+          type="button"
+          ref={(node) => { itemRefs.current[focusIndex] = node }}
+          onClick={() => openConversation(conversation.id)}
+          className="w-full rounded-xl px-3 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-cyan-400/30"
+          data-testid="chat-history-item"
+          aria-current={active ? "page" : undefined}
+        >
+          <span className="flex items-center gap-2 pr-7">
+            {conversation.pinned ? <Pin size={12} className={cn("shrink-0", active ? "text-black" : "text-cyan-300")} /> : null}
+            <span className={cn("line-clamp-1 text-[13px] font-medium leading-5", active ? "text-black" : "text-zinc-100")}>
+              {conversation.title}
+            </span>
+          </span>
+          <span className={cn("mt-0.5 line-clamp-1 block pr-7 text-[11px] leading-5", active ? "text-zinc-700" : "text-zinc-500")}>
+            {conversation.lastMessagePreview}
+          </span>
+        </button>
+        <div className="absolute right-2 top-2 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+          <details className="relative">
+            <summary className="flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-lg bg-black/70 text-zinc-400 shadow-sm transition hover:text-white">
+              <MoreHorizontal size={15} />
+              <span className="sr-only">Open chat actions</span>
+            </summary>
+            <div className="absolute right-0 top-8 z-20 w-44 overflow-hidden rounded-xl border border-white/10 bg-[#151515] p-1 shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
+              <button type="button" onClick={() => renameConversation(conversation)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white">
+                <Pencil size={13} /> Rename
+              </button>
+              <button type="button" onClick={() => moveConversation(conversation)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white">
+                <Folder size={13} /> Move
+              </button>
+              <button type="button" onClick={() => patchConversation(conversation.id, { pinned: !conversation.pinned })} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white">
+                {conversation.pinned ? <PinOff size={13} /> : <Pin size={13} />}
+                {conversation.pinned ? "Unpin" : "Pin"}
+              </button>
+              <button type="button" onClick={() => exportConversation(conversation)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white">
+                <Download size={13} /> Export
+              </button>
+              <button type="button" onClick={() => deleteConversation(conversation)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-red-300 hover:bg-red-500/10">
+                <Trash2 size={13} /> Delete
+              </button>
+            </div>
+          </details>
+        </div>
+      </div>
+    )
+  }
+
   const fullSidebar = (
-    <div className="flex h-full flex-col" data-testid="chat-history-sidebar">
-      <div className="border-b border-[rgba(86,107,130,0.16)] px-4 py-4">
+    <div className="flex h-full flex-col bg-[#050505] text-zinc-100" data-testid="chat-history-sidebar">
+      <div className="border-b border-white/10 px-3 py-3">
         <div className="mb-4 flex items-center justify-between gap-2">
           <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="OpenRx home">
-            <BrandMark size="sm" />
-            <BrandWordmark subtitle={false} titleClassName="text-[16px] font-semibold text-primary" />
+            <BrandMark size="sm" tone="dark" />
+            <BrandWordmark tone="dark" subtitle={false} titleClassName="text-[15px] font-semibold text-white" />
           </Link>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => setCollapsed(true)}
-              className="hidden rounded-full p-2 text-muted transition hover:bg-white/80 hover:text-primary lg:inline-flex"
+              className="hidden rounded-lg p-2 text-zinc-500 transition hover:bg-white/10 hover:text-white lg:inline-flex"
               aria-label="Collapse chat history"
               data-testid="chat-history-toggle"
             >
@@ -308,7 +431,7 @@ export default function ChatHistorySidebar() {
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              className="rounded-full p-2 text-muted transition hover:bg-white/80 hover:text-primary lg:hidden"
+              className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/10 hover:text-white lg:hidden"
               aria-label="Close chat history"
             >
               <X size={16} />
@@ -319,129 +442,96 @@ export default function ChatHistorySidebar() {
         <button
           type="button"
           onClick={startNewChat}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(7,17,31,0.16)] transition hover:bg-[#12213a]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
           data-testid="chat-history-new"
         >
           <Plus size={16} />
           New chat
         </button>
 
+        <button
+          type="button"
+          onClick={createFolder}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+          data-testid="chat-folder-new"
+        >
+          <FolderPlus size={15} />
+          New folder
+        </button>
+
         <div className="relative mt-3">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
           <input
             ref={searchRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search past chats"
-            className="w-full rounded-2xl border border-[rgba(86,107,130,0.18)] bg-white/82 py-2.5 pl-9 pr-3 text-sm text-primary placeholder:text-muted transition focus:border-teal/35 focus:outline-none focus:ring-2 focus:ring-teal/12"
+            placeholder="Search chats"
+            className="w-full rounded-xl border border-white/10 bg-[#111] py-2.5 pl-9 pr-3 text-sm text-zinc-100 placeholder:text-zinc-500 transition focus:border-cyan-400/40 focus:outline-none focus:ring-2 focus:ring-cyan-400/15"
             data-testid="chat-history-search"
-            aria-label="Search past chats"
+            aria-label="Search chats"
           />
         </div>
       </div>
 
-      <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto px-3 py-4">
+      <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto px-2.5 py-3">
         {loading ? (
           <div className="space-y-2 px-1" aria-label="Loading chat history">
             {[0, 1, 2].map((item) => (
-              <div key={item} className="h-12 animate-pulse rounded-2xl bg-white/60" />
+              <div key={item} className="h-11 animate-pulse rounded-xl bg-white/10" />
             ))}
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-amber-200/70 bg-amber-50/80 px-3 py-3 text-xs leading-5 text-amber-900">
+          <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-xs leading-5 text-amber-100">
             {error}
           </div>
-        ) : conversations.length === 0 ? (
-          <div className="rounded-2xl border border-[rgba(86,107,130,0.16)] bg-white/58 px-3 py-4 text-sm leading-6 text-secondary">
-            No saved chats yet. Ask one clinical question and OpenRx will keep the handoff here.
+        ) : conversations.length === 0 && customFolders.length === 0 ? (
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-4 text-sm leading-6 text-zinc-400">
+            No saved chats yet. Ask one question and OpenRx will keep the handoff here.
           </div>
-        ) : grouped.length === 0 ? (
-          <div className="rounded-2xl border border-[rgba(86,107,130,0.16)] bg-white/58 px-3 py-4 text-sm leading-6 text-secondary">
+        ) : filteredConversations.length === 0 && query ? (
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-4 text-sm leading-6 text-zinc-400">
             No matching chats.
           </div>
         ) : (
-          <div className="space-y-5">
-            {grouped.map(([label, items]) => (
-              <section key={label} aria-label={label}>
-                <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                  {label}
-                </p>
-                <div className="space-y-1">
-                  {items.map((conversation) => {
-                    const active = conversation.id === activeConversationId
-                    const focusIndex = filteredConversations.findIndex((item) => item.id === conversation.id)
-                    return (
-                      <div
-                        key={conversation.id}
-                        className={cn(
-                          "group relative rounded-2xl border transition",
-                          active
-                            ? "border-[rgba(8,126,139,0.34)] bg-white shadow-[0_14px_34px_rgba(8,24,46,0.08)]"
-                            : "border-transparent hover:border-[rgba(86,107,130,0.14)] hover:bg-white/70"
-                        )}
-                      >
-                        <button
-                          type="button"
-                          ref={(node) => { itemRefs.current[focusIndex] = node }}
-                          onClick={() => openConversation(conversation.id)}
-                          className="w-full rounded-2xl px-3 py-2.5 text-left focus-visible:ring-2 focus-visible:ring-teal/20"
-                          data-testid="chat-history-item"
-                          aria-current={active ? "page" : undefined}
-                        >
-                          <span className="flex items-center gap-2">
-                            {conversation.pinned ? <Pin size={12} className="shrink-0 text-teal" /> : null}
-                            <span className="line-clamp-1 text-[13px] font-semibold leading-5 text-primary">
-                              {conversation.title}
-                            </span>
-                          </span>
-                          <span className="mt-0.5 line-clamp-1 block text-[11px] leading-5 text-muted">
-                            {conversation.lastMessagePreview}
-                          </span>
-                        </button>
-                        <div className="absolute right-2 top-2 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
-                          <details className="relative">
-                            <summary className="flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-full bg-white/92 text-muted shadow-sm transition hover:text-primary">
-                              <MoreHorizontal size={15} />
-                              <span className="sr-only">Open chat actions</span>
-                            </summary>
-                            <div className="absolute right-0 top-8 z-20 w-44 overflow-hidden rounded-2xl border border-[rgba(86,107,130,0.14)] bg-white p-1 shadow-[0_20px_50px_rgba(8,24,46,0.14)]">
-                              <button type="button" onClick={() => renameConversation(conversation)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-secondary hover:bg-slate-50 hover:text-primary">
-                                <Pencil size={13} /> Rename
-                              </button>
-                              <button type="button" onClick={() => patchConversation(conversation.id, { pinned: !conversation.pinned })} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-secondary hover:bg-slate-50 hover:text-primary">
-                                {conversation.pinned ? <PinOff size={13} /> : <Pin size={13} />}
-                                {conversation.pinned ? "Unpin" : "Pin"}
-                              </button>
-                              <button type="button" onClick={() => exportConversation(conversation)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-secondary hover:bg-slate-50 hover:text-primary">
-                                <Download size={13} /> Export
-                              </button>
-                              <button type="button" onClick={() => deleteConversation(conversation)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-red-700 hover:bg-red-50">
-                                <Trash2 size={13} /> Delete
-                              </button>
-                            </div>
-                          </details>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+          <div className="space-y-4">
+            {pinnedConversations.length > 0 ? (
+              <section aria-label="Pinned chats">
+                <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Pinned</p>
+                <div className="space-y-1">{pinnedConversations.map(renderConversationRow)}</div>
               </section>
+            ) : null}
+
+            {issueFolders.map(([label, items]) => (
+              <details key={label} open className="group/folder" aria-label={label}>
+                <summary className="mb-1.5 flex cursor-pointer list-none items-center justify-between rounded-lg px-2 py-1.5 text-[12px] font-medium text-zinc-300 transition hover:bg-white/[0.06] hover:text-white">
+                  <span className="flex items-center gap-2">
+                    <Folder size={14} className="text-zinc-500" />
+                    {label}
+                  </span>
+                  <span className="text-[11px] text-zinc-600">{items.length}</span>
+                </summary>
+                {items.length > 0 ? (
+                  <div className="space-y-1">{items.map(renderConversationRow)}</div>
+                ) : (
+                  <p className="rounded-lg px-3 py-2 text-[12px] leading-5 text-zinc-600">Drop a chat here from the menu.</p>
+                )}
+              </details>
             ))}
           </div>
         )}
       </div>
 
-      <div className="border-t border-[rgba(86,107,130,0.16)] px-4 py-3">
+      <div className="border-t border-white/10 px-3 py-3">
         <Link
           href="/profile"
-          className="flex items-center gap-3 rounded-2xl px-2 py-2 text-sm transition hover:bg-white/70"
+          className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm transition hover:bg-white/[0.08]"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-primary shadow-sm">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-zinc-200 shadow-sm">
             <Settings size={15} />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[13px] font-semibold text-primary">{accountLabel}</span>
-            <span className="block text-[11px] text-muted">Settings and privacy</span>
+            <span className="block truncate text-[13px] font-semibold text-zinc-100">{accountLabel}</span>
+            <span className="block text-[11px] text-zinc-500">Settings and privacy</span>
           </span>
         </Link>
       </div>
@@ -449,14 +539,14 @@ export default function ChatHistorySidebar() {
   )
 
   const collapsedSidebar = (
-    <div className="flex h-full flex-col items-center py-4" data-testid="chat-history-sidebar">
+    <div className="flex h-full flex-col items-center bg-[#050505] py-4" data-testid="chat-history-sidebar">
       <Link href="/" aria-label="OpenRx home">
-        <BrandMark size="sm" />
+        <BrandMark size="sm" tone="dark" />
       </Link>
       <button
         type="button"
         onClick={startNewChat}
-        className="mt-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-[0_14px_30px_rgba(7,17,31,0.16)] transition hover:bg-[#12213a]"
+        className="mt-5 flex h-11 w-11 items-center justify-center rounded-xl bg-white text-black transition hover:bg-zinc-200"
         aria-label="New chat"
         data-testid="chat-history-new"
       >
@@ -465,7 +555,7 @@ export default function ChatHistorySidebar() {
       <button
         type="button"
         onClick={() => setCollapsed(false)}
-        className="mt-2 flex h-10 w-10 items-center justify-center rounded-2xl text-muted transition hover:bg-white/78 hover:text-primary"
+        className="mt-2 flex h-10 w-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-white/10 hover:text-white"
         aria-label="Expand chat history"
         data-testid="chat-history-toggle"
       >
@@ -477,14 +567,14 @@ export default function ChatHistorySidebar() {
           setCollapsed(false)
           window.setTimeout(() => searchRef.current?.focus(), 30)
         }}
-        className="mt-2 flex h-10 w-10 items-center justify-center rounded-2xl text-muted transition hover:bg-white/78 hover:text-primary"
+        className="mt-2 flex h-10 w-10 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-white/10 hover:text-white"
         aria-label="Search chats"
       >
         <Search size={17} />
       </button>
       <Link
         href="/profile"
-        className="mt-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/74 text-secondary transition hover:text-primary"
+        className="mt-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-zinc-400 transition hover:text-white"
         aria-label="Settings"
       >
         <Settings size={16} />
@@ -497,7 +587,7 @@ export default function ChatHistorySidebar() {
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 rounded-full border border-[rgba(86,107,130,0.16)] bg-white/92 p-2.5 text-secondary shadow-card transition hover:text-primary lg:hidden"
+        className="fixed left-4 top-4 z-50 rounded-xl border border-white/10 bg-[#0b0b0b]/92 p-2.5 text-zinc-200 shadow-card transition hover:text-white lg:hidden"
         aria-label="Open chat history"
         data-testid="chat-history-mobile-toggle"
       >
@@ -506,7 +596,7 @@ export default function ChatHistorySidebar() {
 
       {mobileOpen ? (
         <div
-          className="fixed inset-0 z-40 bg-slate-950/28 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
           aria-hidden
         />
@@ -514,7 +604,7 @@ export default function ChatHistorySidebar() {
 
       <aside
         className={cn(
-          "shell-rail fixed left-0 top-0 z-50 flex h-screen w-[320px] flex-col border-r transition-transform duration-200 lg:hidden",
+          "fixed left-0 top-0 z-50 flex h-screen w-[320px] flex-col border-r border-white/10 bg-[#050505] transition-transform duration-200 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
         aria-label="Chat history"
@@ -524,8 +614,8 @@ export default function ChatHistorySidebar() {
 
       <aside
         className={cn(
-          "shell-rail fixed left-0 top-0 z-40 hidden h-screen flex-col border-r transition-[width] duration-200 lg:flex",
-          collapsed ? "w-[76px]" : "w-[320px]"
+          "fixed left-0 top-0 z-40 hidden h-screen flex-col border-r border-white/10 bg-[#050505] transition-[width] duration-200 lg:flex",
+          collapsed ? "w-[76px]" : "w-[308px]"
         )}
         aria-label="Chat history"
       >

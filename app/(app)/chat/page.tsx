@@ -130,16 +130,16 @@ const SECTION_LABELS: Record<string, { variant: "due" | "review" | "upcoming" | 
 }
 
 const sectionTone: Record<string, string> = {
-  due: "text-danger bg-red-50 border-red-100",
-  review: "text-warning bg-amber-50 border-amber-100",
-  upcoming: "text-navy bg-slate-50 border-slate-200",
-  current: "text-success bg-emerald-50 border-emerald-100",
-  followup: "text-muted bg-surface-2 border-border",
-  next: "text-navy bg-white border-border-strong",
-  answer: "text-primary bg-white border-border-strong",
-  refs: "text-muted bg-white border-border",
-  safety: "text-muted bg-amber-50 border-amber-100",
-  info: "text-muted bg-white border-border",
+  due: "text-red-100 bg-red-950/30 border-red-500/20",
+  review: "text-amber-100 bg-amber-950/30 border-amber-400/20",
+  upcoming: "text-sky-100 bg-sky-950/24 border-sky-400/20",
+  current: "text-emerald-100 bg-emerald-950/24 border-emerald-400/20",
+  followup: "text-zinc-200 bg-white/[0.04] border-white/10",
+  next: "text-zinc-100 bg-white/[0.05] border-white/12",
+  answer: "text-white bg-white/[0.06] border-white/12",
+  refs: "text-zinc-300 bg-white/[0.04] border-white/10",
+  safety: "text-amber-100 bg-amber-950/30 border-amber-400/20",
+  info: "text-zinc-300 bg-white/[0.04] border-white/10",
 }
 
 interface ParsedSection {
@@ -222,7 +222,7 @@ function renderInlineLinks(text: string, keyPrefix: string) {
         href={part.url}
         target="_blank"
         rel="noreferrer"
-        className="text-teal-dark underline decoration-teal/40 underline-offset-2 transition hover:decoration-teal-dark"
+        className="text-cyan-300 underline decoration-cyan-300/35 underline-offset-2 transition hover:text-cyan-200 hover:decoration-cyan-200"
       >
         {part.label}
       </a>
@@ -275,21 +275,21 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
           {section.heading}
         </p>
       ) : null}
-      <div className="space-y-1.5 text-[14px] leading-6 text-secondary">
+      <div className="space-y-1.5 text-[14px] leading-6 text-zinc-200">
         {blocks.map((block, i) => {
           if (block.kind === "blank") return <div key={`b-${i}`} className="h-1" />
           if (block.kind === "bullet") {
             return (
               <p
                 key={`b-${i}`}
-                className="pl-4 before:-ml-4 before:mr-2 before:text-teal before:content-['•']"
+                className="pl-4 before:-ml-4 before:mr-2 before:text-cyan-300 before:content-['•']"
               >
                 {renderInlineLinks(block.text, `b-${i}`)}
               </p>
             )
           }
           return (
-            <p key={`b-${i}`} className="text-secondary">
+            <p key={`b-${i}`} className="text-zinc-200">
               {renderInlineLinks(block.text, `b-${i}`)}
             </p>
           )
@@ -302,8 +302,8 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
 function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
   if (!citations.length) return null
   return (
-    <div data-testid="chat-citations" className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Sources</span>
+    <div data-testid="chat-citations" className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Sources</span>
       {citations.map((c, i) => (
         <a
           key={`${c.url}-${i}`}
@@ -311,7 +311,7 @@ function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
           target="_blank"
           rel="noreferrer"
           data-testid="chat-citation"
-          className="chat-citation-pill"
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-cyan-200 transition hover:border-cyan-300/40 hover:bg-cyan-300/10"
         >
           {c.label}
           <ExternalLink size={10} />
@@ -369,12 +369,6 @@ export default function ChatPage() {
     window.dispatchEvent(new CustomEvent("openrx:new-chat"))
     inputRef.current?.focus()
   }, [buildWelcome, isConnected, router])
-
-  const sendQuickPrompt = useCallback((prompt: string, agentId: AgentId) => {
-    setInput(prompt)
-    setActiveAgent(agentId)
-    inputRef.current?.focus()
-  }, [])
 
   const loadConversation = useCallback(async (id: string) => {
     setIsLoadingConversation(true)
@@ -549,21 +543,29 @@ export default function ChatPage() {
     }, 80)
   }, [sendMessage])
 
-  const showEmptyHero = messages.length <= 1 && !isLoadingConversation
+  const showEmptyState =
+    messages.length <= 1 &&
+    messages.every((message) => message.id === "welcome") &&
+    !isLoading &&
+    !isLoadingConversation
+  const visibleMessages = showEmptyState ? [] : messages.filter((message) => message.id !== "welcome")
 
-  const composer = (
+  const renderComposer = (placement: "hero" | "thread") => (
     <form
       className={cn(
-        "rounded-[16px] border border-border-strong bg-white p-2 shadow-card transition focus-within:border-teal/60 focus-within:shadow-focus",
-        showEmptyHero ? "shadow-[0_24px_60px_rgba(8,24,46,0.08)]" : "sticky bottom-2 mb-2"
+        "rounded-[18px] border border-white/12 bg-[#111] shadow-[0_22px_80px_rgba(0,0,0,0.40)] transition focus-within:border-cyan-300/45 focus-within:shadow-[0_0_0_3px_rgba(103,232,249,0.12),0_22px_80px_rgba(0,0,0,0.45)]",
+        placement === "hero"
+          ? "mx-auto w-full max-w-3xl p-3"
+          : "sticky bottom-2 mb-2 p-2"
       )}
       onSubmit={(event) => {
         event.preventDefault()
         void sendMessage()
       }}
+      data-testid={placement === "hero" ? "chat-empty-composer" : "chat-composer"}
     >
       <label htmlFor="chat-input" className="sr-only">
-        Ask OpenRx a clinical question
+        Message OpenRx
       </label>
       <textarea
         ref={inputRef}
@@ -577,104 +579,110 @@ export default function ChatPage() {
             void sendMessage()
           }
         }}
-        placeholder={
-          showEmptyHero
-            ? "Ask a clinical question…"
-            : "Ask a clinical question — e.g., what screening is due for a 55-year-old?"
-        }
+        placeholder="Ask what is due, what it means, or where to go next..."
         disabled={isLoading || isLoadingConversation}
-        rows={showEmptyHero ? 3 : 2}
+        rows={placement === "hero" ? 3 : 2}
         className={cn(
-          "block w-full resize-none border-0 bg-transparent px-3 py-2 text-primary outline-none placeholder:text-subtle disabled:opacity-60",
-          showEmptyHero ? "max-h-[220px] min-h-[88px] text-[16px] leading-7" : "max-h-[160px] min-h-[56px] text-[15px] leading-6"
+          "block max-h-[180px] w-full resize-none border-0 bg-transparent px-2 py-2 text-zinc-100 outline-none placeholder:text-zinc-500 disabled:opacity-60",
+          placement === "hero" ? "min-h-[86px] text-[16px] leading-7" : "min-h-[56px] text-[15px] leading-6"
         )}
-        autoFocus={showEmptyHero}
       />
       <div className="flex items-center justify-between gap-2 px-1 pb-0.5 pt-1">
-        <p className="text-[11px] text-muted">
-          Decision support — not a substitute for clinician judgment.
+        <p className={cn("text-left text-[11px] text-zinc-500", placement === "hero" && "hidden sm:block")}>
+          Decision support, with sources. Not a substitute for clinician judgment.
         </p>
         <button
           type="submit"
           data-testid="chat-send-button"
           disabled={isLoading || isLoadingConversation || !input.trim()}
           aria-label="Send"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-navy text-white transition hover:bg-navy-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className={cn(
+            "inline-flex items-center justify-center rounded-[12px] bg-white text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40",
+            placement === "hero" ? "h-11 w-11" : "h-9 w-9"
+          )}
         >
-          {isLoading ? <Loader2 size={14} className="animate-spin" /> : <ArrowUp size={14} />}
+          {isLoading ? <Loader2 size={14} className="animate-spin" /> : <ArrowUp size={placement === "hero" ? 16 : 14} />}
         </button>
       </div>
     </form>
   )
 
-  if (showEmptyHero) {
-    return (
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-3xl animate-fade-in flex-col items-center justify-center px-4 py-12 sm:px-6">
-        <div className="mb-8 flex flex-col items-center gap-2 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
-            <Sparkles size={11} className="text-teal-dark" />
-            Ask OpenRx
-          </span>
-          <h1 className="mt-2 text-balance text-[clamp(1.9rem,4vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.02em] text-primary">
-            How can I help you today?
-          </h1>
-          <p className="max-w-xl text-[14px] leading-6 text-muted">
-            Ask a clinical question and I&apos;ll answer here in chat — sourced from USPSTF, CDC, ACS, and NCCN guidelines.
-            {isConnected ? " Your account is connected, so replies can use your saved profile." : ""}
-          </p>
-        </div>
-
-        <div className="w-full max-w-2xl">
-          {composer}
-        </div>
-
-        {errorBanner ? (
-          <div
-            role="alert"
-            data-testid="chat-error"
-            className="mt-4 flex w-full max-w-2xl items-center gap-2 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-danger"
-          >
-            <AlertTriangle size={14} />
-            {errorBanner}
-          </div>
-        ) : null}
-
-        <div data-testid="chat-quick-prompts" className="mt-6 flex w-full max-w-2xl flex-wrap justify-center gap-2">
-          {QUICK_PROMPTS.map((qp) => (
-            <button
-              key={qp.label}
-              type="button"
-              onClick={() => sendQuickPrompt(qp.prompt, qp.agentId)}
-              className="rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-secondary transition hover:border-border-strong hover:bg-surface-2 hover:text-primary"
-            >
-              {qp.label}
-            </button>
-          ))}
-        </div>
-
-        <p className="mt-8 text-[11px] text-muted">
-          Decision support sourced from USPSTF · CDC · ACS · NCCN guidelines.
-        </p>
-      </div>
-    )
-  }
-
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-3xl animate-fade-in flex-col px-1">
+    <div
+      data-openrx-chat-workspace
+      className={cn(
+        "mx-auto flex min-h-screen animate-fade-in flex-col bg-[#050505] px-4 text-zinc-100 sm:px-6",
+        showEmptyState ? "max-w-5xl justify-center" : "max-w-3xl"
+      )}
+    >
+      {showEmptyState ? (
+        <main
+          data-testid="chat-empty-state"
+          className="flex min-h-screen flex-1 flex-col items-center justify-center px-3 py-12 text-center"
+        >
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[12px] font-medium text-zinc-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            {isConnected ? "Personalized workspace" : "General clinical search"}
+          </div>
+          <h1 className="max-w-3xl font-serif text-[clamp(2.5rem,7vw,5.6rem)] font-medium leading-[0.96] tracking-[-0.05em] text-white">
+            What should we move forward?
+          </h1>
+          <p className="mt-5 max-w-2xl text-balance text-[16px] leading-7 text-zinc-300 sm:text-[18px]">
+            Ask about screenings, medications, results, referrals, bills, or the next care step.
+            OpenRx answers here with sources and a practical handoff.
+          </p>
+
+          <div className="mt-9 w-full">{renderComposer("hero")}</div>
+
+          {errorBanner ? (
+            <div
+              role="alert"
+              data-testid="chat-error"
+              className="mt-3 flex max-w-3xl items-center gap-2 rounded-[10px] border border-red-400/25 bg-red-950/30 px-3 py-2 text-left text-[13px] text-red-100"
+            >
+              <AlertTriangle size={14} />
+              {errorBanner}
+            </div>
+          ) : null}
+
+          <div data-testid="chat-quick-prompts" className="mt-5 grid w-full max-w-3xl gap-2 sm:grid-cols-2">
+            {QUICK_PROMPTS.slice(0, 4).map((qp) => (
+              <button
+                key={qp.label}
+                type="button"
+                onClick={() => {
+                  void sendMessage(qp.prompt, qp.agentId)
+                }}
+                className="group rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-[13px] font-medium text-zinc-300 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/[0.07] hover:text-white"
+              >
+                <span className="block text-zinc-100">{qp.label}</span>
+                <span className="mt-1 block text-[12px] font-normal leading-5 text-zinc-500 group-hover:text-zinc-300">
+                  Answer in chat with sources and next steps
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <p className="mt-5 max-w-2xl text-[12px] leading-5 text-zinc-500">
+            For emergencies or severe symptoms, seek urgent medical care. OpenRx supports decisions; it does not replace your clinician.
+          </p>
+        </main>
+      ) : (
+        <>
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-border pb-3 pt-1">
+      <header className="flex items-center justify-between border-b border-white/10 pb-3 pt-4">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Ask OpenRx</p>
-          <h1 className="text-[18px] font-semibold tracking-tight text-primary">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Ask OpenRx</p>
+          <h1 className="text-[18px] font-semibold tracking-tight text-white">
             Clinical answers, in chat
           </h1>
         </div>
         <div className="flex items-center gap-2">
           <span
             data-testid="chat-status-indicator"
-            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-success"
+            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-success" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             online
           </span>
           <span
@@ -682,19 +690,19 @@ export default function ChatPage() {
             className={cn(
               "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex",
               isConnected
-                ? "border-emerald-200 bg-emerald-50 text-success"
-                : "border-border bg-white text-muted"
+                ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+                : "border-white/10 bg-white/[0.04] text-zinc-400"
             )}
           >
             <span
-              className={cn("h-1.5 w-1.5 rounded-full", isConnected ? "bg-success" : "bg-subtle")}
+              className={cn("h-1.5 w-1.5 rounded-full", isConnected ? "bg-emerald-400" : "bg-zinc-600")}
             />
             {isConnected ? "Personalized" : "General"}
           </span>
           <button
             type="button"
             onClick={clearChat}
-            className="control-button-secondary px-3 py-1.5 text-xs"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isLoading || messages.length <= 1}
             data-testid="chat-clear"
             aria-label="Clear"
@@ -714,13 +722,13 @@ export default function ChatPage() {
         aria-label="Chat conversation"
       >
         {isLoadingConversation ? (
-          <div className="mx-auto max-w-sm rounded-[14px] border border-border bg-white px-4 py-3 text-center text-sm text-muted" data-testid="chat-loading-conversation">
-            <Loader2 size={15} className="mx-auto mb-2 animate-spin text-teal-dark" />
+          <div className="mx-auto max-w-sm rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm text-zinc-400" data-testid="chat-loading-conversation">
+            <Loader2 size={15} className="mx-auto mb-2 animate-spin text-cyan-300" />
             Restoring the clinical thread...
           </div>
         ) : null}
 
-        {messages.map((msg) => {
+        {visibleMessages.map((msg) => {
           if (msg.role === "system") {
             return (
               <div key={msg.id} data-testid="chat-message-system" className="chat-bubble-system mx-auto max-w-2xl">
@@ -733,7 +741,7 @@ export default function ChatPage() {
               <div key={msg.id} className="flex justify-end">
                 <div
                   data-testid="chat-message-user"
-                  className="chat-bubble-user max-w-[85%] whitespace-pre-wrap"
+                  className="max-w-[85%] whitespace-pre-wrap rounded-[16px] bg-white px-4 py-3 text-[15px] leading-7 text-black"
                 >
                   {msg.content}
                 </div>
@@ -744,8 +752,8 @@ export default function ChatPage() {
           const Icon = meta?.icon || Sparkles
           return (
             <article key={msg.id} data-testid="chat-message-agent" className="space-y-3">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white text-teal-dark">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                <span className="flex h-6 w-6 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-cyan-300">
                   <Icon size={12} />
                 </span>
                 {meta?.label || "OpenRx"}
@@ -759,7 +767,7 @@ export default function ChatPage() {
                   type="button"
                   onClick={() => openCareHandoff(msg.action!)}
                   data-testid="chat-action-button"
-                  className="control-button-accent px-3.5 py-2 text-xs"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-300 px-3.5 py-2 text-xs font-semibold text-black transition hover:bg-cyan-200"
                 >
                   {msg.action.label}
                   <ArrowRight size={12} />
@@ -770,16 +778,16 @@ export default function ChatPage() {
         })}
 
         {isLoading ? (
-          <div className="flex items-center gap-3 text-muted" data-testid="chat-loading">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white">
-              <Sparkles size={12} className="text-teal-dark" />
+          <div className="flex items-center gap-3 text-zinc-400" data-testid="chat-loading">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md border border-white/10 bg-white/[0.06]">
+              <Sparkles size={12} className="text-cyan-300" />
             </span>
             <span className="flex items-center gap-1 text-[14px]">
               Composing answer
               <span className="ml-1 inline-flex items-center gap-1">
-                <span className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: "0ms" }} />
-                <span className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: "120ms" }} />
-                <span className="typing-dot h-1 w-1 rounded-full bg-muted" style={{ animationDelay: "240ms" }} />
+                <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "0ms" }} />
+                <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "120ms" }} />
+                <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "240ms" }} />
               </span>
             </span>
           </div>
@@ -793,14 +801,17 @@ export default function ChatPage() {
         <div
           role="alert"
           data-testid="chat-error"
-          className="mb-3 flex items-center gap-2 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-danger"
+          className="mb-3 flex items-center gap-2 rounded-[10px] border border-red-400/25 bg-red-950/30 px-3 py-2 text-[13px] text-red-100"
         >
           <AlertTriangle size={14} />
           {errorBanner}
         </div>
       ) : null}
 
-      {composer}
+      {/* Composer */}
+      {renderComposer("thread")}
+        </>
+      )}
     </div>
   )
 }

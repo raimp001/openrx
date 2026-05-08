@@ -19,6 +19,7 @@ function safeConversation(conversation: ChatConversation) {
   return {
     id: conversation.id,
     title: conversation.title,
+    folder: conversation.folder,
     pinned: conversation.pinned,
     archived: conversation.archived,
     createdAt: conversation.createdAt,
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function PATCH(request: NextRequest, context: RouteContext) {
   const body = await request.json().catch(() => ({})) as {
     title?: string
+    folder?: string
     pinned?: boolean
     archived?: boolean
     walletAddress?: string
@@ -55,6 +57,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       ownerKey: owner.ownerKey,
       conversationId: context.params.conversationId,
       title: body.title,
+      folder: body.folder,
       pinned: body.pinned,
       archived: body.archived,
     })

@@ -37,11 +37,11 @@ export function ChatActionPlan({ items, title = "Action plan", testIdPrefix = "c
     <section
       data-testid={`${testIdPrefix}-plan`}
       aria-label={title}
-      className="rounded-[12px] border border-border-strong bg-white p-3"
+      className="rounded-[12px] border border-white/12 bg-white/[0.05] p-3"
     >
       <header className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{title}</p>
-        <span className="text-[10px] uppercase tracking-[0.14em] text-muted">{items.length} step{items.length === 1 ? "" : "s"}</span>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{title}</p>
+        <span className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">{items.length} step{items.length === 1 ? "" : "s"}</span>
       </header>
       <ul className="mt-2 space-y-1.5">
         {items.map((item) => {
@@ -51,18 +51,18 @@ export function ChatActionPlan({ items, title = "Action plan", testIdPrefix = "c
               <a
                 href={item.href}
                 data-testid={`${testIdPrefix}-plan-item`}
-                className="group flex items-start justify-between gap-3 rounded-[10px] border border-border bg-white px-3 py-2 text-[13px] transition hover:border-border-strong hover:bg-surface-2"
+                className="group flex items-start justify-between gap-3 rounded-[10px] border border-white/10 bg-black/20 px-3 py-2 text-[13px] transition hover:border-cyan-300/30 hover:bg-white/[0.07]"
               >
                 <div className="flex items-start gap-2.5">
-                  <span className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-md border border-border bg-white text-teal-dark">
+                  <span className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-cyan-300">
                     <Icon size={13} />
                   </span>
                   <span>
-                    <span className="block font-medium text-primary">{item.label}</span>
-                    <span className="block text-[12px] text-muted">{item.description}</span>
+                    <span className="block font-medium text-zinc-100">{item.label}</span>
+                    <span className="block text-[12px] text-zinc-500">{item.description}</span>
                   </span>
                 </div>
-                <ArrowRight size={14} className="mt-1 shrink-0 text-muted transition group-hover:text-primary" />
+                <ArrowRight size={14} className="mt-1 shrink-0 text-zinc-500 transition group-hover:text-cyan-300" />
               </a>
             </li>
           )

@@ -358,10 +358,13 @@ export default function ChatHistorySidebar() {
       <div
         key={conversation.id}
         className={cn(
-          "group relative rounded-xl transition",
-          active ? "bg-white text-black" : "hover:bg-white/[0.08]"
+          "group relative overflow-hidden rounded-xl border transition",
+          active
+            ? "border-cyan-200/24 bg-cyan-200/[0.075]"
+            : "border-transparent hover:border-white/8 hover:bg-white/[0.055]"
         )}
       >
+        {active ? <span className="absolute left-0 top-2 h-[calc(100%-1rem)] w-0.5 rounded-full bg-cyan-200" /> : null}
         <button
           type="button"
           ref={(node) => { itemRefs.current[focusIndex] = node }}
@@ -371,12 +374,12 @@ export default function ChatHistorySidebar() {
           aria-current={active ? "page" : undefined}
         >
           <span className="flex items-center gap-2 pr-7">
-            {conversation.pinned ? <Pin size={12} className={cn("shrink-0", active ? "text-black" : "text-cyan-300")} /> : null}
-            <span className={cn("line-clamp-1 text-[13px] font-medium leading-5", active ? "text-black" : "text-zinc-100")}>
+            {conversation.pinned ? <Pin size={12} className={cn("shrink-0", active ? "text-cyan-200" : "text-cyan-300")} /> : null}
+            <span className={cn("line-clamp-1 text-[13px] font-medium leading-5", active ? "text-white" : "text-zinc-100")}>
               {conversation.title}
             </span>
           </span>
-          <span className={cn("mt-0.5 line-clamp-1 block pr-7 text-[11px] leading-5", active ? "text-zinc-700" : "text-zinc-400")}>
+          <span className={cn("mt-0.5 line-clamp-1 block pr-7 text-[11px] leading-5", active ? "text-zinc-300" : "text-zinc-500")}>
             {conversation.lastMessagePreview}
           </span>
         </button>
@@ -411,8 +414,8 @@ export default function ChatHistorySidebar() {
   }
 
   const fullSidebar = (
-    <div className="flex h-full flex-col bg-[#050505] text-zinc-100" data-testid="chat-history-sidebar">
-      <div className="border-b border-white/10 px-3 py-3">
+    <div className="flex h-full flex-col bg-[#030303] text-zinc-100" data-testid="chat-history-sidebar">
+      <div className="border-b border-white/[0.07] px-3 py-3">
         <div className="mb-4 flex items-center justify-between gap-2">
           <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="OpenRx home">
             <BrandMark size="sm" tone="dark" />
@@ -442,7 +445,7 @@ export default function ChatHistorySidebar() {
         <button
           type="button"
           onClick={startNewChat}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-200/18 bg-cyan-200/[0.09] px-4 py-2.5 text-sm font-semibold text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:border-cyan-200/32 hover:bg-cyan-200/[0.14]"
           data-testid="chat-history-new"
         >
           <Plus size={16} />
@@ -452,7 +455,7 @@ export default function ChatHistorySidebar() {
         <button
           type="button"
           onClick={createFolder}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/14 bg-white/[0.055] px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:border-white/24 hover:bg-white/[0.09] hover:text-white"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/18 hover:bg-white/[0.065] hover:text-white"
           data-testid="chat-folder-new"
         >
           <FolderPlus size={15} />
@@ -466,7 +469,7 @@ export default function ChatHistorySidebar() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search chats"
-            className="w-full rounded-xl border border-white/14 bg-[#101010] py-2.5 pl-9 pr-3 text-sm text-zinc-50 placeholder:text-zinc-400 transition focus:border-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-cyan-300/15"
+            className="w-full rounded-2xl border border-white/10 bg-[#0b0c0c] py-2.5 pl-9 pr-3 text-sm text-zinc-50 placeholder:text-zinc-500 transition focus:border-cyan-300/45 focus:outline-none focus:ring-2 focus:ring-cyan-300/12"
             data-testid="chat-history-search"
             aria-label="Search chats"
           />
@@ -475,9 +478,13 @@ export default function ChatHistorySidebar() {
 
       <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto px-2.5 py-3">
         {loading ? (
-          <div className="space-y-2 px-1" aria-label="Loading chat history">
+          <div className="space-y-3 px-2 py-2" aria-label="Loading chat history">
+            <div className="h-2 w-24 animate-pulse rounded-full bg-white/[0.08]" />
             {[0, 1, 2].map((item) => (
-              <div key={item} className="h-11 animate-pulse rounded-xl bg-white/10" />
+              <div key={item} className="space-y-2 rounded-xl border border-white/[0.04] bg-white/[0.025] px-3 py-3">
+                <div className="h-2.5 w-3/4 animate-pulse rounded-full bg-white/[0.08]" />
+                <div className="h-2 w-1/2 animate-pulse rounded-full bg-white/[0.055]" />
+              </div>
             ))}
           </div>
         ) : error ? (
@@ -521,7 +528,7 @@ export default function ChatHistorySidebar() {
         )}
       </div>
 
-      <div className="border-t border-white/10 px-3 py-3">
+      <div className="border-t border-white/[0.07] px-3 py-3">
         <Link
           href="/profile"
           className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm transition hover:bg-white/[0.08]"
@@ -539,14 +546,14 @@ export default function ChatHistorySidebar() {
   )
 
   const collapsedSidebar = (
-    <div className="flex h-full flex-col items-center bg-[#050505] py-4" data-testid="chat-history-sidebar">
+    <div className="flex h-full flex-col items-center bg-[#030303] py-4" data-testid="chat-history-sidebar">
       <Link href="/" aria-label="OpenRx home">
         <BrandMark size="sm" tone="dark" />
       </Link>
       <button
         type="button"
         onClick={startNewChat}
-        className="mt-5 flex h-11 w-11 items-center justify-center rounded-xl bg-white text-black transition hover:bg-zinc-200"
+        className="mt-5 flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-200/18 bg-cyan-200/[0.10] text-cyan-50 transition hover:bg-cyan-200/[0.16]"
         aria-label="New chat"
         data-testid="chat-history-new"
       >
@@ -604,7 +611,7 @@ export default function ChatHistorySidebar() {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[320px] flex-col border-r border-white/10 bg-[#050505] transition-transform duration-200 lg:hidden",
+          "fixed left-0 top-0 z-50 flex h-screen w-[320px] flex-col border-r border-white/[0.07] bg-[#030303] transition-transform duration-200 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
         aria-label="Chat history"
@@ -614,7 +621,7 @@ export default function ChatHistorySidebar() {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 hidden h-screen flex-col border-r border-white/10 bg-[#050505] transition-[width] duration-200 lg:flex",
+          "fixed left-0 top-0 z-40 hidden h-screen flex-col border-r border-white/[0.07] bg-[#030303] transition-[width] duration-200 lg:flex",
           collapsed ? "w-[76px]" : "w-[308px]"
         )}
         aria-label="Chat history"

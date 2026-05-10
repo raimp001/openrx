@@ -37,7 +37,7 @@ type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
 const QUICK_PROMPTS: Array<{ label: string; prompt: string; agentId: AgentId }> = [
   {
-    label: "Cancer screening · 50F",
+    label: "Screening for 50F",
     prompt: "What cancer screening does a 50-year-old woman need?",
     agentId: "screening",
   },
@@ -47,7 +47,7 @@ const QUICK_PROMPTS: Array<{ label: string; prompt: string; agentId: AgentId }> 
     agentId: "screening",
   },
   {
-    label: "Lung screening · smoker",
+    label: "Lung screening",
     prompt: "I am 63, smoked 1 pack/day for 30 years, quit 6 years ago. Do I need lung screening?",
     agentId: "screening",
   },
@@ -70,16 +70,16 @@ const QUICK_PROMPTS: Array<{ label: string; prompt: string; agentId: AgentId }> 
 
 const SERVICE_LINKS: Array<{ label: string; description: string; prompt: string; agentId: AgentId; icon: typeof Stethoscope }> = [
   {
-    label: "Find physicians",
-    description: "Primary care, GI, imaging, labs",
-    prompt: "Help me find the right physician or service. Ask me for my ZIP code/location and what kind of care I need, one question at a time.",
+    label: "Find primary care",
+    description: "Ask ZIP, return clinic phone numbers",
+    prompt: "Help me find primary care clinics. Ask for my ZIP code first if it is missing, then give clinic names and phone numbers from the public NPI directory. Make clear OpenRx cannot book directly unless the clinic joins the platform.",
     agentId: "scheduling",
     icon: Stethoscope,
   },
   {
-    label: "Schedule follow-up",
-    description: "Turn an answer into a visit",
-    prompt: "Help me prepare a follow-up visit request. Ask me the minimum details needed, one question at a time.",
+    label: "Find screening site",
+    description: "GI, imaging, mammogram, labs",
+    prompt: "Help me find a clinic or facility for a preventive screening study. Ask for my ZIP code first if missing, then return public phone numbers and what to ask when calling.",
     agentId: "scheduling",
     icon: Calendar,
   },
@@ -765,10 +765,10 @@ export default function ChatPage() {
   const renderComposer = (placement: "hero" | "thread") => (
     <form
       className={cn(
-        "rounded-[18px] border border-white/16 bg-[#101010] shadow-[0_22px_80px_rgba(0,0,0,0.44)] transition focus-within:border-cyan-200/55 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.14),0_22px_80px_rgba(0,0,0,0.48)]",
+        "rounded-[26px] border border-white/12 bg-[#0d0f0f]/95 shadow-[0_26px_90px_rgba(0,0,0,0.50),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition focus-within:border-cyan-200/45 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.10),0_28px_92px_rgba(0,0,0,0.58)]",
         placement === "hero"
-          ? "mx-auto w-full max-w-3xl p-3"
-          : "sticky bottom-2 mb-2 p-2"
+          ? "mx-auto w-full max-w-3xl p-3.5"
+          : "sticky bottom-2 mb-2 p-2.5"
       )}
       onSubmit={(event) => {
         event.preventDefault()
@@ -794,12 +794,12 @@ export default function ChatPage() {
             stopGeneration()
           }
         }}
-        placeholder="Ask what is due, what it means, or where to go next..."
+        placeholder="Ask what is due, what it means, or who to call next..."
         disabled={isLoadingConversation}
         rows={1}
         className={cn(
           "block w-full resize-none overflow-hidden border-0 bg-transparent px-2 py-2 text-zinc-50 outline-none placeholder:text-zinc-400",
-          placement === "hero" ? "min-h-[64px] text-[16px] leading-7" : "min-h-[44px] text-[15px] leading-6"
+          placement === "hero" ? "min-h-[72px] text-[17px] leading-7" : "min-h-[44px] text-[15px] leading-6"
         )}
       />
       <div className="flex items-center justify-between gap-2 px-1 pb-0.5 pt-1">
@@ -815,7 +815,7 @@ export default function ChatPage() {
             data-testid="chat-stop-button"
             aria-label="Stop generating"
             className={cn(
-              "inline-flex items-center justify-center rounded-[12px] border border-white/20 bg-white/[0.06] text-zinc-100 transition hover:border-white/40 hover:bg-white/[0.12]",
+              "inline-flex items-center justify-center rounded-[16px] border border-white/20 bg-white/[0.06] text-zinc-100 transition hover:border-white/40 hover:bg-white/[0.12]",
               placement === "hero" ? "h-11 w-11" : "h-9 w-9"
             )}
           >
@@ -828,7 +828,7 @@ export default function ChatPage() {
             disabled={isLoadingConversation || !input.trim()}
             aria-label="Send"
             className={cn(
-              "inline-flex items-center justify-center rounded-[12px] bg-white text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40",
+              "inline-flex items-center justify-center rounded-[16px] bg-cyan-200 text-black shadow-[0_10px_28px_rgba(103,232,249,0.16)] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40",
               placement === "hero" ? "h-11 w-11" : "h-9 w-9"
             )}
           >
@@ -843,28 +843,29 @@ export default function ChatPage() {
     <div
       data-openrx-chat-workspace
       className={cn(
-        "mx-auto flex min-h-screen animate-fade-in flex-col bg-[#050505] px-4 text-zinc-100 sm:px-6",
-        showEmptyState ? "max-w-5xl justify-center" : "max-w-3xl"
+        "relative isolate mx-auto flex min-h-screen animate-fade-in flex-col overflow-hidden bg-[#030303] px-4 text-zinc-100 sm:px-6",
+        showEmptyState ? "max-w-6xl justify-center" : "max-w-3xl"
       )}
     >
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_10%,rgba(103,232,249,0.10),transparent_32%),radial-gradient(circle_at_78%_68%,rgba(20,184,166,0.075),transparent_28%),linear-gradient(180deg,#030303_0%,#050505_58%,#070707_100%)]" />
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.7)_1px,transparent_1px)] [background-size:44px_44px]" />
       {showEmptyState ? (
         <main
           data-testid="chat-empty-state"
           className="flex min-h-screen flex-1 flex-col items-center justify-center px-3 py-12 text-center"
         >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-[12px] font-medium text-zinc-200">
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/35 px-3 py-1.5 text-[12px] font-medium text-zinc-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            {isConnected ? "Personalized workspace" : "General clinical search"}
+            {isConnected ? "Personalized workspace" : "Clinical search + public clinic phone numbers"}
           </div>
-          <h1 className="max-w-3xl text-[clamp(2.7rem,8vw,6.25rem)] font-semibold leading-[0.92] tracking-[-0.07em] text-white">
-            Ask OpenRx.
+          <h1 className="max-w-4xl text-[clamp(2.6rem,6.6vw,5.35rem)] font-semibold leading-[0.94] tracking-[-0.075em] text-white">
+            Ask. Understand. Call the right place.
           </h1>
-          <p className="mt-5 max-w-2xl text-balance text-[16px] leading-7 text-zinc-200 sm:text-[18px]">
-            Clinical answers, guideline links, and care-service actions in one black-box-simple chat.
-            Nothing moves you to another page unless you choose a link.
+          <p className="mt-5 max-w-2xl text-balance text-[16px] leading-7 text-zinc-300 sm:text-[18px]">
+            OpenRx gives a short clinical answer, shows sources when needed, then helps find public clinic phone numbers by ZIP.
           </p>
 
-          <div className="mt-9 w-full">{renderComposer("hero")}</div>
+          <div className="mt-10 w-full">{renderComposer("hero")}</div>
 
           {errorBanner ? (
             <div
@@ -885,7 +886,7 @@ export default function ChatPage() {
                 onClick={() => {
                   void sendMessage(qp.prompt, qp.agentId)
                 }}
-                className="group rounded-full border border-white/14 bg-white/[0.055] px-4 py-2.5 text-left text-[13px] font-medium text-zinc-100 transition hover:-translate-y-0.5 hover:border-cyan-200/35 hover:bg-white/[0.09] hover:text-white"
+                className="group rounded-full border border-white/10 bg-black/24 px-4 py-2.5 text-left text-[13px] font-medium text-zinc-200 transition hover:-translate-y-0.5 hover:border-cyan-200/30 hover:bg-cyan-200/[0.055] hover:text-white"
               >
                 {qp.label}
               </button>
@@ -894,7 +895,7 @@ export default function ChatPage() {
 
           <nav
             aria-label="Care service links"
-            className="mt-8 grid w-full max-w-3xl gap-2 sm:grid-cols-2 lg:grid-cols-4"
+            className="mt-9 grid w-full max-w-3xl gap-2 sm:grid-cols-2 lg:grid-cols-4"
           >
             {SERVICE_LINKS.map((item) => {
               const Icon = item.icon
@@ -905,13 +906,14 @@ export default function ChatPage() {
                   onClick={() => {
                     void sendMessage(item.prompt, item.agentId)
                   }}
-                  className="group rounded-[16px] border border-white/12 bg-white/[0.045] p-3 text-left transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.08]"
+                  className="group relative overflow-hidden rounded-[18px] border border-white/10 bg-[#0b0d0d]/88 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:-translate-y-0.5 hover:border-cyan-200/24 hover:bg-[#101313]"
                 >
-                  <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg border border-white/12 bg-white/[0.07] text-cyan-200">
+                  <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/30 to-transparent opacity-0 transition group-hover:opacity-100" />
+                  <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl border border-cyan-200/12 bg-cyan-200/[0.055] text-cyan-200">
                     <Icon size={15} />
                   </span>
                   <span className="block text-[13px] font-semibold text-white">{item.label}</span>
-                  <span className="mt-1 block text-[12px] leading-5 text-zinc-400 group-hover:text-zinc-200">
+                  <span className="mt-1 block text-[12px] leading-5 text-zinc-500 group-hover:text-zinc-300">
                     {item.description}
                   </span>
                 </button>
@@ -919,7 +921,7 @@ export default function ChatPage() {
             })}
           </nav>
 
-          <p className="mt-6 max-w-2xl text-[12px] leading-5 text-zinc-400">
+          <p className="mt-6 max-w-2xl text-[12px] leading-5 text-zinc-500">
             For emergencies or severe symptoms, seek urgent medical care. OpenRx supports decisions; it does not replace your clinician.
           </p>
         </main>

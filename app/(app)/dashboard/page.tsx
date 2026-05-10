@@ -54,7 +54,7 @@ export default function DashboardPage() {
         icon: Receipt,
         label: `Appeal ${deniedClaims[0].claim_number}`,
         detail: "Coverage denial needs review.",
-        href: "/billing",
+        href: `/chat?topic=billing&prompt=${encodeURIComponent(`Help me understand and prepare next steps for denied claim ${deniedClaims[0].claim_number}. Do not claim approval or submission.`)}`,
         tone: "critical" as const,
       }
     }
@@ -63,7 +63,7 @@ export default function DashboardPage() {
         icon: FlaskConical,
         label: `${abnormalLabCount} lab result${abnormalLabCount > 1 ? "s" : ""}`,
         detail: "Flagged results are ready for review.",
-        href: "/lab-results",
+        href: `/chat?topic=coordinator&prompt=${encodeURIComponent("Help me understand what to ask my clinician about my flagged lab results.")}`,
         tone: "critical" as const,
       }
     }
@@ -72,7 +72,7 @@ export default function DashboardPage() {
         icon: Syringe,
         label: `${overdueVaccines[0].vaccine_name} overdue`,
         detail: "A prevention gap is open.",
-        href: "/vaccinations",
+        href: `/chat?topic=wellness&prompt=${encodeURIComponent(`Help me understand whether ${overdueVaccines[0].vaccine_name} is due and what to ask before getting it.`)}`,
         tone: "warning" as const,
       }
     }
@@ -81,7 +81,7 @@ export default function DashboardPage() {
         icon: Pill,
         label: `${lowAdherenceRx[0].medication_name} follow-up`,
         detail: "Adherence or refill risk needs attention.",
-        href: "/prescriptions",
+        href: `/chat?topic=rx&prompt=${encodeURIComponent(`Help me think through medication access or adherence for ${lowAdherenceRx[0].medication_name}.`)}`,
         tone: "warning" as const,
       }
     }
@@ -90,7 +90,7 @@ export default function DashboardPage() {
         icon: Calendar,
         label: upcomingAppointments[0].reason || "Upcoming visit",
         detail: `${formatDate(upcomingAppointments[0].scheduled_at)} at ${formatTime(upcomingAppointments[0].scheduled_at)}`,
-        href: "/scheduling",
+        href: `/chat?topic=scheduling&prompt=${encodeURIComponent(`Help me prepare for my upcoming visit: ${upcomingAppointments[0].reason || "appointment"}.`)}`,
         tone: "calm" as const,
       }
     }
@@ -173,7 +173,7 @@ export default function DashboardPage() {
       <CareAskPanel
         compact
         title="Ask OpenRx."
-        description="Describe the problem. OpenRx routes the next step."
+        description="Describe the problem. OpenRx answers first, then gives phone numbers or next steps only when needed."
         placeholder="Example: What should I handle first today?"
         suggestions={dashboardCareAskSuggestions}
       />
@@ -192,8 +192,8 @@ export default function DashboardPage() {
             <Link href="/chat" className="text-xs font-semibold text-primary">Ask</Link>
           </div>
           {nextAction ? (
-            <Link href={nextAction.href} className="mt-4 flex items-start gap-4 rounded-[18px] bg-white/64 p-4 transition hover:bg-white">
-              <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", nextAction.tone === "critical" ? "bg-red-50 text-red-600" : nextAction.tone === "warning" ? "bg-amber-50 text-amber-600" : "bg-teal/10 text-teal")}>
+            <Link href={nextAction.href} className="mt-4 flex items-start gap-4 rounded-[18px] border border-white/10 bg-white/[0.055] p-4 transition hover:bg-white/[0.09]">
+              <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", nextAction.tone === "critical" ? "bg-red-400/12 text-red-200" : nextAction.tone === "warning" ? "bg-amber-300/12 text-amber-200" : "bg-cyan-200/10 text-cyan-200")}>
                 <nextAction.icon size={17} />
               </div>
               <div className="min-w-0 flex-1">
@@ -203,15 +203,15 @@ export default function DashboardPage() {
               <ChevronRight size={16} className="mt-1 text-muted" />
             </Link>
           ) : (
-            <div className="mt-4 flex items-center gap-3 rounded-[18px] bg-white/64 p-4">
+            <div className="mt-4 flex items-center gap-3 rounded-[18px] border border-white/10 bg-white/[0.055] p-4">
               <CheckCircle2 size={18} className="text-teal" />
               <p className="text-sm font-medium text-primary">Nothing urgent right now.</p>
             </div>
           )}
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            <QuickLink href="/providers" icon={Search} label="Find care" />
-            <QuickLink href="/screening" icon={ShieldCheck} label="Screenings" />
-            <QuickLink href="/messages" icon={MessageSquare} label="Messages" />
+            <QuickLink href="/chat?topic=scheduling&prompt=Help%20me%20find%20care.%20Ask%20for%20my%20ZIP%20code%20first%20if%20it%20is%20missing%2C%20then%20return%20public%20clinic%20phone%20numbers." icon={Search} label="Find care" />
+            <QuickLink href="/chat?topic=screening&prompt=What%20screening%20is%20due%20for%20me%3F%20Answer%20in%20chat%20and%20ask%20one%20follow-up%20only%20if%20needed." icon={ShieldCheck} label="Screenings" />
+            <QuickLink href="/chat?topic=coordinator&prompt=Help%20me%20write%20or%20understand%20a%20care-team%20message." icon={MessageSquare} label="Messages" />
           </div>
         </div>
 
@@ -226,16 +226,16 @@ export default function DashboardPage() {
 
 function CareMetric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-white/56 p-4">
+    <div className="rounded-[18px] border border-white/10 bg-white/[0.055] p-4">
       <p className="text-[12px] text-muted">{label}</p>
-      <p className="mt-2 font-serif text-3xl leading-none text-primary">{value}</p>
+      <p className="mt-2 text-3xl font-semibold leading-none text-primary">{value}</p>
     </div>
   )
 }
 
 function QuickLink({ href, icon: Icon, label }: { href: string; icon: typeof Bot; label: string }) {
   return (
-    <Link href={href} className="flex items-center gap-2 rounded-full bg-white/64 px-3 py-2 text-sm font-semibold text-primary transition hover:bg-white">
+    <Link href={href} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-3 py-2 text-sm font-semibold text-primary transition hover:bg-white/[0.09]">
       <Icon size={14} />
       {label}
     </Link>
@@ -257,7 +257,7 @@ function ListCard({
       <div className="mt-3 space-y-1">
         {items.length ? (
           items.map((item) => (
-            <Link key={`${item.href}-${item.label}`} href={item.href} className="flex items-start justify-between gap-3 rounded-[16px] px-3 py-3 transition hover:bg-white/72">
+            <Link key={`${item.href}-${item.label}`} href={item.href} className="flex items-start justify-between gap-3 rounded-[16px] px-3 py-3 transition hover:bg-white/[0.075]">
               <div>
                 <p className="text-sm font-semibold text-primary">{item.label}</p>
                 <p className="mt-1 text-[12px] text-secondary">{item.detail}</p>

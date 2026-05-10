@@ -1,29 +1,16 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1200" height="630" fill="#F6F8FB"/>
-  <path d="M0 0h1200v630H0z" fill="url(#wash)"/>
-  <rect x="96" y="82" width="1008" height="466" rx="40" fill="rgba(255,255,255,0.78)" stroke="rgba(86,107,130,0.22)"/>
-  <g transform="translate(146 138)">
-    <rect width="84" height="84" rx="22" fill="url(#markBg)"/>
-    <path d="M42 14 70 42 42 70 14 42 42 14Z" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.78)" stroke-width="4"/>
-    <path d="M42 28 56 42 42 56 28 42 42 28Z" fill="rgba(45,212,191,0.16)" stroke="#7DD3FC" stroke-width="3.6"/>
-    <path d="M42 35 49 42 42 49 35 42 42 35Z" fill="#2DD4BF"/>
-    <path d="M20 42h13M51 42h13" stroke="rgba(255,255,255,0.82)" stroke-width="3.6" stroke-linecap="round"/>
-  </g>
-  <text x="146" y="276" fill="#07111F" font-family="Sora, Inter, system-ui, sans-serif" font-size="70" font-weight="700" letter-spacing="-4">OpenRx</text>
-  <text x="146" y="344" fill="#334155" font-family="Sora, Inter, system-ui, sans-serif" font-size="34" font-weight="500" letter-spacing="-1.2">Clinical answers first. Care handoffs when needed.</text>
-  <text x="146" y="430" fill="#526173" font-family="Sora, Inter, system-ui, sans-serif" font-size="25" font-weight="500">Screening, referrals, medications, coverage, and follow-up in one calm workspace.</text>
-  <rect x="146" y="474" width="360" height="56" rx="28" fill="#07111F"/>
-  <text x="176" y="511" fill="#FFFFFF" font-family="Sora, Inter, system-ui, sans-serif" font-size="20" font-weight="700">Ask OpenRx</text>
-  <defs>
-    <radialGradient id="wash" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(230 42) rotate(41) scale(770 520)">
-      <stop stop-color="#DBEAFE"/>
-      <stop offset="0.45" stop-color="#F6F8FB"/>
-      <stop offset="1" stop-color="#EAF4F4"/>
-    </radialGradient>
-    <linearGradient id="markBg" x1="12" y1="6" x2="78" y2="82" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#07111F"/>
-      <stop offset="0.58" stop-color="#10254A"/>
-      <stop offset="1" stop-color="#075E66"/>
-    </linearGradient>
-  </defs>
+  <rect width="1200" height="630" fill="#050707"/>
+  <circle cx="1010" cy="120" r="260" fill="#0E3F46" opacity="0.28"/>
+  <circle cx="210" cy="520" r="260" fill="#0A1D22" opacity="0.72"/>
+  <rect x="82" y="76" width="1036" height="478" rx="42" fill="#080B0C" stroke="#1F2C2E" stroke-width="2"/>
+  <rect x="132" y="132" width="82" height="82" rx="23" fill="#050707" stroke="#1E3A3F" stroke-width="2"/>
+  <path d="M173 149L206 182L173 215L140 182L173 149Z" fill="#081314" stroke="#9BEAF3" stroke-width="5"/>
+  <path d="M173 165L190 182L173 199L156 182L173 165Z" fill="#0D2A2E" stroke="#2DD4BF" stroke-width="4"/>
+  <circle cx="173" cy="182" r="7" fill="#CFFAFE"/>
+  <path d="M150 182H165M181 182H196" stroke="#E6FFFB" stroke-width="4" stroke-linecap="round"/>
+  <text x="246" y="185" fill="#F7FAFA" font-family="Geist, Inter, system-ui, sans-serif" font-size="62" font-weight="700" letter-spacing="-3.6">OpenRx</text>
+  <text x="136" y="328" fill="#F7FAFA" font-family="Geist, Inter, system-ui, sans-serif" font-size="70" font-weight="680" letter-spacing="-4.5">Ask once. Know who to call.</text>
+  <text x="138" y="390" fill="#A6B6B9" font-family="Geist, Inter, system-ui, sans-serif" font-size="28" font-weight="450" letter-spacing="-0.7">Clinical answers, source links, and public clinic phone numbers in one chat.</text>
+  <rect x="138" y="446" width="190" height="48" rx="24" fill="#A5F3FC"/>
+  <text x="176" y="477" fill="#050707" font-family="Geist, Inter, system-ui, sans-serif" font-size="18" font-weight="700">Ask OpenRx</text>
 </svg>

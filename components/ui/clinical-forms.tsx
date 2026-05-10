@@ -23,7 +23,7 @@ export function ClinicalSection({
       <div className="grid gap-5 lg:grid-cols-[1.22fr_0.78fr] lg:items-start">
         <div>
           {kicker ? <p className="shell-kicker">{kicker}</p> : null}
-          <h2 className="mt-2 font-serif text-[1.9rem] leading-tight text-primary">{title}</h2>
+          <h2 className="mt-2 text-[1.65rem] font-semibold leading-tight tracking-[-0.035em] text-primary sm:text-[1.9rem]">{title}</h2>
           {description ? <p className="mt-3 max-w-2xl text-sm leading-7 text-secondary">{description}</p> : null}
         </div>
         {aside ? <div className="surface-muted p-4 sm:p-5">{aside}</div> : null}
@@ -55,7 +55,7 @@ export function ClinicalField({
     <div className="flex items-center gap-2">
       <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</span>
       {optional ? (
-        <span className="rounded-full border border-[rgba(82,108,139,0.12)] bg-white/86 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">
+        <span className="rounded-full border border-white/10 bg-white/[0.055] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-muted">
           Optional
         </span>
       ) : null}
@@ -90,7 +90,7 @@ export function ClinicalInput({
     <input
       {...props}
       className={cn(
-        "w-full rounded-[18px] border border-[rgba(82,108,139,0.14)] bg-[rgba(255,255,255,0.92)] px-4 py-3.5 text-sm text-primary shadow-sm transition placeholder:text-muted focus:border-teal/35 focus:outline-none focus:ring-1 focus:ring-teal/15",
+        "w-full rounded-[18px] border border-white/10 bg-[#0d0f10] px-4 py-3.5 text-sm text-primary shadow-sm transition placeholder:text-muted focus:border-cyan-200/40 focus:outline-none focus:ring-2 focus:ring-cyan-200/10",
         className
       )}
     />
@@ -105,7 +105,7 @@ export function ClinicalTextarea({
     <textarea
       {...props}
       className={cn(
-        "w-full rounded-[18px] border border-[rgba(82,108,139,0.14)] bg-[rgba(255,255,255,0.92)] px-4 py-3.5 text-sm text-primary shadow-sm transition placeholder:text-muted focus:border-teal/35 focus:outline-none focus:ring-1 focus:ring-teal/15",
+        "w-full rounded-[18px] border border-white/10 bg-[#0d0f10] px-4 py-3.5 text-sm text-primary shadow-sm transition placeholder:text-muted focus:border-cyan-200/40 focus:outline-none focus:ring-2 focus:ring-cyan-200/10",
         className
       )}
     />
@@ -149,7 +149,7 @@ export function ChoiceChip({ active = false, children, className }: ChoiceChipPr
         "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium transition",
         active
           ? "border-teal/24 bg-[rgba(47,107,255,0.08)] text-teal"
-          : "border-[rgba(82,108,139,0.12)] bg-white/84 text-secondary",
+          : "border-white/10 bg-white/[0.055] text-secondary",
         className
       )}
     >

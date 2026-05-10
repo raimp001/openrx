@@ -27,8 +27,8 @@ export function AppPageHeader({
 }: AppPageHeaderProps) {
   const titleClass =
     variant === "hero"
-      ? "text-[clamp(2.6rem,5.4vw,4.9rem)] text-primary"
-      : "text-[clamp(2.1rem,3.8vw,3.4rem)] text-primary"
+      ? "text-[clamp(2.35rem,5vw,4.2rem)] text-primary"
+      : "text-[clamp(1.9rem,3.4vw,3rem)] text-primary"
 
   return (
     <section
@@ -38,7 +38,7 @@ export function AppPageHeader({
         className
       )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(47,107,255,0.12),transparent_28%),radial-gradient(circle_at_92%_12%,rgba(8,126,139,0.10),transparent_24%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(103,232,249,0.08),transparent_26%),radial-gradient(circle_at_92%_12%,rgba(20,184,166,0.07),transparent_24%)]" />
       <div
         className={cn(
           "relative flex gap-5",
@@ -51,10 +51,10 @@ export function AppPageHeader({
           <div className={cn("flex items-start gap-4", align === "center" && "flex-col items-center")}>
             {leading ? <div className="shrink-0 pt-1">{leading}</div> : null}
             <div className={cn("min-w-0 pl-0", align === "center" && "text-center")}>
-              {eyebrow ? <span className="eyebrow-pill mb-4">{eyebrow}</span> : null}
-              <h1 className={cn("max-w-4xl text-balance", titleClass)}>{title}</h1>
+              {eyebrow ? <span className="eyebrow-pill mb-3">{eyebrow}</span> : null}
+              <h1 className={cn("max-w-3xl text-balance font-semibold tracking-[-0.055em]", titleClass)}>{title}</h1>
               {description ? (
-                <div className="mt-3 max-w-2xl text-[15px] leading-7 text-secondary">{description}</div>
+                <div className="mt-3 max-w-2xl text-[14px] leading-7 text-secondary sm:text-[15px]">{description}</div>
               ) : null}
               {meta ? (
                 <>

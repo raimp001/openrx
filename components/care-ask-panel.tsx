@@ -117,9 +117,9 @@ export function CareAskPanel({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-[16px] border bg-white p-4 sm:p-5",
+        "relative overflow-hidden rounded-[18px] border p-4 sm:p-5",
         minimal && "p-2 sm:p-2",
-        dark ? "border-white/15 bg-[#0B1B33] text-white" : "border-border text-primary",
+        dark ? "border-white/15 bg-[#0B1B33] text-white" : "border-white/10 bg-[#0b0c0d] text-primary",
         !minimal && "shadow-card",
         className
       )}
@@ -167,10 +167,10 @@ export function CareAskPanel({
 
             <form
               className={cn(
-                "overflow-hidden rounded-[12px] border bg-white",
+                "overflow-hidden rounded-[16px] border",
                 !minimal && "mt-4",
-                dark ? "border-white/15 bg-white/[0.04]" : "border-border-strong",
-                "shadow-card focus-within:border-teal/60 focus-within:shadow-focus"
+                dark ? "border-white/15 bg-white/[0.04]" : "border-white/10 bg-[#0f1112]",
+                "shadow-card focus-within:border-cyan-200/45 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.10)]"
               )}
               onSubmit={(event) => {
                 event.preventDefault()
@@ -213,7 +213,7 @@ export function CareAskPanel({
                   aria-label="Ask OpenRx"
                   className={cn(
                     "inline-flex h-9 w-9 items-center justify-center rounded-[10px] transition disabled:cursor-not-allowed disabled:opacity-50",
-                    dark ? "bg-white text-primary hover:bg-white/90" : "bg-navy text-white hover:bg-navy-hover"
+                    dark ? "bg-white text-primary hover:bg-white/90" : "bg-cyan-200 text-black hover:bg-cyan-100"
                   )}
                 >
                   {isLaunching ? (
@@ -236,7 +236,7 @@ export function CareAskPanel({
                     "rounded-full border px-3 py-1.5 text-[12px] font-medium transition",
                     dark
                       ? "border-white/15 bg-white/[0.06] text-white/76 hover:bg-white/10 hover:text-white"
-                      : "border-border bg-white text-secondary hover:border-border-strong hover:bg-surface-2 hover:text-primary"
+                      : "border-white/10 bg-white/[0.045] text-secondary hover:border-cyan-200/24 hover:bg-cyan-200/[0.07] hover:text-primary"
                   )}
                 >
                   {suggestion.label}
@@ -252,7 +252,7 @@ export function CareAskPanel({
                   key={lane.label}
                   className={cn(
                     "rounded-[14px] border p-4",
-                    dark ? "border-white/12 bg-white/[0.05]" : "border-border bg-white"
+                    dark ? "border-white/12 bg-white/[0.05]" : "border-white/10 bg-white/[0.045]"
                   )}
                 >
                   <div className="flex items-start gap-3">

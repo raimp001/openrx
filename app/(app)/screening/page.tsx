@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Activity,
@@ -14,7 +15,6 @@ import {
   ShieldCheck,
   Wallet,
 } from "lucide-react"
-import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
 import { BaseUsdcTransaction } from "@/components/payments/base-usdc-transaction"
 import {
@@ -44,7 +44,6 @@ import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
 import {
   SCREENING_HANDOFF_STORAGE_KEY,
   isFreshCareHandoff,
-  providerSearchHrefFromHandoff,
   safeSessionGetItem,
   safeSessionRemoveItem,
   type ScreeningHandoffPayload,
@@ -692,15 +691,16 @@ export default function ScreeningPage() {
   function openProviderSearchFromRecommendation(rec: StructuredScreeningRecommendation) {
     if (typeof window === "undefined") return
     const query = buildRecommendationCareQuery(rec, snapshot.patient?.address)
-    window.location.href = providerSearchHrefFromHandoff(query, "link")
+    const prompt = `Help me find who to call for this screening recommendation. Ask for ZIP code first if missing, then return public clinic names, phone numbers, specialty, address, and what to ask when calling. Search intent: ${query}`
+    window.location.href = `/chat?topic=scheduling&autorun=1&prompt=${encodeURIComponent(prompt)}`
   }
 
   return (
     <div ref={scrollRef} className="animate-slide-up space-y-6">
       <AppPageHeader
-        eyebrow="Prevention"
-        title="Check what screening is due."
-        description="Start with age, history, symptoms, and location. OpenRx gives a free guideline-based plan first, then keeps the next real-world step visible."
+        eyebrow="Structured screening intake"
+        title="Use this when chat needs more detail."
+        description="Most screening questions should be answered directly in chat. This longer intake exists for complex history, inherited-risk context, and local follow-up planning."
         meta={
           <div className="flex flex-wrap gap-2">
             <span className="metric-chip">
@@ -720,11 +720,12 @@ export default function ScreeningPage() {
           </div>
         }
         actions={
-          <AIAction
-            agentId="screening"
-            label="Explain My Risk"
-            prompt="Summarize my screening risk score, key drivers, evidence links, and what I should do first."
-          />
+          <Link
+            href="/chat?prompt=What%20screening%20is%20due%20for%20me%3F%20Ask%20one%20follow-up%20only%20if%20needed%2C%20then%20give%20recommendations%20in%20chat.&topic=screening"
+            className="control-button-primary"
+          >
+            Ask in chat
+          </Link>
         }
       />
 
@@ -732,7 +733,7 @@ export default function ScreeningPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">One sentence in, care plan out</p>
-            <h2 className="mt-3 max-w-2xl font-serif text-[2rem] leading-[0.98] text-white">Share context once. OpenRx carries it forward.</h2>
+            <h2 className="mt-3 max-w-2xl text-[2rem] font-semibold tracking-[-0.045em] leading-[0.98] text-white">Share context once. OpenRx carries it forward.</h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">
               Free preview stays first. Advanced inherited-risk review is optional, cited, and gated only when needed.
             </p>
@@ -1038,7 +1039,7 @@ export default function ScreeningPage() {
                       label="Smoking status"
                       hint="Only mark this if the patient is a current smoker."
                     >
-                      <label className="inline-flex items-center gap-2 rounded-[18px] border border-white/78 bg-white/76 px-4 py-3 text-sm text-primary">
+                      <label className="inline-flex items-center gap-2 rounded-[18px] border border-white/10 bg-white/[0.055] px-4 py-3 text-sm text-primary">
                         <input
                           checked={smoker}
                           onChange={(event) => {
@@ -1071,7 +1072,7 @@ export default function ScreeningPage() {
               <button
                 onClick={() => void runScreening("deep")}
                 disabled={running || creatingIntent}
-                className="inline-flex items-center gap-2 rounded-2xl border border-border bg-white/70 px-4 py-3 text-sm font-semibold text-primary transition hover:border-teal/30 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-semibold text-primary transition hover:border-teal/30 disabled:opacity-60"
               >
                 {running ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
                 Generate Advanced Review
@@ -1161,7 +1162,7 @@ export default function ScreeningPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="shell-kicker">Plan at a glance</p>
-              <h2 className="mt-3 font-serif text-[1.7rem] text-primary">
+              <h2 className="mt-3 text-[1.7rem] font-semibold tracking-[-0.035em] text-primary">
                 {showingDeepResults ? "Deep personalized screening plan ready." : "Free screening preview ready."}
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-secondary">
@@ -1219,7 +1220,7 @@ export default function ScreeningPage() {
                               data-testid="screening-recommendation-card"
                               data-recommendation-id={rec.id}
                               data-recommendation-status={rec.status}
-                              className="rounded-[20px] border border-white/78 bg-white/74 p-4 shadow-sm"
+                              className="rounded-[20px] border border-white/10 bg-white/[0.055] p-4 shadow-sm"
                             >
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <p className="text-sm font-semibold text-primary">{rec.screeningName}</p>
@@ -1235,11 +1236,11 @@ export default function ScreeningPage() {
                               </div>
                               <p className="mt-3 text-sm leading-6 text-secondary">{rec.patientFriendlyExplanation}</p>
                               <p className="mt-2 text-xs leading-5 text-muted">{rec.rationale}</p>
-                              <div className="mt-4 rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-surface/50 p-3">
+                              <div className="mt-4 rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-white/[0.045] p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Next step</p>
                                   <span className="text-[10px] text-muted">
-                                    Find care or save the navigation request. No order is placed here.
+                                    Opens chat to find phone numbers. No order is placed here.
                                   </span>
                                 </div>
                                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1250,7 +1251,7 @@ export default function ScreeningPage() {
                                     className="inline-flex items-center gap-1 rounded-2xl bg-midnight px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#12211d]"
                                   >
                                     <Search size={12} />
-                                    Find and schedule
+                                    Find who to call
                                     <ArrowRight size={12} />
                                   </button>
                                   {primaryAction ? (
@@ -1258,7 +1259,7 @@ export default function ScreeningPage() {
                                       type="button"
                                       data-testid="recommendation-save-request"
                                       onClick={() => void requestScreeningNextStep(rec, primaryAction)}
-                                      className="rounded-2xl border border-border bg-white/72 px-3 py-2 text-xs font-semibold text-muted transition hover:border-teal/25 hover:text-teal"
+                                      className="rounded-2xl border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-semibold text-muted transition hover:border-teal/25 hover:text-teal"
                                     >
                                       Save request
                                     </button>
@@ -1281,7 +1282,7 @@ export default function ScreeningPage() {
                     </section>
                   ))
                 : assessment.recommendedScreenings.map((rec) => (
-                    <div key={rec.id} className="rounded-[20px] border border-white/78 bg-white/74 p-4 shadow-sm">
+                    <div key={rec.id} className="rounded-[20px] border border-white/10 bg-white/[0.055] p-4 shadow-sm">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-semibold text-primary">{rec.name}</p>
                         <span
@@ -1310,7 +1311,7 @@ export default function ScreeningPage() {
             </div>
             <ul className="space-y-2">
               {assessment.nextActions.map((action) => (
-                <li key={action} className="rounded-[20px] border border-white/78 bg-white/74 p-4 text-sm leading-6 text-secondary shadow-sm">
+                <li key={action} className="rounded-[20px] border border-white/10 bg-white/[0.055] p-4 text-sm leading-6 text-secondary shadow-sm">
                   {action}
                 </li>
               ))}
@@ -1332,7 +1333,7 @@ export default function ScreeningPage() {
               return (
                 <div
                   key={`timeline-${rec.id}`}
-                  className="flex items-start justify-between gap-3 rounded-xl border border-border/70 bg-surface/30 p-3"
+                  className="flex items-start justify-between gap-3 rounded-xl border border-border/70 bg-white/[0.045] p-3"
                 >
                   <div>
                     <p className="text-xs font-semibold text-primary">
@@ -1368,7 +1369,7 @@ export default function ScreeningPage() {
                 href={citation.url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-lg border border-border/70 bg-surface/30 p-3 hover:border-teal/30 transition"
+                className="rounded-lg border border-border/70 bg-white/[0.045] p-3 hover:border-teal/30 transition"
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-semibold text-primary">{citation.title}</p>
@@ -1404,7 +1405,7 @@ export default function ScreeningPage() {
             {localCareConnections.map((connection) => (
               <div
                 key={connection.recommendationId}
-                className="rounded-[22px] border border-white/78 bg-white/74 p-4 shadow-sm"
+                className="rounded-[22px] border border-white/10 bg-white/[0.055] p-4 shadow-sm"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold text-primary">

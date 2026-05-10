@@ -8,8 +8,19 @@ export async function GET(request: NextRequest) {
   const owner = await resolveChatHistoryOwner(request)
   if ("response" in owner) return owner.response
 
-  const conversations = await listChatConversations(owner.ownerKey)
-  return attachChatHistoryCookie(NextResponse.json({ conversations }), owner)
+  try {
+    const conversations = await listChatConversations(owner.ownerKey)
+    return attachChatHistoryCookie(NextResponse.json({ conversations }), owner)
+  } catch (error) {
+    console.error("Chat history list failed; returning empty history:", error)
+    return attachChatHistoryCookie(
+      NextResponse.json({
+        conversations: [],
+        historyStatus: "temporarily_unavailable",
+      }),
+      owner
+    )
+  }
 }
 
 export async function POST(request: NextRequest) {

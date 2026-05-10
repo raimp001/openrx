@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import {
   BadgeCheck,
   Loader2,
@@ -32,9 +33,7 @@ import {
   isFreshCareHandoff,
   safeSessionGetItem,
   safeSessionRemoveItem,
-  schedulingHrefFromHandoff,
   type ProviderHandoffPayload,
-  type SchedulingHandoffPayload,
 } from "@/lib/care-handoff"
 
 const EXAMPLE_SEARCHES = [
@@ -222,9 +221,9 @@ export default function ProvidersPage() {
   return (
     <div ref={scrollRef} className="animate-slide-up space-y-6">
       <AppPageHeader
-        eyebrow="Care Directory"
-        title="Resolve care from one sentence."
-        description="Describe the care you need in plain language. OpenRx resolves the service type, location, and NPI-backed options without making you think in directories."
+        eyebrow="Care directory full view"
+        title="Search public care options when chat needs more room."
+        description="Chat should handle the first pass. Use this full view only when you want to inspect NPI-backed clinic, lab, imaging, caregiver, or specialist results in more detail."
         meta={
           <div className="flex flex-wrap gap-2">
             <span className="metric-chip">
@@ -244,18 +243,19 @@ export default function ProvidersPage() {
           </div>
         }
         actions={
-          <AIAction
-            agentId="scheduling"
-            label="AI Match"
-            prompt="Based on patient history and location, recommend a coordinated care network including provider, caregiver, lab, and radiology options."
-          />
+          <Link
+            href="/chat?prompt=Help%20me%20find%20care.%20Ask%20for%20my%20ZIP%20code%20first%20if%20it%20is%20missing%2C%20then%20return%20public%20clinic%20phone%20numbers.&topic=scheduling"
+            className="control-button-primary"
+          >
+            Ask in chat
+          </Link>
         }
       />
 
       <ClinicalSection
         kicker="Search request"
-        title="Tell OpenRx what care you need."
-        description="Use a city, ZIP, specialty, or one plain-English sentence. The search only runs when there is enough location context to avoid weak or misleading matches."
+        title="Full directory search"
+        description="Use this when you want the longer result list. For the fastest experience, ask in chat and give a ZIP code."
         aside={
           <div className="space-y-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">How matching works</p>
@@ -274,13 +274,13 @@ export default function ProvidersPage() {
               title="You get usable options"
               description="Each result includes specialty, status, address, phone, and next actions."
             />
-            <div className="rounded-[22px] border border-amber-200/70 bg-amber-50/70 p-4">
-              <p className="text-xs font-semibold text-primary">Important safety boundary</p>
+            <div className="rounded-[22px] border border-amber-300/20 bg-amber-300/[0.08] p-4">
+              <p className="text-xs font-semibold text-amber-100">Important safety boundary</p>
               <p className="mt-1 text-sm leading-6 text-secondary">
                 NPI results are directory matches, not proof that a clinician can order for a specific patient in a specific state. Scripts, imaging, labs, referrals, claims, and prior auth still require licensed clinician review.
               </p>
             </div>
-            <div className="rounded-[22px] border border-[rgba(82,108,139,0.12)] bg-white/84 p-4">
+            <div className="rounded-[22px] border border-white/10 bg-white/[0.055] p-4">
               <p className="text-xs font-semibold text-primary">Current search readiness</p>
               <p className="mt-1 text-sm leading-6 text-muted">
                 {hasSearched
@@ -399,7 +399,7 @@ export default function ProvidersPage() {
             <div className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Matched network</p>
-                <h2 className="mt-4 font-serif text-[2.2rem] leading-[0.96] text-white">{matches.length} care option{matches.length === 1 ? "" : "s"} ready</h2>
+              <h2 className="mt-4 text-[2.1rem] font-semibold leading-[0.96] tracking-[-0.055em] text-white">{matches.length} care option{matches.length === 1 ? "" : "s"} ready</h2>
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
                   {parsed?.serviceTypes?.length
                     ? `OpenRx resolved ${parsed.serviceTypes.join(", ")} and limited the result set to the most usable local options.`
@@ -476,11 +476,11 @@ export default function ProvidersPage() {
                     <button
                       type="button"
                       data-testid="provider-schedule-button"
-                      onClick={() => openSchedulingFromProvider(topMatch, query || `Schedule ${topMatch.specialty || topMatch.kind} with ${topMatch.name}`)}
+                      onClick={() => openSchedulingFromProvider(topMatch, query || `Call ${topMatch.name} about ${topMatch.specialty || topMatch.kind}`)}
                       className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[12px] font-semibold text-primary transition hover:bg-white/92"
                     >
                       <CalendarCheck size={14} />
-                      Schedule
+                      Call script
                     </button>
                     {topMatch.phone ? (
                       <a
@@ -517,7 +517,7 @@ export default function ProvidersPage() {
                   "text-[11px] font-semibold px-3 py-1.5 rounded-full border transition",
                   activeGroup === item.id
                     ? "border-teal/30 bg-teal/10 text-teal"
-                    : "border-[rgba(82,108,139,0.12)] bg-white/82 text-secondary hover:border-teal/20"
+                    : "border-white/10 bg-white/[0.055] text-secondary hover:border-teal/20"
                 )}
               >
                 {item.label} ({item.count})
@@ -573,7 +573,7 @@ export default function ProvidersPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] bg-[rgba(47,107,255,0.08)]">
             <Search size={28} className="text-teal" />
           </div>
-          <h3 className="text-lg font-serif text-primary">
+          <h3 className="text-lg font-semibold text-primary">
             Natural Language Only
           </h3>
           <p className="text-sm text-muted mt-2 max-w-xl mx-auto">
@@ -614,19 +614,8 @@ function buildProviderRecommendation(item: CareDirectoryMatch) {
 
 function openSchedulingFromProvider(item: CareDirectoryMatch, reason: string) {
   if (typeof window === "undefined") return
-  const payload: SchedulingHandoffPayload = {
-    source: "provider",
-    providerName: item.name,
-    providerKind: item.kind,
-    specialty: item.specialty || undefined,
-    npi: item.npi,
-    phone: item.phone || undefined,
-    fullAddress: item.fullAddress || undefined,
-    reason,
-    query: reason,
-    createdAt: Date.now(),
-  }
-  window.location.href = schedulingHrefFromHandoff(payload)
+  const prompt = `Help me prepare to call ${item.name}. Phone: ${item.phone || "not listed"}. Address: ${item.fullAddress || "not listed"}. Specialty: ${item.specialty || item.kind}. Reason: ${reason}. Give me a short call script and what to verify before scheduling.`
+  window.location.href = `/chat?topic=scheduling&autorun=1&prompt=${encodeURIComponent(prompt)}`
 }
 
 function ResultGroup({
@@ -644,7 +633,7 @@ function ResultGroup({
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-[rgba(82,108,139,0.12)] bg-white/88 text-teal">
+        <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.055] text-teal">
           <Icon size={14} className="text-teal" />
         </div>
         <h2 className="text-sm font-bold text-primary">{title}</h2>
@@ -706,12 +695,12 @@ function ResultGroup({
                     className="inline-flex items-center gap-1 rounded-full bg-midnight px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-[#12211d]"
                   >
                     <CalendarCheck size={11} />
-                    Schedule
+                    Call script
                   </button>
                   {item.phone && (
                     <a
                       href={`tel:${item.phone.replace(/[^\d+]/g, "")}`}
-                      className="inline-flex items-center gap-1 rounded-full border border-border bg-white/70 px-3 py-1.5 text-[10px] font-semibold text-primary transition hover:border-teal/30 hover:text-teal"
+                      className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-[10px] font-semibold text-primary transition hover:border-teal/30 hover:text-teal"
                     >
                       <Phone size={11} />
                       Call
@@ -722,7 +711,7 @@ function ResultGroup({
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.fullAddress)}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-full border border-border bg-white/70 px-3 py-1.5 text-[10px] font-semibold text-primary transition hover:border-teal/30 hover:text-teal"
+                      className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-[10px] font-semibold text-primary transition hover:border-teal/30 hover:text-teal"
                     >
                       <ArrowRight size={11} />
                       Map
@@ -758,7 +747,7 @@ function StepRow({
   description: string
 }) {
   return (
-    <div className="rounded-[20px] border border-white/70 bg-white/76 p-4">
+    <div className="rounded-[20px] border border-white/10 bg-white/[0.045] p-4">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-teal/10 text-teal">
           <Icon size={15} />

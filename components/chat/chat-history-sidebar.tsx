@@ -146,7 +146,8 @@ export default function ChatHistorySidebar() {
       if (!response.ok) throw new Error("Could not load chat history.")
       setConversations(body.conversations || [])
     } catch {
-      setError("History is temporarily unavailable.")
+      setConversations([])
+      setError("")
     } finally {
       setLoading(false)
     }

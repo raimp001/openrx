@@ -25,6 +25,7 @@ import {
   Sparkles,
   ShieldAlert,
   Clock3,
+  Phone,
 } from "lucide-react"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import {
@@ -144,14 +145,16 @@ const agentMeta: Record<string, { label: string; icon: typeof Bot }> = {
   devops: { label: "Status", icon: Bot },
 }
 
-const SECTION_LABELS: Record<string, { variant: "due" | "review" | "upcoming" | "current" | "info" | "safety" | "followup" | "next" | "answer" | "refs"; icon?: typeof CheckCircle2 }> = {
+const SECTION_LABELS: Record<string, { variant: "due" | "review" | "upcoming" | "current" | "info" | "safety" | "followup" | "next" | "answer" | "refs" | "care"; icon?: typeof CheckCircle2 }> = {
   "Direct answer": { variant: "answer" },
   "Due now": { variant: "due", icon: AlertTriangle },
   "Needs clinician review": { variant: "review", icon: ShieldAlert },
   "Upcoming or depends": { variant: "upcoming", icon: Clock3 },
   "Current / not indicated": { variant: "current", icon: CheckCircle2 },
+  "Care options": { variant: "care", icon: Stethoscope },
   "Question to refine this": { variant: "followup" },
   "What to do now": { variant: "next" },
+  "What to ask when calling": { variant: "next", icon: Phone },
   References: { variant: "refs" },
   "Safety note": { variant: "safety", icon: ShieldAlert },
 }
@@ -166,6 +169,7 @@ const sectionTone: Record<string, string> = {
   answer: "text-white bg-white/[0.06] border-white/12",
   refs: "text-zinc-300 bg-white/[0.04] border-white/10",
   safety: "text-amber-100 bg-amber-950/30 border-amber-400/20",
+  care: "text-cyan-50 bg-cyan-950/18 border-cyan-200/14",
   info: "text-zinc-300 bg-white/[0.04] border-white/10",
 }
 
@@ -286,6 +290,31 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
   while (blocks.length && blocks[blocks.length - 1].kind === "blank") blocks.pop()
 
   if (!section.heading && blocks.length === 0) return null
+
+  if (section.variant === "care") {
+    const items = blocks.filter((block) => block.kind !== "blank")
+    return (
+      <div
+        data-testid="chat-section-care-options"
+        className={cn("rounded-[16px] border px-4 py-3", tone)}
+      >
+        <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-current">
+          {Icon ? <Icon size={12} /> : null}
+          {section.heading}
+        </p>
+        <div className="grid gap-2">
+          {items.map((block, i) => (
+            <div
+              key={`care-${i}`}
+              className="rounded-[14px] border border-white/10 bg-black/20 px-3 py-2.5 text-[14px] leading-6 text-zinc-100"
+            >
+              {renderInlineLinks(block.text, `care-${i}`)}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -828,7 +857,7 @@ export default function ChatPage() {
             disabled={isLoadingConversation || !input.trim()}
             aria-label="Send"
             className={cn(
-              "inline-flex items-center justify-center rounded-[16px] bg-cyan-200 text-black shadow-[0_10px_28px_rgba(103,232,249,0.16)] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40",
+              "ml-auto inline-flex items-center justify-center rounded-[16px] bg-cyan-200 text-black shadow-[0_10px_28px_rgba(103,232,249,0.16)] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40",
               placement === "hero" ? "h-11 w-11" : "h-9 w-9"
             )}
           >
@@ -856,13 +885,13 @@ export default function ChatPage() {
         >
           <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/35 px-3 py-1.5 text-[12px] font-medium text-zinc-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            {isConnected ? "Personalized workspace" : "Clinical search + public clinic phone numbers"}
+            {isConnected ? "Personalized workspace" : "Clinical answers + phone-number handoffs"}
           </div>
-          <h1 className="max-w-4xl text-[clamp(2.6rem,6.6vw,5.35rem)] font-semibold leading-[0.94] tracking-[-0.075em] text-white">
-            Ask. Understand. Call the right place.
+          <h1 className="max-w-3xl text-[clamp(2.35rem,5.4vw,4.35rem)] font-semibold leading-[0.96] tracking-[-0.065em] text-white">
+            What can I help you handle?
           </h1>
-          <p className="mt-5 max-w-2xl text-balance text-[16px] leading-7 text-zinc-300 sm:text-[18px]">
-            OpenRx gives a short clinical answer, shows sources when needed, then helps find public clinic phone numbers by ZIP.
+          <p className="mt-5 max-w-xl text-balance text-[15px] leading-7 text-zinc-300 sm:text-[17px]">
+            Ask one question. Get a short answer, source links when useful, and the phone numbers to pursue the next step.
           </p>
 
           <div className="mt-10 w-full">{renderComposer("hero")}</div>
@@ -906,7 +935,7 @@ export default function ChatPage() {
                   onClick={() => {
                     void sendMessage(item.prompt, item.agentId)
                   }}
-                  className="group relative overflow-hidden rounded-[18px] border border-white/10 bg-[#0b0d0d]/88 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:-translate-y-0.5 hover:border-cyan-200/24 hover:bg-[#101313]"
+                  className="group relative overflow-hidden rounded-[18px] border border-white/10 bg-[#0a0b0b]/82 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:-translate-y-0.5 hover:border-cyan-200/24 hover:bg-[#101313]"
                 >
                   <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/30 to-transparent opacity-0 transition group-hover:opacity-100" />
                   <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl border border-cyan-200/12 bg-cyan-200/[0.055] text-cyan-200">
@@ -999,7 +1028,7 @@ export default function ChatPage() {
               <div key={msg.id} className="flex justify-end">
                 <div
                   data-testid="chat-message-user"
-                  className="max-w-[85%] whitespace-pre-wrap rounded-[16px] bg-white px-4 py-3 text-[15px] leading-7 text-black"
+                  className="max-w-[85%] whitespace-pre-wrap rounded-[16px] border border-cyan-200/14 bg-cyan-200/[0.10] px-4 py-3 text-[15px] leading-7 text-cyan-50"
                 >
                   {msg.content}
                 </div>

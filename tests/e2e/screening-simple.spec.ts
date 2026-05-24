@@ -88,10 +88,10 @@ async function mockScreeningApis(page: Page) {
 
 async function mockChatStream(
   page: Page,
-  respond: (body: { message?: string; agentId?: string }) => string
+  respond: (body: { message?: string; agentId?: string; screeningContext?: string }) => string
 ) {
   await page.route(/\/api\/openclaw\/chat\/stream$/, async (route) => {
-    const body = route.request().postDataJSON() as { message?: string; agentId?: string }
+    const body = route.request().postDataJSON() as { message?: string; agentId?: string; screeningContext?: string }
     const text = respond(body)
     await route.fulfill({
       status: 200,
@@ -588,6 +588,40 @@ test("chat renders structured screening sections and a citation rail", async ({ 
   const citations = page.getByTestId("chat-citation")
   await expect(citations.first()).toBeVisible()
   expect(await citations.count()).toBeGreaterThan(0)
+})
+
+test("chat retains compact screening clarification in place and suppresses premature care actions", async ({ page }) => {
+  const requests: Array<{ message?: string; agentId?: string; screeningContext?: string }> = []
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+  await mockChatStream(page, (body) => {
+    requests.push(body)
+    if (!body.screeningContext?.includes("38 hx lymphoma in dad")) {
+      return "Direct answer\n\nI can help, but I need one missing detail before giving screening guidance safely.\n\nShare one line with your age and any known family/genetic risk.\n\nSafety note: OpenRx is clinical decision support."
+    }
+    return "Direct answer: based on what you shared (age 38, family history of lymphoma), this history alone does not create a routine cancer screening test.\n\nQuestion to refine this\n\nWhat sex was assigned at birth, and do you have symptoms or a known inherited mutation?\n\nReferences\n\n1. [CDC: Cancer screening tests](https://www.cdc.gov/cancer/prevention/screening.html)"
+  })
+
+  await page.goto("/chat")
+  await page.getByRole("button", { name: /Check my screening/ }).click()
+  await expect(page.getByText(/need one missing detail/i)).toBeVisible()
+  await expect(page.getByTestId("chat-action-plan")).toHaveCount(0)
+
+  await page.getByTestId("chat-input").fill("38 hx lymphoma in dad")
+  await page.getByTestId("chat-send-button").click()
+  const followUpAnswer = page.getByTestId("chat-message-agent").last()
+  await expect(followUpAnswer.getByText(/family history of lymphoma/i).first()).toBeVisible()
+  await expect(followUpAnswer.getByText(/What sex was assigned at birth/i)).toBeVisible()
+  await followUpAnswer.getByTestId("trust-drawer").click()
+  await expect(followUpAnswer.getByText(/Age 38/).last()).toBeVisible()
+  expect(requests[1]?.agentId).toBe("screening")
+  expect(requests[1]?.screeningContext).toContain("What screening may be due for me?")
+  expect(requests[1]?.screeningContext).toContain("38 hx lymphoma in dad")
 })
 
 test("trust disclosure shows clinician-review boundary when no validated source is attached", async ({ page }) => {

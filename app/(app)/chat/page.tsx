@@ -114,6 +114,10 @@ const agentMeta: Record<string, { label: string; icon: typeof Bot }> = {
   devops: { label: "Status", icon: Bot },
 }
 
+function isCompactScreeningFollowUp(message: string): boolean {
+  return /^(?:\s*\d{1,3}\b)|\b(?:yes|no|none|never|hx|history|family|father|mother|dad|mom|parent|sibling|male|female|man|woman|smoker|smoking|pack[- ]?years?|quit|brca\d?|lynch|mutation|colonoscopy|mammogram|pap|hpv|psa|lymphoma|leukemia|cancer|symptom)\b/i.test(message)
+}
+
 const SECTION_LABELS: Record<string, { variant: "due" | "review" | "upcoming" | "current" | "info" | "safety" | "followup" | "next" | "answer" | "refs" | "care"; icon?: typeof CheckCircle2 }> = {
   "Direct answer": { variant: "answer" },
   "Due now": { variant: "due", icon: AlertTriangle },
@@ -617,7 +621,24 @@ export default function ChatPage() {
         !agentOverride &&
         activeAgent === "scheduling" &&
         /^\d{5}(?:-\d{4})?$/.test(nextInput)
-      const selectedAgent = agentOverride || (continuesLocationSearch ? activeAgent : workflow.route.primaryAgent) || currentAgent
+      const continuesScreeningIntake =
+        !agentOverride &&
+        activeAgent === "screening" &&
+        workflow.route.primaryAgent === "coordinator" &&
+        isCompactScreeningFollowUp(nextInput)
+      const selectedAgent =
+        agentOverride ||
+        (continuesLocationSearch || continuesScreeningIntake ? activeAgent : workflow.route.primaryAgent) ||
+        currentAgent
+      const screeningContext = selectedAgent === "screening"
+        ? [
+            ...messages
+              .filter((message) => message.role === "user")
+              .slice(-2)
+              .map((message) => message.content),
+            nextInput,
+          ].join("\n").slice(0, 5000)
+        : undefined
       const effectiveSessionId = localSessionIdRef.current
       if (selectedAgent !== activeAgent) setActiveAgent(selectedAgent)
 
@@ -651,6 +672,7 @@ export default function ChatPage() {
           body: JSON.stringify({
             message: userMsg.content,
             agentId: selectedAgent,
+            screeningContext,
             sessionId: effectiveSessionId,
             walletAddress,
             conversationId: conversationId || undefined,
@@ -671,6 +693,7 @@ export default function ChatPage() {
             body: JSON.stringify({
               message: userMsg.content,
               agentId: selectedAgent,
+              screeningContext,
               sessionId: effectiveSessionId,
               walletAddress,
               conversationId: conversationId || undefined,
@@ -803,7 +826,7 @@ export default function ChatPage() {
         setStreamingId(null)
       }
     },
-    [input, isLoading, isLoadingConversation, activeAgent, walletAddress, getWalletAuthHeaders, conversationId, messages.length, router, safetyHold]
+    [input, isLoading, isLoadingConversation, activeAgent, walletAddress, getWalletAuthHeaders, conversationId, messages, router, safetyHold]
   )
 
   useEffect(() => {
@@ -1077,6 +1100,19 @@ export default function ChatPage() {
           const previousUserMessage = [...visibleMessages.slice(0, index)].reverse().find((entry) => entry.role === "user")
           const carePlanDraft = previousUserMessage ? carePlanFromChatPrompt(previousUserMessage.content, msg.agentId, msg.content) : null
           const trustSources = parseAnswer(msg.content).citations.map((citation) => ({ label: citation.label, url: citation.url }))
+          const recentUserContext = visibleMessages
+            .slice(0, index)
+            .filter((entry) => entry.role === "user")
+            .slice(-3)
+            .map((entry) => entry.content)
+            .join("\n")
+          const screeningInputSummary = msg.agentId === "screening" && recentUserContext
+            ? summarizeScreeningIntake(parseScreeningIntakeNarrative(recentUserContext).extracted)
+            : null
+          const hasScreeningInputs = Boolean(screeningInputSummary && !screeningInputSummary.startsWith("Limited context"))
+          const isClarifyingScreeningIntake =
+            msg.agentId === "screening" &&
+            msg.content.includes("I need one missing detail before giving screening guidance safely")
           return (
             <article key={msg.id} data-testid="chat-message-agent" className="animate-fade-in space-y-3">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300">
@@ -1105,7 +1141,7 @@ export default function ChatPage() {
                     <ChatAnswer content={msg.content} />
                     {isStreamingThis ? <StreamingCursor /> : null}
                   </div>
-                  {msg.actionPlan && msg.actionPlan.length > 0 && !isStreamingThis ? (
+                  {msg.actionPlan && msg.actionPlan.length > 0 && !isStreamingThis && !isClarifyingScreeningIntake ? (
                     <ChatActionPlan
                       items={msg.actionPlan}
                       onPrompt={(prompt, targetAgentId) => {
@@ -1120,12 +1156,12 @@ export default function ChatPage() {
                       onAcknowledge={() => setSafetyHold((current) => current ? { ...current, acknowledged: true } : current)}
                     />
                   ) : null}
-                  {carePlanDraft && !isStreamingThis ? <CarePlanPreview draft={carePlanDraft} compact /> : null}
+                  {carePlanDraft && !isStreamingThis && !isClarifyingScreeningIntake ? <CarePlanPreview draft={carePlanDraft} compact /> : null}
                   {!isStreamingThis && msg.content.trim() ? (
                     <TrustDrawer
                       sources={trustSources}
-                      inputsUsed={carePlanDraft ? [carePlanDraft.patientContextSummary] : []}
-                      inputsNotUsed={carePlanDraft ? ["Insurance and payer network", "Full medical record"] : ["No saved patient profile required"]}
+                      inputsUsed={carePlanDraft ? [carePlanDraft.patientContextSummary] : hasScreeningInputs ? [screeningInputSummary!] : []}
+                      inputsNotUsed={carePlanDraft || hasScreeningInputs ? ["Insurance and payer network", "Full medical record"] : ["No saved patient profile required"]}
                       phiSentToModel={msg.agentId !== "screening" && msg.agentId !== "scheduling" && msg.agentId !== "triage"}
                       emergencyWarning={safetyHold?.messageId === msg.id ? safetyHold.finding.emergencyMessage : undefined}
                       clinicianQuestions={carePlanDraft ? ["What screening interval applies to my history?", "Who can coordinate the next step?"] : []}
@@ -1133,7 +1169,7 @@ export default function ChatPage() {
                   ) : null}
                   <div className="flex flex-wrap items-center gap-2">
                     {!isStreamingThis && msg.content.trim() ? <CopyButton text={msg.content} /> : null}
-                    {!isStreamingThis && msg.content.trim() ? <SupportOpenRx /> : null}
+                    {!isStreamingThis && msg.content.trim() && !isClarifyingScreeningIntake ? <SupportOpenRx /> : null}
                   </div>
                 </>
               )}

@@ -342,6 +342,13 @@ function buildReferenceList(recommendations: ScreeningRecommendation[]): string[
   return Array.from(links.entries()).map(([label, url], index) => `${index + 1}. [${label}](${url})`)
 }
 
+function buildGeneralScreeningReferences(): string[] {
+  return [
+    "1. [USPSTF: Preventive screening recommendations](https://www.uspreventiveservicestaskforce.org/uspstf/recommendation-topics/uspstf-a-and-b-recommendations)",
+    "2. [CDC: Cancer screening tests](https://www.cdc.gov/cancer/prevention/screening.html)",
+  ]
+}
+
 function buildFollowUpQuestion(recommendations: ScreeningRecommendation[]): string | null {
   if (recommendations.some((rec) => rec.id === "lung-smoking-history-needed" || rec.id === "lung-smoking-history-clarify")) {
     return "One follow-up that would sharpen this: has the patient ever smoked at least 20 pack-years, and if former, how many years since quitting?"
@@ -392,11 +399,24 @@ export function buildDeterministicScreeningResponse(message: string): string {
   const recommendations = engineResult.recommendations
 
   if (recommendations.length === 0) {
+    const hasFamilyHistory = parsed.extracted.familyHistory.length > 0
     return [
-      `Direct answer: based on what you shared (${summarizeParsedScreeningInput(message)}), I do not have enough source-backed detail to show a screening recommendation safely.`,
-      "Next: request care navigation or add prior screening dates, symptoms, family history diagnosis ages, and smoking pack-years if relevant.",
+      `Direct answer: based on what you shared (${summarizeParsedScreeningInput(message)}), ${hasFamilyHistory ? "the family history reported does not by itself map to a routine cancer screening test in OpenRx's source-backed rules." : "I do not yet have enough source-backed detail to show a routine cancer screening recommendation safely."}`,
+      "",
+      "What this means",
+      hasFamilyHistory
+        ? "- A parent's lymphoma or other blood cancer history can be worth discussing with a clinician, especially with multiple cancers, unusually young diagnoses, or a known inherited mutation."
+        : "- Screening choices depend on age, sex or organs relevant to screening, symptoms, inherited risk, smoking exposure, and prior test results.",
+      "- I should not invent a screening interval when the available guideline path is unclear.",
+      "",
+      "Question to refine this",
+      "What sex was assigned at birth, and do you have concerning symptoms, a known inherited cancer mutation, smoking history, or prior screening results?",
+      "",
+      "References",
+      ...buildGeneralScreeningReferences(),
+      "",
       "Safety note: OpenRx is clinical decision support, not a diagnosis, medical order, or insurance approval.",
-    ].join("\n")
+    ].join("\n\n")
   }
 
   const summary = summarizeParsedScreeningInput(message)
@@ -544,12 +564,13 @@ function friendlyAIError(status?: number, rawMessage?: string): string {
 export async function runAgent(params: {
   agentId: string
   message: string
+  screeningContext?: string
   sessionId?: string
   walletAddress?: string
   // Pre-fetched context can be passed in to avoid re-fetching during fan-out.
   _cachedPatientContext?: string
 }): Promise<{ response: string; agentId: string; handoff?: string }> {
-  const { agentId, message, sessionId, walletAddress } = params
+  const { agentId, message, screeningContext, sessionId, walletAddress } = params
   const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === agentId)
 
   if (!agent) {
@@ -576,8 +597,9 @@ export async function runAgent(params: {
     return { response, agentId: "scheduling" }
   }
 
-  if (looksLikeScreeningQuestion(agentId, message)) {
-    const response = buildDeterministicScreeningResponse(message)
+  const screeningMessage = screeningContext?.trim() || message
+  if (looksLikeScreeningQuestion(agentId, screeningMessage)) {
+    const response = buildDeterministicScreeningResponse(screeningMessage)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
     logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
@@ -788,10 +810,11 @@ export async function runCoordinator(
 export async function* runAgentStream(params: {
   agentId: string
   message: string
+  screeningContext?: string
   sessionId?: string
   walletAddress?: string
 }): AsyncGenerator<string, { agentId: string; finalText: string; handoff?: string }> {
-  const { agentId, message, sessionId, walletAddress } = params
+  const { agentId, message, screeningContext, sessionId, walletAddress } = params
   const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === agentId)
   if (!agent) {
     return { agentId, finalText: "Unknown agent." }
@@ -820,8 +843,9 @@ export async function* runAgentStream(params: {
   }
 
   // Deterministic screening path: emit the response in one chunk.
-  if (looksLikeScreeningQuestion(agentId, message)) {
-    const response = buildDeterministicScreeningResponse(message)
+  const screeningMessage = screeningContext?.trim() || message
+  if (looksLikeScreeningQuestion(agentId, screeningMessage)) {
+    const response = buildDeterministicScreeningResponse(screeningMessage)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
     logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")

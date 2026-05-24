@@ -208,6 +208,35 @@ test("screening chat handles compact family-history narrative without provider f
   expect(response.toLowerCase()).not.toContain("high volume")
 })
 
+test("compact family lymphoma follow-up is parsed and answered without repeating the intake prompt", () => {
+  const parsed = parseScreeningIntakeNarrative("38 hx lymphoma in dad")
+  const response = buildDeterministicScreeningResponse("38 hx lymphoma in dad")
+
+  expect(parsed.extracted.age).toBe(38)
+  expect(parsed.extracted.familyHistory).toContain("family history of lymphoma or hematologic cancer")
+  expect(response).toContain("age 38")
+  expect(response).toContain("lymphoma")
+  expect(response).toContain("does not by itself map to a routine cancer screening test")
+  expect(response).toContain("What sex was assigned at birth")
+  expect(response).toContain("References")
+  expect(response).not.toContain("I need one missing detail before giving screening guidance safely")
+})
+
+test("screening context merges a short follow-up without exposing it to the general assistant path", async () => {
+  const response = await runAgent({
+    agentId: "screening",
+    message: "female",
+    screeningContext: "What screening may be due for me?\n38 hx lymphoma in dad\nfemale",
+    sessionId: "screening-follow-up-context-regression",
+  })
+
+  expect(response.agentId).toBe("screening")
+  expect(response.response).toContain("age 38")
+  expect(response.response).toContain("Cervical cancer screening")
+  expect(response.response).toContain("References")
+  expect(response.response).not.toContain("handling a high volume")
+})
+
 test("patient-facing recommendation language avoids unsafe certainty", () => {
   const result = recommendScreenings(intake({
     demographics: { age: 58, sexAtBirth: "female" },

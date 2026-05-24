@@ -7,9 +7,10 @@ import { appendChatExchange } from "@/lib/chat-history-store"
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { message, agentId, sessionId, walletAddress, conversationId, collaborators, routingInfo } = body as {
+    const { message, agentId, screeningContext, sessionId, walletAddress, conversationId, collaborators, routingInfo } = body as {
       message: string
       agentId: string
+      screeningContext?: string
       sessionId?: string
       walletAddress?: string
       conversationId?: string
@@ -52,6 +53,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (screeningContext !== undefined && (typeof screeningContext !== "string" || screeningContext.length > 5000)) {
+      return NextResponse.json(
+        { error: "screeningContext must be a string under 5000 characters" },
+        { status: 400 }
+      )
+    }
+
     const auth = await requireAuth(req, { allowPublic: true })
     if ("response" in auth) return auth.response
     const walletProofMatches = walletAddress
@@ -64,7 +72,13 @@ export async function POST(req: NextRequest) {
     // Use coordinator routing for the coordinator agent
     const result = agentId === "coordinator"
       ? await runCoordinator(message, sessionId, effectiveWalletAddress)
-      : await runAgent({ agentId, message, sessionId, walletAddress: effectiveWalletAddress })
+      : await runAgent({
+          agentId,
+          message,
+          screeningContext: agentId === "screening" ? screeningContext?.trim() : undefined,
+          sessionId,
+          walletAddress: effectiveWalletAddress,
+        })
 
     // Try to persist the exchange in chat history — but never block the response.
     let savedConversationId = conversationId || ""

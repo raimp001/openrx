@@ -42,6 +42,8 @@ const FAMILY_CUES = [
   "family history",
   "mother",
   "father",
+  "mom",
+  "dad",
   "brother",
   "sister",
   "sibling",
@@ -153,6 +155,10 @@ function extractFamilyHistory(lowered: string): string[] {
     findings.push("family history of breast/ovarian cancer")
   }
 
+  if (includesAny(lowered, ["lymphoma", "leukemia", "blood cancer", "hematologic cancer"])) {
+    findings.push("family history of lymphoma or hematologic cancer")
+  }
+
   if (includesAny(lowered, ["polyposis", "familial adenomatous polyposis", "fap", "mutyh-associated polyposis"])) {
     findings.push("family history of polyposis syndrome")
   }
@@ -163,7 +169,7 @@ function extractFamilyHistory(lowered: string): string[] {
 
   const ageSpecificMatches = Array.from(
     lowered.matchAll(
-      /\b(mother|father|brother|sister|sibling|parent|uncle|aunt|grandmother|grandfather)\b[^.!?\n]{0,60}\b(prostate|colon|colorectal|breast|ovarian)\b[^.!?\n]{0,20}\b(?:age|at)\s*(\d{2})\b/g
+      /\b(mother|father|mom|dad|brother|sister|sibling|parent|uncle|aunt|grandmother|grandfather)\b[^.!?\n]{0,60}\b(prostate|colon|colorectal|breast|ovarian)\b[^.!?\n]{0,20}\b(?:age|at)\s*(\d{2})\b/g
     )
   )
   ageSpecificMatches.forEach((entry) => {
@@ -185,7 +191,10 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     lowered.match(/\b(\d{1,3})[-\s]*(?:years?[-\s]*old|year[-\s]*old)\b/) ||
     lowered.match(/\b(\d{1,3})\s*(?:years?\s*old|yo|y\/o)\b/) ||
     lowered.match(/\bi am\s+(\d{1,3})\b/) ||
-    lowered.match(/\b(\d{2})\s*(?:m|male|man|f|female|woman)\b/)
+    lowered.match(/\b(\d{2})\s*(?:m|male|man|f|female|woman)\b/) ||
+    lowered.match(
+      /(?:^|\n)\s*(\d{1,3})(?=\s+(?:hx\b|history\b|male\b|female\b|man\b|woman\b|m\b|f\b|father\b|mother\b|parent\b|family\b|smok\w*\b|brca\w*\b|lynch\b|mutation\b|cancer\b|lymphoma\b|with\b)|\s*$)/
+    )
   const age = ageMatch ? Number.parseInt(ageMatch[1], 10) : undefined
 
   let gender: string | undefined

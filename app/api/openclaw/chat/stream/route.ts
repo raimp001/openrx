@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
   let body: {
     message?: string
     agentId?: string
+    screeningContext?: string
     sessionId?: string
     walletAddress?: string
     conversationId?: string
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  const { message, agentId, sessionId, walletAddress, conversationId, collaborators, routingInfo } = body
+  const { message, agentId, screeningContext, sessionId, walletAddress, conversationId, collaborators, routingInfo } = body
 
   if (!message || typeof message !== "string" || !message.trim()) {
     return new Response(
@@ -62,6 +63,12 @@ export async function POST(req: NextRequest) {
   if (message.length > 5000) {
     return new Response(
       JSON.stringify({ error: "message must be under 5000 characters" }),
+      { status: 400, headers: { "content-type": "application/json" } }
+    )
+  }
+  if (screeningContext !== undefined && (typeof screeningContext !== "string" || screeningContext.length > 5000)) {
+    return new Response(
+      JSON.stringify({ error: "screeningContext must be a string under 5000 characters" }),
       { status: 400, headers: { "content-type": "application/json" } }
     )
   }
@@ -106,6 +113,7 @@ export async function POST(req: NextRequest) {
         const generator = runAgentStream({
           agentId: agentId as string,
           message,
+          screeningContext: agentId === "screening" ? screeningContext?.trim() : undefined,
           sessionId,
           walletAddress: effectiveWalletAddress,
         })

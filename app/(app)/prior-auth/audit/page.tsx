@@ -112,11 +112,11 @@ export default function PAAuditPage() {
     <div className="animate-slide-up space-y-6">
       <AppPageHeader
         eyebrow="Prior authorization audit"
-        title="A clean chain of custody for every PA decision."
-        description="Track who acted, what changed, and which events matter for compliance review without exposing patients to raw system logs."
+        title="A synthetic audit trail for workflow review."
+        description="Explore how a prior authorization event trail would be reviewed. These demo entries are not live payer transactions or compliance evidence."
         meta={
           <>
-            <OpsBadge tone="accent">tamper-evident posture</OpsBadge>
+            <OpsBadge tone="accent">synthetic demo events</OpsBadge>
             <OpsBadge tone="blue">filterable event history</OpsBadge>
             <OpsBadge tone="terra">{events.length} visible events</OpsBadge>
           </>
@@ -144,9 +144,9 @@ export default function PAAuditPage() {
           tone="terra"
         />
         <OpsMetricCard
-          label="Compliance relevant"
+          label="Sensitive demo fields"
           value={String(hipaaEvents.length)}
-          detail="Events flagged for audit review and chain-of-custody posture."
+          detail="Synthetic events marked as fields that would require protected handling."
           icon={Lock}
           tone="accent"
         />
@@ -174,8 +174,8 @@ export default function PAAuditPage() {
               The audit trail should answer the hard question first: what needs review now?
             </h2>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-white/72">
-              This view is designed for a payer dispute, compliance review, or internal review. It keeps sequence,
-              actor, event type, and supporting details visible without making reviewers parse a raw log export.
+              This view demonstrates the proposed audit sequence for a payer dispute or internal review. It keeps
+              actor, event type, and supporting details visible without claiming a real submission occurred.
             </p>
           </div>
           <div className="border-t border-white/10 bg-white/[0.04] px-6 py-6 lg:border-l lg:border-t-0">
@@ -280,7 +280,7 @@ export default function PAAuditPage() {
           </div>
           <div className="flex items-center gap-1.5 rounded-full border border-accent/15 bg-accent/8 px-3 py-1.5 text-[11px] font-semibold text-accent">
             <Lock size={11} />
-            HIPAA audit-control posture
+            Synthetic audit posture
           </div>
         </div>
 
@@ -324,7 +324,7 @@ export default function PAAuditPage() {
                       {event.hipaaRelevant ? (
                         <span className="inline-flex items-center gap-1 rounded-full border border-accent/16 bg-accent/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-accent">
                           <Lock size={9} />
-                          HIPAA
+                          sensitive field
                         </span>
                       ) : null}
                       {paName && selectedPaId === "all" ? (
@@ -367,11 +367,11 @@ export default function PAAuditPage() {
         <div className="flex items-start gap-3">
           <ShieldCheck size={18} className="mt-0.5 shrink-0 text-accent" />
           <div>
-            <div className="section-title">Compliance note</div>
+            <div className="section-title">Demo boundary</div>
             <p className="mt-2 max-w-4xl text-sm leading-7 text-secondary">
-              OpenRx presents this as an audit-control view for review. Events marked HIPAA are treated as
-              compliance-relevant, actor-attributed records. Production retention, export, and legal handling should
-              still follow the organization&apos;s compliance policy and counsel-approved process.
+              OpenRx presents synthetic events to demonstrate a future audit-control workflow. Labels identify fields
+              that would need protected handling in production. They do not claim HIPAA compliance, a signed BAA, or a
+              live payer submission. Production use requires counsel-approved controls and contracted integrations.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {["Audit controls", "Integrity posture", "Reviewer export", "Retention policy"].map((label) => (

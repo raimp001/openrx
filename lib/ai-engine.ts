@@ -6,6 +6,7 @@ import { parseScreeningIntakeNarrative } from "./screening-intake"
 import { nextStepLabel, recommendScreenings, screeningIntakeFromLegacy } from "./screening/recommend"
 import { getGuidelineSource } from "./screening/sources"
 import { parseCareSearchQuery, searchNpiCareDirectory } from "./npi-care-search"
+import { DEMO_SCENARIOS, type DemoScenario } from "./demo/prior-auth"
 import type { ScreeningRecommendation } from "./screening/types"
 import { detectRedFlagText, emergencyResponse } from "./red-flag"
 
@@ -335,17 +336,17 @@ function buildReferenceList(recommendations: ScreeningRecommendation[]): string[
   const links = new Map<string, string>()
   recommendations.forEach((rec) => {
     const source = getGuidelineSource(rec.sourceId)
-    if (source?.url) links.set(`${source.organization}: ${source.topic}`, source.url)
+    if (source?.url) links.set(`${source.organization}: ${source.topic} (${source.versionOrDate})`, source.url)
   })
-  links.set("CDC: Cancer screening tests", "https://www.cdc.gov/cancer/prevention/screening.html")
-  links.set("ACS: Cancer screening guidelines", "https://www.cancer.org/cancer/screening/american-cancer-society-guidelines-for-the-early-detection-of-cancer.html")
+  links.set("CDC: Cancer screening tests (accessed 2026-05)", "https://www.cdc.gov/cancer/prevention/screening.html")
+  links.set("ACS: Cancer screening guidelines (accessed 2026-05)", "https://www.cancer.org/cancer/screening/american-cancer-society-guidelines-for-the-early-detection-of-cancer.html")
   return Array.from(links.entries()).map(([label, url], index) => `${index + 1}. [${label}](${url})`)
 }
 
 function buildGeneralScreeningReferences(): string[] {
   return [
-    "1. [USPSTF: Preventive screening recommendations](https://www.uspreventiveservicestaskforce.org/uspstf/recommendation-topics/uspstf-a-and-b-recommendations)",
-    "2. [CDC: Cancer screening tests](https://www.cdc.gov/cancer/prevention/screening.html)",
+    "1. [USPSTF: Preventive screening recommendations (accessed 2026-05)](https://www.uspreventiveservicestaskforce.org/uspstf/recommendation-topics/uspstf-a-and-b-recommendations)",
+    "2. [CDC: Cancer screening tests (accessed 2026-05)](https://www.cdc.gov/cancer/prevention/screening.html)",
   ]
 }
 
@@ -382,6 +383,9 @@ export function buildDeterministicScreeningResponse(message: string): string {
     return [
       "Direct answer: I can help, but I need one missing detail before giving screening guidance safely.",
       parsed.clarificationQuestion || "Share your age, sex used for screening intervals, symptoms, family history, smoking history, and prior screening dates if known.",
+      "",
+      "References",
+      ...buildGeneralScreeningReferences(),
       "",
       "Safety note: OpenRx is clinical decision support, not a diagnosis, medical order, or insurance approval.",
     ].join("\n")
@@ -421,9 +425,19 @@ export function buildDeterministicScreeningResponse(message: string): string {
 
   const summary = summarizeParsedScreeningInput(message)
   const followUp = buildFollowUpQuestion(recommendations)
+  const hasUnmappedHematologicFamilyHistory = parsed.extracted.familyHistory.some((history) =>
+    /lymphoma|hematologic|leukemia|blood cancer/i.test(history)
+  )
   return [
     `Direct answer: based on what you shared (${summary}), these are the key next steps.`,
     "",
+    ...(hasUnmappedHematologicFamilyHistory
+      ? [
+          "Family history note",
+          "- A parent's lymphoma or hematologic cancer history does not by itself add a routine solid-tumor screening test in OpenRx's encoded rules. Discuss unusual or multiple family cancers with a clinician.",
+          "",
+        ]
+      : []),
     ...formatScreeningGroups(recommendations),
     "",
     ...(followUp ? ["Question to refine this", followUp, ""] : []),
@@ -432,6 +446,46 @@ export function buildDeterministicScreeningResponse(message: string): string {
     "",
     "Safety note: this is decision support, not a diagnosis, order, or coverage guarantee.",
   ].join("\n\n")
+}
+
+function matchPriorAuthDemoScenario(agentId: string, message: string): DemoScenario | null {
+  if (agentId !== "prior-auth") return null
+  const normalized = message.toLowerCase()
+  if (normalized.includes("teclistamab") || normalized.includes("tecvayli")) {
+    return DEMO_SCENARIOS.find((scenario) => scenario.id === "teclistamab-rrmm") || null
+  }
+  if (normalized.includes("semaglutide") || normalized.includes("ozempic")) {
+    return DEMO_SCENARIOS.find((scenario) => scenario.id === "semaglutide-t2dm") || null
+  }
+  if (normalized.includes("car-t") || normalized.includes("cart") || normalized.includes("dlbcl")) {
+    return DEMO_SCENARIOS.find((scenario) => scenario.id === "cart-dlbcl") || null
+  }
+  return null
+}
+
+export function buildDeterministicPriorAuthResponse(scenario: DemoScenario): string {
+  const references = scenario.sources.map(
+    (source, index) => `${index + 1}. [${source.organization}: ${source.label} (${source.version})](${source.url})`
+  )
+  return [
+    `Direct answer: this synthetic ${scenario.specialty.toLowerCase()} denial can be prepared for appeal review, but OpenRx cannot confirm approval or submit to a payer from chat.`,
+    "",
+    "Why this may be appealable",
+    `- Denial reason: ${scenario.denialReason}`,
+    `- Requested next step: ${scenario.request}`,
+    `- Evidence boundary: ${scenario.sourceBoundary}`,
+    "",
+    "What to assemble",
+    ...scenario.documentChecklist.map((item) => `- ${item}`),
+    "",
+    "Next step",
+    "- [Open the denial-to-appeal sandbox](/demo) to retrieve evidence metadata, generate a draft, and view a simulated FHIR PA trace.",
+    "",
+    "References",
+    ...references,
+    "",
+    "Safety note: an authorized clinician must review patient-specific medical necessity, current guideline access, payer criteria, and the final packet before any real submission.",
+  ].join("\n")
 }
 
 // ── GQA-inspired Patient Context Cache ───────────────────
@@ -587,6 +641,27 @@ export async function runAgent(params: {
     return { response, agentId: "triage" }
   }
 
+  const demoPriorAuthScenario = matchPriorAuthDemoScenario(agentId, message)
+  if (demoPriorAuthScenario) {
+    const response = buildDeterministicPriorAuthResponse(demoPriorAuthScenario)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("prior-auth", "deterministic-pa-demo-response", demoPriorAuthScenario.id, "portal")
+    return { response, agentId: "prior-auth" }
+  }
+
+  const screeningMessage = screeningContext?.trim() || message
+  const isScreeningIntent = looksLikeScreeningQuestion(agentId, screeningMessage)
+  const requestsCareNavigation = /\b(find|search|locate|near me|nearby|phone numbers?|who to call)\b/i.test(message)
+
+  if (isScreeningIntent && !requestsCareNavigation) {
+    const response = buildDeterministicScreeningResponse(screeningMessage)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
+    return { response, agentId: "screening" }
+  }
+
   const careSearchHistory = getConversation(sessionKey)
   if (looksLikeCareSearchQuestion(agentId, message) || continuesCareSearch(message, careSearchHistory)) {
     const history = careSearchHistory
@@ -597,8 +672,7 @@ export async function runAgent(params: {
     return { response, agentId: "scheduling" }
   }
 
-  const screeningMessage = screeningContext?.trim() || message
-  if (looksLikeScreeningQuestion(agentId, screeningMessage)) {
+  if (isScreeningIntent) {
     const response = buildDeterministicScreeningResponse(screeningMessage)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
@@ -831,6 +905,29 @@ export async function* runAgentStream(params: {
     return { agentId: "triage", finalText: response }
   }
 
+  const demoPriorAuthScenario = matchPriorAuthDemoScenario(agentId, message)
+  if (demoPriorAuthScenario) {
+    const response = buildDeterministicPriorAuthResponse(demoPriorAuthScenario)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("prior-auth", "deterministic-pa-demo-response", demoPriorAuthScenario.id, "portal")
+    yield response
+    return { agentId: "prior-auth", finalText: response }
+  }
+
+  const screeningMessage = screeningContext?.trim() || message
+  const isScreeningIntent = looksLikeScreeningQuestion(agentId, screeningMessage)
+  const requestsCareNavigation = /\b(find|search|locate|near me|nearby|phone numbers?|who to call)\b/i.test(message)
+
+  if (isScreeningIntent && !requestsCareNavigation) {
+    const response = buildDeterministicScreeningResponse(screeningMessage)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
+    yield response
+    return { agentId: "screening", finalText: response }
+  }
+
   const careSearchHistory = getConversation(sessionKey)
   if (looksLikeCareSearchQuestion(agentId, message) || continuesCareSearch(message, careSearchHistory)) {
     const history = careSearchHistory
@@ -843,8 +940,7 @@ export async function* runAgentStream(params: {
   }
 
   // Deterministic screening path: emit the response in one chunk.
-  const screeningMessage = screeningContext?.trim() || message
-  if (looksLikeScreeningQuestion(agentId, screeningMessage)) {
+  if (isScreeningIntent) {
     const response = buildDeterministicScreeningResponse(screeningMessage)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)

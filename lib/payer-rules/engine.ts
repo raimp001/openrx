@@ -78,8 +78,8 @@ export const DRUG_RULES: PayerDrugRule[] = [
   {
     drugClass: "BCMA_BISPECIFIC",
     genericNames: ["teclistamab"],
-    brandNames: ["Talvey"],
-    hcpcsCodes: ["J9269"],
+    brandNames: ["Tecvayli"],
+    hcpcsCodes: ["J9380"],
     indicationsDx: [
       { icd10: "C90.01", label: "Multiple myeloma, in relapse" },
       { icd10: "C90.11", label: "Plasma cell leukemia, in relapse" },
@@ -140,13 +140,13 @@ export const DRUG_RULES: PayerDrugRule[] = [
       { drug: "daratumumab or isatuximab", minWeeks: 6, reason: "Anti-CD38 antibody required" },
     ],
     remsRequired: true,
-    remsProgram: "TALVEY REMS (hospitalization for step-up dosing)",
+    remsProgram: "TECVAYLI and TALVEY REMS (step-up dosing and monitoring requirements)",
     formularyTier: 5,
     nccnCategory: "2A",
     guidelineReferences: [
       "MajesTEC-1: ORR 61.8%, CR 28.5% in RRMM ≥4L (NEJM 2022)",
-      "FDA approval Aug 2023 (accelerated approval)",
-      "NCCN Multiple Myeloma v2.2024 — Category 2A preferred",
+      "FDA traditional approval for monotherapy in RRMM after at least four prior lines confirmed March 2026",
+      "NCCN Multiple Myeloma pathway reference requires licensed version verification before submission",
     ],
   },
 

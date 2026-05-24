@@ -1,7 +1,8 @@
 /**
  * PA Audit Trail
  * Immutable, append-only event log for prior authorization workflow.
- * HIPAA-ready: all events timestamped, actor-attributed, reason-captured.
+ * Synthetic review data: event fields illustrate a future audit trail only.
+ * This module is not evidence of a live submission or HIPAA compliance.
  */
 
 export type AuditActor = "patient" | "physician" | "payer" | "rex" | "system"
@@ -50,8 +51,8 @@ export const PA_AUDIT_EVENTS: AuditEvent[] = [
     actor: "physician",
     actorName: "Dr. Priya Patel",
     timestamp: "2024-10-28T09:15:00Z",
-    summary: "PA created for Teclistamab (J9269) — Multiple Myeloma R/R",
-    details: { procedureCode: "J9269", icd10: "C90.01", urgency: "urgent" },
+    summary: "Demo PA created for Tecvayli (teclistamab-cqyv, J9380) - multiple myeloma R/R",
+    details: { procedureCode: "J9380", icd10: "C90.01", urgency: "urgent", simulated: true },
     hipaaRelevant: true,
   },
   {
@@ -94,8 +95,8 @@ export const PA_AUDIT_EVENTS: AuditEvent[] = [
     actor: "rex",
     actorName: "Rex (AI)",
     timestamp: "2024-10-28T10:04:17Z",
-    summary: "FHIR Da Vinci PAS Bundle submitted to Aetna — Bundle ID: bdl-pas-20241028",
-    details: { bundleId: "bdl-pas-20241028", endpoint: "/api/fhir/pas", fhirVersion: "R4" },
+    summary: "Simulated FHIR Da Vinci PAS bundle sent to sandbox payer endpoint. Bundle ID: bdl-pas-20241028",
+    details: { bundleId: "bdl-pas-20241028", endpoint: "sandbox://payer/fhir/pas", fhirVersion: "R4", simulated: true },
     hipaaRelevant: true,
   },
   {
@@ -105,8 +106,8 @@ export const PA_AUDIT_EVENTS: AuditEvent[] = [
     actor: "rex",
     actorName: "Rex (AI)",
     timestamp: "2024-10-28T10:04:18Z",
-    summary: "PA submitted to Aetna. Reference: AET-2024-10-28-001. Expected decision: Nov 11, 2024.",
-    details: { referenceNumber: "AET-2024-10-28-001", expectedDecision: "2024-11-11" },
+    summary: "Demo PA submission event recorded. Reference: DEMO-AET-2024-10-28-001. Expected decision: Nov 11, 2024.",
+    details: { referenceNumber: "DEMO-AET-2024-10-28-001", expectedDecision: "2024-11-11", simulated: true },
     hipaaRelevant: true,
   },
   {
@@ -227,8 +228,8 @@ export const PA_AUDIT_EVENTS: AuditEvent[] = [
     actor: "physician",
     actorName: "Dr. James Chen",
     timestamp: "2024-11-20T11:00:00Z",
-    summary: "PA submitted to UnitedHealthcare with updated PD-L1 (TPS 65%) and EGFR/ALK negative results.",
-    details: { pdl1Tps: 65, egfrStatus: "wild-type", alkStatus: "negative", referenceNumber: "UHC-2024-11-20-042" },
+    summary: "Demo PA submission event recorded with updated PD-L1 (TPS 65%) and EGFR/ALK negative results.",
+    details: { pdl1Tps: 65, egfrStatus: "wild-type", alkStatus: "negative", referenceNumber: "DEMO-UHC-2024-11-20-042", simulated: true },
     hipaaRelevant: true,
   },
 
@@ -262,8 +263,8 @@ export const PA_AUDIT_EVENTS: AuditEvent[] = [
     actor: "rex",
     actorName: "Rex (AI)",
     timestamp: "2024-09-10T13:05:00Z",
-    summary: "PA auto-submitted to Cigna via FHIR Da Vinci PAS. Metformin failure documentation included.",
-    details: { bundleId: "bdl-pas-20240910", referenceNumber: "CGN-2024-09-10-017" },
+    summary: "Simulated PA event created through a FHIR Da Vinci PAS sandbox trace. Metformin failure documentation included.",
+    details: { bundleId: "bdl-pas-20240910", referenceNumber: "DEMO-CGN-2024-09-10-017", simulated: true },
     hipaaRelevant: true,
   },
   {

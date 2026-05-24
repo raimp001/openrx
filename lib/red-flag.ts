@@ -82,6 +82,9 @@ export function detectRedFlagText(text: string): RedFlagResult | null {
 }
 
 export function emergencyResponse(result: RedFlagResult): string {
+  const source = result.category === "stroke_symptoms" || result.category === "acute_neurologic_deficit"
+    ? "- [CDC: Stroke signs and symptoms (accessed 2026-05)](https://www.cdc.gov/stroke/signs-symptoms/index.html)"
+    : "- [MedlinePlus: When to use the emergency room (accessed 2026-05)](https://medlineplus.gov/ency/patientinstructions/000593.htm)"
   return [
     "Urgent safety guidance",
     result.emergencyMessage,
@@ -91,6 +94,9 @@ export function emergencyResponse(result: RedFlagResult): string {
       ? "- Call or text [988](tel:988) for immediate crisis support. Call 911 if there is immediate danger."
       : "- Call [911](tel:911) or go to the nearest emergency department now if symptoms are happening now or severe.",
     "- OpenRx will not treat this as routine screening or scheduling.",
+    "",
+    "References",
+    source,
     "",
     "Safety note",
     "This is a safety escalation, not a diagnosis. Please do not delay urgent medical care while using this app.",

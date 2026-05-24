@@ -9,8 +9,8 @@
   <circle cx="173" cy="182" r="7" fill="#CFFAFE"/>
   <path d="M150 182H165M181 182H196" stroke="#E6FFFB" stroke-width="4" stroke-linecap="round"/>
   <text x="246" y="185" fill="#F7FAFA" font-family="Geist, Inter, system-ui, sans-serif" font-size="62" font-weight="700" letter-spacing="-3.6">OpenRx</text>
-  <text x="136" y="328" fill="#F7FAFA" font-family="Geist, Inter, system-ui, sans-serif" font-size="70" font-weight="680" letter-spacing="-4.5">Ask once. Know who to call.</text>
-  <text x="138" y="390" fill="#A6B6B9" font-family="Geist, Inter, system-ui, sans-serif" font-size="28" font-weight="450" letter-spacing="-0.7">Clinical answers, source links, and public clinic phone numbers in one chat.</text>
-  <rect x="138" y="446" width="190" height="48" rx="24" fill="#A5F3FC"/>
-  <text x="176" y="477" fill="#050707" font-family="Geist, Inter, system-ui, sans-serif" font-size="18" font-weight="700">Ask OpenRx</text>
+  <text x="136" y="328" fill="#F7FAFA" font-family="Geist, Inter, system-ui, sans-serif" font-size="64" font-weight="680" letter-spacing="-3.8">Answer to prior auth action.</text>
+  <text x="138" y="390" fill="#A6B6B9" font-family="Geist, Inter, system-ui, sans-serif" font-size="25" font-weight="450" letter-spacing="-0.5">Source-linked appeal preparation in one clinical chat.</text>
+  <rect x="138" y="446" width="212" height="48" rx="24" fill="#A5F3FC"/>
+  <text x="171" y="477" fill="#050707" font-family="Geist, Inter, system-ui, sans-serif" font-size="18" font-weight="700">Open PA demo</text>
 </svg>

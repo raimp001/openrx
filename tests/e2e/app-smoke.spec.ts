@@ -3,6 +3,8 @@ test.setTimeout(420_000)
 
 const ROUTES = [
   "/",
+  "/demo",
+  "/trust",
   "/dashboard",
   "/screening",
   "/providers",

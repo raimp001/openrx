@@ -19,23 +19,26 @@ const fraunces = Fraunces({
 })
 
 export const metadata: Metadata = {
-  title: "OpenRx — Clinical answers, in chat",
+  title: "OpenRx | Clinical answers to prior authorization action",
   description:
-    "Ask a clinical question in plain English. OpenRx answers in chat with guideline-backed sources from USPSTF, CDC, ACS, and NCCN. Decision support — not a substitute for clinician judgment.",
+    "Ask a clinical question in plain English. OpenRx provides source-linked answers and a sandboxed path from denial to appeal preparation. Decision support, not a substitute for clinician judgment.",
   metadataBase: new URL("https://openrx.health"),
   openGraph: {
-    title: "OpenRx — Clinical answers, in chat",
+    title: "OpenRx | Clinical answers to prior authorization action",
     description:
-      "Screening, medication, and preventive-care questions answered directly in chat with guideline links inline.",
+      "See source-linked clinical workflow and a synthetic denial-to-appeal prior authorization demo.",
     type: "website",
-    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "OpenRx clinical chat workspace" }],
+    images: [
+      { url: "/og-image.svg", width: 1200, height: 630, alt: "OpenRx clinical workflow workspace" },
+      { url: "/og-image.png", width: 1200, height: 630, alt: "OpenRx clinical workflow workspace" },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "OpenRx — Clinical answers, in chat",
+    title: "OpenRx | Clinical answers to prior authorization action",
     description:
-      "Ask a clinical question. Get a complete answer in chat with guideline links — USPSTF, CDC, ACS, NCCN.",
-    images: ["/og-image.svg"],
+      "Ask a clinical question. See source-linked guidance and a synthetic denial-to-appeal workflow.",
+    images: ["/og-image.png"],
   },
   icons: {
     icon: "/icon.svg",
@@ -46,7 +49,15 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#F8FAFC",
+  themeColor: "#050505",
+}
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "OpenRx",
+  url: "https://openrx.health",
+  description: "Clinical decision support and prior authorization workflow preparation.",
 }
 
 export default function RootLayout({
@@ -57,6 +68,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${GeistMono.variable} ${fraunces.variable} min-h-screen bg-surface text-primary antialiased`}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>

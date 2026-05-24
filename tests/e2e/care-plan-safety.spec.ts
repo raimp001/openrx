@@ -93,6 +93,23 @@ test("analytics accepts workflow metadata but drops PHI-shaped and prompt fields
   expect(JSON.stringify(event)).not.toContain("SECRET-ID")
 })
 
+test("sandbox demo analytics retains scenario stage only and drops clinical free text", () => {
+  const event = createWorkflowEvent("demo_appeal_generated", "sess_demo", {
+    surface: "demo",
+    scenario: "teclistamab-rrmm",
+    stage: "appeal",
+    prompt: "synthetic denial letter with treatment detail",
+    patientSummary: "should not leave the component",
+  })
+
+  expect(event.metadata).toEqual({
+    surface: "demo",
+    scenario: "teclistamab-rrmm",
+    stage: "appeal",
+  })
+  expect(JSON.stringify(event)).not.toContain("denial letter")
+})
+
 test("red-flag detection intercepts emergency phrases without diagnosing", () => {
   const chestPain = detectRedFlagText("I have crushing chest pain and severe shortness of breath")
   const stroke = detectRedFlagText("My face droop started suddenly and my speech is slurred")

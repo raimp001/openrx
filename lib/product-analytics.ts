@@ -15,6 +15,13 @@ export const WORKFLOW_EVENT_NAMES = [
   "tip_completed",
   "tip_failed",
   "red_flag_triggered",
+  "demo_viewed",
+  "demo_scenario_selected",
+  "demo_evidence_retrieved",
+  "demo_appeal_generated",
+  "demo_fhir_stub_opened",
+  "demo_fhir_stub_completed",
+  "demo_source_opened",
 ] as const
 
 export type WorkflowEventName = (typeof WORKFLOW_EVENT_NAMES)[number]
@@ -27,7 +34,18 @@ export interface WorkflowEvent {
 }
 
 const EVENT_STORAGE_KEY = "openrx:workflow-events:v1"
-const SAFE_METADATA_KEYS = new Set(["origin", "surface", "category", "status", "count", "amount", "has_sources"])
+const SAFE_METADATA_KEYS = new Set([
+  "origin",
+  "surface",
+  "category",
+  "status",
+  "count",
+  "amount",
+  "has_sources",
+  "scenario",
+  "stage",
+  "adapter",
+])
 let runtimeSessionId = ""
 
 export function safeEventMetadata(metadata?: Record<string, unknown>): Record<string, string | number | boolean> | undefined {
@@ -83,4 +101,3 @@ export function readWorkflowEvents(storage?: Pick<Storage, "getItem"> | null): W
     return []
   }
 }
-

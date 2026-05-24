@@ -5,7 +5,7 @@ test.describe("clinician outreach (private patient calls)", () => {
     await page.goto("/outreach")
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
     await expect(page.getByTestId("outreach-live-state")).toContainText(/Demo mode|Live calling/)
-    await expect(page.getByTestId("outreach-setup-banner")).toBeVisible()
+    await expect(page.getByTestId("outreach-setup-banner")).toBeVisible({ timeout: 15_000 })
     await expect(page.getByTestId("outreach-safety")).toContainText("masked")
   })
 

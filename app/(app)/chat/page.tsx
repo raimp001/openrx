@@ -596,7 +596,7 @@ export default function ChatPage() {
       }
 
       const savedInput = nextInput
-      const currentAgent = agentOverride || activeAgent
+      const currentAgent = activeAgent
       const agentMsgId = `agent-${Date.now()}`
       const redFlag = detectRedFlagText(nextInput)
 
@@ -613,9 +613,13 @@ export default function ChatPage() {
       }
 
       const workflow = executeWorkflow(userMsg.content)
-      const selectedAgent = agentOverride || workflow.route.primaryAgent || currentAgent
+      const continuesLocationSearch =
+        !agentOverride &&
+        activeAgent === "scheduling" &&
+        /^\d{5}(?:-\d{4})?$/.test(nextInput)
+      const selectedAgent = agentOverride || (continuesLocationSearch ? activeAgent : workflow.route.primaryAgent) || currentAgent
       const effectiveSessionId = localSessionIdRef.current
-      if (selectedAgent !== currentAgent) setActiveAgent(selectedAgent)
+      if (selectedAgent !== activeAgent) setActiveAgent(selectedAgent)
 
       // Insert an empty agent message that will be filled in via streaming.
       const placeholder: ChatMessage = {
@@ -1104,8 +1108,8 @@ export default function ChatPage() {
                   {msg.actionPlan && msg.actionPlan.length > 0 && !isStreamingThis ? (
                     <ChatActionPlan
                       items={msg.actionPlan}
-                      onPrompt={(prompt) => {
-                        void sendMessage(prompt)
+                      onPrompt={(prompt, targetAgentId) => {
+                        void sendMessage(prompt, targetAgentId)
                       }}
                     />
                   ) : null}

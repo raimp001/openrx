@@ -2,22 +2,11 @@
 
 import { ArrowRight, Calendar, ClipboardCheck, FlaskConical, MessageSquare, PhoneCall, Stethoscope } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import type { ActionPlanItem } from "@/lib/care-handoff"
 
 // Action card surfaced in chat answers — gives the user a clinically restrained
 // "do something next" prompt instead of leaving them with prose only.
-export interface ChatActionPlanItem {
-  id: string
-  label: string
-  description: string
-  actionType: "chat_prompt" | "external_link" | "tel_link" | "deep_link"
-  href?: string
-  prompt?: string
-  requiresLocation?: boolean
-  // Optional icon hint — falls back to a sensible default per kind.
-  kind: "schedule" | "screening" | "lab" | "referral" | "message" | "call" | "education"
-}
-
-const KIND_ICON: Record<ChatActionPlanItem["kind"], LucideIcon> = {
+const KIND_ICON: Record<ActionPlanItem["kind"], LucideIcon> = {
   schedule: Calendar,
   screening: ClipboardCheck,
   lab: FlaskConical,
@@ -28,12 +17,12 @@ const KIND_ICON: Record<ChatActionPlanItem["kind"], LucideIcon> = {
 }
 
 interface ChatActionPlanProps {
-  items: ChatActionPlanItem[]
+  items: ActionPlanItem[]
   // Optional headline — defaults to a link-oriented label because these cards
   // are explicit exits from the chat, not hidden redirects.
   title?: string
   testIdPrefix?: string
-  onPrompt?: (prompt: string) => void
+  onPrompt?: (prompt: string, targetAgentId?: ActionPlanItem["targetAgentId"]) => void
 }
 
 export function ChatActionPlan({ items, title = "Next step", testIdPrefix = "chat-action", onPrompt }: ChatActionPlanProps) {
@@ -73,7 +62,7 @@ export function ChatActionPlan({ items, title = "Next step", testIdPrefix = "cha
               {item.actionType === "chat_prompt" && item.prompt && onPrompt ? (
                 <button
                   type="button"
-                  onClick={() => onPrompt(item.prompt!)}
+                  onClick={() => onPrompt(item.prompt!, item.targetAgentId)}
                   title={item.description}
                   data-testid={`${testIdPrefix}-plan-item`}
                   className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/18 bg-cyan-200/[0.075] px-3 py-1.5 text-[12px] font-semibold text-cyan-100 transition hover:border-cyan-200/38 hover:bg-cyan-200/[0.13]"

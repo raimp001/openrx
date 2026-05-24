@@ -467,6 +467,43 @@ test("chat answers cancer screening questions inline with guideline links", asyn
   await expect(page.getByRole("button", { name: "Open screening plan" })).toHaveCount(0)
 })
 
+test("screening answer finds clinic numbers in the same chat after a ZIP follow-up", async ({ page }) => {
+  const routedRequests: Array<{ message?: string; agentId?: string }> = []
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+  await mockChatStream(page, (body) => {
+    routedRequests.push(body)
+    if (body.message === "Find a clinic or screening site for these recommendations.") {
+      return "Direct answer\n\nI can help find public clinic phone numbers, but I need the ZIP code first."
+    }
+    if (body.message === "97123") {
+      return "Direct answer\n\nHere are public clinic options near 97123. Call first to confirm availability.\n\nCare options\n\n- Hillsboro Primary Care: [(503) 555-0100](tel:+15035550100). Internal Medicine."
+    }
+    return "Direct answer\n\nColorectal cancer screening may be due now.\n\nReferences\n\n- [USPSTF: Colorectal cancer screening](https://www.uspreventiveservicestaskforce.org)"
+  })
+
+  await page.goto("/chat")
+  await page.getByTestId("chat-input").fill("What cancer screening does a 55-year-old man need?")
+  await page.getByTestId("chat-send-button").click()
+  await expect(page.getByRole("button", { name: "Find who to call" })).toBeVisible()
+
+  await page.getByRole("button", { name: "Find who to call" }).click()
+  await expect(page.getByText(/ZIP code first/)).toBeVisible()
+  expect(routedRequests[1]?.agentId).toBe("scheduling")
+
+  await page.getByTestId("chat-input").fill("97123")
+  await page.getByTestId("chat-send-button").click()
+  await expect(page.getByText(/public clinic options near 97123/)).toBeVisible()
+  await expect(page.getByRole("link", { name: "(503) 555-0100" })).toHaveAttribute("href", "tel:+15035550100")
+  expect(routedRequests[2]?.agentId).toBe("scheduling")
+  await expect(page).toHaveURL(/\/chat/)
+})
+
 test("landing screening suggestion opens chat and does not redirect to screening page", async ({ page }) => {
   await page.route(/\/api\/openclaw\/status$/, async (route) => {
     await route.fulfill({

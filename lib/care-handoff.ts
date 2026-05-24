@@ -193,6 +193,7 @@ export interface ActionPlanItem {
   actionType: "chat_prompt" | "external_link" | "tel_link" | "deep_link"
   href?: string
   prompt?: string
+  targetAgentId?: "scheduling"
   requiresLocation?: boolean
   kind: "schedule" | "screening" | "lab" | "referral" | "message" | "call" | "education"
 }
@@ -245,6 +246,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       description: "Stay in chat, ask for ZIP if needed, then list public clinic phone numbers.",
       actionType: "chat_prompt",
       prompt: "Find a clinic or screening site for these recommendations.",
+      targetAgentId: "scheduling",
       requiresLocation: true,
       kind: "lab",
     })
@@ -263,6 +265,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       description: "Ask for ZIP if needed, then return public clinic numbers.",
       actionType: "chat_prompt",
       prompt: "Find care options near me.",
+      targetAgentId: "scheduling",
       requiresLocation: true,
       kind: "referral",
     })
@@ -298,6 +301,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       description: "Ask for ZIP if needed, then list public pharmacy phone numbers.",
       actionType: "chat_prompt",
       prompt: "Find a pharmacy near me.",
+      targetAgentId: "scheduling",
       requiresLocation: true,
       kind: "referral",
     })
@@ -316,6 +320,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       description: "If not an emergency, ask for ZIP and list places to call.",
       actionType: "chat_prompt",
       prompt: "If this is not an emergency, find urgent care near me.",
+      targetAgentId: "scheduling",
       requiresLocation: true,
       kind: "referral",
     })

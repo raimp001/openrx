@@ -136,8 +136,10 @@ const SCREENING_QUERY_TERMS = [
 ]
 
 const SCREENING_ELIGIBLE_AGENTS = new Set(["screening", "wellness", "coordinator"])
-const CARE_SEARCH_ELIGIBLE_AGENTS = new Set(["scheduling", "coordinator"])
+const CARE_SEARCH_ELIGIBLE_AGENTS = new Set(["scheduling", "coordinator", "screening", "wellness"])
 const ZIP_ONLY_PATTERN = /^\s*\d{5}(?:-\d{4})?\s*$/
+const EXPLICIT_CARE_SEARCH_PATTERN =
+  /\b(find|search|locate|near me|nearby|phone numbers?|who to call|primary care|pcp|physician|doctor|clinic|radiology|imaging center|mammogram center|colonoscopy center|lab near|laboratory)\b/i
 
 function looksLikeScreeningQuestion(agentId: string, message: string): boolean {
   if (!SCREENING_ELIGIBLE_AGENTS.has(agentId)) return false
@@ -148,10 +150,9 @@ function looksLikeScreeningQuestion(agentId: string, message: string): boolean {
 }
 
 function looksLikeCareSearchQuestion(agentId: string, message: string): boolean {
-  const lowered = message.toLowerCase()
   if (agentId === "scheduling") return true
   if (!CARE_SEARCH_ELIGIBLE_AGENTS.has(agentId)) return false
-  return /\b(find|search|near me|nearby|primary care|pcp|physician|doctor|clinic|radiology|imaging|mammogram|ldct|colonoscopy|lab|laboratory)\b/.test(lowered)
+  return EXPLICIT_CARE_SEARCH_PATTERN.test(message)
 }
 
 function lastCareSearchContext(messages: ConversationMessage[]): string {
@@ -190,6 +191,21 @@ function phoneHref(phone: string): string {
 async function buildCareSearchChatResponse(message: string, history: ConversationMessage[]): Promise<string> {
   const query = buildCareSearchQuery(message, history)
   const parsed = parseCareSearchQuery(query)
+
+  // Chat care navigation intentionally starts with ZIP. This avoids treating
+  // clinical wording in an action prompt as a city and keeps the first search local.
+  if (!/\b\d{5}(?:-\d{4})?\b/.test(query)) {
+    return [
+      "Direct answer",
+      "I can help find public clinic phone numbers, but I need the ZIP code first.",
+      "",
+      "Question to refine this",
+      "What ZIP code should I search near?",
+      "",
+      "Safety note",
+      "OpenRx can list public directory options. It cannot book directly unless that clinic is connected to OpenRx.",
+    ].join("\n\n")
+  }
 
   if (!parsed.ready) {
     return [
@@ -547,14 +563,6 @@ export async function runAgent(params: {
     return { response, agentId: "triage" }
   }
 
-  if (looksLikeScreeningQuestion(agentId, message)) {
-    const response = buildDeterministicScreeningResponse(message)
-    addToConversation(sessionKey, "user", message)
-    addToConversation(sessionKey, "assistant", response)
-    logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
-    return { response, agentId: "screening" }
-  }
-
   const careSearchHistory = getConversation(sessionKey)
   if (looksLikeCareSearchQuestion(agentId, message) || continuesCareSearch(message, careSearchHistory)) {
     const history = careSearchHistory
@@ -563,6 +571,14 @@ export async function runAgent(params: {
     addToConversation(sessionKey, "assistant", response)
     logAction("scheduling", "npi-care-search-response", "Public directory search response generated.", "portal")
     return { response, agentId: "scheduling" }
+  }
+
+  if (looksLikeScreeningQuestion(agentId, message)) {
+    const response = buildDeterministicScreeningResponse(message)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
+    return { response, agentId: "screening" }
   }
 
   const claude = getClaudeClient()
@@ -789,16 +805,6 @@ export async function* runAgentStream(params: {
     return { agentId: "triage", finalText: response }
   }
 
-  // Deterministic screening path: emit the response in one chunk.
-  if (looksLikeScreeningQuestion(agentId, message)) {
-    const response = buildDeterministicScreeningResponse(message)
-    addToConversation(sessionKey, "user", message)
-    addToConversation(sessionKey, "assistant", response)
-    logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
-    yield response
-    return { agentId: "screening", finalText: response }
-  }
-
   const careSearchHistory = getConversation(sessionKey)
   if (looksLikeCareSearchQuestion(agentId, message) || continuesCareSearch(message, careSearchHistory)) {
     const history = careSearchHistory
@@ -808,6 +814,16 @@ export async function* runAgentStream(params: {
     logAction("scheduling", "npi-care-search-response", "Public directory search response generated.", "portal")
     yield response
     return { agentId: "scheduling", finalText: response }
+  }
+
+  // Deterministic screening path: emit the response in one chunk.
+  if (looksLikeScreeningQuestion(agentId, message)) {
+    const response = buildDeterministicScreeningResponse(message)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
+    yield response
+    return { agentId: "screening", finalText: response }
   }
 
   const claude = getClaudeClient()

@@ -2,13 +2,14 @@ import { expect, test } from "@playwright/test"
 import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
 import { createScreeningNextStepRequest } from "@/lib/screening/next-step-store"
 import { parseScreeningIntakeNarrative } from "@/lib/screening-intake"
-import { buildDeterministicScreeningResponse } from "@/lib/ai-engine"
+import { buildDeterministicScreeningResponse, runAgent } from "@/lib/ai-engine"
 import { assessHealthScreening } from "@/lib/basehealth"
 import {
   buildOpenAIClinicalEvidencePrompt,
   resolveOpenAIClinicalEvidenceConfig,
 } from "@/lib/screening-evidence"
 import {
+  buildActionPlan,
   PROVIDER_HANDOFF_STORAGE_KEY,
   resolveCareHandoff,
 } from "@/lib/care-handoff"
@@ -285,6 +286,22 @@ test("chat screening questions stay in chat instead of forcing a screening-page 
   expect(response).toContain("Direct answer")
   expect(response).toContain("Genetic counseling")
   expect(response).toContain("References")
+})
+
+test("screening care actions route to clinic search even from an older screening context", async () => {
+  const action = buildActionPlan("What cancer screening does a 50-year-old woman need?", "screening")
+    .find((item) => item.id === "schedule-screening")
+
+  expect(action?.targetAgentId).toBe("scheduling")
+  const response = await runAgent({
+    agentId: "screening",
+    message: action?.prompt || "",
+    sessionId: "screening-action-care-search-regression",
+  })
+
+  expect(response.agentId).toBe("scheduling")
+  expect(response.response).toContain("ZIP code first")
+  expect(response.response).not.toContain("Share age")
 })
 
 test("chat care-network handoff preserves provider query for automatic search", () => {

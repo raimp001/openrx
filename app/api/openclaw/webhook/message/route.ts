@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Log incoming message for audit trail
-    console.info(`[webhook/message] ${channel}:${sender} — ${message.slice(0, 100)}`)
+    // Keep operational logs free of patient content and contact identifiers.
+    console.info(`[webhook/message] received channel=${channel}`)
 
     // Route through the coordinator agent to determine intent
     const result = await openclawClient.sendMessage({

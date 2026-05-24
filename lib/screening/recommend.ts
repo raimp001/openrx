@@ -628,6 +628,19 @@ export function recommendScreenings(intake: ScreeningIntake): ScreeningEngineRes
   }
 
   addRedFlagRecommendations(recommendations, intake)
+  if (redFlags.length > 0) {
+    const sourceIds = Array.from(new Set(recommendations.map((item) => item.sourceId).filter((item): item is string => Boolean(item))))
+    return {
+      generatedAt: new Date().toISOString(),
+      intakeCompleteness: "actionable",
+      recommendations: recommendations.sort(compareRecommendations),
+      safetyMessages: [
+        "Symptoms reported in this intake should be evaluated as a clinical concern, not handled through routine screening guidance.",
+        "Call 911 or seek emergency care now for severe, sudden, or worsening symptoms.",
+      ],
+      sourceIds,
+    }
+  }
   addPersonalCancerHistoryRecommendations(recommendations, intake)
   addHereditaryRiskRecommendations(recommendations, intake)
   addFamilyHistoryOverrides(recommendations, intake)

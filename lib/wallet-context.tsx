@@ -16,6 +16,7 @@ import {
 } from "./wallet-identity"
 import type { LivePatient } from "./live-data-types"
 import { buildWalletAuthMessage } from "./wallet-auth-message"
+import { trackWorkflowEvent } from "./product-analytics"
 
 const EMPTY_PATIENT: LivePatient = {
   id: "",
@@ -96,6 +97,7 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
   const [databaseSyncMessage, setDatabaseSyncMessage] = useState("")
   const lastSyncedFingerprintRef = useRef("")
   const lastWalletSessionRef = useRef("")
+  const loggedWalletConnectionRef = useRef("")
   const walletProofRef = useRef<{
     walletAddress: string
     message: string
@@ -107,6 +109,15 @@ export function WalletIdentityProvider({ children }: { children: ReactNode }) {
   } | null>(null)
 
   // Load profile when wallet connects
+  useEffect(() => {
+    if (isConnected && address && loggedWalletConnectionRef.current !== address.toLowerCase()) {
+      loggedWalletConnectionRef.current = address.toLowerCase()
+      trackWorkflowEvent("wallet_connected", { surface: "wallet" })
+    } else if (!isConnected) {
+      loggedWalletConnectionRef.current = ""
+    }
+  }, [address, isConnected])
+
   useEffect(() => {
     if (isConnected && address) {
       const existing = loadWalletProfile(address)

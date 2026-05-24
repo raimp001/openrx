@@ -19,6 +19,7 @@ export type PaymentCategory =
   | "lab"
   | "screening"
   | "subscription"
+  | "tip"
   | "other"
 
 export type PaymentStatus =

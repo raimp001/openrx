@@ -11,12 +11,12 @@ import {
   Calendar,
   Check,
   Copy,
-  Receipt,
   ShieldCheck,
   Pill,
+  Receipt,
   Stethoscope,
-  Heart,
   FlaskConical,
+  Heart,
   Loader2,
   ExternalLink,
   AlertTriangle,
@@ -33,70 +33,39 @@ import {
   type ActionPlanItem,
 } from "@/lib/care-handoff"
 import { ChatActionPlan } from "@/components/chat-action-plan"
+import { CarePlanPreview } from "@/components/care-plan-preview"
+import { RedFlagAlert } from "@/components/red-flag-alert"
+import { SupportOpenRx } from "@/components/support-openrx"
+import { TrustDrawer } from "@/components/trust-drawer"
+import { carePlanFromScreeningRecommendations, createCarePlan, type CarePlan } from "@/lib/care-plan"
+import { trackWorkflowEvent } from "@/lib/product-analytics"
+import { detectRedFlagText, type RedFlagResult } from "@/lib/red-flag"
+import { parseScreeningIntakeNarrative, summarizeScreeningIntake } from "@/lib/screening-intake"
+import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
 
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
-const QUICK_PROMPTS: Array<{ label: string; prompt: string; agentId: AgentId }> = [
-  {
-    label: "Screening for 50F",
-    prompt: "What cancer screening does a 50-year-old woman need?",
-    agentId: "screening",
-  },
-  {
-    label: "Colon cancer family history",
-    prompt: "I am 46 with a father who had colon cancer at 52 — what screening do I need?",
-    agentId: "screening",
-  },
-  {
-    label: "Lung screening",
-    prompt: "I am 63, smoked 1 pack/day for 30 years, quit 6 years ago. Do I need lung screening?",
-    agentId: "screening",
-  },
-  {
-    label: "Drug interaction check",
-    prompt: "Can I take ibuprofen with lisinopril?",
-    agentId: "rx",
-  },
-  {
-    label: "Chest pain — what should I do?",
-    prompt: "I have chest pain and shortness of breath. What should I do?",
-    agentId: "triage",
-  },
-  {
-    label: "Preventive care for a 55-year-old man",
-    prompt: "What vaccines and preventive care should a 55-year-old man ask about?",
-    agentId: "wellness",
-  },
-]
-
 const SERVICE_LINKS: Array<{ label: string; description: string; prompt: string; agentId: AgentId; icon: typeof Stethoscope }> = [
   {
-    label: "Find primary care",
-    description: "Ask ZIP, return clinic phone numbers",
-    prompt: "Help me find primary care clinics. Ask for my ZIP code first if it is missing, then give clinic names and phone numbers from the public NPI directory. Make clear OpenRx cannot book directly unless the clinic joins the platform.",
+    label: "Check my screening",
+    description: "Get sourced next steps",
+    prompt: "What screening may be due for me?",
+    agentId: "screening",
+    icon: ShieldCheck,
+  },
+  {
+    label: "Find care near me",
+    description: "Get clinic phone numbers",
+    prompt: "Find primary care near me.",
     agentId: "scheduling",
     icon: Stethoscope,
   },
   {
-    label: "Find screening site",
-    description: "GI, imaging, mammogram, labs",
-    prompt: "Help me find a clinic or facility for a preventive screening study. Ask for my ZIP code first if missing, then return public phone numbers and what to ask when calling.",
-    agentId: "scheduling",
+    label: "Draft a clinician message",
+    description: "Prepare one clear request",
+    prompt: "Help me draft a short message to my clinician.",
+    agentId: "coordinator",
     icon: Calendar,
-  },
-  {
-    label: "Coverage help",
-    description: "Bills, estimates, prior auth",
-    prompt: "Help me understand coverage, cost, or prior authorization. Ask me what service, plan, and bill/denial detail you need.",
-    agentId: "billing",
-    icon: Receipt,
-  },
-  {
-    label: "Clinical trials",
-    description: "Cancer studies by condition",
-    prompt: "Help me understand whether a clinical trial search makes sense. Ask me diagnosis, stage, biomarkers, and location one question at a time.",
-    agentId: "trials",
-    icon: FlaskConical,
   },
 ]
 
@@ -366,6 +335,7 @@ function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
           href={c.url}
           target="_blank"
           rel="noreferrer"
+          onClick={() => trackWorkflowEvent("source_opened", { surface: "chat" })}
           data-testid="chat-citation"
           className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/20 bg-cyan-200/[0.08] px-2.5 py-1 text-[11px] font-medium text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-200/[0.14]"
         >
@@ -387,6 +357,41 @@ function ChatAnswer({ content }: { content: string }) {
       <CitationRail citations={parsed.citations} />
     </div>
   )
+}
+
+function carePlanFromChatPrompt(prompt: string, agentId?: string, answer = ""): CarePlan | null {
+  if (agentId === "scheduling") {
+    // Do not offer a call task until a directory response includes a usable public contact.
+    if (!answer.includes("tel:")) return null
+    return createCarePlan({
+      origin: "chat",
+      patientContextSummary: "Care directory options shown in chat. Confirm access details directly with the office.",
+      recommendations: [{
+        id: "chat_directory_follow_up",
+        title: "Call a care option shown above",
+        rationale: "Public directory candidates may help you start a call, but they do not confirm licensure, coverage, ordering authority, or appointment availability.",
+        urgency: "routine",
+        sourceLabel: "CMS NPI directory candidate",
+        sourceUrl: "https://npiregistry.cms.hhs.gov/",
+        confidence: "context_dependent",
+        status: "new",
+        nextAction: "Call the office and confirm they provide the needed service, accept your plan, and are taking patients.",
+      }],
+    })
+  }
+  if (agentId !== "screening") return null
+  const parsed = parseScreeningIntakeNarrative(prompt)
+  if (!parsed.ready) return null
+  const result = recommendScreenings(screeningIntakeFromLegacy({
+    age: parsed.extracted.age,
+    gender: parsed.extracted.gender,
+    familyHistory: parsed.extracted.familyHistory,
+    conditions: parsed.extracted.conditions,
+    smoker: parsed.extracted.smoker,
+    symptoms: parsed.extracted.symptoms,
+  }))
+  if (!result.recommendations.length) return null
+  return carePlanFromScreeningRecommendations(result.recommendations, summarizeScreeningIntake(parsed.extracted), "chat")
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -444,17 +449,20 @@ export default function ChatPage() {
   const [streamingId, setStreamingId] = useState<string | null>(null)
   const [activeAgent, setActiveAgent] = useState<AgentId>("coordinator")
   const [errorBanner, setErrorBanner] = useState<string | null>(null)
+  const [safetyHold, setSafetyHold] = useState<{ messageId: string; finding: RedFlagResult; acknowledged: boolean } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const seededPromptRef = useRef(false)
   const autoSubmittedPromptRef = useRef(false)
+  const renderedConversationIdRef = useRef("")
   const localSessionIdRef = useRef(`chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
 
   const clearChat = useCallback(() => {
     setConversationId("")
     localSessionIdRef.current = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     setMessages([buildWelcome(isConnected)])
+    setSafetyHold(null)
     setErrorBanner(null)
     router.push("/chat")
     window.dispatchEvent(new CustomEvent("openrx:new-chat"))
@@ -507,6 +515,7 @@ export default function ChatPage() {
       setInput("")
       setErrorBanner(null)
       setMessages([buildWelcome(isConnected)])
+      setSafetyHold(null)
       inputRef.current?.focus()
     }
     window.addEventListener("openrx:new-chat", handler)
@@ -516,6 +525,7 @@ export default function ChatPage() {
   useEffect(() => {
     const id = searchParams.get("c") || searchParams.get("conversationId") || ""
     if (!id) {
+      renderedConversationIdRef.current = ""
       setConversationId("")
       if (!searchParams.get("prompt")) {
         setMessages([buildWelcome(isConnected)])
@@ -523,6 +533,11 @@ export default function ChatPage() {
       return
     }
     if (id !== conversationId) {
+      if (renderedConversationIdRef.current === id) {
+        renderedConversationIdRef.current = ""
+        setConversationId(id)
+        return
+      }
       void loadConversation(id)
     }
   }, [buildWelcome, conversationId, isConnected, loadConversation, searchParams])
@@ -568,6 +583,10 @@ export default function ChatPage() {
     async (messageOverride?: string, agentOverride?: AgentId) => {
       const nextInput = (messageOverride ?? input).trim()
       if (!nextInput || isLoading || isLoadingConversation) return
+      if (safetyHold && !safetyHold.acknowledged && !detectRedFlagText(nextInput)) {
+        setErrorBanner("Please acknowledge the urgent safety guidance before starting a different care request.")
+        return
+      }
 
       const userMsg: ChatMessage = {
         id: `user-${Date.now()}`,
@@ -579,12 +598,19 @@ export default function ChatPage() {
       const savedInput = nextInput
       const currentAgent = agentOverride || activeAgent
       const agentMsgId = `agent-${Date.now()}`
+      const redFlag = detectRedFlagText(nextInput)
 
       setMessages((prev) => [...prev, userMsg])
       setInput("")
       setIsLoading(true)
       setStreamingId(agentMsgId)
       setErrorBanner(null)
+      if (redFlag) {
+        setSafetyHold({ messageId: agentMsgId, finding: redFlag, acknowledged: false })
+        trackWorkflowEvent("red_flag_triggered", { surface: "chat", category: redFlag.category })
+      } else if (messages.length <= 1) {
+        trackWorkflowEvent("chat_started", { surface: "chat" })
+      }
 
       const workflow = executeWorkflow(userMsg.content)
       const selectedAgent = agentOverride || workflow.route.primaryAgent || currentAgent
@@ -599,7 +625,7 @@ export default function ChatPage() {
         agentId: selectedAgent,
         collaborators: workflow.route.collaborators,
         routingInfo: workflow.route.reasoning,
-        actionPlan: buildActionPlan(userMsg.content, selectedAgent),
+        actionPlan: redFlag ? [] : buildActionPlan(userMsg.content, selectedAgent),
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, placeholder])
@@ -652,8 +678,11 @@ export default function ChatPage() {
           const data = await fallbackRes.json()
           const text = data.response || data.error || "I couldn't compose a response — try rephrasing."
           setMessages((prev) => prev.map((m) => (m.id === agentMsgId ? { ...m, content: text } : m)))
+          trackWorkflowEvent("answer_generated", { surface: "chat", has_sources: text.includes("http") })
           if (data.conversationId && data.conversationId !== conversationId) {
+            renderedConversationIdRef.current = data.conversationId
             setConversationId(data.conversationId)
+            router.replace(`/chat?c=${encodeURIComponent(data.conversationId)}`, { scroll: false })
           }
           window.dispatchEvent(new CustomEvent("openrx:chat-history-refresh"))
           return
@@ -689,8 +718,11 @@ export default function ChatPage() {
                   prev.map((m) => (m.id === agentMsgId ? { ...m, content: parsed.finalText! } : m))
                 )
               }
+              trackWorkflowEvent("answer_generated", { surface: "chat", has_sources: Boolean(parsed.finalText?.includes("http")) })
               if (parsed.conversationId && parsed.conversationId !== conversationId) {
+                renderedConversationIdRef.current = parsed.conversationId
                 setConversationId(parsed.conversationId)
+                router.replace(`/chat?c=${encodeURIComponent(parsed.conversationId)}`, { scroll: false })
               }
               window.dispatchEvent(new CustomEvent("openrx:chat-history-refresh"))
             } catch {
@@ -767,7 +799,7 @@ export default function ChatPage() {
         setStreamingId(null)
       }
     },
-    [input, isLoading, isLoadingConversation, activeAgent, walletAddress, getWalletAuthHeaders, conversationId]
+    [input, isLoading, isLoadingConversation, activeAgent, walletAddress, getWalletAuthHeaders, conversationId, messages.length, router, safetyHold]
   )
 
   useEffect(() => {
@@ -888,10 +920,10 @@ export default function ChatPage() {
             {isConnected ? "Personalized workspace" : "Clinical answers + phone-number handoffs"}
           </div>
           <h1 className="max-w-3xl text-[clamp(2.35rem,5.4vw,4.35rem)] font-semibold leading-[0.96] tracking-[-0.065em] text-white">
-            What can I help you handle?
+            Ask a clinical question.
           </h1>
           <p className="mt-5 max-w-xl text-balance text-[15px] leading-7 text-zinc-300 sm:text-[17px]">
-            Ask one question. Get a short answer, source links when useful, and the phone numbers to pursue the next step.
+            Get a sourced answer and a next step.
           </p>
 
           <div className="mt-10 w-full">{renderComposer("hero")}</div>
@@ -907,24 +939,9 @@ export default function ChatPage() {
             </div>
           ) : null}
 
-          <div data-testid="chat-quick-prompts" className="mt-5 flex w-full max-w-3xl flex-wrap justify-center gap-2">
-            {QUICK_PROMPTS.slice(0, 4).map((qp) => (
-              <button
-                key={qp.label}
-                type="button"
-                onClick={() => {
-                  void sendMessage(qp.prompt, qp.agentId)
-                }}
-                className="group rounded-full border border-white/10 bg-black/24 px-4 py-2.5 text-left text-[13px] font-medium text-zinc-200 transition hover:-translate-y-0.5 hover:border-cyan-200/30 hover:bg-cyan-200/[0.055] hover:text-white"
-              >
-                {qp.label}
-              </button>
-            ))}
-          </div>
-
           <nav
             aria-label="Care service links"
-            className="mt-9 grid w-full max-w-3xl gap-2 sm:grid-cols-2 lg:grid-cols-4"
+            className="mt-7 grid w-full max-w-3xl gap-2 sm:grid-cols-3"
           >
             {SERVICE_LINKS.map((item) => {
               const Icon = item.icon
@@ -950,9 +967,23 @@ export default function ChatPage() {
             })}
           </nav>
 
-          <p className="mt-6 max-w-2xl text-[12px] leading-5 text-zinc-500">
-            For emergencies or severe symptoms, seek urgent medical care. OpenRx supports decisions; it does not replace your clinician.
-          </p>
+          <div className="mt-6 flex max-w-3xl flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-zinc-400">
+            <span>Guideline-linked answers</span>
+            <span>Demo mode first</span>
+            <span>Wallet optional</span>
+            <span>No hidden data sale</span>
+            <span>Not a substitute for clinician judgment</span>
+          </div>
+          <div className="mt-7 w-full max-w-3xl rounded-[18px] border border-white/9 bg-white/[0.025] p-4 text-left">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Example result</p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[13px] font-semibold text-white">Colorectal screening may be due</p>
+                <p className="mt-1 text-[12px] text-zinc-400">USPSTF · ask for FIT or colonoscopy options</p>
+              </div>
+              <span className="rounded-full border border-cyan-200/16 bg-cyan-200/[0.07] px-3 py-1.5 text-[11px] font-semibold text-cyan-100">Add to Care Plan</span>
+            </div>
+          </div>
         </main>
       ) : (
         <>
@@ -1015,7 +1046,7 @@ export default function ChatPage() {
           </div>
         ) : null}
 
-        {visibleMessages.map((msg) => {
+        {visibleMessages.map((msg, index) => {
           if (msg.role === "system") {
             return (
               <div key={msg.id} data-testid="chat-message-system" className="chat-bubble-system mx-auto max-w-2xl">
@@ -1039,6 +1070,9 @@ export default function ChatPage() {
           const Icon = meta?.icon || Sparkles
           const isStreamingThis = streamingId === msg.id
           const showEmptyStreamingIndicator = isStreamingThis && !msg.content.trim()
+          const previousUserMessage = [...visibleMessages.slice(0, index)].reverse().find((entry) => entry.role === "user")
+          const carePlanDraft = previousUserMessage ? carePlanFromChatPrompt(previousUserMessage.content, msg.agentId, msg.content) : null
+          const trustSources = parseAnswer(msg.content).citations.map((citation) => ({ label: citation.label, url: citation.url }))
           return (
             <article key={msg.id} data-testid="chat-message-agent" className="animate-fade-in space-y-3">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300">
@@ -1075,8 +1109,27 @@ export default function ChatPage() {
                       }}
                     />
                   ) : null}
-                  <div className="flex items-center gap-2">
+                  {safetyHold?.messageId === msg.id ? (
+                    <RedFlagAlert
+                      finding={safetyHold.finding}
+                      acknowledged={safetyHold.acknowledged}
+                      onAcknowledge={() => setSafetyHold((current) => current ? { ...current, acknowledged: true } : current)}
+                    />
+                  ) : null}
+                  {carePlanDraft && !isStreamingThis ? <CarePlanPreview draft={carePlanDraft} compact /> : null}
+                  {!isStreamingThis && msg.content.trim() ? (
+                    <TrustDrawer
+                      sources={trustSources}
+                      inputsUsed={carePlanDraft ? [carePlanDraft.patientContextSummary] : []}
+                      inputsNotUsed={carePlanDraft ? ["Insurance and payer network", "Full medical record"] : ["No saved patient profile required"]}
+                      phiSentToModel={msg.agentId !== "screening" && msg.agentId !== "scheduling" && msg.agentId !== "triage"}
+                      emergencyWarning={safetyHold?.messageId === msg.id ? safetyHold.finding.emergencyMessage : undefined}
+                      clinicianQuestions={carePlanDraft ? ["What screening interval applies to my history?", "Who can coordinate the next step?"] : []}
+                    />
+                  ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
                     {!isStreamingThis && msg.content.trim() ? <CopyButton text={msg.content} /> : null}
+                    {!isStreamingThis && msg.content.trim() ? <SupportOpenRx /> : null}
                   </div>
                 </>
               )}

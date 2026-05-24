@@ -14,11 +14,14 @@ import {
   Search,
   ShieldCheck,
   Syringe,
+  ClipboardList,
 } from "lucide-react"
 import { CareAskPanel, dashboardCareAskSuggestions } from "@/components/care-ask-panel"
 import { AppPageHeader } from "@/components/layout/app-page"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
+import { useCarePlans } from "@/lib/hooks/use-care-plans"
+import { advanceCarePlanStatus } from "@/lib/care-plan"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import { cn, formatDate, formatTime } from "@/lib/utils"
 
@@ -26,6 +29,7 @@ export default function DashboardPage() {
   const { snapshot, getPhysician, loading } = useLiveSnapshot()
   const { isConnected, profile } = useWalletIdentity()
   const scrollRef = useScrollReveal()
+  const { plans, setRecommendationStatus } = useCarePlans()
 
   const patientName = profile?.fullName || snapshot.patient?.full_name || ""
   const firstName = patientName.split(" ")[0]
@@ -143,6 +147,7 @@ export default function DashboardPage() {
           placeholder="Example: What should I do first?"
           suggestions={dashboardCareAskSuggestions}
         />
+        <ActiveCarePlans plans={plans} onAdvance={setRecommendationStatus} />
         <div className="flex flex-wrap gap-3">
           <Link href="/onboarding" className="control-button-primary">
             Complete setup
@@ -177,6 +182,8 @@ export default function DashboardPage() {
         placeholder="Example: What should I handle first today?"
         suggestions={dashboardCareAskSuggestions}
       />
+
+      <ActiveCarePlans plans={plans} onAdvance={setRecommendationStatus} />
 
       <section className="grid gap-3 md:grid-cols-4">
         <CareMetric label="Needs attention" value={attentionCount} />
@@ -221,6 +228,64 @@ export default function DashboardPage() {
         </div>
       </section>
     </div>
+  )
+}
+
+function ActiveCarePlans({
+  plans,
+  onAdvance,
+}: {
+  plans: ReturnType<typeof useCarePlans>["plans"]
+  onAdvance: ReturnType<typeof useCarePlans>["setRecommendationStatus"]
+}) {
+  const openItems = plans
+    .flatMap((plan) => plan.recommendations.map((item) => ({ plan, item })))
+    .filter(({ item }) => item.status !== "completed" && item.status !== "deferred")
+    .slice(0, 5)
+
+  if (!plans.length) return null
+
+  return (
+    <section className="surface-card p-5 sm:p-6" data-testid="active-care-plans">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="section-title">Care Plan</p>
+          <h2 className="mt-2 text-xl font-semibold text-primary">Your saved next steps</h2>
+        </div>
+        <span className="metric-chip">{openItems.length} active</span>
+      </div>
+      {openItems.length ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {openItems.map(({ plan, item }) => (
+            <article key={`${plan.id}-${item.id}`} className="rounded-[18px] border border-white/10 bg-white/[0.055] p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <ClipboardList size={14} className="text-teal" />
+                  <h3 className="text-sm font-semibold text-primary">{item.title}</h3>
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                  {item.status.replaceAll("_", " ")}
+                </span>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-secondary">{item.nextAction}</p>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <span className="text-[11px] text-muted">{item.sourceLabel}</span>
+                <button
+                  type="button"
+                  onClick={() => onAdvance(plan.id, item.id, advanceCarePlanStatus(item.status))}
+                  className="control-button-secondary px-3 py-2 text-xs"
+                >
+                  Mark next step
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-secondary">All saved steps are complete or deferred.</p>
+      )}
+      <p className="mt-4 text-xs text-muted">Demo mode stores these care tasks in this browser only.</p>
+    </section>
   )
 }
 

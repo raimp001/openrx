@@ -166,6 +166,18 @@ export interface CareDirectoryMatch {
   phone: string
   fullAddress: string
   confidence: "high" | "medium"
+  directoryEvidence?: {
+    source: "CMS_NPPES"
+    npiFound: true
+    specialtyMatched: boolean
+    locationMatched: boolean
+  }
+  openRxVerification?: {
+    licenseVerification: "pending" | "verified"
+    orderingAuthority: "pending" | "verified"
+    payerCoverageFit: "unknown" | "verified"
+    schedulingAvailability: "unknown" | "available"
+  }
 }
 
 interface RankedCareDirectoryMatch extends CareDirectoryMatch {
@@ -176,10 +188,23 @@ interface RankedCareDirectoryMatch extends CareDirectoryMatch {
 
 function toPublicCareDirectoryMatch(entry: RankedCareDirectoryMatch): CareDirectoryMatch {
   const { locationMatched, locationScore, locationState, ...publicEntry } = entry
-  void locationMatched
   void locationScore
   void locationState
-  return publicEntry
+  return {
+    ...publicEntry,
+    directoryEvidence: {
+      source: "CMS_NPPES",
+      npiFound: true,
+      specialtyMatched: Boolean(entry.specialty),
+      locationMatched,
+    },
+    openRxVerification: {
+      licenseVerification: "pending",
+      orderingAuthority: "pending",
+      payerCoverageFit: "unknown",
+      schedulingAvailability: "unknown",
+    },
+  }
 }
 
 interface NppesAddress {

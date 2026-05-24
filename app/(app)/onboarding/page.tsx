@@ -3,12 +3,15 @@
 import { cn } from "@/lib/utils"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import { AppPageHeader } from "@/components/layout/app-page"
+import { CarePlanPreview } from "@/components/care-plan-preview"
 import {
   Bot, User, Heart, Pill, Stethoscope,
   CheckCircle2,
   Activity, ArrowRight, ArrowLeft,
 } from "lucide-react"
 import { useState, useRef, useEffect, useCallback } from "react"
+import { createCarePlan, type CarePlan } from "@/lib/care-plan"
+import { useCarePlans } from "@/lib/hooks/use-care-plans"
 
 interface Message {
   id: string
@@ -160,6 +163,8 @@ export default function OnboardingPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [searchResults, setSearchResults] = useState<{ name: string; npi: string; credential?: string; specialty?: string; fullAddress?: string; phone?: string }[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [onboardingPlan, setOnboardingPlan] = useState<CarePlan | null>(null)
+  const { addPlan } = useCarePlans()
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -521,6 +526,23 @@ export default function OnboardingPage() {
 
           // Save to the connected account when available.
           saveToWallet()
+          const plan = createCarePlan({
+            origin: "onboarding",
+            patientContextSummary: "Care setup completed. Review prevention and any care connections before scheduling.",
+            recommendations: [{
+              id: "onboarding_prevention_review",
+              title: "Review your prevention next steps",
+              rationale: "Onboarding creates a starting point, but screening timing depends on age, history, prior tests, and symptoms.",
+              urgency: "routine",
+              sourceLabel: "Needs clinician review",
+              sourceUrl: "",
+              confidence: "needs_clinician_review",
+              status: "new",
+              nextAction: "Ask OpenRx which screening may be due, then discuss recommendations with a clinician.",
+            }],
+          })
+          addPlan(plan)
+          setOnboardingPlan(plan)
 
           advanceStep("complete")
         }, 1500)
@@ -530,7 +552,7 @@ export default function OnboardingPage() {
         addUser(val)
         break
     }
-  }, [input, step, patient, searchResults, addUser, addAgent, addSystem, advanceStep, isConnected, saveToWallet])
+  }, [input, step, patient, searchResults, addUser, addAgent, addSystem, advanceStep, isConnected, saveToWallet, addPlan])
 
   const handleOption = useCallback((value: string) => {
     handleSubmit(value)
@@ -677,6 +699,7 @@ export default function OnboardingPage() {
           )}
         </div>
       </section>
+      {step === "complete" && onboardingPlan ? <CarePlanPreview draft={onboardingPlan} /> : null}
     </div>
   )
 }

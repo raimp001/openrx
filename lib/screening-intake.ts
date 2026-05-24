@@ -4,12 +4,19 @@ export interface ScreeningIntakeResult {
   extracted: {
     age?: number
     gender?: string
+    sexAtBirth?: string
     bmi?: number
     smoker?: boolean
+    smokingPackYears?: number
+    quitYearsAgo?: number
     symptoms: string[]
+    redFlags: string[]
     familyHistory: string[]
     conditions: string[]
     genes: string[]
+    knownMutationOrSyndrome: string[]
+    priorAbnormalFindings: string[]
+    location?: string
   }
 }
 
@@ -242,15 +249,48 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     conditions.push(...genes.map((gene) => `${gene} mutation carrier`))
   }
 
+  const redFlags = unique(symptoms.filter((symptom) =>
+    includesAny(symptom, [
+      "chest pain",
+      "chest pressure",
+      "shortness of breath",
+      "fainting",
+      "syncope",
+      "blood in stool",
+      "rectal bleeding",
+      "bloody stool",
+      "coughing blood",
+      "hemoptysis",
+      "breast lump",
+      "breast mass",
+      "abnormal uterine bleeding",
+      "postmenopausal bleeding",
+      "confusion",
+      "muscle weakness",
+    ])
+  ))
+  const priorAbnormalFindings = unique(
+    conditions.filter((condition) => /\babnormal\b|\bpolyp\b|\badenoma\b|\bcin[23]\b/i.test(condition))
+  )
+  const locationMatch = narrative.match(/\b\d{5}(?:-\d{4})?\b|\b(?:near|in)\s+([A-Z][A-Za-z .'-]+,\s*[A-Z]{2})\b/)
+  const location = locationMatch?.[0]?.replace(/^(near|in)\s+/i, "").trim()
+
   const extracted = {
     age,
     gender,
+    sexAtBirth: gender,
     bmi,
     smoker,
+    smokingPackYears: packYearMatch ? Number.parseInt(packYearMatch[1], 10) : undefined,
+    quitYearsAgo: quitMatch ? Number.parseInt(quitMatch[1], 10) : undefined,
     symptoms,
+    redFlags,
     familyHistory,
     conditions: unique(conditions),
     genes,
+    knownMutationOrSyndrome: genes,
+    priorAbnormalFindings,
+    location,
   }
 
   const hasRiskSignals =
@@ -271,4 +311,17 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
       "Share one line with your age and any known family/genetic risk (for example family prostate/colorectal cancer, BRCA2, Lynch, APC, MUTYH).",
     extracted,
   }
+}
+
+export function summarizeScreeningIntake(extracted: ScreeningIntakeResult["extracted"]): string {
+  const details: string[] = []
+  if (typeof extracted.age === "number") details.push(`Age ${extracted.age}`)
+  if (extracted.sexAtBirth) details.push(`sex for screening: ${extracted.sexAtBirth}`)
+  if (extracted.familyHistory.length) details.push(extracted.familyHistory.slice(0, 2).join("; "))
+  if (typeof extracted.smokingPackYears === "number") details.push(`${extracted.smokingPackYears} pack-years`)
+  if (extracted.knownMutationOrSyndrome.length) details.push(`${extracted.knownMutationOrSyndrome.join(", ")} reported`)
+  if (extracted.priorAbnormalFindings.length) details.push("prior abnormal finding reported")
+  if (extracted.redFlags.length) details.push("symptom warning reported")
+  if (extracted.location) details.push(`location ${extracted.location}`)
+  return details.length ? details.join(" · ") : "Limited context supplied; confirm details with a clinician."
 }

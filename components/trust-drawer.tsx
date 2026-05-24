@@ -1,0 +1,123 @@
+"use client"
+
+import { ChevronDown, ExternalLink, ShieldCheck, TriangleAlert } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { trackWorkflowEvent } from "@/lib/product-analytics"
+
+export interface TrustSource {
+  label: string
+  url?: string
+  date?: string
+}
+
+interface TrustDrawerProps {
+  sources?: TrustSource[]
+  inputsUsed?: string[]
+  inputsNotUsed?: string[]
+  phiSentToModel?: boolean
+  routingNote?: string
+  safetyBoundary?: string
+  emergencyWarning?: string
+  clinicianQuestions?: string[]
+  className?: string
+}
+
+export function TrustDrawer({
+  sources = [],
+  inputsUsed = [],
+  inputsNotUsed = [],
+  phiSentToModel = false,
+  routingNote = "OpenRx used a rules-first workflow where available and keeps operational routing separate from clinical identity.",
+  safetyBoundary = "OpenRx supports education and care navigation. It does not diagnose, order tests, or replace clinician judgment.",
+  emergencyWarning,
+  clinicianQuestions = [],
+  className,
+}: TrustDrawerProps) {
+  const hasValidatedSource = sources.some((source) => Boolean(source.url))
+
+  return (
+    <details
+      data-testid="trust-drawer"
+      className={cn("group rounded-[16px] border border-white/10 bg-white/[0.03]", className)}
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-[12px] font-semibold text-zinc-200">
+        <span className="inline-flex items-center gap-2">
+          <ShieldCheck size={14} className="text-cyan-200" />
+          Why this answer?
+        </span>
+        <ChevronDown size={14} className="text-zinc-400 transition group-open:rotate-180" />
+      </summary>
+      <div className="space-y-4 border-t border-white/8 px-4 py-4 text-[12px] leading-5 text-zinc-300">
+        {emergencyWarning ? (
+          <div className="flex gap-2 rounded-[12px] border border-red-300/20 bg-red-400/[0.08] p-3 text-red-100">
+            <TriangleAlert size={14} className="mt-0.5 shrink-0" />
+            <p>{emergencyWarning}</p>
+          </div>
+        ) : null}
+        <div>
+          <p className="mb-2 font-semibold text-zinc-100">Sources used</p>
+          {hasValidatedSource ? (
+            <div className="flex flex-wrap gap-2">
+              {sources.map((source) =>
+                source.url ? (
+                  <a
+                    key={`${source.label}-${source.url}`}
+                    href={source.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => trackWorkflowEvent("source_opened", { surface: "trust_drawer" })}
+                    className="inline-flex items-center gap-1 rounded-full border border-cyan-200/18 bg-cyan-200/[0.07] px-2.5 py-1 text-cyan-100 hover:bg-cyan-200/[0.12]"
+                  >
+                    {source.label}
+                    {source.date ? ` · ${source.date}` : ""}
+                    <ExternalLink size={10} />
+                  </a>
+                ) : null
+              )}
+            </div>
+          ) : (
+            <p className="rounded-[10px] border border-amber-300/20 bg-amber-300/[0.08] px-3 py-2 text-amber-100">
+              Needs clinician review. No validated source was attached to this result.
+            </p>
+          )}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TrustList title="Patient inputs used" items={inputsUsed} empty="No patient-specific inputs used." />
+          <TrustList title="Inputs not used" items={inputsNotUsed} empty="No additional inputs expected for this answer." />
+        </div>
+        <div className="rounded-[12px] border border-white/8 bg-black/15 p-3">
+          <p className="font-semibold text-zinc-100">Privacy and routing</p>
+          <p className="mt-1">{phiSentToModel ? "Limited context may have been sent to the configured model provider for this answer." : "No full patient profile was sent to a model provider for this rules-based explanation."}</p>
+          <p className="mt-1 text-zinc-400">{routingNote}</p>
+        </div>
+        <div>
+          <p className="font-semibold text-zinc-100">Clinical safety boundary</p>
+          <p className="mt-1">{safetyBoundary}</p>
+        </div>
+        {clinicianQuestions.length ? (
+          <div>
+            <p className="font-semibold text-zinc-100">What to ask your clinician next</p>
+            <ul className="mt-2 space-y-1 text-zinc-300">
+              {clinicianQuestions.map((question) => <li key={question}>- {question}</li>)}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+    </details>
+  )
+}
+
+function TrustList({ title, items, empty }: { title: string; items: string[]; empty: string }) {
+  return (
+    <div className="rounded-[12px] border border-white/8 bg-black/15 p-3">
+      <p className="font-semibold text-zinc-100">{title}</p>
+      {items.length ? (
+        <ul className="mt-2 space-y-1 text-zinc-300">
+          {items.map((item) => <li key={item}>- {item}</li>)}
+        </ul>
+      ) : (
+        <p className="mt-2 text-zinc-400">{empty}</p>
+      )}
+    </div>
+  )
+}

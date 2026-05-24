@@ -97,6 +97,7 @@ test("red-flag symptoms trigger urgent clinician review instead of routine scree
   expect(urgent?.riskCategory).toBe("symptomatic")
   expect(urgent?.nextSteps).toContain("seek_urgent_care")
   expect(urgent?.patientFriendlyExplanation.toLowerCase()).toContain("not treat this as routine screening")
+  expect(result.recommendations.every((rec) => rec.status === "urgent_clinician_review")).toBe(true)
 })
 
 test("unknown or incomplete intake returns unknown instead of unsafe certainty", () => {

@@ -4,9 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Bell, Bot, Circle, Loader2, MessageSquare, Send, ShieldCheck, Sparkles, Stethoscope, User } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
+import { RedFlagAlert } from "@/components/red-flag-alert"
+import { TrustDrawer } from "@/components/trust-drawer"
 import { ChoiceChip, ClinicalField, ClinicalTextarea, FieldsetCard } from "@/components/ui/clinical-forms"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { cn, formatDate } from "@/lib/utils"
+import { detectRedFlagText, type RedFlagResult } from "@/lib/red-flag"
+import { trackWorkflowEvent } from "@/lib/product-analytics"
 
 type OptimisticMessage = {
   id: string
@@ -26,6 +30,7 @@ export default function MessagesPage() {
   const [sendError, setSendError] = useState("")
   const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([])
   const [streamingId, setStreamingId] = useState<string | null>(null)
+  const [safetyHold, setSafetyHold] = useState<{ finding: RedFlagResult; acknowledged: boolean } | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const { snapshot, getPhysician } = useLiveSnapshot()
   const patient = snapshot.patient
@@ -52,8 +57,20 @@ export default function MessagesPage() {
     if (!text || isSending) return
 
     setSendError("")
+    const finding = detectRedFlagText(text)
+    if (finding && !safetyHold?.acknowledged) {
+      setSafetyHold({ finding, acknowledged: false })
+      trackWorkflowEvent("red_flag_triggered", { surface: "messages", category: finding.category })
+      setSendError("Please review the urgent safety guidance before sending a routine message.")
+      return
+    }
+    if (safetyHold && !safetyHold.acknowledged) {
+      setSendError("Acknowledge the urgent safety guidance first.")
+      return
+    }
     setIsSending(true)
     setNewMessage("")
+    trackWorkflowEvent("message_drafted", { surface: "messages" })
 
     const userMsg: OptimisticMessage = {
       id: `local-user-${Date.now()}`,
@@ -281,6 +298,15 @@ export default function MessagesPage() {
           </div>
 
           <div className="border-t border-[rgba(82,108,139,0.12)] bg-[rgba(255,255,255,0.42)] px-5 py-4 sm:px-6">
+            {safetyHold ? (
+              <div className="mb-4">
+                <RedFlagAlert
+                  finding={safetyHold.finding}
+                  acknowledged={safetyHold.acknowledged}
+                  onAcknowledge={() => setSafetyHold((current) => current ? { ...current, acknowledged: true } : current)}
+                />
+              </div>
+            ) : null}
             <ClinicalField
               label="Reply to care team"
               hint="Keep the message patient-friendly. Drafting can help, but the portal thread remains the source of truth."
@@ -327,6 +353,17 @@ export default function MessagesPage() {
               <ContextRow icon={ShieldCheck} label="Coverage" value={patient ? `${patient.insurance_provider} · ${patient.insurance_plan}` : "No insurance context loaded."} />
             </div>
           </section>
+
+          <TrustDrawer
+            sources={[]}
+            inputsUsed={["Message text you choose to send", "Visible care-team thread context"]}
+            inputsNotUsed={["Wallet address", "On-chain data"]}
+            phiSentToModel={true}
+            routingNote="Drafting support routes only the message context needed to formulate a reply. Avoid unnecessary identifiers."
+            safetyBoundary="Drafts are not clinical orders or medical advice. Urgent symptoms should not wait for a message reply."
+            emergencyWarning={safetyHold ? safetyHold.finding.emergencyMessage : undefined}
+            clinicianQuestions={["What next step should I take and when?", "What symptoms should make me seek urgent care?"]}
+          />
 
           <section className="surface-card p-5">
             <FieldsetCard

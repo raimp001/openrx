@@ -225,29 +225,6 @@ const SOURCE_LINKS: Array<{ pattern: RegExp; label: string; url: string }> = [
   },
 ]
 
-function providerQueryForScreening(message: string) {
-  const lowered = message.toLowerCase()
-  if (/\b(colon|colorectal|fit-?dna|colonoscop|sigmoidoscop)\b/.test(lowered)) {
-    return `gastroenterology or colonoscopy center for ${message}`
-  }
-  if (/\b(mammogram|breast|brca)\b/.test(lowered)) {
-    return `mammography center or high-risk breast clinic for ${message}`
-  }
-  if (/\b(lung|ldct|smoker|smoking)\b/.test(lowered)) {
-    return `low-dose CT lung screening imaging center for ${message}`
-  }
-  if (/\b(cervical|pap|hpv)\b/.test(lowered)) {
-    return `primary care or gynecology cervical screening for ${message}`
-  }
-  if (/\b(prostate|psa)\b/.test(lowered)) {
-    return `primary care or urology PSA screening discussion for ${message}`
-  }
-  if (/\b(brca|lynch|mutation|germline|family history)\b/.test(lowered)) {
-    return `genetic counseling or high-risk cancer clinic for ${message}`
-  }
-  return `primary care or preventive screening services for ${message}`
-}
-
 export function buildActionPlan(message: string, agentId: string): ActionPlanItem[] {
   const trimmed = message.trim()
   if (!trimmed) return []
@@ -261,17 +238,13 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
   const screeningKeywords = includesAny(lowered, SCREENING_TERMS) || agentId === "screening"
   const careSearchKeywords = includesAny(lowered, CARE_SEARCH_TERMS) || agentId === "scheduling"
   const billingKeywords = includesAny(lowered, BILLING_TERMS) || agentId === "billing"
-  const askInChat = (task: string) =>
-    `${task}. Ask me only the missing details you need, one question at a time. Keep it short and patient-friendly. Context: ${trimmed}`
-
   if (screeningKeywords) {
-    const providerQuery = providerQueryForScreening(trimmed)
     pushUnique({
       id: "schedule-screening",
       label: "Find who to call",
       description: "Stay in chat, ask for ZIP if needed, then list public clinic phone numbers.",
       actionType: "chat_prompt",
-      prompt: askInChat(`Help me find the right physician, clinic, imaging center, lab, or screening site. Ask for ZIP code first if missing. Return public clinic names, phone numbers, specialty, and what to ask when calling. Search intent: ${providerQuery}`),
+      prompt: "Find a clinic or screening site for these recommendations.",
       requiresLocation: true,
       kind: "lab",
     })
@@ -280,7 +253,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       label: "Prepare call script",
       description: "Turn this answer into a short script for primary care or the screening site.",
       actionType: "chat_prompt",
-      prompt: askInChat("Write a short phone script for calling primary care or a screening site about this recommendation. Include what to ask, what history to mention, and what to verify before scheduling"),
+      prompt: "Help me prepare what to say when I call about these recommendations.",
       kind: "schedule",
     })
   } else if (careSearchKeywords) {
@@ -289,7 +262,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       label: "Find phone numbers",
       description: "Ask for ZIP if needed, then return public clinic numbers.",
       actionType: "chat_prompt",
-      prompt: askInChat("Help me find realistic care options nearby. Ask for ZIP code first if missing, then return public names, phone numbers, specialty, address, and what to ask when calling"),
+      prompt: "Find care options near me.",
       requiresLocation: true,
       kind: "referral",
     })
@@ -298,7 +271,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       label: "Call script",
       description: "Prepare a concise script for calling the clinic.",
       actionType: "chat_prompt",
-      prompt: askInChat("Prepare a short call script for this appointment request. Include the service needed, urgency, insurance question, and what records to have ready"),
+      prompt: "Help me prepare a short call script for this appointment.",
       kind: "schedule",
     })
   } else if (billingKeywords) {
@@ -307,7 +280,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       label: "Explain coverage",
       description: "Stay in chat and ask only for the bill/plan details needed.",
       actionType: "chat_prompt",
-      prompt: askInChat("Help me understand the coverage, bill, EOB, or denial. Ask only for the missing detail needed and do not imply a coverage guarantee"),
+      prompt: "Help me understand my bill or coverage question.",
       kind: "education",
     })
     pushUnique({
@@ -315,7 +288,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       label: "Prior auth help",
       description: "Clarify whether prior auth support may be needed.",
       actionType: "chat_prompt",
-      prompt: askInChat("Help me understand whether prior authorization support may be needed. Explain what information to collect without claiming submission or approval"),
+      prompt: "Could this next step need prior authorization?",
       kind: "referral",
     })
   } else if (agentId === "rx" || /\b(medication|prescription|drug|interaction|refill|pharmacy)\b/.test(lowered)) {
@@ -324,7 +297,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       label: "Find pharmacy numbers",
       description: "Ask for ZIP if needed, then list public pharmacy phone numbers.",
       actionType: "chat_prompt",
-      prompt: askInChat("Help me find a pharmacy or medication access option. Ask for ZIP if missing, then return public phone numbers and what to ask when calling"),
+      prompt: "Find a pharmacy near me.",
       requiresLocation: true,
       kind: "referral",
     })
@@ -333,7 +306,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       label: "Review meds safely",
       description: "Stay in chat and clarify medication names, doses, and red flags.",
       actionType: "chat_prompt",
-      prompt: askInChat("Help me review the medication question safely"),
+      prompt: "Help me review this medication question safely.",
       kind: "education",
     })
   } else if (agentId === "triage" || /\b(symptom|pain|fever|cough|chest|shortness|stroke)\b/.test(lowered)) {
@@ -342,7 +315,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       label: "Find urgent care numbers",
       description: "If not an emergency, ask for ZIP and list places to call.",
       actionType: "chat_prompt",
-      prompt: askInChat("If this is not an emergency, help me find urgent care or primary care nearby. Ask for ZIP if missing, list public phone numbers, and keep emergency warning clear"),
+      prompt: "If this is not an emergency, find urgent care near me.",
       requiresLocation: true,
       kind: "referral",
     })
@@ -351,7 +324,7 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       label: "check red flags",
       description: "Stay in chat and clarify red flags before choosing the next step.",
       actionType: "chat_prompt",
-      prompt: askInChat("Ask me the key red-flag questions to decide whether this needs urgent care"),
+      prompt: "What warning signs would make this urgent?",
       kind: "message",
     })
   }

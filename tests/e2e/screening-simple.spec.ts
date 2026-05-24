@@ -86,6 +86,21 @@ async function mockScreeningApis(page: Page) {
   })
 }
 
+async function mockChatStream(
+  page: Page,
+  respond: (body: { message?: string; agentId?: string }) => string
+) {
+  await page.route(/\/api\/openclaw\/chat\/stream$/, async (route) => {
+    const body = route.request().postDataJSON() as { message?: string; agentId?: string }
+    const text = respond(body)
+    await route.fulfill({
+      status: 200,
+      contentType: "text/event-stream",
+      body: `event: delta\ndata: ${JSON.stringify({ text })}\n\nevent: done\ndata: ${JSON.stringify({ finalText: text, agentId: body.agentId || "coordinator" })}\n\n`,
+    })
+  })
+}
+
 test("simple screening intake returns free recommendations", async ({ page }) => {
   await mockScreeningApis(page)
 
@@ -103,6 +118,9 @@ test("simple screening intake returns free recommendations", async ({ page }) =>
   await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
   await expect(page.getByText("Evidence Sources")).toBeVisible()
   await expect(page.getByText("Failed to compute screening assessment.")).toHaveCount(0)
+  await expect(page.getByTestId("care-plan-preview")).toBeVisible()
+  await page.getByTestId("trust-drawer").first().click()
+  await expect(page.getByText("Sources used").first()).toBeVisible()
 
   await page.getByRole("button", { name: "Generate Advanced Review" }).click()
   await expect(page.getByText("Complete payment before advanced review")).toBeVisible()
@@ -130,7 +148,7 @@ test("screening handoff from chat auto-runs the free recommendations", async ({ 
   await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
 })
 
-test("screening recommendation can hand off directly to care search", async ({ page }) => {
+test("screening recommendation continues care search inside chat", async ({ page }) => {
   await mockScreeningApis(page)
   let providerQuery = ""
   await page.route(/\/api\/providers\/search.*/, async (route) => {
@@ -174,14 +192,12 @@ test("screening recommendation can hand off directly to care search", async ({ p
   await page.getByTestId("screening-submit-preview").click()
   await page.getByTestId("recommendation-find-schedule").first().click()
 
-  await expect(page).toHaveURL(/\/providers\?handoff=screening&autorun=1&q=/)
-  await expect(page.getByText("Loaded the screening recommendation")).toBeVisible()
-  await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
-  expect(providerQuery.toLowerCase()).toContain("gastroenterology")
-  expect(providerQuery.toLowerCase()).toContain("colonoscopy")
+  await expect(page).toHaveURL(/\/chat\?topic=scheduling&autorun=1&prompt=/)
+  expect(decodeURIComponent(page.url())).toContain("Find who I can call for Colorectal cancer screening")
+  expect(providerQuery).toBe("")
 })
 
-test("screening recommendation handoff still works when sessionStorage is unavailable", async ({ page }) => {
+test("screening recommendation chat handoff does not depend on sessionStorage", async ({ page }) => {
   await mockScreeningApis(page)
   let providerQuery = ""
   await page.addInitScript(() => {
@@ -231,13 +247,12 @@ test("screening recommendation handoff still works when sessionStorage is unavai
   await page.getByTestId("screening-submit-preview").click()
   await page.getByTestId("recommendation-find-schedule").first().click()
 
-  await expect(page).toHaveURL(/\/providers\?handoff=screening&autorun=1&q=/)
-  await expect(page.getByText("Loaded the screening recommendation")).toBeVisible()
-  await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
-  expect(providerQuery.toLowerCase()).toContain("colonoscopy")
+  await expect(page).toHaveURL(/\/chat\?topic=scheduling&autorun=1&prompt=/)
+  expect(decodeURIComponent(page.url())).toContain("Find who I can call for Colorectal cancer screening")
+  expect(providerQuery).toBe("")
 })
 
-test("screening recommendation can find a provider and carry that provider into scheduling", async ({ page }) => {
+test("screening recommendation can be saved into My Care without navigation", async ({ page }) => {
   const pageErrors: string[] = []
   page.on("pageerror", (error) => pageErrors.push(error.message))
   await mockScreeningApis(page)
@@ -302,16 +317,11 @@ test("screening recommendation can find a provider and carry that provider into 
     .getByTestId("screening-narrative-input")
     .fill("I am 58 and need colorectal cancer screening.")
   await page.getByTestId("screening-submit-preview").click()
-  await page.getByTestId("recommendation-find-schedule").first().click()
-
-  await expect(page).toHaveURL(/\/providers\?handoff=screening&autorun=1&q=/)
-  await page.getByTestId("provider-schedule-button").first().click()
-  await expect(page).toHaveURL(/\/scheduling\?handoff=provider&source=provider&providerName=/)
-  await expect(page.getByTestId("scheduling-handoff-card")).toBeVisible()
-  await expect(page.getByText("Ready to request this visit.")).toBeVisible()
-  await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
-  await page.getByTestId("scheduling-request-button").click()
-  await expect(page.getByText("Scheduling request staged.")).toBeVisible()
+  await page.getByTestId("care-plan-add-button").click()
+  await expect(page).toHaveURL(/\/screening/)
+  await page.goto("/dashboard")
+  await expect(page.getByTestId("active-care-plans")).toBeVisible()
+  await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
   expect(pageErrors).toEqual([])
 })
 
@@ -365,9 +375,11 @@ test("provider handoff from chat auto-searches without a second button press", a
   await expect(page.getByText("Loaded your chat context")).toBeVisible()
   await expect(page.getByText("Matched network")).toBeVisible()
   await expect(page.getByText("OpenRx Imaging Portland").first()).toBeVisible()
+  await expect(page.getByText(/NPI match is not proof of licensure/)).toBeVisible()
+  await expect(page.getByTestId("provider-verification-ladder").first()).toContainText("License verification")
 })
 
-test("landing ask routes clear care-search intent to providers without generic chat", async ({ page }) => {
+test("landing care action stays in chat before a user intentionally opens the directory", async ({ page }) => {
   let providerQuery = ""
   await page.route(/\/api\/providers\/search.*/, async (route) => {
     providerQuery = new URL(route.request().url()).searchParams.get("q") || ""
@@ -404,12 +416,12 @@ test("landing ask routes clear care-search intent to providers without generic c
   })
 
   await page.goto("/")
-  await page.getByRole("button", { name: "Find primary care" }).click()
+  await page.getByRole("button", { name: "Find care near me" }).click()
 
-  await expect(page).toHaveURL(/\/providers\?handoff=chat/)
-  await expect(page.getByText("Loaded your chat context")).toBeVisible()
-  await expect(page.getByText("OpenRx Primary Care").first()).toBeVisible()
-  expect(providerQuery.toLowerCase()).toContain("primary care")
+  await expect(page).toHaveURL(/\/chat/)
+  await expect(page.getByTestId("chat-section-direct-answer").filter({ hasText: /ZIP code first/i }).last()).toBeVisible()
+  await expect(page.getByTestId("care-plan-preview")).toHaveCount(0)
+  expect(providerQuery).toBe("")
 })
 
 test("chat prompt autorun answers after landing submit without a second send", async ({ page }) => {
@@ -421,17 +433,9 @@ test("chat prompt autorun answers after landing submit without a second send", a
       body: JSON.stringify({ connected: true }),
     })
   })
-  await page.route(/\/api\/openclaw\/chat$/, async (route) => {
-    const body = route.request().postDataJSON() as { message?: string }
+  await mockChatStream(page, (body) => {
     postedMessage = body.message || ""
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        response: "Review the bill amount, claim status, and insurer explanation first.",
-        agentId: "billing",
-      }),
-    })
+    return "Review the bill amount, claim status, and insurer explanation first."
   })
 
   await page.goto("/chat?prompt=Explain%20this%20bill&topic=billing&autorun=1")
@@ -455,7 +459,7 @@ test("chat answers cancer screening questions inline with guideline links", asyn
 
   await expect(page).toHaveURL(/\/chat/)
   await expect(page).not.toHaveURL(/\/screening/)
-  await expect(page.getByText("Direct answer")).toBeVisible()
+  await expect(page.getByTestId("chat-section-direct-answer")).toBeVisible()
   await expect(page.getByText("Breast cancer screening").first()).toBeVisible()
   await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
   await expect(page.getByText("Cervical cancer screening").first()).toBeVisible()
@@ -473,12 +477,11 @@ test("landing screening suggestion opens chat and does not redirect to screening
   })
 
   await page.goto("/")
-  await page.getByRole("button", { name: "What screening is due?" }).click()
+  await page.getByRole("button", { name: /Check my screening/ }).click()
 
-  await expect(page).toHaveURL(/\/chat\?/)
+  await expect(page).toHaveURL(/\/chat/)
   await expect(page).not.toHaveURL(/\/screening/)
-  await expect(page.getByText("Direct answer")).toBeVisible()
-  await expect(page.getByRole("link", { name: /CDC: Cancer screening tests/i })).toBeVisible()
+  await expect(page.getByTestId("chat-message-user").filter({ hasText: "What screening may be due for me?" })).toBeVisible()
 })
 
 test("chat keeps medication symptom and prevention questions in conversation", async ({ page }) => {
@@ -490,19 +493,13 @@ test("chat keeps medication symptom and prevention questions in conversation", a
       body: JSON.stringify({ connected: true }),
     })
   })
-  await page.route(/\/api\/openclaw\/chat$/, async (route) => {
-    const body = route.request().postDataJSON() as { agentId?: string; message?: string }
+  await mockChatStream(page, (body) => {
     routedAgents.push(body.agentId || "")
-    const response = body.agentId === "triage"
+    return body.agentId === "triage"
       ? "If chest pain or trouble breathing is present, seek emergency care now. I can also help organize follow-up after urgent symptoms are addressed."
       : body.agentId === "rx"
         ? "For medication questions, confirm the exact drug, dose, kidney history, allergies, and prescriber. Do not stop prescribed medication without clinician guidance."
         : "For prevention, I can answer here first and cite guideline-backed steps before any scheduling handoff."
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ response, agentId: body.agentId || "coordinator" }),
-    })
   })
 
   await page.goto("/chat")
@@ -514,7 +511,12 @@ test("chat keeps medication symptom and prevention questions in conversation", a
   await page.getByTestId("chat-input").fill("I have chest pain and shortness of breath")
   await page.getByTestId("chat-send-button").click()
   await expect(page.getByText("seek emergency care now")).toBeVisible()
+  await expect(page.getByTestId("red-flag-alert")).toBeVisible()
+  await expect(
+    page.getByTestId("chat-message-agent").filter({ hasText: "seek emergency care now" }).last().getByTestId("chat-action-plan")
+  ).toHaveCount(0)
   await expect(page).toHaveURL(/\/chat/)
+  await page.getByTestId("red-flag-acknowledge").click()
 
   await page.getByTestId("chat-input").fill("What vaccines should a 55-year-old man ask about?")
   await page.getByTestId("chat-send-button").click()
@@ -551,6 +553,12 @@ test("chat renders structured screening sections and a citation rail", async ({ 
   expect(await citations.count()).toBeGreaterThan(0)
 })
 
+test("trust disclosure shows clinician-review boundary when no validated source is attached", async ({ page }) => {
+  await page.goto("/messages")
+  await page.getByTestId("trust-drawer").click()
+  await expect(page.getByText(/Needs clinician review\. No validated source was attached/)).toBeVisible()
+})
+
 test("chat shows quick prompts on first load and hides them after first send", async ({ page }) => {
   await page.route(/\/api\/openclaw\/status$/, async (route) => {
     await route.fulfill({
@@ -559,24 +567,16 @@ test("chat shows quick prompts on first load and hides them after first send", a
       body: JSON.stringify({ connected: true }),
     })
   })
-  await page.route(/\/api\/openclaw\/chat$/, async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        response:
-          "Direct answer: ack.\n\nWhat to do now\nNothing to do.\n\nReferences\n- [CDC](https://www.cdc.gov/)\n\nSafety note\nDecision support only.",
-        agentId: "coordinator",
-      }),
-    })
-  })
+  await mockChatStream(page, () =>
+    "Direct answer: ack.\n\nWhat to do now\nNothing to do.\n\nReferences\n- [CDC](https://www.cdc.gov/)\n\nSafety note\nDecision support only."
+  )
 
   await page.goto("/chat")
-  await expect(page.getByTestId("chat-quick-prompts")).toBeVisible()
+  await expect(page.getByTestId("chat-empty-state")).toBeVisible()
 
   await page.getByTestId("chat-input").fill("Hello")
   await page.getByTestId("chat-send-button").click()
 
   await expect(page.getByTestId("chat-message-agent").first()).toBeVisible()
-  await expect(page.getByTestId("chat-quick-prompts")).toHaveCount(0)
+  await expect(page.getByTestId("chat-empty-state")).toHaveCount(0)
 })

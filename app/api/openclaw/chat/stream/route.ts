@@ -1,7 +1,7 @@
 import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { runAgentStream } from "@/lib/ai-engine"
-import { resolveChatHistoryOwner } from "@/lib/chat-history-owner"
+import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import { appendChatExchange } from "@/lib/chat-history-store"
 
 export const dynamic = "force-dynamic"
@@ -76,6 +76,12 @@ export async function POST(req: NextRequest) {
     canUseWalletScopedData(auth.session, walletAddress) || walletProofMatches
       ? walletAddress
       : undefined
+  let historyOwner: Awaited<ReturnType<typeof resolveChatHistoryOwner>> | null = null
+  try {
+    historyOwner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
+  } catch (historyError) {
+    console.error("Stream history owner resolution failed:", historyError)
+  }
 
   const encoder = new TextEncoder()
   const aborted = req.signal.aborted
@@ -127,10 +133,9 @@ export async function POST(req: NextRequest) {
       let savedConversationId = conversationId || ""
       let savedTitle = ""
       try {
-        const owner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
-        if (owner && !("response" in owner)) {
+        if (historyOwner && !("response" in historyOwner)) {
           const conversation = await appendChatExchange({
-            ownerKey: owner.ownerKey,
+            ownerKey: historyOwner.ownerKey,
             conversationId,
             userContent: message.trim(),
             agentContent: finalText,
@@ -163,7 +168,7 @@ export async function POST(req: NextRequest) {
   // Suppress unused-aborted warning (kept for clarity above).
   void aborted
 
-  return new Response(stream, {
+  const response = new NextResponse(stream, {
     headers: {
       "content-type": "text/event-stream; charset=utf-8",
       "cache-control": "no-cache, no-transform",
@@ -171,4 +176,7 @@ export async function POST(req: NextRequest) {
       connection: "keep-alive",
     },
   })
+  return historyOwner && !("response" in historyOwner)
+    ? attachChatHistoryCookie(response, historyOwner)
+    : response
 }

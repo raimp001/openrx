@@ -7,6 +7,7 @@ import { nextStepLabel, recommendScreenings, screeningIntakeFromLegacy } from ".
 import { getGuidelineSource } from "./screening/sources"
 import { parseCareSearchQuery, searchNpiCareDirectory } from "./npi-care-search"
 import type { ScreeningRecommendation } from "./screening/types"
+import { detectRedFlagText, emergencyResponse } from "./red-flag"
 
 // ── AI Clients ────────────────────────────────────────────
 const getClaudeClient = () =>
@@ -160,6 +161,10 @@ function lastCareSearchContext(messages: ConversationMessage[]): string {
     .reverse()
 
   return userMessages.find((message) => /\b(find|search|primary care|pcp|physician|doctor|clinic|radiology|imaging|mammogram|ldct|colonoscopy|lab|laboratory)\b/i.test(message)) || ""
+}
+
+function continuesCareSearch(message: string, history: ConversationMessage[]): boolean {
+  return ZIP_ONLY_PATTERN.test(message.trim()) && Boolean(lastCareSearchContext(history))
 }
 
 function buildCareSearchQuery(message: string, history: ConversationMessage[]): string {
@@ -533,21 +538,30 @@ export async function runAgent(params: {
   }
 
   const sessionKey = sessionId || `${agentId}-default`
+  const redFlag = detectRedFlagText(message)
+  if (redFlag) {
+    const response = emergencyResponse(redFlag)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("triage", "red_flag_triggered", redFlag.category, "portal")
+    return { response, agentId: "triage" }
+  }
 
   if (looksLikeScreeningQuestion(agentId, message)) {
     const response = buildDeterministicScreeningResponse(message)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
-    logAction("screening", "deterministic-screening-response", `${message.slice(0, 60)}...`, "portal")
+    logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
     return { response, agentId: "screening" }
   }
 
-  if (looksLikeCareSearchQuestion(agentId, message)) {
-    const history = getConversation(sessionKey)
+  const careSearchHistory = getConversation(sessionKey)
+  if (looksLikeCareSearchQuestion(agentId, message) || continuesCareSearch(message, careSearchHistory)) {
+    const history = careSearchHistory
     const response = await buildCareSearchChatResponse(message, history)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
-    logAction("scheduling", "npi-care-search-response", `${message.slice(0, 60)}...`, "portal")
+    logAction("scheduling", "npi-care-search-response", "Public directory search response generated.", "portal")
     return { response, agentId: "scheduling" }
   }
 
@@ -657,7 +671,7 @@ IMPORTANT RULES:
     addToConversation(sessionKey, "assistant", response)
 
     // Log the action
-    logAction(agentId, "responded", `${message.slice(0, 60)}...`, "portal")
+    logAction(agentId, "responded", "Answer generated.", "portal")
 
     return { response, agentId, handoff }
   } catch (error: unknown) {
@@ -726,7 +740,7 @@ export async function runCoordinator(
   if (result.handoff) {
     const targetAgent = OPENCLAW_CONFIG.agents.find((a) => a.id === result.handoff)
     if (targetAgent) {
-      logAction("coordinator", "routed", `→ ${targetAgent.name}: ${message.slice(0, 40)}...`)
+      logAction("coordinator", "routed", `Handoff requested for ${targetAgent.name}.`)
 
       const followUp = await runAgent({
         agentId: result.handoff,
@@ -765,23 +779,33 @@ export async function* runAgentStream(params: {
   }
 
   const sessionKey = sessionId || `${agentId}-default`
+  const redFlag = detectRedFlagText(message)
+  if (redFlag) {
+    const response = emergencyResponse(redFlag)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", response)
+    logAction("triage", "red_flag_triggered", redFlag.category, "portal")
+    yield response
+    return { agentId: "triage", finalText: response }
+  }
 
   // Deterministic screening path: emit the response in one chunk.
   if (looksLikeScreeningQuestion(agentId, message)) {
     const response = buildDeterministicScreeningResponse(message)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
-    logAction("screening", "deterministic-screening-response", `${message.slice(0, 60)}...`, "portal")
+    logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
     yield response
     return { agentId: "screening", finalText: response }
   }
 
-  if (looksLikeCareSearchQuestion(agentId, message)) {
-    const history = getConversation(sessionKey)
+  const careSearchHistory = getConversation(sessionKey)
+  if (looksLikeCareSearchQuestion(agentId, message) || continuesCareSearch(message, careSearchHistory)) {
+    const history = careSearchHistory
     const response = await buildCareSearchChatResponse(message, history)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
-    logAction("scheduling", "npi-care-search-response", `${message.slice(0, 60)}...`, "portal")
+    logAction("scheduling", "npi-care-search-response", "Public directory search response generated.", "portal")
     yield response
     return { agentId: "scheduling", finalText: response }
   }
@@ -876,7 +900,7 @@ IMPORTANT RULES:
 
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", finalText)
-    logAction(agentId, "responded", `${message.slice(0, 60)}...`, "portal")
+    logAction(agentId, "responded", "Answer generated.", "portal")
 
     return { agentId, finalText, handoff }
   } catch (error: unknown) {

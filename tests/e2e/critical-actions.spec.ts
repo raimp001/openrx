@@ -14,25 +14,19 @@ test("Ask page sends a patient question through the OpenClaw chat surface", asyn
     })
   })
 
-  await page.route(/\/api\/openclaw\/chat$/, async (route) => {
+  await page.route(/\/api\/openclaw\/chat\/stream$/, async (route) => {
     receivedBody = route.request().postDataJSON() as { message?: string; agentId?: string }
     await route.fulfill({
       status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        sessionId: "chat-smoke-session",
-        response: "I can help with the refill. I’ll check medication timing and coordinate the next step.",
-        agentId: receivedBody.agentId,
-        handoff: null,
-        live: true,
-      }),
+      contentType: "text/event-stream",
+      body: `event: delta\ndata: ${JSON.stringify({ text: "I can help with the refill. I’ll check medication timing and coordinate the next step." })}\n\nevent: done\ndata: ${JSON.stringify({ finalText: "I can help with the refill. I’ll check medication timing and coordinate the next step.", agentId: receivedBody.agentId, handoff: null })}\n\n`,
     })
   })
 
   await page.goto("/chat")
-  await expect(page.getByText("online")).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Ask a clinical question." })).toBeVisible()
 
-  await page.getByLabel("Message OpenRx help").fill("I need a medication refill this week.")
+  await page.getByLabel("Message OpenRx").fill("I need a medication refill this week.")
   await page.getByRole("button", { name: "Send" }).click()
 
   await expect(page.getByText("I can help with the refill.")).toBeVisible()
@@ -40,7 +34,7 @@ test("Ask page sends a patient question through the OpenClaw chat surface", asyn
   expect(receivedBody?.agentId).toBe("rx")
 
   await page.getByRole("button", { name: "Clear" }).click()
-  await expect(page.getByText("How can I help you today?")).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Ask a clinical question." })).toBeVisible()
 })
 
 test("Ask page saves and restores a clinical chat from the history sidebar", async ({ page }) => {

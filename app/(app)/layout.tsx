@@ -1,5 +1,6 @@
 import Sidebar from "@/components/layout/sidebar"
 import Topbar from "@/components/layout/topbar"
+import { AnalyticsDebugPanel } from "@/components/analytics-debug-panel"
 import { getDatabaseHealth } from "@/lib/database-health"
 
 export const dynamic = "force-dynamic"
@@ -40,6 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="mx-auto w-full max-w-[1180px]">{children}</div>
         </main>
       </div>
+      <AnalyticsDebugPanel />
     </div>
   )
 }

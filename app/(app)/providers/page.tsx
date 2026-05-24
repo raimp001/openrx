@@ -14,10 +14,13 @@ import {
   Building2,
   ArrowRight,
   CalendarCheck,
+  FilePenLine,
+  FolderPlus,
+  UserCheck,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
+import { TrustDrawer } from "@/components/trust-drawer"
 import {
   ChoiceChip,
   ClinicalField,
@@ -25,6 +28,9 @@ import {
   ClinicalSection,
 } from "@/components/ui/clinical-forms"
 import type { ParsedCareQuery, CareDirectoryMatch } from "@/lib/npi-care-search"
+import { carePlanFromProviderCandidate } from "@/lib/care-plan"
+import { useCarePlans } from "@/lib/hooks/use-care-plans"
+import { trackWorkflowEvent } from "@/lib/product-analytics"
 import { cn } from "@/lib/utils"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
@@ -76,6 +82,7 @@ export default function ProvidersPage() {
   const [autoLocationNote, setAutoLocationNote] = useState("")
   const [handoffNotice, setHandoffNotice] = useState("")
   const [activeGroup, setActiveGroup] = useState<"all" | CareDirectoryMatch["kind"]>("all")
+  const { addPlan } = useCarePlans()
 
   const grouped = useMemo(() => {
     return {
@@ -111,6 +118,7 @@ export default function ProvidersPage() {
 
       setIsLoading(true)
       setHasSearched(true)
+      trackWorkflowEvent("provider_search_started", { surface: "providers" })
       setError("")
       setAutoLocationNote("")
       if (searchQuery) setQuery(searchQuery)
@@ -218,6 +226,14 @@ export default function ProvidersPage() {
     radiology: activeGroup === "all" || activeGroup === "radiology",
   }
 
+  function saveCandidate(item: CareDirectoryMatch) {
+    const context = parsed?.zip
+      ? `Care directory search near ZIP ${parsed.zip}`
+      : "Care directory search"
+    addPlan(carePlanFromProviderCandidate(item, context))
+    trackWorkflowEvent("provider_saved", { surface: "providers" })
+  }
+
   return (
     <div ref={scrollRef} className="animate-slide-up space-y-6">
       <AppPageHeader
@@ -277,7 +293,7 @@ export default function ProvidersPage() {
             <div className="rounded-[22px] border border-amber-300/20 bg-amber-300/[0.08] p-4">
               <p className="text-xs font-semibold text-amber-100">Important safety boundary</p>
               <p className="mt-1 text-sm leading-6 text-secondary">
-                NPI results are directory matches, not proof that a clinician can order for a specific patient in a specific state. Scripts, imaging, labs, referrals, claims, and prior auth still require licensed clinician review.
+                NPI match is not proof of licensure, credentialing, payer enrollment, ordering authority, or availability. Call the office and verify before acting.
               </p>
             </div>
             <div className="rounded-[22px] border border-white/10 bg-white/[0.055] p-4">
@@ -358,6 +374,19 @@ export default function ProvidersPage() {
           </div>
         </div>
       </ClinicalSection>
+
+      <TrustDrawer
+        sources={[{ label: "CMS NPI Registry", url: "https://npiregistry.cms.hhs.gov/" }]}
+        inputsUsed={[
+          parsed?.specialty ? `Specialty: ${parsed.specialty}` : "Requested service type",
+          parsed?.zip ? `ZIP: ${parsed.zip}` : parsed?.city ? `City: ${parsed.city}` : "Location requested in search",
+        ]}
+        inputsNotUsed={["Insurance coverage", "license verification", "appointment availability"]}
+        phiSentToModel={false}
+        routingNote="Search terms are used for the public CMS NPI directory query. OpenRx verification fields remain separate."
+        safetyBoundary="Directory candidates are not approved clinicians or a guarantee of access. Verify licensure, payer fit, ordering authority, and availability."
+        clinicianQuestions={["Does this clinic accept my plan and new patients?", "Can this clinic arrange the recommended screening or referral?"]}
+      />
 
       {hasSearched && !isLoading && ready === false && (
         <div className="reveal surface-card border-yellow-300/40 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(239,246,255,0.88))] p-5">
@@ -476,11 +505,19 @@ export default function ProvidersPage() {
                     <button
                       type="button"
                       data-testid="provider-schedule-button"
-                      onClick={() => openSchedulingFromProvider(topMatch, query || `Call ${topMatch.name} about ${topMatch.specialty || topMatch.kind}`)}
+                      onClick={() => openSchedulingFromProvider(topMatch)}
                       className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[12px] font-semibold text-primary transition hover:bg-white/92"
                     >
                       <CalendarCheck size={14} />
                       Call script
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => saveCandidate(topMatch)}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/10 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-white/12"
+                    >
+                      <FolderPlus size={14} />
+                      Save to Care Plan
                     </button>
                     {topMatch.phone ? (
                       <a
@@ -538,7 +575,7 @@ export default function ProvidersPage() {
               title="Providers"
               icon={Stethoscope}
               items={grouped.providers}
-              query={query}
+              onSave={saveCandidate}
             />
           )}
           {visible.caregivers && (
@@ -546,7 +583,7 @@ export default function ProvidersPage() {
               title="Caregivers"
               icon={Users}
               items={grouped.caregivers}
-              query={query}
+              onSave={saveCandidate}
             />
           )}
           {visible.labs && (
@@ -554,7 +591,7 @@ export default function ProvidersPage() {
               title="Labs"
               icon={Search}
               items={grouped.labs}
-              query={query}
+              onSave={saveCandidate}
             />
           )}
           {visible.radiology && (
@@ -562,7 +599,7 @@ export default function ProvidersPage() {
               title="Radiology Centers"
               icon={ShieldCheck}
               items={grouped.radiology}
-              query={query}
+              onSave={saveCandidate}
             />
           )}
         </div>
@@ -612,9 +649,9 @@ function buildProviderRecommendation(item: CareDirectoryMatch) {
   return `Start here because this ${specialty.toLowerCase()} entry has the cleanest combination of status, contactability, and location detail in the current result set.`
 }
 
-function openSchedulingFromProvider(item: CareDirectoryMatch, reason: string) {
+function openSchedulingFromProvider(item: CareDirectoryMatch) {
   if (typeof window === "undefined") return
-  const prompt = `Help me prepare to call ${item.name}. Phone: ${item.phone || "not listed"}. Address: ${item.fullAddress || "not listed"}. Specialty: ${item.specialty || item.kind}. Reason: ${reason}. Give me a short call script and what to verify before scheduling.`
+  const prompt = `Help me prepare to call ${item.name} about ${item.specialty || item.kind}. Give me a short call script and what to verify before scheduling.`
   window.location.href = `/chat?topic=scheduling&autorun=1&prompt=${encodeURIComponent(prompt)}`
 }
 
@@ -622,12 +659,12 @@ function ResultGroup({
   title,
   icon: Icon,
   items,
-  query,
+  onSave,
 }: {
   title: string
   icon: typeof Stethoscope
   items: CareDirectoryMatch[]
-  query: string
+  onSave: (item: CareDirectoryMatch) => void
 }) {
   if (items.length === 0) return null
   return (
@@ -687,15 +724,16 @@ function ResultGroup({
                 <span className="mt-2 block text-[10px] font-mono text-muted">
                   NPI: {item.npi} · Taxonomy: {item.taxonomyCode || "n/a"}
                 </span>
+                <VerificationLadder item={item} />
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     type="button"
                     data-testid="provider-schedule-button"
-                    onClick={() => openSchedulingFromProvider(item, query || `Schedule ${item.specialty || item.kind} with ${item.name}`)}
+                    onClick={() => openSchedulingFromProvider(item)}
                     className="inline-flex items-center gap-1 rounded-full bg-midnight px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-[#12211d]"
                   >
                     <CalendarCheck size={11} />
-                    Call script
+                    Prepare call
                   </button>
                   {item.phone && (
                     <a
@@ -706,6 +744,28 @@ function ResultGroup({
                       Call
                     </a>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => onSave(item)}
+                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-[10px] font-semibold text-primary transition hover:border-teal/30 hover:text-teal"
+                  >
+                    <FolderPlus size={11} />
+                    Save to Care Plan
+                  </button>
+                  <Link
+                    href={`/chat?topic=coordinator&prompt=${encodeURIComponent(`Draft a short referral request for ${item.specialty || item.kind} care.`)}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-[10px] font-semibold text-primary transition hover:border-teal/30 hover:text-teal"
+                  >
+                    <FilePenLine size={11} />
+                    Draft referral request
+                  </Link>
+                  <Link
+                    href={`/chat?topic=coordinator&prompt=${encodeURIComponent(`Request OpenRx verification for this ${item.specialty || item.kind} directory option.`)}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-[10px] font-semibold text-primary transition hover:border-teal/30 hover:text-teal"
+                  >
+                    <UserCheck size={11} />
+                    Request verification
+                  </Link>
                   {item.fullAddress && (
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.fullAddress)}`}
@@ -720,19 +780,38 @@ function ResultGroup({
                 </div>
               </div>
 
-              <div className="lg:self-center">
-                <AIAction
-                  agentId="scheduling"
-                  label="Coordinate"
-                  prompt={`Coordinate care with ${item.name} (NPI ${item.npi}) and verify network and scheduling options.`}
-                  context={`${item.kind} | ${item.specialty} | ${item.fullAddress} | ${item.phone}`}
-                  variant="inline"
-                />
-              </div>
+              <Link href="/join-network" className="text-xs font-semibold text-teal hover:underline">
+                Apply as provider
+              </Link>
             </div>
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function VerificationLadder({ item }: { item: CareDirectoryMatch }) {
+  const evidence = item.directoryEvidence
+  const verification = item.openRxVerification
+  const steps = [
+    { label: "NPI found", value: "Found", ready: Boolean(evidence?.npiFound) },
+    { label: "Specialty matched", value: evidence?.specialtyMatched ? "Matched" : "Review", ready: evidence?.specialtyMatched === true },
+    { label: "Location matched", value: evidence?.locationMatched ? "Matched" : "Review", ready: evidence?.locationMatched === true },
+    { label: "License verification", value: verification?.licenseVerification === "verified" ? "Verified" : "Pending", ready: verification?.licenseVerification === "verified" },
+    { label: "Ordering authority", value: verification?.orderingAuthority === "verified" ? "Verified" : "Pending", ready: verification?.orderingAuthority === "verified" },
+    { label: "Payer / coverage fit", value: verification?.payerCoverageFit === "verified" ? "Verified" : "Unknown", ready: verification?.payerCoverageFit === "verified" },
+    { label: "Available for scheduling", value: verification?.schedulingAvailability === "available" ? "Available" : "Unknown", ready: verification?.schedulingAvailability === "available" },
+  ]
+
+  return (
+    <div className="mt-4 grid gap-1.5 rounded-[16px] border border-white/10 bg-white/[0.035] p-3 sm:grid-cols-2" data-testid="provider-verification-ladder">
+      {steps.map((step) => (
+        <span key={step.label} className="flex items-center justify-between gap-2 text-[11px] text-secondary">
+          {step.label}
+          <span className={step.ready ? "text-teal" : "text-amber-200"}>{step.value}</span>
+        </span>
+      ))}
     </div>
   )
 }

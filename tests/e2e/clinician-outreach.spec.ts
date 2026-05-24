@@ -33,6 +33,42 @@ test.describe("clinician outreach (private patient calls)", () => {
   })
 
   test("places mock call, ends it, and records documentation with next steps", async ({ page }) => {
+    const baseSession = {
+      id: "call-test",
+      patientRef: "MRN-TEST-2",
+      patientDisplayName: "",
+      patientPhoneMasked: "•••-4321",
+      callerId: { label: "OpenRx demo", maskedNumber: "•••-0100" },
+      reason: "Discuss screening colonoscopy referral",
+      createdAt: Date.now(),
+      startedAt: Date.now(),
+    }
+    await page.route(/\/api\/clinician-calls$/, async (route) => {
+      if (route.request().method() !== "POST") return route.continue()
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          session: { ...baseSession, status: "in_progress" },
+          liveCallingEnabled: false,
+          demoMode: true,
+        }),
+      })
+    })
+    await page.route(/\/api\/clinician-calls\/call-test$/, async (route) => {
+      const body = route.request().postDataJSON() as { action?: string; outcome?: string }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          session: {
+            ...baseSession,
+            status: "completed",
+            outcome: body.action === "document" ? body.outcome : undefined,
+          },
+        }),
+      })
+    })
     await page.goto("/outreach")
 
     await page.getByTestId("outreach-patient-ref").fill("MRN-TEST-2")
@@ -59,6 +95,18 @@ test.describe("clinician outreach (private patient calls)", () => {
     await expect(page.getByTestId("outreach-followthrough")).toBeVisible()
     await expect(page.getByTestId("outreach-followthrough-link-schedule_appointment")).toHaveAttribute("href", /\/scheduling/)
   })
+
+  test("pauses routine outreach when emergency symptoms are entered", async ({ page }) => {
+    await page.goto("/outreach")
+    await page.getByTestId("outreach-patient-ref").fill("MRN-TEST-3")
+    await page.getByTestId("outreach-patient-phone").fill("+15551234567")
+    await page.getByTestId("outreach-reason").fill("Patient reports chest pain and severe shortness of breath")
+    await page.getByTestId("outreach-consent").check()
+    await page.getByTestId("outreach-start-call").click()
+    await expect(page.getByTestId("red-flag-alert")).toBeVisible()
+    await expect(page.getByTestId("outreach-form-error")).toContainText(/emergency guidance/i)
+    await expect(page.getByTestId("outreach-active-session")).toHaveCount(0)
+  })
 })
 
 test.describe("chat action plan", () => {
@@ -76,7 +124,7 @@ test.describe("chat action plan", () => {
     ]).catch(() => undefined)
 
     if (await actionPlan.first().isVisible().catch(() => false)) {
-      await expect(actionPlan.first()).toContainText(/Action plan/i)
+      await expect(actionPlan.first()).toContainText(/Next step/i)
       await expect(page.getByTestId("chat-action-plan-item").first()).toBeVisible()
     }
   })

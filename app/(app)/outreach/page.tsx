@@ -16,7 +16,10 @@ import {
   Voicemail,
 } from "lucide-react"
 import { ClinicianCommandBar } from "@/components/clinician-command-bar"
+import { RedFlagAlert } from "@/components/red-flag-alert"
 import { cn } from "@/lib/utils"
+import { detectRedFlagText } from "@/lib/red-flag"
+import { trackWorkflowEvent } from "@/lib/product-analytics"
 import type {
   CallNextStep,
   CallOutcome,
@@ -110,6 +113,7 @@ export default function OutreachPage() {
   const [consent, setConsent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [redFlagAcknowledged, setRedFlagAcknowledged] = useState(false)
 
   // Active call state
   const [activeSession, setActiveSession] = useState<CallSession | null>(null)
@@ -150,6 +154,12 @@ export default function OutreachPage() {
 
   const startCall = useCallback(async () => {
     setFormError(null)
+    const redFlag = detectRedFlagText(reason)
+    if (redFlag && !redFlagAcknowledged) {
+      trackWorkflowEvent("red_flag_triggered", { surface: "outreach", category: redFlag.category })
+      setFormError("Urgent symptoms require emergency guidance before routine outreach.")
+      return
+    }
     if (!consent) {
       setFormError("Confirm patient consent before placing the call.")
       return
@@ -160,6 +170,10 @@ export default function OutreachPage() {
     }
     if (!patientPhone.trim()) {
       setFormError("Patient phone number is required.")
+      return
+    }
+    if (!/^\+[1-9]\d{7,14}$/.test(patientPhone.trim())) {
+      setFormError("Patient phone must be valid E.164 (for example, +15551234567).")
       return
     }
     if (!reason.trim()) {
@@ -198,7 +212,7 @@ export default function OutreachPage() {
     } finally {
       setSubmitting(false)
     }
-  }, [consent, patientRef, patientPhone, patientDisplayName, callerIdLabel, reason, recordCall, refreshCapabilities])
+  }, [consent, patientRef, patientPhone, patientDisplayName, callerIdLabel, reason, recordCall, refreshCapabilities, redFlagAcknowledged])
 
   const endCall = useCallback(async () => {
     if (!activeSession) return
@@ -265,11 +279,13 @@ export default function OutreachPage() {
     setDocSavedAt(null)
     setFormError(null)
     setDocError(null)
+    setRedFlagAcknowledged(false)
   }, [])
 
   const callerIds = useMemo(() => capabilities?.callerIds ?? [], [capabilities])
   const liveEnabled = Boolean(capabilities?.liveCallingEnabled)
   const setupMessage = capabilities?.setupMessage ?? ""
+  const redFlag = useMemo(() => detectRedFlagText(`${reason} ${notes}`), [notes, reason])
 
   const selectedCaller = useMemo<MaskedCallerId | undefined>(
     () => callerIds.find((c) => c.label === callerIdLabel) || callerIds[0],
@@ -316,6 +332,14 @@ export default function OutreachPage() {
             </p>
           </div>
         </div>
+      ) : null}
+
+      {redFlag ? (
+        <RedFlagAlert
+          finding={redFlag}
+          acknowledged={redFlagAcknowledged}
+          onAcknowledge={() => setRedFlagAcknowledged(true)}
+        />
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">

@@ -10,16 +10,15 @@ export async function GET(request: NextRequest) {
 
   try {
     const conversations = await listChatConversations(owner.ownerKey)
-    return attachChatHistoryCookie(NextResponse.json({ conversations }), owner)
+    // Reading an empty anonymous history must not establish a competing owner
+    // while the user's first streamed message creates the actual conversation.
+    return NextResponse.json({ conversations })
   } catch (error) {
     console.error("Chat history list failed; returning empty history:", error)
-    return attachChatHistoryCookie(
-      NextResponse.json({
-        conversations: [],
-        historyStatus: "temporarily_unavailable",
-      }),
-      owner
-    )
+    return NextResponse.json({
+      conversations: [],
+      historyStatus: "temporarily_unavailable",
+    })
   }
 }
 

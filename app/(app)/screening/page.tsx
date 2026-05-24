@@ -17,6 +17,9 @@ import {
 } from "lucide-react"
 import { AppPageHeader } from "@/components/layout/app-page"
 import { BaseUsdcTransaction } from "@/components/payments/base-usdc-transaction"
+import { CarePlanPreview } from "@/components/care-plan-preview"
+import { RedFlagAlert } from "@/components/red-flag-alert"
+import { TrustDrawer } from "@/components/trust-drawer"
 import {
   ChoiceChip,
   ClinicalField,
@@ -28,6 +31,7 @@ import {
 import { cn } from "@/lib/utils"
 import type { ScreeningAssessment } from "@/lib/basehealth"
 import { nextStepLabel } from "@/lib/screening/recommend"
+import { getGuidelineSource } from "@/lib/screening/sources"
 import type {
   ScreeningNextStep,
   ScreeningRecommendation as StructuredScreeningRecommendation,
@@ -35,12 +39,16 @@ import type {
 import type { CareDirectoryMatch, CareSearchType } from "@/lib/npi-care-search"
 import type { ScreeningEvidenceCitation } from "@/lib/screening-evidence"
 import type { ScreeningIntakeResult } from "@/lib/screening-intake"
+import { summarizeScreeningIntake } from "@/lib/screening-intake"
 import type { PaymentRecord } from "@/lib/payments-ledger"
 import { toBaseBuilderTxUrl } from "@/lib/basebuilder/config"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
+import { carePlanFromScreeningRecommendations } from "@/lib/care-plan"
+import { trackWorkflowEvent } from "@/lib/product-analytics"
+import { detectRedFlagText } from "@/lib/red-flag"
 import {
   SCREENING_HANDOFF_STORAGE_KEY,
   isFreshCareHandoff,
@@ -131,44 +139,7 @@ function parseScreeningHandoff(raw: string | null): ScreeningHandoffPayload | nu
   }
 }
 
-function locationSuffix(location?: string) {
-  const cleaned = (location || "").replace(/\s+/g, " ").trim()
-  return cleaned ? ` near ${cleaned}` : ""
-}
-
-function recommendationSpecialtyQuery(rec: StructuredScreeningRecommendation) {
-  const steps = rec.nextSteps
-  const haystack = `${rec.screeningName} ${rec.cancerType} ${rec.recommendedNextStep}`.toLowerCase()
-
-  if (steps.includes("seek_urgent_care")) return "urgent care providers"
-  if (steps.includes("request_colonoscopy")) return "gastroenterology providers for colonoscopy"
-  if (steps.includes("request_mammogram")) return "mammography radiology centers"
-  if (steps.includes("request_ldct")) return "low-dose CT radiology centers"
-  if (steps.includes("request_cervical_screening")) return "obgyn or primary care providers for Pap HPV screening"
-  if (steps.includes("request_psa_discussion")) return "urology or primary care providers for PSA screening discussion"
-  if (steps.includes("request_genetic_counseling")) return "genetic counseling or cancer genetics providers"
-  if (steps.includes("request_specialist_review")) {
-    if (haystack.includes("prostate")) return "urology providers"
-    if (haystack.includes("breast")) return "breast oncology or breast clinic providers"
-    if (haystack.includes("colon") || haystack.includes("colorectal")) return "gastroenterology providers"
-    if (haystack.includes("lung")) return "pulmonology providers"
-    if (haystack.includes("cervical")) return "obgyn providers"
-    return "specialist providers"
-  }
-  if (steps.includes("request_imaging")) return "radiology centers"
-  if (steps.includes("request_lab")) return "clinical laboratories"
-  if (steps.includes("request_referral")) return "primary care providers for referral"
-  return "primary care providers"
-}
-
-function buildRecommendationCareQuery(rec: StructuredScreeningRecommendation, location?: string) {
-  const suffix = locationSuffix(location)
-  return suffix
-    ? `Find ${recommendationSpecialtyQuery(rec)}${suffix} for ${rec.screeningName}`
-    : `Find ${recommendationSpecialtyQuery(rec)}`
-}
-
-type RecommendationSectionId = "due_now" | "needs_review" | "upcoming" | "not_indicated"
+type RecommendationSectionId = "urgent" | "due_now" | "needs_review" | "upcoming" | "not_enough" | "not_indicated"
 
 type RecommendationSection = {
   id: RecommendationSectionId
@@ -179,8 +150,14 @@ type RecommendationSection = {
 
 const RECOMMENDATION_SECTION_ORDER: RecommendationSection[] = [
   {
+    id: "urgent",
+    title: "Urgent / do not use screening pathway",
+    description: "Symptoms need prompt medical evaluation rather than a routine preventive screening workflow.",
+    items: [],
+  },
+  {
     id: "due_now",
-    title: "Due now",
+    title: "Likely due",
     description: "Actionable preventive steps that can move into provider search or care navigation.",
     items: [],
   },
@@ -192,8 +169,14 @@ const RECOMMENDATION_SECTION_ORDER: RecommendationSection[] = [
   },
   {
     id: "upcoming",
-    title: "Upcoming or discuss",
+    title: "May be due depending on details",
     description: "Items to clarify, track, or discuss before they become a direct scheduling task.",
+    items: [],
+  },
+  {
+    id: "not_enough",
+    title: "Not enough information",
+    description: "Add the missing detail shown below before relying on a screening recommendation.",
     items: [],
   },
   {
@@ -205,9 +188,9 @@ const RECOMMENDATION_SECTION_ORDER: RecommendationSection[] = [
 ]
 
 function recommendationSectionId(rec: StructuredScreeningRecommendation): RecommendationSectionId {
+  if (rec.status === "urgent_clinician_review") return "urgent"
   if (
     rec.requiresClinicianReview ||
-    rec.status === "urgent_clinician_review" ||
     rec.status === "high_risk" ||
     rec.status === "needs_clinician_review" ||
     rec.status === "surveillance_or_follow_up"
@@ -215,13 +198,14 @@ function recommendationSectionId(rec: StructuredScreeningRecommendation): Recomm
     return "needs_review"
   }
   if (rec.status === "due") return "due_now"
+  if (rec.status === "unknown") return "not_enough"
   if (rec.status === "not_due") return "not_indicated"
   return "upcoming"
 }
 
 export default function ScreeningPage() {
   const { snapshot } = useLiveSnapshot()
-  const { walletAddress, isConnected, profile, getWalletAuthHeaders } = useWalletIdentity()
+  const { walletAddress, profile, getWalletAuthHeaders } = useWalletIdentity()
   const scrollRef = useScrollReveal()
   const seededHandoffRef = useRef(false)
   const [assessment, setAssessment] = useState<ScreeningResponse | null>(null)
@@ -239,6 +223,8 @@ export default function ScreeningPage() {
   const [smokerTouched, setSmokerTouched] = useState(false)
   const [narrative, setNarrative] = useState("")
   const [intakeFeedback, setIntakeFeedback] = useState("")
+  const [intakePreview, setIntakePreview] = useState<ScreeningIntakeResult["extracted"] | null>(null)
+  const [acknowledgedRedFlag, setAcknowledgedRedFlag] = useState<string | null>(null)
 
   const [paymentIntent, setPaymentIntent] = useState<PaymentRecord | null>(null)
   const [paymentId, setPaymentId] = useState("")
@@ -254,20 +240,6 @@ export default function ScreeningPage() {
   const [error, setError] = useState("")
   const [handoffNotice, setHandoffNotice] = useState("")
   const [autoRunRequested, setAutoRunRequested] = useState(false)
-
-  const riskStyle = useMemo(() => {
-    if (!assessment) return "bg-border text-muted"
-    if (assessment.riskTier === "high") return "bg-soft-red/10 text-soft-red"
-    if (assessment.riskTier === "moderate") return "bg-yellow-100 text-yellow-800"
-    return "bg-accent/10 text-accent"
-  }, [assessment])
-
-  const riskBarStyle = useMemo(() => {
-    if (!assessment) return "bg-border"
-    if (assessment.riskTier === "high") return "bg-soft-red"
-    if (assessment.riskTier === "moderate") return "bg-yellow-500"
-    return "bg-accent"
-  }, [assessment])
 
   const accessLevel: ScreeningAnalysisLevel = assessment?.accessLevel === "deep" ? "deep" : "preview"
   const showingDeepResults = accessLevel === "deep"
@@ -293,6 +265,17 @@ export default function ScreeningPage() {
   const structuredRecommendations = useMemo(
     () => assessment?.structuredRecommendations || [],
     [assessment?.structuredRecommendations]
+  )
+  const narrativeRedFlag = useMemo(() => detectRedFlagText(`${narrative} ${symptoms}`), [narrative, symptoms])
+  const carePlanDraft = useMemo(
+    () => structuredRecommendations.length > 0
+      ? carePlanFromScreeningRecommendations(
+          structuredRecommendations,
+          intakePreview ? summarizeScreeningIntake(intakePreview) : "Screening context supplied in this session.",
+          "screening"
+        )
+      : null,
+    [intakePreview, structuredRecommendations]
   )
   const recommendationSections = useMemo(() => {
     if (structuredRecommendations.length === 0) return []
@@ -528,7 +511,17 @@ export default function ScreeningPage() {
       if (!response.ok || data.error) {
         throw new Error(data.error || "Could not parse screening history.")
       }
-      const inheritedRiskDetected = [...(data.extracted.familyHistory || []), ...(data.extracted.conditions || [])]
+      const extracted: ScreeningIntakeResult["extracted"] = {
+        ...data.extracted,
+        familyHistory: data.extracted.familyHistory || [],
+        conditions: data.extracted.conditions || [],
+        genes: data.extracted.genes || [],
+        symptoms: data.extracted.symptoms || [],
+        knownMutationOrSyndrome: data.extracted.knownMutationOrSyndrome || [],
+        priorAbnormalFindings: data.extracted.priorAbnormalFindings || [],
+        redFlags: data.extracted.redFlags || [],
+      }
+      const inheritedRiskDetected = [...extracted.familyHistory, ...extracted.conditions]
         .some((item) => /\b(brca|lynch|apc|mutyh|germline|prostate|colon|colorectal|polyposis)\b/i.test(item))
       setIntakeFeedback(
         data.ready
@@ -538,7 +531,8 @@ export default function ScreeningPage() {
           : data.clarificationQuestion ||
             "Parsed what you shared. You can still continue, or add one more risk detail for better precision."
       )
-      return data.extracted
+      setIntakePreview(extracted)
+      return extracted
     } catch {
       setIntakeFeedback("Could not auto-parse that message. You can still continue with what was entered.")
       return null
@@ -548,6 +542,13 @@ export default function ScreeningPage() {
   async function runScreening(level: ScreeningAnalysisLevel) {
     if (!canRunPreview) {
       setError("Share one short sentence about your age and family/genetic history to start.")
+      return
+    }
+    if (narrativeRedFlag) {
+      if (acknowledgedRedFlag !== narrativeRedFlag.category) {
+        trackWorkflowEvent("red_flag_triggered", { surface: "screening", category: narrativeRedFlag.category })
+      }
+      setError("Urgent symptoms should not be evaluated as a routine screening request. Follow the safety guidance shown below.")
       return
     }
 
@@ -565,6 +566,7 @@ export default function ScreeningPage() {
 
     setRunning(true)
     setError("")
+    trackWorkflowEvent("screening_started", { surface: "screening", category: level })
     try {
       const extracted = await parseNarrativeIntakeIfPresent()
       const manualSymptoms = parseTerms(symptoms)
@@ -610,6 +612,7 @@ export default function ScreeningPage() {
       setAssessment(data)
       setLocalCareConnections(data.localCareConnections || [])
       setEvidenceCitations(data.evidenceCitations || [])
+      trackWorkflowEvent("screening_completed", { surface: "screening", category: level, count: data.structuredRecommendations?.length || 0 })
       if (data.accessLevel === "deep") {
         setShowPaymentGate(false)
       }
@@ -690,17 +693,21 @@ export default function ScreeningPage() {
 
   function openProviderSearchFromRecommendation(rec: StructuredScreeningRecommendation) {
     if (typeof window === "undefined") return
-    const query = buildRecommendationCareQuery(rec, snapshot.patient?.address)
-    const prompt = `Help me find who to call for this screening recommendation. Ask for ZIP code first if missing, then return public clinic names, phone numbers, specialty, address, and what to ask when calling. Search intent: ${query}`
+    const prompt = `Find who I can call for ${rec.screeningName}.`
     window.location.href = `/chat?topic=scheduling&autorun=1&prompt=${encodeURIComponent(prompt)}`
+  }
+
+  function draftClinicianMessage(rec: StructuredScreeningRecommendation) {
+    const prompt = `Draft a short message to my clinician about ${rec.screeningName} and the next step.`
+    window.location.href = `/chat?topic=coordinator&autorun=1&prompt=${encodeURIComponent(prompt)}`
   }
 
   return (
     <div ref={scrollRef} className="animate-slide-up space-y-6">
       <AppPageHeader
-        eyebrow="Structured screening intake"
-        title="Use this when chat needs more detail."
-        description="Most screening questions should be answered directly in chat. This longer intake exists for complex history, inherited-risk context, and local follow-up planning."
+        eyebrow="Screening details"
+        title="Check what's due."
+        description="Add family history, known mutations, prior findings, symptoms, or smoking history when relevant."
         meta={
           <div className="flex flex-wrap gap-2">
             <span className="metric-chip">
@@ -724,35 +731,10 @@ export default function ScreeningPage() {
             href="/chat?prompt=What%20screening%20is%20due%20for%20me%3F%20Ask%20one%20follow-up%20only%20if%20needed%2C%20then%20give%20recommendations%20in%20chat.&topic=screening"
             className="control-button-primary"
           >
-            Ask in chat
+            Ask instead
           </Link>
         }
       />
-
-      <section className="reveal overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_64%,#173B83_100%)] p-4 text-white shadow-[0_18px_38px_rgba(8,24,46,0.14)] md:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">One sentence in, care plan out</p>
-            <h2 className="mt-3 max-w-2xl text-[2rem] font-semibold tracking-[-0.045em] leading-[0.98] text-white">Share context once. OpenRx carries it forward.</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">
-              Free preview stays first. Advanced inherited-risk review is optional, cited, and gated only when needed.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {["Ask once", "Auto-extract risk", "Show next step"].map((item) => (
-              <span key={item} className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[11px] font-semibold text-white/76">
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {!isConnected && (
-        <div className="rounded-xl border border-yellow-300/30 bg-yellow-100/20 p-3 text-xs text-secondary">
-          Payment setup is not needed for the free preview. Use advanced review only if inherited-risk depth is relevant.
-        </div>
-      )}
 
       {error && (
         <div
@@ -768,6 +750,14 @@ export default function ScreeningPage() {
           <span className="font-semibold text-primary">Context carried forward.</span> {handoffNotice}
         </div>
       )}
+
+      {narrativeRedFlag ? (
+        <RedFlagAlert
+          finding={narrativeRedFlag}
+          acknowledged={acknowledgedRedFlag === narrativeRedFlag.category}
+          onAcknowledge={() => setAcknowledgedRedFlag(narrativeRedFlag.category)}
+        />
+      ) : null}
 
       {paymentGateVisible && (
         <FieldsetCard
@@ -947,6 +937,31 @@ export default function ScreeningPage() {
                 {intakeFeedback ? <p className="text-[11px] text-muted">{intakeFeedback}</p> : null}
               </div>
 
+              {intakePreview ? (
+                <div data-testid="screening-intake-preview" className="rounded-[18px] border border-cyan-200/14 bg-cyan-200/[0.045] p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">What OpenRx understood</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {typeof intakePreview.age === "number" ? <ChoiceChip>Age {intakePreview.age}</ChoiceChip> : null}
+                    {intakePreview.sexAtBirth ? <ChoiceChip>Sex for screening: {intakePreview.sexAtBirth}</ChoiceChip> : null}
+                    {typeof intakePreview.smokingPackYears === "number" ? <ChoiceChip>{intakePreview.smokingPackYears} pack-years</ChoiceChip> : null}
+                    {intakePreview.location ? <ChoiceChip>Location: {intakePreview.location}</ChoiceChip> : null}
+                    {intakePreview.knownMutationOrSyndrome.map((value) => <ChoiceChip key={value}>{value} reported</ChoiceChip>)}
+                  </div>
+                  {intakePreview.familyHistory.length ? (
+                    <p className="mt-3 text-[12px] leading-5 text-secondary">Family history: {intakePreview.familyHistory.join("; ")}</p>
+                  ) : null}
+                  {intakePreview.priorAbnormalFindings.length ? (
+                    <p className="mt-2 text-[12px] leading-5 text-secondary">Prior abnormal findings: {intakePreview.priorAbnormalFindings.join("; ")}</p>
+                  ) : null}
+                  {intakePreview.redFlags.length ? (
+                    <p className="mt-2 text-[12px] font-semibold leading-5 text-red-200">Symptoms requiring non-routine review: {intakePreview.redFlags.join("; ")}</p>
+                  ) : null}
+                  {!intakePreview.smokingPackYears && typeof intakePreview.age === "number" && intakePreview.age >= 50 ? (
+                    <p className="mt-3 text-[12px] text-zinc-400">High-value question: Have you ever smoked 20 or more pack-years, and if so, when did you quit?</p>
+                  ) : null}
+                </div>
+              ) : null}
+
               <FieldsetCard
                 legend="Optional structured details"
                 description="Use these only if you want to refine the narrative or if the intake parser missed something."
@@ -1090,38 +1105,17 @@ export default function ScreeningPage() {
 
         <div className="reveal reveal-delay-1 overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_60%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(47,107,255,0.14)] lg:sticky lg:top-28">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-white">Assessment brief</h2>
-            {assessment && (
-              <span className={cn("text-[10px] font-bold px-2 py-1 rounded-full uppercase", riskStyle)}>
-                {assessment.riskTier}
-              </span>
-            )}
+            <h2 className="text-sm font-bold text-white">Your next steps</h2>
+            {assessment ? <span className="rounded-full border border-white/12 bg-white/8 px-2 py-1 text-[10px] font-bold uppercase text-white/70">preview ready</span> : null}
           </div>
           {!assessment ? (
-            <div className="flex h-24 items-center justify-center text-xs text-white/66">
-              <Wallet size={14} className="mr-2" /> Run free preview to generate baseline screening guidance.
+            <div className="space-y-3 text-xs leading-6 text-white/66">
+              <p>Run the free preview to see likely next steps.</p>
+              <p>No wallet is required. Only the details in your sentence are used.</p>
             </div>
           ) : (
             <>
-              <div className="text-3xl font-bold text-white">{assessment.overallRiskScore}</div>
-              <div className="text-xs text-white/56">Overall preventive risk score</div>
-              <div className="mt-3 h-2 rounded-full bg-white/10 overflow-hidden">
-                <div
-                  className={cn("h-full rounded-full transition-all duration-700", riskBarStyle)}
-                  style={{ width: `${assessment.overallRiskScore}%` }}
-                />
-              </div>
-              <div className="mt-3 space-y-1">
-                {assessment.factors.slice(0, 3).map((factor) => (
-                  <div
-                    key={factor.label}
-                    className="flex items-start justify-between text-[11px] text-white/72"
-                  >
-                    <span>{factor.label}</span>
-                    <span className="font-semibold">{factor.scoreDelta > 0 ? `+${factor.scoreDelta}` : factor.scoreDelta}</span>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm leading-6 text-white/72">OpenRx found {structuredRecommendations.length || assessment.recommendedScreenings.length} possible care item{structuredRecommendations.length === 1 ? "" : "s"} from the information supplied.</p>
               {briefRecommendationItems.length > 0 && (
                 <div className="mt-4 rounded-[20px] border border-white/12 bg-white/8 p-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
@@ -1181,6 +1175,20 @@ export default function ScreeningPage() {
         </section>
       )}
 
+      {carePlanDraft ? <CarePlanPreview draft={carePlanDraft} /> : null}
+
+      {assessment ? (
+        <TrustDrawer
+          sources={evidenceCitations.map((citation) => ({ label: citation.title, url: citation.url, date: citation.publishedAt }))}
+          inputsUsed={intakePreview ? [summarizeScreeningIntake(intakePreview)] : ["Details provided in screening intake"]}
+          inputsNotUsed={["Wallet identity for the free preview", "Insurance coverage or network status"]}
+          phiSentToModel={showingDeepResults}
+          routingNote={showingDeepResults ? "Advanced evidence review may query configured evidence services using minimized screening context." : "Free preview is generated from typed screening rules and source metadata."}
+          emergencyWarning={narrativeRedFlag?.emergencyMessage}
+          clinicianQuestions={["Which recommendation should I act on first?", "Does my family or genetic history change the interval?"]}
+        />
+      ) : null}
+
       {assessment && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="reveal reveal-delay-1 surface-card p-5">
@@ -1214,6 +1222,7 @@ export default function ScreeningPage() {
                                   : "bg-accent/10 text-accent"
                           const requestKey = primaryAction ? `${rec.id}:${primaryAction}` : ""
                           const hasLocationContext = Boolean(snapshot.patient?.address?.trim())
+                          const source = getGuidelineSource(rec.sourceId)
                           return (
                             <div
                               key={rec.id}
@@ -1230,7 +1239,12 @@ export default function ScreeningPage() {
                               </div>
                               <div className="mt-2 flex flex-wrap gap-1.5">
                                 <span className="chip">{rec.riskCategory.replaceAll("_", " ")}</span>
-                                <span className="chip">{rec.sourceSystem}</span>
+                                {source?.url ? (
+                                  <a href={source.url} target="_blank" rel="noreferrer" className="chip hover:border-teal/30 hover:text-teal">
+                                    {rec.sourceSystem} source
+                                    <ExternalLink size={10} />
+                                  </a>
+                                ) : <span className="chip">Needs clinician review</span>}
                                 {rec.suggestedTiming ? <span className="chip">{rec.suggestedTiming}</span> : null}
                                 {rec.requiresClinicianReview ? <span className="chip">clinician review</span> : null}
                               </div>
@@ -1264,6 +1278,14 @@ export default function ScreeningPage() {
                                       Save request
                                     </button>
                                   ) : null}
+                                  <button
+                                    type="button"
+                                    data-testid="recommendation-draft-message"
+                                    onClick={() => draftClinicianMessage(rec)}
+                                    className="rounded-2xl border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-semibold text-muted transition hover:border-teal/25 hover:text-teal"
+                                  >
+                                    Draft message to clinician
+                                  </button>
                                   {requestKey && nextStepStatus[requestKey] ? (
                                     <span className="text-[11px] text-muted">{nextStepStatus[requestKey]}</span>
                                   ) : null}

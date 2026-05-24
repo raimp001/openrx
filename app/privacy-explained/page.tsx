@@ -23,14 +23,21 @@ const shortVersion = [
 
 const demoStorage = [
   "The interface can run on seeded demo records without requiring personal health information.",
+  "Care Plan tasks saved in demo mode stay in this browser and contain concise next-step summaries, not a full medical record.",
   "Your session behavior is meant to be explorable before you commit any persistent identity.",
   "Clearing local browser state removes the temporary client-side session context used for demo flows.",
 ]
 
 const walletStorage = [
   "Connected wallet mode stores profile preferences against a pseudonymous wallet address.",
-  "We do not intentionally write identifiers like Social Security numbers or insurance IDs on-chain.",
+  "Optional USDC tips on Base record only a payment transaction. Prompts, recommendations, names, insurance IDs, and patient identifiers are not written on-chain.",
   "Wallet-linked preferences are meant for continuity of care coordination, not public disclosure.",
+]
+
+const workflowAnalytics = [
+  "We track workflow events such as chat started, answer generated, source opened, care plan created, provider saved, tip completed, and red-flag safety triggered.",
+  "Events use a temporary pseudonymous session identifier and a small allowlist of status/category fields.",
+  "We do not log clinical prompts, names, phone numbers, medical-record numbers, insurance IDs, Social Security numbers, or full addresses in product analytics by default.",
 ]
 
 const neverDo = [
@@ -190,6 +197,20 @@ export default function PrivacyExplainedPage() {
               >
                 <XCircle size={15} className="mt-0.5 shrink-0 text-soft-red" />
                 <p className="text-sm leading-6 text-primary">{item}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-10 surface-card p-6">
+          <div className="flex items-center gap-2">
+            <Eye size={16} className="text-teal" />
+            <div className="section-title">Workflow analytics</div>
+          </div>
+          <div className="mt-5 space-y-3">
+            {workflowAnalytics.map((item) => (
+              <div key={item} className="rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-[rgba(255,255,255,0.74)] px-4 py-3 text-sm leading-6 text-secondary">
+                {item}
               </div>
             ))}
           </div>

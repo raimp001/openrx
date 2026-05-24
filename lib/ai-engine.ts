@@ -172,6 +172,9 @@ function buildCareSearchQuery(message: string, history: ConversationMessage[]): 
   const trimmed = message.trim()
   const previous = lastCareSearchContext(history)
   if (ZIP_ONLY_PATTERN.test(trimmed) && previous) {
+    if (/\b(screening site|these recommendations)\b/i.test(previous)) {
+      return `Find primary care near ${trimmed}`
+    }
     return `${previous} near ${trimmed}`
   }
   if (/\b\d{5}(?:-\d{4})?\b/.test(trimmed) && previous && !/\b(find|search|primary care|pcp|physician|doctor|clinic|radiology|imaging|mammogram|ldct|colonoscopy|lab|laboratory)\b/i.test(trimmed)) {

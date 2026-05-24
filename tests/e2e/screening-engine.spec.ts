@@ -304,6 +304,46 @@ test("screening care actions route to clinic search even from an older screening
   expect(response.response).not.toContain("Share age")
 })
 
+test("screening ZIP follow-up searches primary care phone numbers in the same thread", async () => {
+  const sessionId = "screening-zip-primary-care-regression"
+  await runAgent({
+    agentId: "scheduling",
+    message: "Find a clinic or screening site for these recommendations.",
+    sessionId,
+  })
+
+  const requestedSpecialties: string[] = []
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (async (input) => {
+    const url = new URL(String(input))
+    requestedSpecialties.push(url.searchParams.get("taxonomy_description") || "")
+    return new Response(JSON.stringify({
+      results: [{
+        number: "1952413395",
+        basic: { first_name: "Chad", last_name: "Pfefer", status: "A" },
+        addresses: [{
+          address_purpose: "LOCATION",
+          address_1: "545 SE Oak St",
+          city: "Hillsboro",
+          state: "OR",
+          postal_code: "97123",
+          telephone_number: "503-640-1450",
+        }],
+        taxonomies: [{ code: "207R00000X", desc: "Internal Medicine", primary: true }],
+      }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } })
+  }) as typeof fetch
+
+  try {
+    const response = await runAgent({ agentId: "scheduling", message: "97123", sessionId })
+    expect(requestedSpecialties).toContain("Internal Medicine")
+    expect(response.response).toContain("public clinic options near 97123")
+    expect(response.response).toContain("tel:+15036401450")
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 test("chat care-network handoff preserves provider query for automatic search", () => {
   const action = resolveCareHandoff("Find a radiology center near Portland OR 97204", "scheduling")
 

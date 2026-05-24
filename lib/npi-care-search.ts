@@ -186,7 +186,7 @@ interface RankedCareDirectoryMatch extends CareDirectoryMatch {
   locationState: string
 }
 
-function toPublicCareDirectoryMatch(entry: RankedCareDirectoryMatch): CareDirectoryMatch {
+function toPublicCareDirectoryMatch(entry: RankedCareDirectoryMatch, parsed: ParsedCareQuery): CareDirectoryMatch {
   const { locationMatched, locationScore, locationState, ...publicEntry } = entry
   void locationScore
   void locationState
@@ -195,7 +195,9 @@ function toPublicCareDirectoryMatch(entry: RankedCareDirectoryMatch): CareDirect
     directoryEvidence: {
       source: "CMS_NPPES",
       npiFound: true,
-      specialtyMatched: Boolean(entry.specialty),
+      specialtyMatched: parsed.specialty
+        ? entry.specialty.toLowerCase().includes(parsed.specialty.toLowerCase())
+        : Boolean(entry.specialty),
       locationMatched,
     },
     openRxVerification: {
@@ -692,11 +694,12 @@ function mapResult(
   const parsedCityLower = normalizeAddressText(parsed.city)
   const resultCityLower = normalizeAddressText(locationAddress.city)
   const cityMatched = !!parsedCityLower && parsedCityLower === resultCityLower
+  const matchesRequestedSpecialty = !!specialtyLower && taxonomyLower.includes(specialtyLower)
   const isHighConfidence =
-    (!!specialtyLower && taxonomyLower.includes(specialtyLower)) ||
+    matchesRequestedSpecialty ||
     (!!roleLower && taxonomyLower.includes(roleLower)) ||
     cityMatched ||
-    (kind === requested && (requested === "provider" || taxonomyLower.length > 0))
+    (!specialtyLower && !roleLower && kind === requested && (requested === "provider" || taxonomyLower.length > 0))
 
   const fullAddress = [
     locationAddress.address_1,
@@ -827,8 +830,11 @@ export async function searchNpiCareDirectory(
   }
 
   const filteredResults = filterDominantStateForCityOnly(results, parsed)
+  const clinicallyMatchedResults = parsed.specialty
+    ? filteredResults.filter((match) => match.specialty.toLowerCase().includes(parsed.specialty!.toLowerCase()))
+    : filteredResults
 
-  const sorted = filteredResults.sort((a, b) => {
+  const sorted = clinicallyMatchedResults.sort((a, b) => {
     if (a.locationScore !== b.locationScore) return b.locationScore - a.locationScore
     if (a.confidence !== b.confidence) return a.confidence === "high" ? -1 : 1
     if (a.status !== b.status) return a.status === "Active" ? -1 : 1
@@ -847,7 +853,7 @@ export async function searchNpiCareDirectory(
       image: CARE_SEARCH_PROMPT_IMAGE_PATH,
       text: CARE_SEARCH_PROMPT_TEXT,
     },
-    matches: sorted.slice(0, limit).map(toPublicCareDirectoryMatch),
+    matches: sorted.slice(0, limit).map((match) => toPublicCareDirectoryMatch(match, parsed)),
   }
 }
 

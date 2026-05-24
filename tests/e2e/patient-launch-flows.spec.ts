@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { assessHealthScreening } from "@/lib/basehealth"
-import { parseCareSearchQuery } from "@/lib/npi-care-search"
+import { parseCareSearchQuery, searchNpiCareDirectory } from "@/lib/npi-care-search"
 
 test("screening engine surfaces age- and sex-appropriate prevention routes", () => {
   const femalePlan = assessHealthScreening({
@@ -50,6 +50,32 @@ test("care search parser routes screening studies to the right local service lin
   const lab = parseCareSearchQuery("Find a lab near 98101")
   expect(lab.ready).toBe(true)
   expect(lab.serviceTypes).toContain("lab")
+})
+
+test("specialty care search does not present unrelated broad-directory results as matches", async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    results: [{
+      number: "1376314070",
+      basic: { organization_name: "Example Pharmacy", status: "A" },
+      addresses: [{
+        address_purpose: "LOCATION",
+        address_1: "2525 SE TV Hwy",
+        city: "Hillsboro",
+        state: "OR",
+        postal_code: "97123",
+        telephone_number: "503-681-0262",
+      }],
+      taxonomies: [{ code: "3336C0003X", desc: "Pharmacy, Community/Retail Pharmacy", primary: true }],
+    }],
+  }), { status: 200, headers: { "Content-Type": "application/json" } })) as typeof fetch
+
+  try {
+    const results = await searchNpiCareDirectory("Find colonoscopy center near 97123", { limit: 5 })
+    expect(results.matches).toEqual([])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
 
 test("provider onboarding rejects ordering clinicians without regulatory attestations", async ({ request }) => {

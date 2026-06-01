@@ -1,0 +1,89 @@
+const RULE_VERSION = "openrx-hotfix-prevention-rules-2026-06-01"
+
+function parseAge(message: string): number | undefined {
+  const patterns = [
+    /\bage\s*(?:is|:)?\s*(\d{1,3})\b/i,
+    /\b(\d{1,3})\s*(?:yo|y\/o|years?\s*old|year[-\s]old)\b/i,
+    /\bi\s*am\s*(\d{1,3})\b/i,
+    /\b(\d{1,3})\s+(?:male|female|man|woman|m|f)\b/i,
+  ]
+  for (const pattern of patterns) {
+    const match = message.match(pattern)
+    if (!match) continue
+    const age = Number.parseInt(match[1], 10)
+    if (Number.isFinite(age) && age > 0 && age < 130) return age
+  }
+  return undefined
+}
+
+function parseSex(message: string): "female" | "male" | "unknown" {
+  if (/\b(female|woman|girl|f)\b/i.test(message)) return "female"
+  if (/\b(male|man|boy|m)\b/i.test(message)) return "male"
+  return "unknown"
+}
+
+function shouldAnswerWithRules(message: string): boolean {
+  const lower = message.toLowerCase().trim()
+  if (!lower) return false
+  const profileOnly = /^(?:i\s*am\s*)?(?:age\s*)?\d{1,3}\s*(?:yo|y\/o|years?\s*old|year[-\s]old)?\s*(?:male|female|man|woman|m|f)\.?$/.test(lower)
+  const preventionIntent = /\b(screen|screening|preventive|prevention|risk|cancer|uspstf|checkup|due|genetic|colonoscopy|mammogram|pap|hpv)\b/.test(lower)
+  const profileSignal = /\b(age|aged|\d{1,3}\s*(?:yo|y\/o|years?\s*old|year[-\s]old|male|female|man|woman|m|f)|brca1|brca2|lynch|pack[-\s]?years?)\b/.test(lower)
+  return profileOnly || preventionIntent || profileSignal
+}
+
+export function deterministicClinicalResponse(message: string): string | null {
+  if (!shouldAnswerWithRules(message)) return null
+
+  const age = parseAge(message)
+  const sex = parseSex(message)
+  const missing: string[] = []
+  if (typeof age !== "number") missing.push("age")
+  if (sex === "unknown") missing.push("sex at birth")
+
+  if (missing.length > 0) {
+    return `To build a guideline-backed prevention plan, please share: ${missing.slice(0, 3).join("; ")}.`
+  }
+
+  const recommendations: string[] = []
+
+  if (age >= 45 && age <= 49) {
+    recommendations.push([
+      "- Colorectal cancer screening (due): Age 45 to 49: start screening; options include stool-based tests, colonoscopy, CT colonography, or flexible sigmoidoscopy",
+      "  Source: USPSTF Colorectal Cancer Screening 2021 · Grade B · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening",
+      `  Rule: uspstf-colorectal-45-49 · ${RULE_VERSION} · effective 2026-06-01`,
+    ].join("\n"))
+  } else if (age >= 50 && age <= 75) {
+    recommendations.push([
+      "- Colorectal cancer screening (due): Age 50 to 75: continue routine colorectal cancer screening",
+      "  Source: USPSTF Colorectal Cancer Screening 2021 · Grade A · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening",
+      `  Rule: uspstf-colorectal-50-75 · ${RULE_VERSION} · effective 2026-06-01`,
+    ].join("\n"))
+  }
+
+  if (sex === "female" && age >= 40 && age <= 74) {
+    recommendations.push([
+      "- Breast cancer screening mammography (due): Age 40 to 74: every 2 years",
+      "  Source: USPSTF Breast Cancer Screening 2024 · Grade B · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/breast-cancer-screening",
+      `  Rule: uspstf-breast-biennial-40-74 · ${RULE_VERSION} · effective 2026-06-01`,
+    ].join("\n"))
+  }
+
+  if (sex === "female" && age >= 30 && age <= 65) {
+    recommendations.push([
+      "- Cervical cancer screening (due): Age 30 to 65: cytology every 3 years, high-risk HPV testing every 5 years, or co-testing every 5 years",
+      "  Source: USPSTF Cervical Cancer Screening 2018 · Grade A · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/cervical-cancer-screening",
+      `  Rule: uspstf-cervical-30-65 · ${RULE_VERSION} · effective 2026-06-01`,
+    ].join("\n"))
+  }
+
+  if (recommendations.length === 0) {
+    return "OpenRx does not have a matching version-stamped screening rule for the details provided. Please talk with a clinician."
+  }
+
+  return [
+    "Your guideline-backed prevention plan:",
+    recommendations.join("\n"),
+    "",
+    "Educational navigation only. Confirm every screening decision with a clinician.",
+  ].join("\n")
+}

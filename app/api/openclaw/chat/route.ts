@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { runAgent, runCoordinator } from "@/lib/ai-engine"
 import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import { appendChatExchange } from "@/lib/chat-history-store"
+import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,6 +61,24 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (walletAddress && !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+      return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 })
+    }
+
+    const deterministicResponse = deterministicClinicalResponse(message)
+    if (deterministicResponse) {
+      return NextResponse.json({
+        sessionId: sessionId || `session-${Date.now()}`,
+        conversationId: conversationId || "",
+        conversationTitle: "",
+        response: deterministicResponse,
+        agentId: "screening",
+        handoff: null,
+        live: false,
+        deterministic: true,
+      })
+    }
+
     const auth = await requireAuth(req, { allowPublic: true })
     if ("response" in auth) return auth.response
     const walletProofMatches = walletAddress
@@ -69,7 +88,6 @@ export async function POST(req: NextRequest) {
       ? walletAddress
       : undefined
 
-    // Use coordinator routing for the coordinator agent
     const result = agentId === "coordinator"
       ? await runCoordinator(message, sessionId, effectiveWalletAddress)
       : await runAgent({
@@ -80,7 +98,6 @@ export async function POST(req: NextRequest) {
           walletAddress: effectiveWalletAddress,
         })
 
-    // Try to persist the exchange in chat history — but never block the response.
     let savedConversationId = conversationId || ""
     let savedTitle = ""
     let owner: Awaited<ReturnType<typeof resolveChatHistoryOwner>> | null = null
@@ -119,19 +136,9 @@ export async function POST(req: NextRequest) {
     return response
   } catch (error) {
     console.error("Chat API error:", error)
-    const message_str = error instanceof Error ? error.message : ""
-    const status = typeof error === "object" && error !== null && "status" in error
-      ? Number((error as { status?: unknown }).status)
-      : undefined
-    if (status === 401 || message_str.includes("API key")) {
-      return NextResponse.json(
-        { error: "AI service configuration issue. The care team has been notified — please try again shortly." },
-        { status: 502 }
-      )
-    }
     return NextResponse.json(
-      { error: "Something went wrong while processing your request. Please try again." },
-      { status: 500 }
+      { error: "We're busy right now. Please try again in a moment." },
+      { status: 503 }
     )
   }
 }

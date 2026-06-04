@@ -36,11 +36,11 @@ export function deterministicClinicalResponse(message: string): string | null {
 
   const age = parseAge(message)
   const sex = parseSex(message)
-  const missing: string[] = []
-  if (typeof age !== "number") missing.push("age")
-  if (sex === "unknown") missing.push("sex at birth")
 
-  if (missing.length > 0) {
+  if (typeof age !== "number" || sex === "unknown") {
+    const missing: string[] = []
+    if (typeof age !== "number") missing.push("age")
+    if (sex === "unknown") missing.push("sex at birth")
     return `To build a guideline-backed prevention plan, please share: ${missing.slice(0, 3).join("; ")}.`
   }
 

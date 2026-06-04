@@ -180,11 +180,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const status = statusFromError(error)
     console.error("[AI chat]", { code: status ? `upstream_${status}` : "upstream_model_error" })
-    if (bodyAllowsStream(request)) return oneShotStream(CLEAN_BUSY_MESSAGE, "openrx-clean-error")
     return NextResponse.json({ error: CLEAN_BUSY_MESSAGE }, { status: 503 })
   }
-}
-
-function bodyAllowsStream(_request: NextRequest): boolean {
-  return false
 }

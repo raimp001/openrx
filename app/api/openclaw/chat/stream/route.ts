@@ -9,6 +9,8 @@ export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 export const maxDuration = 60
 
+const CLEAN_BUSY_MESSAGE = "We're busy right now. Please try again in a moment."
+
 const VALID_AGENTS = [
   "coordinator",
   "triage",
@@ -25,6 +27,10 @@ const VALID_AGENTS = [
 
 function sse(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+}
+
+function isLegacyModelFailureText(text: string): boolean {
+  return /Our AI assistant is handling a high volume|temporarily at capacity|rate_limit|overloaded/i.test(text)
 }
 
 function deterministicSseResponse(agentId: string, message: string): Response {
@@ -158,10 +164,15 @@ export async function POST(req: NextRequest) {
           if (next.done) {
             const finalValue = next.value
             if (finalValue) {
-              finalText = finalValue.finalText
+              finalText = finalText || finalValue.finalText
               resolvedAgentId = finalValue.agentId
               handoff = finalValue.handoff
             }
+            break
+          }
+          if (isLegacyModelFailureText(next.value)) {
+            finalText = CLEAN_BUSY_MESSAGE
+            send("error", { message: CLEAN_BUSY_MESSAGE })
             break
           }
           send("delta", { text: next.value })
@@ -171,9 +182,8 @@ export async function POST(req: NextRequest) {
           ? Number((error as { status?: unknown }).status)
           : undefined
         console.error("[openclaw-stream]", { code: status ? `upstream_${status}` : "stream_error" })
-        const cleanError = "We're busy right now. Please try again in a moment."
-        finalText = cleanError
-        send("error", { message: cleanError })
+        finalText = CLEAN_BUSY_MESSAGE
+        send("error", { message: CLEAN_BUSY_MESSAGE })
       }
 
       // Save chat history (best-effort; never block the stream).

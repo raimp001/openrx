@@ -5,6 +5,20 @@ import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-his
 import { appendChatExchange } from "@/lib/chat-history-store"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
 
+const CLEAN_BUSY_MESSAGE = "We're busy right now. Please try again in a moment."
+
+function statusFromError(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") return undefined
+  const status = Number((error as { status?: unknown; statusCode?: unknown; code?: unknown }).status ??
+    (error as { statusCode?: unknown }).statusCode ??
+    (error as { code?: unknown }).code)
+  return Number.isFinite(status) ? status : undefined
+}
+
+function isLegacyModelFailureText(text: string): boolean {
+  return /Our AI assistant is handling a high volume|temporarily at capacity|rate_limit|overloaded/i.test(text)
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -98,6 +112,8 @@ export async function POST(req: NextRequest) {
           walletAddress: effectiveWalletAddress,
         })
 
+    const resultResponse = isLegacyModelFailureText(result.response) ? CLEAN_BUSY_MESSAGE : result.response
+
     let savedConversationId = conversationId || ""
     let savedTitle = ""
     let owner: Awaited<ReturnType<typeof resolveChatHistoryOwner>> | null = null
@@ -108,7 +124,7 @@ export async function POST(req: NextRequest) {
           ownerKey: owner.ownerKey,
           conversationId,
           userContent: message.trim(),
-          agentContent: result.response,
+          agentContent: resultResponse,
           agentId: result.agentId,
           collaborators: Array.isArray(collaborators) ? collaborators : undefined,
           routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
@@ -117,14 +133,14 @@ export async function POST(req: NextRequest) {
         savedTitle = conversation.title
       }
     } catch (historyError) {
-      console.error("Chat history storage failed (response still returned):", historyError)
+      console.error("[openclaw-chat-history]", { code: "history_store_failed" })
     }
 
     const response = NextResponse.json({
       sessionId: sessionId || `session-${Date.now()}`,
       conversationId: savedConversationId,
       conversationTitle: savedTitle,
-      response: result.response,
+      response: resultResponse,
       agentId: result.agentId,
       handoff: result.handoff || null,
       live: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
@@ -135,9 +151,10 @@ export async function POST(req: NextRequest) {
     }
     return response
   } catch (error) {
-    console.error("Chat API error:", error)
+    const status = statusFromError(error)
+    console.error("[openclaw-chat]", { code: status ? `upstream_${status}` : "chat_error" })
     return NextResponse.json(
-      { error: "We're busy right now. Please try again in a moment." },
+      { error: CLEAN_BUSY_MESSAGE },
       { status: 503 }
     )
   }

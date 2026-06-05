@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { runAgentStream } from "@/lib/ai-engine"
 import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import { appendChatExchange } from "@/lib/chat-history-store"
+import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -24,6 +25,34 @@ const VALID_AGENTS = [
 
 function sse(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+}
+
+function deterministicSseResponse(agentId: string, message: string): Response {
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(sse("ready", { agentId })))
+      controller.enqueue(encoder.encode(sse("delta", { text: message })))
+      controller.enqueue(encoder.encode(sse("done", {
+        agentId: "screening",
+        conversationId: "",
+        conversationTitle: "",
+        handoff: null,
+        finalText: message,
+        deterministic: true,
+      })))
+      controller.close()
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-cache, no-transform",
+      "x-accel-buffering": "no",
+      connection: "keep-alive",
+    },
+  })
 }
 
 export async function POST(req: NextRequest) {
@@ -71,6 +100,11 @@ export async function POST(req: NextRequest) {
       JSON.stringify({ error: "screeningContext must be a string under 5000 characters" }),
       { status: 400, headers: { "content-type": "application/json" } }
     )
+  }
+
+  const deterministicResponse = deterministicClinicalResponse(screeningContext?.trim() || message)
+  if (deterministicResponse) {
+    return deterministicSseResponse(agentId, deterministicResponse)
   }
 
   const auth = await requireAuth(req, { allowPublic: true })
@@ -133,8 +167,13 @@ export async function POST(req: NextRequest) {
           send("delta", { text: next.value })
         }
       } catch (error) {
-        const errMsg = error instanceof Error ? error.message : String(error)
-        send("error", { message: errMsg || "Stream interrupted." })
+        const status = typeof error === "object" && error !== null && "status" in error
+          ? Number((error as { status?: unknown }).status)
+          : undefined
+        console.error("[openclaw-stream]", { code: status ? `upstream_${status}` : "stream_error" })
+        const cleanError = "We're busy right now. Please try again in a moment."
+        finalText = cleanError
+        send("error", { message: cleanError })
       }
 
       // Save chat history (best-effort; never block the stream).
@@ -169,7 +208,7 @@ export async function POST(req: NextRequest) {
       controller.close()
     },
     cancel() {
-      // Client disconnected — nothing else to do.
+      // Client disconnected - nothing else to do.
     },
   })
 

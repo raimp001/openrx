@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         savedConversationId = conversation.id
         savedTitle = conversation.title
       }
-    } catch (historyError) {
+    } catch {
       console.error("[openclaw-chat-history]", { code: "history_store_failed" })
     }
 

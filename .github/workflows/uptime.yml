@@ -1,0 +1,29 @@
+name: Uptime
+
+# Polls /api/health every 5 minutes (GitHub's minimum cron interval; actual
+# delivery can lag a few minutes under load). A failed run notifies the repo
+# watchers by email via standard GitHub Actions failure notifications.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check /api/health
+        run: |
+          set -euo pipefail
+          url="${UPTIME_BASE_URL:-https://openrx.health}/api/health"
+          echo "Checking $url"
+          body=$(curl -fsS --max-time 30 "$url")
+          echo "$body"
+          status=$(echo "$body" | python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])')
+          if [ "$status" = "unhealthy" ]; then
+            echo "Health endpoint reports unhealthy"
+            exit 1
+          fi

@@ -1,0 +1,29 @@
+name: Canary
+
+# Hourly synthetic golden path against production: "age 45 male" must return
+# version-stamped, guideline-grounded recommendations with no error text.
+# Synthetic profile only — never PHI. Failure notifies watchers by email.
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+jobs:
+  golden-path:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run canary
+        env:
+          CANARY_BASE_URL: https://openrx.health
+        run: node scripts/canary.mjs

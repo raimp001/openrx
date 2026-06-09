@@ -5,6 +5,8 @@ import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-his
 import { appendChatExchange } from "@/lib/chat-history-store"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
 import { CLEAN_BUSY_MESSAGE, isModelFailureText } from "@/lib/openclaw/clean-failure"
+import { logAgentRequest } from "@/lib/observability/log"
+import { SCREENING_ENGINE_VERSION } from "@/lib/screening/version"
 
 function statusFromError(error: unknown): number | undefined {
   if (!error || typeof error !== "object") return undefined
@@ -15,6 +17,8 @@ function statusFromError(error: unknown): number | undefined {
 }
 
 export async function POST(req: NextRequest) {
+  const requestId = crypto.randomUUID()
+  const startedAt = Date.now()
   try {
     const body = await req.json()
     const { message, agentId, screeningContext, sessionId, walletAddress, conversationId, collaborators, routingInfo } = body as {
@@ -76,6 +80,15 @@ export async function POST(req: NextRequest) {
 
     const deterministicResponse = deterministicClinicalResponse(message)
     if (deterministicResponse) {
+      logAgentRequest({
+        requestId,
+        requestedAgentId: agentId,
+        routedAgentId: "screening",
+        outcome: "deterministic",
+        latencyMs: Date.now() - startedAt,
+        engineVersion: SCREENING_ENGINE_VERSION,
+        modelConfigured: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
+      })
       return NextResponse.json({
         sessionId: sessionId || `session-${Date.now()}`,
         conversationId: conversationId || "",
@@ -108,6 +121,20 @@ export async function POST(req: NextRequest) {
         })
 
     const resultResponse = isModelFailureText(result.response) ? CLEAN_BUSY_MESSAGE : result.response
+
+    logAgentRequest({
+      requestId,
+      requestedAgentId: agentId,
+      routedAgentId: result.agentId,
+      outcome:
+        resultResponse === CLEAN_BUSY_MESSAGE
+          ? "fallback"
+          : result.agentId === "triage" && agentId !== "triage"
+            ? "clinician_route"
+            : "success",
+      latencyMs: Date.now() - startedAt,
+      modelConfigured: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
+    })
 
     let savedConversationId = conversationId || ""
     let savedTitle = ""
@@ -148,6 +175,14 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const status = statusFromError(error)
     console.error("[openclaw-chat]", { code: status ? `upstream_${status}` : "chat_error" })
+    logAgentRequest({
+      requestId,
+      requestedAgentId: "unknown",
+      routedAgentId: "unknown",
+      outcome: "error",
+      latencyMs: Date.now() - startedAt,
+      modelConfigured: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
+    })
     return NextResponse.json(
       { error: CLEAN_BUSY_MESSAGE },
       { status: 503 }

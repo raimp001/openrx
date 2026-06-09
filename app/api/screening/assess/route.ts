@@ -449,7 +449,7 @@ async function loadSnapshotForRequest(params: {
 }
 
 async function buildAssessmentPayload(
-  input: ScreeningInput & { walletAddress?: string },
+  input: ScreeningInput & { walletAddress?: string; locationZip?: string },
   options: { analysisLevel: ScreeningAnalysisLevel }
 ): Promise<ScreeningAssessmentPayload> {
   const snapshot = await loadSnapshotForRequest({
@@ -488,11 +488,10 @@ async function buildAssessmentPayload(
   const enrichedAssessment =
     options.analysisLevel === "deep" ? applyGeneticsDeepDive(assessment, input) : assessment
 
-  const patientAddress = livePatient?.address || process.env.OPENRX_DEFAULT_PATIENT_LOCATION || ""
-  const localCareConnections =
-    options.analysisLevel === "deep"
-      ? await buildLocalCareConnections(enrichedAssessment, patientAddress)
-      : []
+  const patientAddress = input.locationZip?.trim() || livePatient?.address || process.env.OPENRX_DEFAULT_PATIENT_LOCATION || ""
+  const localCareConnections = patientAddress
+    ? await buildLocalCareConnections(enrichedAssessment, patientAddress)
+    : []
   const evidenceCitations =
     options.analysisLevel === "deep"
       ? await buildScreeningEvidence({
@@ -506,7 +505,9 @@ async function buildAssessmentPayload(
     options.analysisLevel === "preview"
       ? withAction(
           enrichedAssessment.nextActions,
-          "Add advanced review for genetics-aware intervals, evidence citations, and nearby care routing."
+          patientAddress
+            ? "Use the nearby care matches below to call a provider, lab, or imaging center; OpenRx does not place orders."
+            : "Add a ZIP code to surface nearby providers, labs, or imaging centers for the recommended next step."
         )
       : enrichedAssessment.nextActions
   return {
@@ -519,7 +520,7 @@ async function buildAssessmentPayload(
     ...(options.analysisLevel === "preview"
       ? {
           upgradeMessage:
-            "Free preview is ready. Deep dive unlocks inherited-risk personalization, full evidence synthesis, and local care routing.",
+            "Free preview is ready. Add advanced review only if inherited-risk, mutation-aware intervals, or deeper evidence synthesis are needed.",
         }
       : {}),
   }
@@ -548,6 +549,7 @@ export async function GET(request: NextRequest) {
     const patientId = searchParams.get("patientId") || undefined
     const walletAddress = searchParams.get("walletAddress") || undefined
     const paymentId = searchParams.get("paymentId") || undefined
+    const locationZip = searchParams.get("locationZip") || undefined
     const analysisLevel = resolveAnalysisLevel(searchParams.get("analysisLevel"))
     const walletProofMatches = walletAddress
       ? await requestWalletProofMatches(request, walletAddress)
@@ -573,7 +575,7 @@ export async function GET(request: NextRequest) {
     }
 
     const assessment = await buildAssessmentPayload(
-      { patientId: effectivePatientId, walletAddress: effectiveWalletAddress },
+      { patientId: effectivePatientId, walletAddress: effectiveWalletAddress, locationZip },
       { analysisLevel }
     )
     return NextResponse.json(assessment)
@@ -593,6 +595,7 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as ScreeningInput & {
       walletAddress?: string
       paymentId?: string
+      locationZip?: string
       analysisLevel?: ScreeningAnalysisLevel
     }
     const analysisLevel = resolveAnalysisLevel(body.analysisLevel)

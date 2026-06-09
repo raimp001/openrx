@@ -218,6 +218,7 @@ export default function ScreeningPage() {
   const [conditions, setConditions] = useState("")
   const [bmi, setBmi] = useState("")
   const [gender, setGender] = useState("")
+  const [locationZip, setLocationZip] = useState("")
   const [showManualFields, setShowManualFields] = useState(false)
   const [smoker, setSmoker] = useState(false)
   const [smokerTouched, setSmokerTouched] = useState(false)
@@ -312,6 +313,10 @@ export default function ScreeningPage() {
   }, [assessment, structuredRecommendations])
 
   const urgentScreeningCount = assessment?.recommendedScreenings.filter((item) => item.priority === "high").length || 0
+  const actionableCareConnections = useMemo(
+    () => localCareConnections.filter((connection) => connection.matches.length > 0),
+    [localCareConnections]
+  )
 
   useEffect(() => {
     if (!walletAddress) return
@@ -576,6 +581,7 @@ export default function ScreeningPage() {
       const resolvedAge = parseOptionalNumber(age) ?? extracted?.age
       const resolvedGender = gender.trim() || extracted?.gender || profile?.gender || snapshot.patient?.gender || undefined
       const resolvedBmi = parseOptionalNumber(bmi) ?? extracted?.bmi
+      const resolvedLocationZip = locationZip.trim() || extracted?.location || snapshot.patient?.address || undefined
       const resolvedSmoker = smokerTouched ? smoker : extracted?.smoker ?? smoker
       const resolvedSymptoms = manualSymptoms.length > 0 ? manualSymptoms : extracted?.symptoms || []
       const resolvedFamilyHistory =
@@ -592,6 +598,7 @@ export default function ScreeningPage() {
           analysisLevel: level,
           age: resolvedAge,
           gender: resolvedGender,
+          locationZip: resolvedLocationZip,
           bmi: resolvedBmi,
           smoker: resolvedSmoker,
           symptoms: resolvedSymptoms,
@@ -659,6 +666,7 @@ export default function ScreeningPage() {
 
   async function requestScreeningNextStep(rec: StructuredScreeningRecommendation, action: ScreeningNextStep) {
     const key = `${rec.id}:${action}`
+    const resolvedLocationZip = locationZip.trim() || intakePreview?.location || snapshot.patient?.address || undefined
     setNextStepStatus((current) => ({ ...current, [key]: "Sending request..." }))
     try {
       const response = await fetch("/api/screening/next-step", {
@@ -671,7 +679,7 @@ export default function ScreeningPage() {
           screeningName: rec.screeningName,
           requestedAction: action,
           clinicianSummary: rec.clinicianSummary,
-          locationZip: snapshot.patient?.address,
+          locationZip: resolvedLocationZip,
           demoMode: !walletAddress,
         }),
       })
@@ -926,6 +934,21 @@ export default function ScreeningPage() {
                 ))}
               </div>
 
+              <ClinicalField
+                label="ZIP for nearby next steps"
+                htmlFor="screening-location-zip"
+                hint="Optional, but it lets OpenRx show providers, labs, or imaging centers for the plan."
+              >
+                <ClinicalInput
+                  id="screening-location-zip"
+                  data-testid="screening-location-zip"
+                  value={locationZip}
+                  onChange={(event) => setLocationZip(event.target.value)}
+                  inputMode="numeric"
+                  placeholder="97123"
+                />
+              </ClinicalField>
+
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
@@ -1138,12 +1161,14 @@ export default function ScreeningPage() {
               )}
               <div className="mt-4 rounded-[20px] border border-white/12 bg-white/8 p-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
-                  {showingDeepResults ? "Advanced review ready" : "What advanced review adds"}
+                  Useful next step
                 </p>
                 <p className="mt-2 text-sm leading-6 text-white/68">
-                  {showingDeepResults
-                    ? "You are seeing mutation-aware screening intervals, inherited-risk interpretation, evidence citations, and nearby care routing."
-                    : "Mutation-aware screening intervals, inherited-risk interpretation, evidence citations, and nearby care connections for follow-up."}
+                  {actionableCareConnections.length > 0
+                    ? `${actionableCareConnections.length} nearby care option group${actionableCareConnections.length === 1 ? "" : "s"} are ready below. Call to confirm availability; OpenRx does not place orders.`
+                    : locationZip.trim() || intakePreview?.location || snapshot.patient?.address
+                      ? "No local directory matches came back yet. Use the plan and source links while OpenRx refreshes nearby options."
+                      : "Add a ZIP code before running the preview to show nearby providers, labs, or imaging centers for the plan."}
                 </p>
               </div>
             </>
@@ -1157,19 +1182,19 @@ export default function ScreeningPage() {
             <div>
               <p className="shell-kicker">Plan at a glance</p>
               <h2 className="mt-3 text-[1.7rem] font-semibold tracking-[-0.035em] text-primary">
-                {showingDeepResults ? "Deep personalized screening plan ready." : "Free screening preview ready."}
+                {showingDeepResults ? "Advanced screening plan ready." : "Free screening plan ready."}
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-secondary">
                 {showingDeepResults
                   ? "Use this to move from risk interpretation into scheduling and local care coordination."
-                  : "Use this as the baseline plan. Upgrade only if you want inherited-risk and genetics-aware personalization."}
+                  : "Use this to see guideline-grounded recommendations and nearby next steps. Advanced review is optional for inherited-risk and genetics-aware personalization."}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <span className="chip">{assessment.recommendedScreenings.length} screenings</span>
               <span className="chip">{assessment.nextActions.length} next actions</span>
               <span className="chip">{urgentScreeningCount} urgent</span>
-              {showingDeepResults ? <span className="chip">{localCareConnections.length} care connections</span> : null}
+              {localCareConnections.length > 0 ? <span className="chip">{actionableCareConnections.length} local match groups</span> : null}
             </div>
           </div>
         </section>
@@ -1221,7 +1246,7 @@ export default function ScreeningPage() {
                                   ? "bg-soft-blue/10 text-soft-blue"
                                   : "bg-accent/10 text-accent"
                           const requestKey = primaryAction ? `${rec.id}:${primaryAction}` : ""
-                          const hasLocationContext = Boolean(snapshot.patient?.address?.trim())
+                          const hasLocationContext = Boolean(locationZip.trim() || intakePreview?.location || snapshot.patient?.address?.trim())
                           const source = getGuidelineSource(rec.sourceId)
                           return (
                             <div
@@ -1293,7 +1318,7 @@ export default function ScreeningPage() {
                                 <p className="mt-2 text-[11px] leading-5 text-muted">
                                   {primaryAction ? `${nextStepLabel(primaryAction)} is the clinical task. ` : ""}
                                   {hasLocationContext
-                                    ? "Provider search will use your saved location context."
+                                    ? "Provider search will use the location context you provided."
                                     : "Provider search will ask for a city or ZIP before returning local results."}
                                 </p>
                               </div>
@@ -1411,7 +1436,7 @@ export default function ScreeningPage() {
         </div>
       )}
 
-      {assessment && showingDeepResults && (
+      {assessment && localCareConnections.length > 0 && (
         <div className="reveal reveal-delay-3 surface-card p-5 space-y-4">
           <div className="flex items-center gap-2">
             <Search size={14} className="text-teal" />
@@ -1420,7 +1445,7 @@ export default function ScreeningPage() {
             </h2>
           </div>
           <p className="text-xs text-muted">
-            Personalized matches use your risk profile, recommendation priority, and address to run natural-language NPI search.
+            Matches use the recommendation type and ZIP/location. Directory entries are not appointments, orders, or verified insurance coverage.
           </p>
 
           <div className="space-y-3">
@@ -1486,6 +1511,18 @@ export default function ScreeningPage() {
           </div>
         </div>
       )}
+
+      {assessment && localCareConnections.length === 0 && !locationZip.trim() && !intakePreview?.location && !snapshot.patient?.address ? (
+        <div className="reveal reveal-delay-3 surface-card p-5">
+          <div className="flex items-center gap-2">
+            <MapPin size={14} className="text-teal" />
+            <h2 className="text-sm font-bold text-primary">Add Location For Nearby Care</h2>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-secondary">
+            Add a ZIP code above and run the preview again to show providers, labs, or imaging centers tied to this plan.
+          </p>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -187,8 +187,8 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   const lowered = narrative.toLowerCase()
 
   const ageMatch =
-    lowered.match(/\bage\s*(?:is|=|:)?\s*(\d{1,3})\b/) ||
     lowered.match(/\b(\d{1,3})[-\s]*(?:years?[-\s]*old|year[-\s]*old)\b/) ||
+    lowered.match(/(?<!\bat\s)\bage\s*(?:is|=|:)?\s*(\d{1,3})\b/) ||
     lowered.match(/\b(\d{1,3})\s*(?:years?\s*old|yo|y\/o)\b/) ||
     lowered.match(/\bi am\s+(\d{1,3})\b/) ||
     lowered.match(/\b(\d{2})\s*(?:m|male|man|f|female|woman)\b/) ||

@@ -2,8 +2,10 @@ const RULE_VERSION = "openrx-hotfix-prevention-rules-2026-06-01"
 
 function parseAge(message: string): number | undefined {
   const patterns = [
-    /\bage\s*(?:is|:)?\s*(\d{1,3})\b/i,
-    /\b(\d{1,3})\s*(?:yo|y\/o|years?\s*old|year[-\s]old)\b/i,
+    // "52 year old" / "52-year-old" before "age N" so a relative's diagnosis
+    // age ("mother at age 48") cannot hijack the patient age.
+    /\b(\d{1,3})[-\s]*(?:yo|y\/o|years?[-\s]*old)\b/i,
+    /(?<!\bat\s)\bage\s*(?:is|:)?\s*(\d{1,3})\b/i,
     /\bi\s*am\s*(\d{1,3})\b/i,
     /\b(\d{1,3})\s+(?:male|female|man|woman|m|f)\b/i,
   ]

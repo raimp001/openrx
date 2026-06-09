@@ -617,7 +617,7 @@ function friendlyAIError(status?: number, rawMessage?: string): string {
   if (typeof status === "number" && status >= 500) {
     return "Our AI service experienced a temporary issue. Please try again in a moment."
   }
-  if (rawMessage && (rawMessage.includes("timeout") || rawMessage.includes("ETIMEDOUT"))) {
+  if (rawMessage && (rawMessage.includes("timeout") || rawMessage.includes("timed out") || rawMessage.includes("ETIMEDOUT"))) {
     return "The request took longer than expected. Please try again — shorter questions tend to get faster responses."
   }
   return "Something went wrong while processing your request. Please try again, and if the issue continues, contact your care team."

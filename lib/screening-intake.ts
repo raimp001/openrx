@@ -228,8 +228,9 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     ...smokingContext,
   ])
 
+  // "family history of breast cancer" must never read as a personal history.
   const personalCancerMatch = lowered.match(
-    /\b(?:personal history of|history of|survivor of|treated for|diagnosed with|i had|i have had)\s+([^.!?\n]{0,42}?(?:cancer|carcinoma|melanoma))\b/
+    /\b(?:personal history of|(?<!family\s)history of|survivor of|treated for|diagnosed with|i had|i have had)\s+([^.!?\n]{0,42}?(?:cancer|carcinoma|melanoma))\b/
   )
   if (personalCancerMatch?.[1]) {
     conditions.push(`personal history of ${personalCancerMatch[1].trim()}`)

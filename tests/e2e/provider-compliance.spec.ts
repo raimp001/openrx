@@ -1,11 +1,15 @@
 import { expect, test } from "@playwright/test"
 import {
   activateProvider,
+  assertProviderCanReceivePhiReferral,
   canAppearInPatientFacingReferralMatching,
+  claimSeededDirectoryEntry,
+  describePatientFacingDirectoryStatus,
   evaluateProviderVerification,
   issuePracticeDomainProofingChallenge,
   rescreenActiveProviders,
   runProviderComplianceScreens,
+  suppressSeededDirectoryEntry,
   type ProviderComplianceRecord,
 } from "@/lib/provider-verification"
 
@@ -134,4 +138,84 @@ test("periodic LEIE re-screen deactivates active provider and halts in-flight re
     futureDisclosuresBlocked: true,
   })
   expect(result.patientNotifications[0].message).toContain("alternatives")
+})
+
+test("claiming a seeded NPPES listing updates it in place and does not duplicate the NPI", () => {
+  const seeded = provider({
+    id: "seed_1",
+    source: "seeded",
+    active: false,
+    verificationStatus: "pending",
+    nppesSnapshotAt: "2026-06-01T00:00:00.000Z",
+    baa: undefined,
+    identityProofing: undefined,
+  })
+
+  const claimed = claimSeededDirectoryEntry({
+    seeded,
+    submittedProfile: {
+      name: "Avery Test MD",
+      identityProofing: {
+        method: "manual_document_review",
+        verifiedAt: NOW.toISOString(),
+        verifier: "manual-review:cso",
+      },
+    },
+    now: NOW,
+  })
+
+  expect(claimed.id).toBe(seeded.id)
+  expect(claimed.npi).toBe(seeded.npi)
+  expect(claimed.source).toBe("self_onboarded")
+  expect(claimed.claimedAt).toBe(NOW.toISOString())
+  expect(claimed.verificationStatus).toBe("pending")
+  expect(claimed.active).toBe(false)
+})
+
+test("suppressed seeded listings never appear in patient-facing directory output", () => {
+  const seeded = provider({
+    source: "seeded",
+    active: false,
+    listingSuppressed: false,
+    nppesSnapshotAt: NOW.toISOString(),
+  })
+
+  const result = suppressSeededDirectoryEntry(seeded, { actor: "provider-opt-out", now: NOW })
+  const directory = describePatientFacingDirectoryStatus(result.provider, { now: NOW })
+
+  expect(result.provider.listingSuppressed).toBe(true)
+  expect(directory.visible).toBe(false)
+  expect(directory.referralTarget).toBe(false)
+  expect(result.auditEvent.eventType).toBe("provider_directory.listing_suppressed")
+})
+
+test("seeded directory entries are contact-only and cannot receive ReferralRequests or PHI", () => {
+  const seeded = provider({
+    source: "seeded",
+    active: false,
+    nppesSnapshotAt: NOW.toISOString(),
+  })
+
+  const directory = describePatientFacingDirectoryStatus(seeded, { now: NOW })
+
+  expect(directory.visible).toBe(true)
+  expect(directory.contactOnly).toBe(true)
+  expect(directory.referralTarget).toBe(false)
+  expect(() => assertProviderCanReceivePhiReferral(seeded)).toThrow(/Seeded public directory entries/)
+})
+
+test("stale seeded entries are visible only with an unconfirmed public-registry label", () => {
+  const seeded = provider({
+    source: "seeded",
+    active: false,
+    nppesSnapshotAt: "2026-01-01T00:00:00.000Z",
+  })
+
+  const directory = describePatientFacingDirectoryStatus(seeded, { now: NOW, ttlDays: 90 })
+
+  expect(directory.visible).toBe(true)
+  expect(directory.contactOnly).toBe(true)
+  expect(directory.referralTarget).toBe(false)
+  expect(directory.stale).toBe(true)
+  expect(directory.label).toContain("unconfirmed")
 })

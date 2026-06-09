@@ -6,6 +6,8 @@ export type ProviderLifecycleStatus =
   | "manual_review"
   | "blocked"
 
+export type ProviderDirectorySource = "seeded" | "self_onboarded"
+
 export type IdentityProofingMethod =
   | "practice_domain_email"
   | "third_party_identity"
@@ -39,9 +41,13 @@ export interface ProviderScreenResult {
 export interface ProviderComplianceRecord {
   id: string
   npi: string
+  source?: ProviderDirectorySource
   name: string
   type: "individual" | "facility"
   facilityType?: "lab" | "imaging" | "clinic"
+  claimedAt?: string
+  nppesSnapshotAt?: string
+  listingSuppressed?: boolean
   licenseNumber?: string
   licenseState?: string
   nppes: {
@@ -97,6 +103,8 @@ const IN_FLIGHT_REFERRAL_STATUSES = new Set([
   "scheduled",
 ])
 
+const DEFAULT_NPPES_SEED_TTL_DAYS = 90
+
 function nowIso(now: Date = new Date()): string {
   return now.toISOString()
 }
@@ -107,6 +115,29 @@ function normalizeName(value: string): string {
 
 function normalizeDomain(value?: string): string {
   return (value || "").trim().toLowerCase().replace(/^@/, "")
+}
+
+function providerSource(provider: ProviderComplianceRecord): ProviderDirectorySource {
+  return provider.source || "self_onboarded"
+}
+
+function daysBetween(left: Date, right: Date): number {
+  return Math.abs(left.getTime() - right.getTime()) / (24 * 60 * 60 * 1000)
+}
+
+export function isSeededDirectoryEntry(provider: ProviderComplianceRecord): boolean {
+  return providerSource(provider) === "seeded"
+}
+
+export function isSeededDirectoryEntryStale(
+  provider: ProviderComplianceRecord,
+  opts: { now?: Date; ttlDays?: number } = {}
+): boolean {
+  if (!isSeededDirectoryEntry(provider)) return false
+  if (!provider.nppesSnapshotAt) return true
+  const snapshotAt = new Date(provider.nppesSnapshotAt)
+  if (Number.isNaN(snapshotAt.getTime())) return true
+  return daysBetween(opts.now || new Date(), snapshotAt) > (opts.ttlDays || DEFAULT_NPPES_SEED_TTL_DAYS)
 }
 
 export function nppesNameMatches(provider: ProviderComplianceRecord): boolean {
@@ -182,6 +213,8 @@ export function evaluateProviderVerification(provider: ProviderComplianceRecord)
 
 export function canAppearInPatientFacingReferralMatching(provider: ProviderComplianceRecord): boolean {
   return (
+    !provider.listingSuppressed &&
+    providerSource(provider) === "self_onboarded" &&
     provider.active &&
     provider.verificationStatus === "active" &&
     provider.nppes.matched &&
@@ -193,7 +226,141 @@ export function canAppearInPatientFacingReferralMatching(provider: ProviderCompl
   )
 }
 
+export function canReceivePhiReferral(provider: ProviderComplianceRecord): boolean {
+  return canAppearInPatientFacingReferralMatching(provider)
+}
+
+export function canAppearAsSeededContactOnly(provider: ProviderComplianceRecord): boolean {
+  return (
+    !provider.listingSuppressed &&
+    providerSource(provider) === "seeded" &&
+    provider.nppes.matched &&
+    !provider.active
+  )
+}
+
+export function describePatientFacingDirectoryStatus(
+  provider: ProviderComplianceRecord,
+  opts: { now?: Date; ttlDays?: number } = {}
+): {
+  visible: boolean
+  referralTarget: boolean
+  contactOnly: boolean
+  label: string
+  stale: boolean
+} {
+  if (provider.listingSuppressed) {
+    return {
+      visible: false,
+      referralTarget: false,
+      contactOnly: false,
+      label: "Listing suppressed by provider request.",
+      stale: false,
+    }
+  }
+
+  const stale = isSeededDirectoryEntryStale(provider, opts)
+  if (canAppearInPatientFacingReferralMatching(provider)) {
+    return {
+      visible: true,
+      referralTarget: true,
+      contactOnly: false,
+      label: "Verified OpenRx network provider.",
+      stale: false,
+    }
+  }
+  if (canAppearAsSeededContactOnly(provider)) {
+    return {
+      visible: true,
+      referralTarget: false,
+      contactOnly: true,
+      label: stale
+        ? "Public registry listing, not yet partnered; address unconfirmed until NPPES refresh."
+        : "Public registry listing, not yet partnered; contact directly.",
+      stale,
+    }
+  }
+
+  return {
+    visible: false,
+    referralTarget: false,
+    contactOnly: false,
+    label: "Provider is not eligible for patient-facing matching.",
+    stale,
+  }
+}
+
+export function claimSeededDirectoryEntry(params: {
+  seeded: ProviderComplianceRecord
+  submittedProfile: Partial<ProviderComplianceRecord>
+  now?: Date
+}): ProviderComplianceRecord {
+  if (!isSeededDirectoryEntry(params.seeded)) {
+    throw new Error("Only seeded public directory entries can be claimed through this merge path.")
+  }
+  if (
+    params.submittedProfile.npi &&
+    params.submittedProfile.npi !== params.seeded.npi
+  ) {
+    throw new Error("Submitted NPI does not match the seeded listing.")
+  }
+  const now = nowIso(params.now)
+  return {
+    ...params.seeded,
+    ...params.submittedProfile,
+    id: params.seeded.id,
+    npi: params.seeded.npi,
+    source: "self_onboarded",
+    claimedAt: now,
+    listingSuppressed: false,
+    verificationStatus: "pending",
+    active: false,
+    identityProofing: params.submittedProfile.identityProofing,
+    baa: params.submittedProfile.baa,
+    referrals: params.seeded.referrals,
+  }
+}
+
+export function suppressSeededDirectoryEntry(
+  provider: ProviderComplianceRecord,
+  opts: { actor: string; now?: Date }
+): { provider: ProviderComplianceRecord; auditEvent: AuditEvent } {
+  const suppressedProvider: ProviderComplianceRecord = {
+    ...provider,
+    listingSuppressed: true,
+    active: false,
+  }
+  return {
+    provider: suppressedProvider,
+    auditEvent: {
+      eventType: "provider_directory.listing_suppressed",
+      providerId: provider.id,
+      actor: opts.actor,
+      createdAt: nowIso(opts.now),
+      metadata: {
+        npi: provider.npi,
+        source: providerSource(provider),
+      },
+    },
+  }
+}
+
+export function assertProviderCanReceivePhiReferral(provider: ProviderComplianceRecord) {
+  if (provider.listingSuppressed) {
+    throw new Error("Provider listing is suppressed and cannot receive referrals.")
+  }
+  if (isSeededDirectoryEntry(provider)) {
+    throw new Error("Seeded public directory entries cannot receive ReferralRequests or PHI.")
+  }
+  if (!canReceivePhiReferral(provider)) {
+    throw new Error("Provider is not active, verified, screened, identity-proofed, and BAA-signed.")
+  }
+}
+
 export function activateProvider(provider: ProviderComplianceRecord): ProviderComplianceRecord {
+  if (provider.listingSuppressed) {
+    return { ...provider, active: false }
+  }
   const verification = evaluateProviderVerification(provider)
   if (verification.status !== "verified") {
     return { ...provider, verificationStatus: verification.status, active: false }

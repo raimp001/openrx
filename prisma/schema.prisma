@@ -729,6 +729,7 @@ model AdminNotificationRecord {
 model ProviderRecord {
   id                       String   @id @default(cuid())
   npi                      String   @unique
+  source                   String   @default("self_onboarded")
   type                     String   @default("individual")
   facilityType             String?
   name                     String
@@ -743,6 +744,9 @@ model ProviderRecord {
   nppesMatched             Boolean  @default(false)
   nppesMatchedAt           DateTime?
   nppesPracticeDomain      String?
+  nppesSnapshotAt          DateTime?
+  claimedAt                DateTime?
+  listingSuppressed        Boolean  @default(false)
   verificationStatus       String   @default("pending")
   identityProofingMethod   String?
   identityProofingAt       DateTime?
@@ -772,6 +776,8 @@ model ProviderRecord {
   auditEvents              ProviderAuditEventRecord[]
 
   @@index([verificationStatus, active])
+  @@index([source, listingSuppressed])
+  @@index([nppesSnapshotAt])
   @@index([sanctionsStatus, sanctionsCheckedAt])
   @@index([licenseState, licenseNumber])
   @@map("providers")
@@ -857,6 +863,23 @@ model ProviderAuditEventRecord {
   @@index([referralId, createdAt])
   @@index([eventType, createdAt])
   @@map("provider_audit_events")
+}
+
+model CareNotificationRecord {
+  id            String   @id @default(cuid())
+  recipientType String
+  recipientId   String
+  eventType     String
+  entityId      String
+  deepLink      String
+  channelsSent  String[] @default([])
+  readAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  @@unique([eventType, entityId, recipientId])
+  @@index([recipientType, recipientId, createdAt])
+  @@index([eventType, createdAt])
+  @@map("care_notifications")
 }
 
 // ============================================================

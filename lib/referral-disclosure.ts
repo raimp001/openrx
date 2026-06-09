@@ -38,7 +38,7 @@ export const REFERRAL_DISCLOSURE_TEMPLATES: DisclosureTemplate[] = [
   {
     id: "openrx.disclosure.colorectal-screening.v1",
     version: "2026-06-09",
-    recommendationIds: ["colon-screening", "uspstf-colorectal-45-49", "colorectal-cancer-screening"],
+    recommendationIds: ["colon-screening", "uspstf-colorectal-45-49", "uspstf-average-risk-colorectal", "colorectal-cancer-screening"],
     fields: [
       { path: "recommendation.id", label: "Recommendation ID" },
       { path: "recommendation.screeningName", label: "Recommendation" },

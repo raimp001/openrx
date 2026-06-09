@@ -3,6 +3,7 @@
 CREATE TABLE IF NOT EXISTS providers (
   id TEXT PRIMARY KEY,
   npi TEXT NOT NULL UNIQUE,
+  source TEXT NOT NULL DEFAULT 'self_onboarded',
   type TEXT NOT NULL DEFAULT 'individual',
   "facilityType" TEXT,
   name TEXT NOT NULL,
@@ -17,6 +18,9 @@ CREATE TABLE IF NOT EXISTS providers (
   "nppesMatched" BOOLEAN NOT NULL DEFAULT FALSE,
   "nppesMatchedAt" TIMESTAMPTZ,
   "nppesPracticeDomain" TEXT,
+  "nppesSnapshotAt" TIMESTAMPTZ,
+  "claimedAt" TIMESTAMPTZ,
+  "listingSuppressed" BOOLEAN NOT NULL DEFAULT FALSE,
   "verificationStatus" TEXT NOT NULL DEFAULT 'pending',
   "identityProofingMethod" TEXT,
   "identityProofingAt" TIMESTAMPTZ,
@@ -42,7 +46,14 @@ CREATE TABLE IF NOT EXISTS providers (
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'self_onboarded';
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS "nppesSnapshotAt" TIMESTAMPTZ;
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS "claimedAt" TIMESTAMPTZ;
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS "listingSuppressed" BOOLEAN NOT NULL DEFAULT FALSE;
+
 CREATE INDEX IF NOT EXISTS providers_verification_status_active_idx ON providers ("verificationStatus", active);
+CREATE INDEX IF NOT EXISTS providers_source_suppressed_idx ON providers (source, "listingSuppressed");
+CREATE INDEX IF NOT EXISTS providers_nppes_snapshot_idx ON providers ("nppesSnapshotAt");
 CREATE INDEX IF NOT EXISTS providers_sanctions_status_checked_idx ON providers ("sanctionsStatus", "sanctionsCheckedAt");
 CREATE INDEX IF NOT EXISTS providers_license_state_number_idx ON providers ("licenseState", "licenseNumber");
 
@@ -117,3 +128,19 @@ CREATE TABLE IF NOT EXISTS provider_audit_events (
 CREATE INDEX IF NOT EXISTS provider_audit_events_provider_created_idx ON provider_audit_events ("providerId", "createdAt");
 CREATE INDEX IF NOT EXISTS provider_audit_events_referral_created_idx ON provider_audit_events ("referralId", "createdAt");
 CREATE INDEX IF NOT EXISTS provider_audit_events_type_created_idx ON provider_audit_events ("eventType", "createdAt");
+
+CREATE TABLE IF NOT EXISTS care_notifications (
+  id TEXT PRIMARY KEY,
+  "recipientType" TEXT NOT NULL,
+  "recipientId" TEXT NOT NULL,
+  "eventType" TEXT NOT NULL,
+  "entityId" TEXT NOT NULL,
+  "deepLink" TEXT NOT NULL,
+  "channelsSent" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  "readAt" TIMESTAMPTZ,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT care_notifications_event_entity_recipient_key UNIQUE ("eventType", "entityId", "recipientId")
+);
+
+CREATE INDEX IF NOT EXISTS care_notifications_recipient_created_idx ON care_notifications ("recipientType", "recipientId", "createdAt");
+CREATE INDEX IF NOT EXISTS care_notifications_event_created_idx ON care_notifications ("eventType", "createdAt");

@@ -93,6 +93,68 @@ type ScreeningIntakeResponse = ScreeningIntakeResult & {
   error?: string
 }
 
+interface ReferralProviderOption {
+  id: string
+  npi: string
+  source: "self_onboarded" | "seeded"
+  name: string
+  specialty?: string
+  services: string[]
+  address?: string
+  phone?: string
+  acceptingNew?: boolean
+  telehealth?: boolean
+  insurance: string[]
+  statusLabel: string
+}
+
+interface ScreeningReferralPreviewResponse {
+  supported: boolean
+  message: string
+  patientId: string
+  databaseReady?: boolean
+  databaseMessage?: string
+  displayedFields: Array<{ path: string; label: string }>
+  requiredServices: string[]
+  referralTargets: ReferralProviderOption[]
+  seededContactOnly: ReferralProviderOption[]
+  recommendation?: StructuredScreeningRecommendation
+  evidence?: {
+    sourceId?: string
+    sourceSystem: string
+    sourceVersion?: string
+    evidenceGrade?: string
+    sourceUrl?: string
+  }
+  created?: {
+    referral: {
+      id: string
+      status: string
+      providerId: string
+      recommendationId: string
+      disclosureTemplateVersion: string
+      scopeHash: string
+    }
+    consent: {
+      id: string
+      scopeHash: string
+      grantedAt: string
+    }
+  }
+  error?: string
+}
+
+interface ReferralPanelState {
+  recommendationId: string
+  action: ScreeningNextStep
+  loading: boolean
+  consentAccepted: boolean
+  selectedProviderId: string
+  preview?: ScreeningReferralPreviewResponse
+  status?: string
+  error?: string
+}
+
 const NARRATIVE_STARTERS = [
   "I am 58. Father had prostate cancer at 52. BRCA2 mutation carrier.",
   "I am 46 with family history of colon cancer and polyposis.",
@@ -231,6 +293,7 @@ export default function ScreeningPage() {
   const [paymentId, setPaymentId] = useState("")
   const [verifyTxHash, setVerifyTxHash] = useState("")
   const [nextStepStatus, setNextStepStatus] = useState<Record<string, string>>({})
+  const [referralPanel, setReferralPanel] = useState<ReferralPanelState | null>(null)
   const [fee, setFee] = useState("0.50")
   const [recipientAddress, setRecipientAddress] = useState("")
   const [showPaymentGate, setShowPaymentGate] = useState(false)
@@ -696,6 +759,131 @@ export default function ScreeningPage() {
         ...current,
         [key]: issue instanceof Error ? issue.message : "Could not create the next-step request.",
       }))
+    }
+  }
+
+  function currentScreeningReferralInput() {
+    const manualSymptoms = parseTerms(symptoms)
+    const manualFamilyHistory = parseTerms(familyHistory)
+    const manualConditions = parseTerms(conditions)
+
+    return {
+      patientId: snapshot.patient?.id,
+      age: parseOptionalNumber(age) ?? intakePreview?.age,
+      gender: gender.trim() || intakePreview?.gender || profile?.gender || snapshot.patient?.gender || undefined,
+      sexAtBirth: gender.trim() || intakePreview?.sexAtBirth || intakePreview?.gender || undefined,
+      smoker: smokerTouched ? smoker : intakePreview?.smoker ?? smoker,
+      smokingPackYears: intakePreview?.smokingPackYears,
+      quitYearsAgo: intakePreview?.quitYearsAgo,
+      symptoms: manualSymptoms.length > 0 ? manualSymptoms : intakePreview?.symptoms || [],
+      familyHistory: manualFamilyHistory.length > 0 ? manualFamilyHistory : intakePreview?.familyHistory || [],
+      conditions: manualConditions.length > 0 ? manualConditions : intakePreview?.conditions || [],
+      locationZip: locationZip.trim() || intakePreview?.location || snapshot.patient?.address || undefined,
+    }
+  }
+
+  function directoryMatchesForRecommendation(rec: StructuredScreeningRecommendation): CareDirectoryMatch[] {
+    const direct = localCareConnections.find((connection) => connection.recommendationId === rec.id)
+    const byName = localCareConnections.find((connection) => connection.recommendationName === rec.screeningName)
+    return (direct || byName)?.matches || []
+  }
+
+  async function startReferralConsent(rec: StructuredScreeningRecommendation, action: ScreeningNextStep) {
+    setReferralPanel({
+      recommendationId: rec.id,
+      action,
+      loading: true,
+      consentAccepted: false,
+      selectedProviderId: "",
+      status: "Checking verified referral options...",
+    })
+    try {
+      const response = await fetch("/api/referrals/screening", {
+        method: "POST",
+        headers: await getJsonHeaders(),
+        body: JSON.stringify({
+          action: "preview",
+          walletAddress,
+          patientId: snapshot.patient?.id,
+          recommendationId: rec.id,
+          screeningInput: currentScreeningReferralInput(),
+          directoryMatches: directoryMatchesForRecommendation(rec),
+        }),
+      })
+      const data = (await response.json()) as ScreeningReferralPreviewResponse
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Could not prepare referral consent.")
+      }
+      setReferralPanel({
+        recommendationId: rec.id,
+        action,
+        loading: false,
+        consentAccepted: false,
+        selectedProviderId: "",
+        preview: data,
+        status: data.message,
+      })
+      trackWorkflowEvent("screening_referral_previewed", {
+        surface: "screening",
+        recommendationId: rec.id,
+        referralTargets: data.referralTargets.length,
+        contactOnly: data.seededContactOnly.length,
+      })
+    } catch (issue) {
+      setReferralPanel({
+        recommendationId: rec.id,
+        action,
+        loading: false,
+        consentAccepted: false,
+        selectedProviderId: "",
+        error: issue instanceof Error ? issue.message : "Could not prepare referral consent.",
+      })
+    }
+  }
+
+  async function submitReferralConsent() {
+    if (!referralPanel?.preview || !referralPanel.selectedProviderId || !referralPanel.consentAccepted) return
+    setReferralPanel((current) => current ? {
+      ...current,
+      loading: true,
+      error: undefined,
+      status: "Creating referral after consent...",
+    } : current)
+    try {
+      const response = await fetch("/api/referrals/screening", {
+        method: "POST",
+        headers: await getJsonHeaders(),
+        body: JSON.stringify({
+          action: "create",
+          walletAddress,
+          patientId: snapshot.patient?.id,
+          recommendationId: referralPanel.recommendationId,
+          screeningInput: currentScreeningReferralInput(),
+          providerId: referralPanel.selectedProviderId,
+          consentAccepted: referralPanel.consentAccepted,
+          displayedFields: referralPanel.preview.displayedFields,
+        }),
+      })
+      const data = (await response.json()) as ScreeningReferralPreviewResponse
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Referral could not be created.")
+      }
+      setReferralPanel((current) => current ? {
+        ...current,
+        loading: false,
+        preview: data,
+        status: data.message || `Referral ${data.created?.referral.id || ""} created.`,
+      } : current)
+      trackWorkflowEvent("screening_referral_created", {
+        surface: "screening",
+        recommendationId: referralPanel.recommendationId,
+      })
+    } catch (issue) {
+      setReferralPanel((current) => current ? {
+        ...current,
+        loading: false,
+        error: issue instanceof Error ? issue.message : "Referral could not be created, and no PHI was transmitted.",
+      } : current)
     }
   }
 
@@ -1248,6 +1436,7 @@ export default function ScreeningPage() {
                           const requestKey = primaryAction ? `${rec.id}:${primaryAction}` : ""
                           const hasLocationContext = Boolean(locationZip.trim() || intakePreview?.location || snapshot.patient?.address?.trim())
                           const source = getGuidelineSource(rec.sourceId)
+                          const activeReferralPanel = referralPanel?.recommendationId === rec.id ? referralPanel : null
                           return (
                             <div
                               key={rec.id}
@@ -1297,10 +1486,10 @@ export default function ScreeningPage() {
                                     <button
                                       type="button"
                                       data-testid="recommendation-save-request"
-                                      onClick={() => void requestScreeningNextStep(rec, primaryAction)}
+                                      onClick={() => void startReferralConsent(rec, primaryAction)}
                                       className="rounded-2xl border border-white/10 bg-white/[0.055] px-3 py-2 text-xs font-semibold text-muted transition hover:border-teal/25 hover:text-teal"
                                     >
-                                      Save request
+                                      Start referral
                                     </button>
                                   ) : null}
                                   <button
@@ -1314,6 +1503,12 @@ export default function ScreeningPage() {
                                   {requestKey && nextStepStatus[requestKey] ? (
                                     <span className="text-[11px] text-muted">{nextStepStatus[requestKey]}</span>
                                   ) : null}
+                                  {activeReferralPanel?.loading ? (
+                                    <span className="inline-flex items-center gap-1 text-[11px] text-muted">
+                                      <Loader2 size={11} className="animate-spin" />
+                                      {activeReferralPanel.status || "Working..."}
+                                    </span>
+                                  ) : null}
                                 </div>
                                 <p className="mt-2 text-[11px] leading-5 text-muted">
                                   {primaryAction ? `${nextStepLabel(primaryAction)} is the clinical task. ` : ""}
@@ -1321,6 +1516,158 @@ export default function ScreeningPage() {
                                     ? "Provider search will use the location context you provided."
                                     : "Provider search will ask for a city or ZIP before returning local results."}
                                 </p>
+                                {activeReferralPanel && !activeReferralPanel.loading ? (
+                                  <div
+                                    data-testid="screening-referral-consent-panel"
+                                    className="mt-4 rounded-2xl border border-teal/20 bg-teal/5 p-3"
+                                  >
+                                    {activeReferralPanel.error ? (
+                                      <p className="text-xs leading-5 text-soft-red">{activeReferralPanel.error}</p>
+                                    ) : null}
+                                    {activeReferralPanel.preview ? (
+                                      <div className="space-y-3">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">
+                                            Referral consent
+                                          </p>
+                                          {activeReferralPanel.preview.evidence?.sourceUrl ? (
+                                            <a
+                                              href={activeReferralPanel.preview.evidence.sourceUrl}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="chip hover:border-teal/30 hover:text-teal"
+                                            >
+                                              {activeReferralPanel.preview.evidence.sourceSystem} {activeReferralPanel.preview.evidence.evidenceGrade}
+                                              <ExternalLink size={10} />
+                                            </a>
+                                          ) : null}
+                                        </div>
+                                        <p className="text-xs leading-5 text-secondary">
+                                          {activeReferralPanel.preview.message}
+                                        </p>
+
+                                        {activeReferralPanel.preview.referralTargets.length > 0 ? (
+                                          <div className="space-y-2">
+                                            <p className="text-[11px] font-semibold text-primary">Choose a verified OpenRx provider</p>
+                                            {activeReferralPanel.preview.referralTargets.map((provider) => (
+                                              <label
+                                                key={provider.id}
+                                                className="flex cursor-pointer items-start gap-2 rounded-xl border border-white/10 bg-white/[0.055] p-3"
+                                              >
+                                                <input
+                                                  type="radio"
+                                                  name={`referral-provider-${rec.id}`}
+                                                  className="mt-1"
+                                                  checked={activeReferralPanel.selectedProviderId === provider.id}
+                                                  onChange={() => setReferralPanel((current) => current ? {
+                                                    ...current,
+                                                    selectedProviderId: provider.id,
+                                                    error: undefined,
+                                                  } : current)}
+                                                />
+                                                <span className="min-w-0 flex-1">
+                                                  <span className="block text-xs font-semibold text-primary">{provider.name}</span>
+                                                  <span className="mt-0.5 block text-[11px] text-teal">
+                                                    {provider.specialty || "OpenRx network provider"} · verified + BAA
+                                                  </span>
+                                                  {provider.address ? (
+                                                    <span className="mt-1 block text-[11px] text-muted">{provider.address}</span>
+                                                  ) : null}
+                                                  <span className="mt-1 block text-[10px] text-muted">
+                                                    Listed insurance is self-reported; confirm with the provider.
+                                                  </span>
+                                                </span>
+                                              </label>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <div className="rounded-xl border border-yellow-700/20 bg-yellow-100/20 p-3">
+                                            <p className="text-xs leading-5 text-yellow-900">
+                                              No partnered provider can receive PHI for this recommendation yet. You can still prepare a navigation request or contact public directory entries directly.
+                                            </p>
+                                            {primaryAction ? (
+                                              <button
+                                                type="button"
+                                                className="mt-2 rounded-2xl border border-yellow-700/20 bg-white/60 px-3 py-2 text-xs font-semibold text-yellow-900"
+                                                onClick={() => void requestScreeningNextStep(rec, primaryAction)}
+                                              >
+                                                Prepare navigation request
+                                              </button>
+                                            ) : null}
+                                          </div>
+                                        )}
+
+                                        {activeReferralPanel.preview.seededContactOnly.length > 0 ? (
+                                          <div className="space-y-2">
+                                            <p className="text-[11px] font-semibold text-primary">Public directory only</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                              {activeReferralPanel.preview.seededContactOnly.slice(0, 4).map((provider) => (
+                                                <div key={provider.id} className="rounded-xl border border-white/10 bg-white/[0.045] p-3">
+                                                  <p className="text-xs font-semibold text-primary">{provider.name}</p>
+                                                  <p className="text-[11px] text-muted mt-1">{provider.statusLabel}</p>
+                                                  {provider.phone ? <p className="text-[11px] text-muted mt-1">{provider.phone}</p> : null}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        ) : null}
+
+                                        {activeReferralPanel.preview.supported ? (
+                                          <div className="space-y-2">
+                                            <p className="text-[11px] font-semibold text-primary">
+                                              Exact fields OpenRx will disclose after consent
+                                            </p>
+                                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                                              {activeReferralPanel.preview.displayedFields.map((field) => (
+                                                <li
+                                                  key={field.path}
+                                                  data-testid="referral-disclosure-field"
+                                                  className="rounded-lg border border-white/10 bg-white/[0.045] px-2 py-1.5 text-[11px] text-secondary"
+                                                >
+                                                  <span className="font-semibold text-primary">{field.label}</span>
+                                                  <span className="block text-[10px] text-muted">{field.path}</span>
+                                                </li>
+                                              ))}
+                                            </ul>
+                                            <label className="flex items-start gap-2 text-[11px] leading-5 text-secondary">
+                                              <input
+                                                type="checkbox"
+                                                className="mt-1"
+                                                checked={activeReferralPanel.consentAccepted}
+                                                onChange={(event) => setReferralPanel((current) => current ? {
+                                                  ...current,
+                                                  consentAccepted: event.target.checked,
+                                                  error: undefined,
+                                                } : current)}
+                                              />
+                                              I consent to share exactly these fields with the provider I selected. I understand OpenRx is not placing a clinical order.
+                                            </label>
+                                            <button
+                                              type="button"
+                                              data-testid="referral-create-request"
+                                              disabled={
+                                                !activeReferralPanel.selectedProviderId ||
+                                                !activeReferralPanel.consentAccepted ||
+                                                Boolean(activeReferralPanel.preview.created)
+                                              }
+                                              onClick={() => void submitReferralConsent()}
+                                              className="inline-flex items-center gap-1 rounded-2xl bg-teal px-3 py-2 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                              Create referral request
+                                              <ArrowRight size={12} />
+                                            </button>
+                                          </div>
+                                        ) : null}
+
+                                        {activeReferralPanel.preview.created ? (
+                                          <p className="rounded-xl border border-teal/20 bg-teal/10 p-3 text-xs leading-5 text-teal">
+                                            Referral {activeReferralPanel.preview.created.referral.id} is {activeReferralPanel.preview.created.referral.status}. Consent hash was captured before disclosure.
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                ) : null}
                               </div>
                             </div>
                           )

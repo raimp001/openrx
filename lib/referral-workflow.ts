@@ -17,6 +17,8 @@ import type { ScreeningIntake, ScreeningRecommendation } from "@/lib/screening/t
 export interface ReferralProviderCandidate extends ProviderComplianceRecord {
   services?: string[]
   specialty?: string
+  address?: string
+  phone?: string
   distanceMiles?: number
   acceptingNew?: boolean
   insurance?: string[]

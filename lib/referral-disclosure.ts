@@ -57,7 +57,14 @@ export const REFERRAL_DISCLOSURE_TEMPLATES: DisclosureTemplate[] = [
   {
     id: "openrx.disclosure.genetic-counseling.v1",
     version: "2026-06-09",
-    recommendationIds: ["genetic-counseling", "request-genetic-counseling", "nccn-genetic-counseling"],
+    recommendationIds: [
+      "genetic-counseling",
+      "request-genetic-counseling",
+      "nccn-genetic-counseling",
+      "brca-family-history-risk-assessment",
+      "hereditary-cancer-genetic-counseling",
+      "hereditary-prostate-screening-review",
+    ],
     fields: [
       { path: "recommendation.id", label: "Recommendation ID" },
       { path: "recommendation.screeningName", label: "Recommendation" },

@@ -11,9 +11,18 @@ import type { ScreeningRecommendation } from "./screening/types"
 import { detectRedFlagText, emergencyResponse } from "./red-flag"
 
 // ── AI Clients ────────────────────────────────────────────
+// Timeout/retry knobs are env-configurable so tests can simulate upstream
+// failures (429/500/timeout) quickly against a mocked model API boundary.
+const MODEL_TIMEOUT_MS = Number(process.env.OPENRX_MODEL_TIMEOUT_MS || 60_000)
+const MODEL_MAX_RETRIES = Number(process.env.OPENRX_MODEL_MAX_RETRIES ?? 2)
+
 const getClaudeClient = () =>
   process.env.ANTHROPIC_API_KEY
-    ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    ? new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY,
+        timeout: MODEL_TIMEOUT_MS,
+        maxRetries: MODEL_MAX_RETRIES,
+      })
     : null
 
 const openai = new OpenAI({

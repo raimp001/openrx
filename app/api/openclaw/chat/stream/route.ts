@@ -4,12 +4,11 @@ import { runAgentStream } from "@/lib/ai-engine"
 import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import { appendChatExchange } from "@/lib/chat-history-store"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
+import { CLEAN_BUSY_MESSAGE, isModelFailureText } from "@/lib/openclaw/clean-failure"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 export const maxDuration = 60
-
-const CLEAN_BUSY_MESSAGE = "We're busy right now. Please try again in a moment."
 
 const VALID_AGENTS = [
   "coordinator",
@@ -27,10 +26,6 @@ const VALID_AGENTS = [
 
 function sse(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
-}
-
-function isLegacyModelFailureText(text: string): boolean {
-  return /Our AI assistant is handling a high volume|temporarily at capacity|rate_limit|overloaded/i.test(text)
 }
 
 function deterministicSseResponse(agentId: string, message: string): Response {
@@ -170,7 +165,7 @@ export async function POST(req: NextRequest) {
             }
             break
           }
-          if (isLegacyModelFailureText(next.value)) {
+          if (isModelFailureText(next.value)) {
             finalText = CLEAN_BUSY_MESSAGE
             send("error", { message: CLEAN_BUSY_MESSAGE })
             break

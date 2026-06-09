@@ -4,8 +4,7 @@ import { runAgent, runCoordinator } from "@/lib/ai-engine"
 import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import { appendChatExchange } from "@/lib/chat-history-store"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
-
-const CLEAN_BUSY_MESSAGE = "We're busy right now. Please try again in a moment."
+import { CLEAN_BUSY_MESSAGE, isModelFailureText } from "@/lib/openclaw/clean-failure"
 
 function statusFromError(error: unknown): number | undefined {
   if (!error || typeof error !== "object") return undefined
@@ -13,10 +12,6 @@ function statusFromError(error: unknown): number | undefined {
     (error as { statusCode?: unknown }).statusCode ??
     (error as { code?: unknown }).code)
   return Number.isFinite(status) ? status : undefined
-}
-
-function isLegacyModelFailureText(text: string): boolean {
-  return /Our AI assistant is handling a high volume|temporarily at capacity|rate_limit|overloaded/i.test(text)
 }
 
 export async function POST(req: NextRequest) {
@@ -112,7 +107,7 @@ export async function POST(req: NextRequest) {
           walletAddress: effectiveWalletAddress,
         })
 
-    const resultResponse = isLegacyModelFailureText(result.response) ? CLEAN_BUSY_MESSAGE : result.response
+    const resultResponse = isModelFailureText(result.response) ? CLEAN_BUSY_MESSAGE : result.response
 
     let savedConversationId = conversationId || ""
     let savedTitle = ""

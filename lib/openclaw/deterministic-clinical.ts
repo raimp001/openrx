@@ -22,9 +22,17 @@ function parseSex(message: string): "female" | "male" | "unknown" {
   return "unknown"
 }
 
+// Risk modifiers these simple age/sex rules do not encode. When present, the
+// full screening engine (family history, hereditary risk, smoking pack-years,
+// personal history, red flags) must produce the answer instead.
+function hasRiskModifiers(lower: string): boolean {
+  return /\b(family|mother|father|mom|dad|brother|sister|sibling|parent|uncle|aunt|grand\w*|cousin|hereditary|inherited|germline|mutation|brca\d?|palb2|chek2|lynch|mlh1|msh[26]|pms2|apc|mutyh|epcam|hoxb13|smok\w*|pack[-\s]?years?|survivor|history of|polyp|adenoma|colitis|crohn|symptom|bleeding|lump|mass|weight loss|hemoptysis|coughing blood)\b/.test(lower)
+}
+
 function shouldAnswerWithRules(message: string): boolean {
   const lower = message.toLowerCase().trim()
   if (!lower) return false
+  if (hasRiskModifiers(lower)) return false
   const profileOnly = /^(?:i\s*am\s*)?(?:age\s*)?\d{1,3}\s*(?:yo|y\/o|years?\s*old|year[-\s]old)?\s*(?:male|female|man|woman|m|f)\.?$/.test(lower)
   const preventionIntent = /\b(screen|screening|preventive|prevention|risk|cancer|uspstf|checkup|due|genetic|colonoscopy|mammogram|pap|hpv)\b/.test(lower)
   const profileSignal = /\b(age|aged|\d{1,3}\s*(?:yo|y\/o|years?\s*old|year[-\s]old|male|female|man|woman|m|f)|brca1|brca2|lynch|pack[-\s]?years?)\b/.test(lower)

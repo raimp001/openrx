@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
+import { attachChatHistoryCookie, isChatHistoryPersistenceEnabled, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import {
   deleteChatConversation,
   getChatConversation,
@@ -29,6 +29,13 @@ function safeConversation(conversation: ChatConversation) {
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
+  if (!isChatHistoryPersistenceEnabled()) {
+    return NextResponse.json(
+      { error: "Chat history is disabled for the stateless MVP." },
+      { status: 404 }
+    )
+  }
+
   const owner = await resolveChatHistoryOwner(request)
   if ("response" in owner) return owner.response
 
@@ -41,6 +48,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  if (!isChatHistoryPersistenceEnabled()) {
+    return NextResponse.json(
+      { error: "Chat history is disabled for the stateless MVP." },
+      { status: 403 }
+    )
+  }
+
   const body = await request.json().catch(() => ({})) as {
     title?: string
     folder?: string
@@ -74,6 +88,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
+  if (!isChatHistoryPersistenceEnabled()) {
+    return NextResponse.json({ ok: false, historyStatus: "disabled" })
+  }
+
   const owner = await resolveChatHistoryOwner(request)
   if ("response" in owner) return owner.response
 

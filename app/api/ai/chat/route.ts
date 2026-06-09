@@ -3,10 +3,14 @@ import { NextRequest, NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
+import {
+  CLEAN_MODEL_BUSY_MESSAGE,
+  modelErrorCode,
+  requestIdFromModelError,
+  withModelApiBoundary,
+} from "@/lib/openclaw/model-boundary"
 
 export const maxDuration = 60
-
-const CLEAN_BUSY_MESSAGE = "We're busy right now. Please try again in a moment."
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   triage: "You are Nova, a compassionate medical triage assistant at OpenRx Health. Give general education, assess urgency, and advise emergency care for emergency symptoms. Do not diagnose.",
@@ -40,43 +44,6 @@ function oneShotStream(message: string, model: string): Response {
       "X-AI-Model": model,
     },
   })
-}
-
-function statusFromError(error: unknown): number | undefined {
-  if (!error || typeof error !== "object") return undefined
-  const candidate = error as { status?: unknown; statusCode?: unknown; code?: unknown }
-  const status = Number(candidate.status ?? candidate.statusCode ?? candidate.code)
-  return Number.isFinite(status) ? status : undefined
-}
-
-async function sleep(ms: number): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, ms + Math.floor(Math.random() * 250)))
-}
-
-async function withModelRetry<T>(operation: string, call: () => Promise<T>): Promise<T> {
-  const delays = [500, 1000, 2000]
-  let lastError: unknown
-
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      return await call()
-    } catch (error) {
-      lastError = error
-      const status = statusFromError(error)
-      const retryable = status === 429 || status === 503
-      console.warn("[model-api-boundary]", {
-        operation,
-        attempt,
-        code: status ? `upstream_${status}` : "upstream_model_error",
-        retryable,
-        exhausted: attempt === 3 || !retryable,
-      })
-      if (!retryable || attempt === 3) break
-      await sleep(delays[attempt - 1] || 2000)
-    }
-  }
-
-  throw lastError
 }
 
 function textFromClaudeResponse(response: Anthropic.Message): string {
@@ -137,13 +104,13 @@ export async function POST(request: NextRequest) {
     const openaiKey = process.env.OPENAI_API_KEY
 
     if (!claudeKey && !openaiKey) {
-      if (wantsStream) return oneShotStream(CLEAN_BUSY_MESSAGE, "openrx-clean-error")
-      return NextResponse.json({ error: CLEAN_BUSY_MESSAGE }, { status: 503 })
+      if (wantsStream) return oneShotStream(CLEAN_MODEL_BUSY_MESSAGE, "openrx-clean-error")
+      return NextResponse.json({ error: CLEAN_MODEL_BUSY_MESSAGE }, { status: 503 })
     }
 
     if (claudeKey) {
       const claude = new Anthropic({ apiKey: claudeKey })
-      const response = await withModelRetry("ai-chat-claude", () =>
+      const response = await withModelApiBoundary("ai-chat-claude", () =>
         claude.messages.create({
           model: "claude-sonnet-4-6",
           max_tokens: 2048,
@@ -162,7 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     const openai = new OpenAI({ apiKey: openaiKey! })
-    const response = await withModelRetry("ai-chat-openai", () =>
+    const response = await withModelApiBoundary("ai-chat-openai", () =>
       openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -178,8 +145,10 @@ export async function POST(request: NextRequest) {
     if (wantsStream) return oneShotStream(assistantMessage, "gpt-4o-mini")
     return NextResponse.json({ message: assistantMessage, sessionId, model: "gpt-4o-mini" })
   } catch (error) {
-    const status = statusFromError(error)
-    console.error("[AI chat]", { code: status ? `upstream_${status}` : "upstream_model_error" })
-    return NextResponse.json({ error: CLEAN_BUSY_MESSAGE }, { status: 503 })
+    console.error("[AI chat]", {
+      code: modelErrorCode(error),
+      requestId: requestIdFromModelError(error),
+    })
+    return NextResponse.json({ error: CLEAN_MODEL_BUSY_MESSAGE }, { status: 503 })
   }
 }

@@ -119,6 +119,7 @@ function isCompactScreeningFollowUp(message: string): boolean {
 }
 
 const SECTION_LABELS: Record<string, { variant: "due" | "review" | "upcoming" | "current" | "info" | "safety" | "followup" | "next" | "answer" | "refs" | "care"; icon?: typeof CheckCircle2 }> = {
+  "Answer": { variant: "answer" },
   "Direct answer": { variant: "answer" },
   "Due now": { variant: "due", icon: AlertTriangle },
   "Needs clinician review": { variant: "review", icon: ShieldAlert },
@@ -894,7 +895,7 @@ export default function ChatPage() {
         <p className={cn("text-left text-[11px] text-zinc-400", placement === "hero" && "hidden sm:block")}>
           {isLoading
             ? "Press Esc to stop. Streaming the answer…"
-            : "Direct answers, sources, and explicit links. Not a substitute for clinician judgment."}
+            : "Guideline-linked answers, sources, and explicit links. Not a substitute for clinician judgment."}
         </p>
         {isLoading ? (
           <button

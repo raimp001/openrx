@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import crypto from "crypto"
 import { openclawClient } from "@/lib/openclaw/client"
+import {
+  CLEAN_MODEL_BUSY_MESSAGE,
+  modelErrorCode,
+  requestIdFromModelError,
+} from "@/lib/openclaw/model-boundary"
 
 // Webhook endpoint for incoming patient messages from any channel
 // Care automation gateway routes WhatsApp/SMS/Telegram messages here
@@ -67,7 +72,10 @@ export async function POST(req: NextRequest) {
       sessionId: result.sessionId,
     })
   } catch (error) {
-    console.error("Webhook message error:", error)
-    return NextResponse.json({ error: "Processing failed" }, { status: 500 })
+    console.error("[openclaw-webhook-message]", {
+      code: modelErrorCode(error),
+      requestId: requestIdFromModelError(error),
+    })
+    return NextResponse.json({ error: CLEAN_MODEL_BUSY_MESSAGE }, { status: 503 })
   }
 }

@@ -1,19 +1,14 @@
 import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { runAgent, runCoordinator } from "@/lib/ai-engine"
-import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
+import { attachChatHistoryCookie, isChatHistoryPersistenceEnabled, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import { appendChatExchange } from "@/lib/chat-history-store"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
-
-const CLEAN_BUSY_MESSAGE = "We're busy right now. Please try again in a moment."
-
-function statusFromError(error: unknown): number | undefined {
-  if (!error || typeof error !== "object") return undefined
-  const status = Number((error as { status?: unknown; statusCode?: unknown; code?: unknown }).status ??
-    (error as { statusCode?: unknown }).statusCode ??
-    (error as { code?: unknown }).code)
-  return Number.isFinite(status) ? status : undefined
-}
+import {
+  CLEAN_MODEL_BUSY_MESSAGE,
+  modelErrorCode,
+  requestIdFromModelError,
+} from "@/lib/openclaw/model-boundary"
 
 function isLegacyModelFailureText(text: string): boolean {
   return /Our AI assistant is handling a high volume|temporarily at capacity|rate_limit|overloaded/i.test(text)
@@ -112,28 +107,31 @@ export async function POST(req: NextRequest) {
           walletAddress: effectiveWalletAddress,
         })
 
-    const resultResponse = isLegacyModelFailureText(result.response) ? CLEAN_BUSY_MESSAGE : result.response
+    const resultResponse = isLegacyModelFailureText(result.response) ? CLEAN_MODEL_BUSY_MESSAGE : result.response
 
     let savedConversationId = conversationId || ""
     let savedTitle = ""
     let owner: Awaited<ReturnType<typeof resolveChatHistoryOwner>> | null = null
-    try {
-      owner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
-      if (owner && !("response" in owner)) {
-        const conversation = await appendChatExchange({
-          ownerKey: owner.ownerKey,
-          conversationId,
-          userContent: message.trim(),
-          agentContent: resultResponse,
-          agentId: result.agentId,
-          collaborators: Array.isArray(collaborators) ? collaborators : undefined,
-          routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
-        })
-        savedConversationId = conversation.id
-        savedTitle = conversation.title
+    const persistChatHistory = isChatHistoryPersistenceEnabled()
+    if (persistChatHistory) {
+      try {
+        owner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
+        if (owner && !("response" in owner)) {
+          const conversation = await appendChatExchange({
+            ownerKey: owner.ownerKey,
+            conversationId,
+            userContent: message.trim(),
+            agentContent: resultResponse,
+            agentId: result.agentId,
+            collaborators: Array.isArray(collaborators) ? collaborators : undefined,
+            routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
+          })
+          savedConversationId = conversation.id
+          savedTitle = conversation.title
+        }
+      } catch {
+        console.error("[openclaw-chat-history]", { code: "history_store_failed" })
       }
-    } catch {
-      console.error("[openclaw-chat-history]", { code: "history_store_failed" })
     }
 
     const response = NextResponse.json({
@@ -146,15 +144,17 @@ export async function POST(req: NextRequest) {
       live: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
     })
 
-    if (owner && !("response" in owner)) {
+    if (persistChatHistory && owner && !("response" in owner)) {
       return attachChatHistoryCookie(response, owner)
     }
     return response
   } catch (error) {
-    const status = statusFromError(error)
-    console.error("[openclaw-chat]", { code: status ? `upstream_${status}` : "chat_error" })
+    console.error("[openclaw-chat]", {
+      code: modelErrorCode(error),
+      requestId: requestIdFromModelError(error),
+    })
     return NextResponse.json(
-      { error: CLEAN_BUSY_MESSAGE },
+      { error: CLEAN_MODEL_BUSY_MESSAGE },
       { status: 503 }
     )
   }

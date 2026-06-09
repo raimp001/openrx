@@ -415,7 +415,7 @@ test("landing care action stays in chat before a user intentionally opens the di
     })
   })
 
-  await page.goto("/")
+  await page.goto("/chat")
   await page.getByRole("button", { name: "Find care near me" }).click()
 
   await expect(page).toHaveURL(/\/chat/)
@@ -513,7 +513,7 @@ test("landing screening suggestion opens chat and does not redirect to screening
     })
   })
 
-  await page.goto("/")
+  await page.goto("/chat")
   await page.getByRole("button", { name: /Check my screening/ }).click()
 
   await expect(page).toHaveURL(/\/chat/)

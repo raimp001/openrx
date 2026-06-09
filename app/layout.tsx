@@ -72,6 +72,21 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
+        <noscript>
+          <div
+            style={{
+              padding: "12px 16px",
+              background: "#164e63",
+              color: "#f4f4f5",
+              fontSize: "13px",
+              textAlign: "center",
+            }}
+          >
+            The interactive parts of OpenRx — chat, screening, and the denial-to-appeal sandbox —
+            require JavaScript. Enable JavaScript to use them, or read about how OpenRx works on
+            this page.
+          </div>
+        </noscript>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -1,5 +1,5 @@
 {
   "framework": "nextjs",
-  "buildCommand": "node scripts/apply-codex-patch.mjs && prisma generate && next build",
+  "buildCommand": "prisma generate && next build",
   "outputDirectory": ".next"
 }

@@ -11,12 +11,17 @@ import { chatOwnerKeyFromSession, chatOwnerKeyFromWallet } from "@/lib/chat-hist
 
 const CHAT_SESSION_COOKIE = "openrx_chat_session"
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 180
+const STATELESS_OWNER_KEY = "session:stateless"
 
 export type ChatHistoryOwner = {
   ownerKey: string
   identity: "wallet" | "anonymous"
   sessionId?: string
   shouldSetCookie: boolean
+}
+
+export function isChatHistoryPersistenceEnabled(): boolean {
+  return process.env.OPENRX_ENABLE_PHI_CHAT_HISTORY === "true"
 }
 
 function validSessionId(value?: string): value is string {
@@ -29,6 +34,14 @@ export async function resolveChatHistoryOwner(
 ): Promise<ChatHistoryOwner | { response: NextResponse }> {
   const auth = await requireAuth(request, { allowPublic: true })
   if ("response" in auth) return auth
+
+  if (!isChatHistoryPersistenceEnabled()) {
+    return {
+      ownerKey: STATELESS_OWNER_KEY,
+      identity: "anonymous",
+      shouldSetCookie: false,
+    }
+  }
 
   const walletAddress = normalizeWalletAddress(walletAddressFromBody || getRequestWalletAddress(request))
   if (

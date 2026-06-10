@@ -2,6 +2,7 @@ import Sidebar from "@/components/layout/sidebar"
 import Topbar from "@/components/layout/topbar"
 import { AnalyticsDebugPanel } from "@/components/analytics-debug-panel"
 import { getDatabaseHealth } from "@/lib/database-health"
+import { Providers } from "@/app/providers"
 
 export const dynamic = "force-dynamic"
 
@@ -11,6 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const showDatabaseBanner = !isProduction && databaseHealth.status !== "connected"
 
   return (
+    <Providers>
     <div className="relative min-h-screen overflow-x-hidden">
       <a href="#main-content" className="skip-link">
         Skip to main content
@@ -43,5 +45,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </div>
       <AnalyticsDebugPanel />
     </div>
+    </Providers>
   )
 }

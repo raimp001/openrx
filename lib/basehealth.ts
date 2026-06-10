@@ -9,6 +9,7 @@ import type { ScreeningRecommendation as StructuredScreeningRecommendation } fro
 interface BasePatientProfile {
   id: string
   date_of_birth: string
+  gender?: string
   medical_history: { condition: string; diagnosed: string; status: string }[]
 }
 
@@ -94,6 +95,9 @@ export interface TrialMatchInput {
   patient?: BasePatientProfile
   condition?: string
   location?: string
+  zip?: string
+  age?: number
+  sex?: string
 }
 
 export interface TrialMatch {
@@ -149,6 +153,7 @@ interface CtGovStudy {
     eligibilityModule?: {
       minimumAge?: string
       maximumAge?: string
+      sex?: string
     }
   }
 }
@@ -816,6 +821,106 @@ function buildTrialSearchTerms(condition: string, history: string[]): string {
   return history.slice(0, 3).join(" ")
 }
 
+function normalizeTrialConditionText(value?: string): string {
+  return (value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+const TRIAL_CONDITION_SYNONYMS: string[][] = [
+  [
+    "colorectal cancer",
+    "colon cancer",
+    "rectal cancer",
+    "crc",
+    "colorectal neoplasm",
+    "colorectal neoplasms",
+    "colon neoplasm",
+    "colon neoplasms",
+    "rectal neoplasm",
+    "rectal neoplasms",
+  ],
+  ["breast cancer", "breast carcinoma"],
+  ["prostate cancer", "prostatic cancer", "prostate carcinoma"],
+  ["lung cancer", "non small cell lung cancer", "non-small cell lung cancer", "nsclc", "small cell lung cancer", "sclc"],
+]
+
+function textContainsPhrase(text: string, phrase: string): boolean {
+  if (!text || !phrase) return false
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  return new RegExp(`(?:^|\\s)${escaped}(?:\\s|$)`).test(text)
+}
+
+function shouldExpandTrialConditionTerm(term: string, candidate: string): boolean {
+  const tokenCount = term.split(" ").filter(Boolean).length
+  return textContainsPhrase(term, candidate) || (tokenCount >= 2 && textContainsPhrase(candidate, term))
+}
+
+function expandedTrialConditionTerms(values: string[]): string[] {
+  const terms = new Set(values.map(normalizeTrialConditionText).filter(Boolean))
+
+  for (const term of Array.from(terms)) {
+    for (const group of TRIAL_CONDITION_SYNONYMS) {
+      const normalizedGroup = group.map(normalizeTrialConditionText)
+      if (normalizedGroup.some((candidate) => shouldExpandTrialConditionTerm(term, candidate))) {
+        normalizedGroup.forEach((candidate) => terms.add(candidate))
+      }
+    }
+  }
+
+  return Array.from(terms).filter((term) => term.length >= 3)
+}
+
+function assessTrialConditionMatch(opts: {
+  queryTerms: string[]
+  conditions: string[]
+  title: string
+  summary: string
+}): { strength: "direct" | "summary" | "none"; matchedTerm?: string } {
+  const directPool = normalizeTrialConditionText(`${opts.conditions.join(" ")} ${opts.title}`)
+  const summaryPool = normalizeTrialConditionText(opts.summary)
+  const directTerm = opts.queryTerms.find((term) => textContainsPhrase(directPool, term))
+  if (directTerm) return { strength: "direct", matchedTerm: directTerm }
+
+  const summaryTerm = opts.queryTerms.find((term) => textContainsPhrase(summaryPool, term))
+  if (summaryTerm) return { strength: "summary", matchedTerm: summaryTerm }
+
+  return { strength: "none" }
+}
+
+function selectTrialConditionLabel(conditions: string[], matchedTerm?: string, inputCondition?: string): string {
+  if (matchedTerm) {
+    const matchedTerms = expandedTrialConditionTerms([matchedTerm])
+    const matchedCondition = conditions.find((condition) => {
+      const conditionTerms = expandedTrialConditionTerms([condition])
+      return conditionTerms.some((term) => matchedTerms.includes(term))
+    })
+    if (matchedCondition) return matchedCondition
+  }
+
+  return inputCondition || conditions[0] || "General"
+}
+
+function coerceTrialAge(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string") {
+    const numeric = Number.parseInt(value, 10)
+    if (Number.isFinite(numeric)) return numeric
+  }
+  return undefined
+}
+
+function trialEligibilityAllowsSex(studySex: string | undefined, requestedSex: "female" | "male" | "unknown"): boolean {
+  if (requestedSex === "unknown" || !studySex) return true
+  const normalized = studySex.toLowerCase()
+  if (normalized === "all" || normalized === "all sexes") return true
+  if (normalized.includes("female")) return requestedSex === "female"
+  if (normalized.includes("male")) return requestedSex === "male"
+  return true
+}
+
 function normalizeTrialLocationText(value?: string): string {
   return (value || "")
     .toLowerCase()
@@ -962,18 +1067,6 @@ async function fetchCtGovStudies(opts: {
   return payload.studies || []
 }
 
-function dedupeCtGovStudies(studies: CtGovStudy[]): CtGovStudy[] {
-  const seen = new Set<string>()
-  const deduped: CtGovStudy[] = []
-  studies.forEach((study) => {
-    const id = study.protocolSection?.identificationModule?.nctId
-    if (!id || seen.has(id)) return
-    seen.add(id)
-    deduped.push(study)
-  })
-  return deduped
-}
-
 function scoreTrialStudies(
   studies: CtGovStudy[],
   opts: {
@@ -984,6 +1077,9 @@ function scoreTrialStudies(
     conditionHistory: string[]
     conditionText: string
     inputCondition?: string
+    requestedSex: "female" | "male" | "unknown"
+    trustLocationSearch: boolean
+    locationFallbackReason?: string
   }
 ): TrialMatch[] {
   const matches: TrialMatch[] = []
@@ -998,6 +1094,7 @@ function scoreTrialStudies(
     const maxAge = parseAgeYears(protocol?.eligibilityModule?.maximumAge)
     if (minAge !== null && opts.age < minAge) continue
     if (maxAge !== null && opts.age > maxAge) continue
+    if (!trialEligibilityAllowsSex(protocol?.eligibilityModule?.sex, opts.requestedSex)) continue
 
     const conditions = protocol?.conditionsModule?.conditions || []
     const summary = protocol?.descriptionModule?.briefSummary || "No study summary provided."
@@ -1014,22 +1111,47 @@ function scoreTrialStudies(
 
     let score = 30
     const reasons: string[] = []
+    let directConditionMatch = false
+    let matchedConditionTerm: string | undefined
+    if (opts.locationFallbackReason) reasons.push(opts.locationFallbackReason)
 
     if (opts.conditionQuery) {
-      const conditionPool = `${conditions.join(" ")} ${summary}`.toLowerCase()
-      if (conditionPool.includes(opts.conditionQuery)) {
+      const conditionMatch = assessTrialConditionMatch({
+        queryTerms: expandedTrialConditionTerms([opts.conditionQuery]),
+        conditions,
+        title,
+        summary,
+      })
+      if (conditionMatch.strength === "direct") {
         score += 35
+        directConditionMatch = true
+        matchedConditionTerm = conditionMatch.matchedTerm
         reasons.push(`Study focus matches "${opts.inputCondition}".`)
+      } else if (conditionMatch.strength === "summary") {
+        score += 12
+        matchedConditionTerm = conditionMatch.matchedTerm
+        reasons.push(`Study summary mentions "${opts.inputCondition}"; confirm disease-specific fit with the study site.`)
       } else {
-        score += 10
-        reasons.push("Matched on broader query terms.")
+        continue
       }
     } else if (opts.conditionText) {
-      const conditionPool = `${conditions.join(" ")} ${summary}`.toLowerCase()
-      const overlap = opts.conditionHistory.find((item) => conditionPool.includes(item.toLowerCase()))
-      if (overlap) {
+      const conditionMatch = assessTrialConditionMatch({
+        queryTerms: expandedTrialConditionTerms(opts.conditionHistory),
+        conditions,
+        title,
+        summary,
+      })
+      if (conditionMatch.strength === "direct") {
         score += 24
-        reasons.push(`Aligned with patient history: ${overlap}.`)
+        directConditionMatch = true
+        matchedConditionTerm = conditionMatch.matchedTerm
+        reasons.push(`Aligned with patient history: ${conditionMatch.matchedTerm}.`)
+      } else if (conditionMatch.strength === "summary") {
+        score += 10
+        matchedConditionTerm = conditionMatch.matchedTerm
+        reasons.push(`Study summary mentions patient history: ${conditionMatch.matchedTerm}.`)
+      } else {
+        continue
       }
     }
 
@@ -1043,6 +1165,9 @@ function scoreTrialStudies(
       } else if (remoteEligible && opts.parsedLocation.wantsRemote) {
         score += 8
         reasons.push("No listed sites yet; may allow remote prescreening.")
+      } else if (opts.trustLocationSearch && opts.parsedLocation.zip && !remoteEligible) {
+        score += 10
+        reasons.push("ClinicalTrials.gov returned this study for the requested ZIP; confirm exact travel distance with the site.")
       } else {
         continue
       }
@@ -1059,9 +1184,9 @@ function scoreTrialStudies(
       sponsor,
       location,
       remoteEligible,
-      condition: conditions[0] || opts.inputCondition || "General",
+      condition: selectTrialConditionLabel(conditions, matchedConditionTerm, opts.inputCondition),
       matchScore: finalScore,
-      fit: finalScore >= 65 ? "strong" : "possible",
+      fit: directConditionMatch && finalScore >= 65 && !opts.locationFallbackReason ? "strong" : "possible",
       reasons,
       url: `https://clinicaltrials.gov/study/${id}`,
       summary,
@@ -1073,29 +1198,25 @@ function scoreTrialStudies(
 
 export async function matchClinicalTrials(input: TrialMatchInput = {}): Promise<TrialMatch[]> {
   const patient = resolvePatient(input.patient)
-  const age = calcAge(patient.date_of_birth)
-  const locationQuery = (input.location || "").trim().toLowerCase()
-  const parsedLocation = parseTrialLocationQuery(input.location)
+  const age = coerceTrialAge(input.age) ?? calcAge(patient.date_of_birth)
+  const locationInput = (input.location || input.zip || "").trim()
+  const locationQuery = locationInput.toLowerCase()
+  const parsedLocation = parseTrialLocationQuery(locationInput)
   const conditionQuery = (input.condition || "").trim().toLowerCase()
   const conditionHistory = patient.medical_history.map((item) => item.condition.trim()).filter(Boolean)
   const conditionText = conditionHistory.join(" ").toLowerCase()
   const queryTerm = buildTrialSearchTerms(input.condition?.trim() || "", conditionHistory)
+  const requestedSex = normalizeGender(input.sex || patient.gender)
 
   if (!queryTerm && !locationQuery) return []
 
   try {
     const studies = locationQuery
-      ? dedupeCtGovStudies([
-          ...(await fetchCtGovStudies({
-            queryTerm,
-            location: input.location?.trim(),
-            pageSize: 60,
-          })),
-          ...(await fetchCtGovStudies({
-            queryTerm,
-            pageSize: 250,
-          })),
-        ])
+      ? await fetchCtGovStudies({
+          queryTerm,
+          location: locationInput,
+          pageSize: 120,
+        })
       : await fetchCtGovStudies({
           queryTerm,
           pageSize: 20,
@@ -1109,9 +1230,33 @@ export async function matchClinicalTrials(input: TrialMatchInput = {}): Promise<
       conditionHistory,
       conditionText,
       inputCondition: input.condition,
+      requestedSex,
+      trustLocationSearch: Boolean(locationQuery),
     })
 
-    return matches.sort((a, b) => b.matchScore - a.matchScore).slice(0, 10)
+    const sortedMatches = matches.sort((a, b) => b.matchScore - a.matchScore)
+    if (sortedMatches.length > 0 || !locationQuery || !queryTerm) {
+      return sortedMatches.slice(0, 10)
+    }
+
+    const broaderStudies = await fetchCtGovStudies({
+      queryTerm,
+      pageSize: 60,
+    })
+    const broaderMatches = scoreTrialStudies(broaderStudies, {
+      age,
+      locationQuery: "",
+      parsedLocation: parseTrialLocationQuery(),
+      conditionQuery,
+      conditionHistory,
+      conditionText,
+      inputCondition: input.condition,
+      requestedSex,
+      trustLocationSearch: false,
+      locationFallbackReason: `No recruiting study site matched "${locationInput}"; showing broader condition-matched candidates to discuss with the study site.`,
+    })
+
+    return broaderMatches.sort((a, b) => b.matchScore - a.matchScore).slice(0, 5)
   } catch {
     return []
   }

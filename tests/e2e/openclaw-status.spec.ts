@@ -25,7 +25,12 @@ test("status API exposes scheduler summary and prioritizes active workers", asyn
 })
 
 test("platform readiness exposes launch-blocking email and worker checks", async ({ request }) => {
-  const response = await request.get("/api/platform/readiness")
+  // Production builds gate this route behind a clinic session; the e2e admin
+  // key set in playwright.config.ts satisfies it in CI and locally.
+  const apiKey = process.env.OPENRX_ADMIN_API_KEY
+  const response = await request.get("/api/platform/readiness", {
+    headers: apiKey ? { "x-admin-api-key": apiKey } : {},
+  })
   expect(response.ok()).toBeTruthy()
 
   const data = (await response.json()) as {

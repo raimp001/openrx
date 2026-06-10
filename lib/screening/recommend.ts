@@ -11,6 +11,7 @@ import type {
 import { getGuidelineSource } from "./sources"
 import { detectRedFlags } from "./red-flags"
 import { getPathwaysForGenes, normalizeGene } from "./hereditary-risk"
+import { SCREENING_ENGINE_VERSION } from "./version"
 
 export type LegacyScreeningInput = {
   patientId?: string
@@ -46,12 +47,14 @@ function yearsSince(value?: string): number | undefined {
   return (Date.now() - date.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
 }
 
-function recommendation(input: Omit<ScreeningRecommendation, "sourceVersion" | "sourceSystem"> & { sourceSystem?: ScreeningSourceSystem }): ScreeningRecommendation {
+function recommendation(input: Omit<ScreeningRecommendation, "sourceVersion" | "sourceSystem" | "engineVersion"> & { sourceSystem?: ScreeningSourceSystem }): ScreeningRecommendation {
   const source = input.sourceId ? getGuidelineSource(input.sourceId) : undefined
   const rec: ScreeningRecommendation = {
     ...input,
     sourceSystem: input.sourceSystem || source?.organization || "PENDING",
     sourceVersion: source?.versionOrDate,
+    sourceUrl: source?.url,
+    engineVersion: SCREENING_ENGINE_VERSION,
   }
 
   const language = `${rec.rationale} ${rec.recommendedNextStep} ${rec.patientFriendlyExplanation}`.toLowerCase()
@@ -632,6 +635,7 @@ export function recommendScreenings(intake: ScreeningIntake): ScreeningEngineRes
     const sourceIds = Array.from(new Set(recommendations.map((item) => item.sourceId).filter((item): item is string => Boolean(item))))
     return {
       generatedAt: new Date().toISOString(),
+      engineVersion: SCREENING_ENGINE_VERSION,
       intakeCompleteness: "actionable",
       recommendations: recommendations.sort(compareRecommendations),
       safetyMessages: [
@@ -656,6 +660,7 @@ export function recommendScreenings(intake: ScreeningIntake): ScreeningEngineRes
 
   return {
     generatedAt: new Date().toISOString(),
+    engineVersion: SCREENING_ENGINE_VERSION,
     intakeCompleteness,
     recommendations: recommendations.sort(compareRecommendations),
     safetyMessages: [

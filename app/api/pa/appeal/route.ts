@@ -7,6 +7,12 @@ import { requireAuth } from "@/lib/api-auth"
 
 import { NextRequest, NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
+import {
+  CLEAN_MODEL_BUSY_MESSAGE,
+  modelErrorCode,
+  requestIdFromModelError,
+  withModelApiBoundary,
+} from "@/lib/openclaw/model-boundary"
 
 export const maxDuration = 60
 
@@ -124,13 +130,13 @@ Generate the complete appeal package now. Be specific, cite trial data, and make
     const claude = new Anthropic({ apiKey })
 
     // Use streaming + collect for appeal generation (Opus for highest quality)
-    const stream = claude.messages.stream({
+    const stream = await withModelApiBoundary("pa-appeal-claude-stream", async () => claude.messages.stream({
       model: "claude-opus-4-6",
       max_tokens: 4096,
       thinking: { type: "adaptive" },
       system: APPEAL_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
-    })
+    }))
 
     const finalMessage = await stream.finalMessage()
 
@@ -169,11 +175,12 @@ Generate the complete appeal package now. Be specific, cite trial data, and make
       },
     })
 
-  } catch (err) {
-    if (err instanceof Anthropic.APIError) {
-      return NextResponse.json({ error: `Claude error: ${err.message}` }, { status: err.status ?? 500 })
-    }
-    return NextResponse.json({ error: "Appeal generation failed", details: String(err) }, { status: 500 })
+  } catch (error) {
+    console.error("[pa-appeal]", {
+      code: modelErrorCode(error),
+      requestId: requestIdFromModelError(error),
+    })
+    return NextResponse.json({ error: CLEAN_MODEL_BUSY_MESSAGE }, { status: 503 })
   }
 }
 

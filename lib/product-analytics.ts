@@ -6,6 +6,8 @@ export const WORKFLOW_EVENT_NAMES = [
   "source_opened",
   "screening_started",
   "screening_completed",
+  "screening_referral_previewed",
+  "screening_referral_created",
   "care_plan_created",
   "provider_search_started",
   "provider_saved",
@@ -45,6 +47,8 @@ const SAFE_METADATA_KEYS = new Set([
   "scenario",
   "stage",
   "adapter",
+  "referralTargets",
+  "contactOnly",
 ])
 let runtimeSessionId = ""
 

@@ -4,6 +4,7 @@
 import Anthropic from "@anthropic-ai/sdk"
 import { OPENCLAW_CONFIG, type AgentId } from "./config"
 import { routeUserMessage } from "./orchestrator"
+import { withModelApiBoundary } from "./model-boundary"
 
 const ROUTER_SYSTEM = `You are Atlas, the OpenRx routing intelligence. Given a user message, return ONLY valid JSON with this shape:
 {
@@ -41,12 +42,12 @@ export async function routeUserMessageLLM(message: string): Promise<{
   if (apiKey) {
     try {
       const client = new Anthropic({ apiKey })
-      const resp = await client.messages.create({
+      const resp = await withModelApiBoundary("openclaw-router-claude", () => client.messages.create({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 256,
         system: ROUTER_SYSTEM,
         messages: [{ role: "user", content: message }],
-      })
+      }))
       const text = resp.content.find((b) => b.type === "text")?.text || ""
       const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text) as {
         primaryAgent?: string

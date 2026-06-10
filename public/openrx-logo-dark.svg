@@ -1,11 +1,10 @@
 <svg width="220" height="58" viewBox="0 0 220 58" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
   <title id="title">OpenRx</title>
-  <desc id="desc">A geometric clinical decision lens mark with OpenRx wordmark.</desc>
+  <desc id="desc">An open ring closed by an evidence diamond, with the OpenRx wordmark.</desc>
   <rect x="3" y="7" width="44" height="44" rx="13" fill="#050707" stroke="#1E3A3F" stroke-width="1.2"/>
-  <path d="M25 13.5L40.5 29L25 44.5L9.5 29L25 13.5Z" fill="#081314" stroke="#9BEAF3" stroke-width="2.2"/>
-  <path d="M25 21L33 29L25 37L17 29L25 21Z" fill="#0D2A2E" stroke="#2DD4BF" stroke-width="2"/>
-  <circle cx="25" cy="29" r="3.15" fill="#CFFAFE"/>
-  <path d="M14.5 29H21M29 29H35.5" stroke="#E6FFFB" stroke-width="2" stroke-linecap="round"/>
+  <path d="M 30.83 19.67 A 11 11 0 1 0 35.76 26.71" stroke="#67E8F9" stroke-width="2.9" stroke-linecap="round" fill="none"/>
+  <path d="M 34.01 18.59 L 38.11 22.69 L 34.01 26.79 L 29.91 22.69 Z" fill="#0D2A2E" stroke="#2DD4BF" stroke-width="2.4" stroke-linejoin="round"/>
+  <circle cx="34.01" cy="22.69" r="1.5" fill="#CFFAFE"/>
   <text x="60" y="32" fill="#F7FAFA" font-family="Geist, Inter, system-ui, sans-serif" font-size="24" font-weight="680" letter-spacing="-1.4">OpenRx</text>
   <text x="61" y="47" fill="#8EA2A6" font-family="Geist, Inter, system-ui, sans-serif" font-size="9" font-weight="650" letter-spacing="1.7">CARE HANDOFFS</text>
 </svg>

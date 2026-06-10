@@ -127,7 +127,9 @@ export type ScreeningRecommendation = {
   sourceSystem: ScreeningSourceSystem
   sourceId?: string
   sourceVersion?: string
+  sourceUrl?: string
   evidenceGrade?: string
+  engineVersion: string
   requiresClinicianReview: boolean
   patientFriendlyExplanation: string
   clinicianSummary: string
@@ -136,6 +138,7 @@ export type ScreeningRecommendation = {
 
 export type ScreeningEngineResult = {
   generatedAt: string
+  engineVersion: string
   intakeCompleteness: "minimal" | "partial" | "actionable"
   recommendations: ScreeningRecommendation[]
   safetyMessages: string[]

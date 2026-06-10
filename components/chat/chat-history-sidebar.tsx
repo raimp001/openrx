@@ -27,6 +27,7 @@ import type { ChatConversationSummary } from "@/lib/chat-history-store"
 
 type ConversationResponse = {
   conversations?: ChatConversationSummary[]
+  historyStatus?: "disabled" | "temporarily_unavailable"
 }
 
 type FullConversationResponse = {
@@ -127,6 +128,7 @@ export default function ChatHistorySidebar() {
   const [folderAssignments, setFolderAssignments] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [historyDisabled, setHistoryDisabled] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([])
   const activeConversationId = getConversationId(searchParams)
@@ -144,9 +146,11 @@ export default function ChatHistorySidebar() {
       })
       const body = (await response.json().catch(() => ({}))) as ConversationResponse
       if (!response.ok) throw new Error("Could not load chat history.")
+      setHistoryDisabled(body.historyStatus === "disabled")
       setConversations(body.conversations || [])
     } catch {
       setConversations([])
+      setHistoryDisabled(false)
       setError("")
     } finally {
       setLoading(false)
@@ -210,6 +214,7 @@ export default function ChatHistorySidebar() {
 
       if (isMacLike && event.key.toLowerCase() === "k") {
         event.preventDefault()
+        if (historyDisabled) return
         setMobileOpen(true)
         setCollapsed(false)
         window.setTimeout(() => searchRef.current?.focus(), 30)
@@ -236,7 +241,7 @@ export default function ChatHistorySidebar() {
 
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
-  }, [pathname, startNewChat])
+  }, [historyDisabled, pathname, startNewChat])
 
   const filteredConversations = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -291,11 +296,12 @@ export default function ChatHistorySidebar() {
   }, [patchConversation])
 
   const createFolder = useCallback(() => {
+    if (historyDisabled) return
     const folder = window.prompt("Create folder", "Screening follow-up")
     const cleaned = folder?.trim()
     if (!cleaned) return
     saveCustomFolders([...customFolders, cleaned])
-  }, [customFolders, saveCustomFolders])
+  }, [customFolders, historyDisabled, saveCustomFolders])
 
   const moveConversation = useCallback(async (conversation: ChatConversationSummary) => {
     const folder = window.prompt("Move to folder", folderAssignments[conversation.id] || conversation.folder || inferIssueFolder(conversation))
@@ -456,7 +462,8 @@ export default function ChatHistorySidebar() {
         <button
           type="button"
           onClick={createFolder}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/18 hover:bg-white/[0.065] hover:text-white"
+          disabled={historyDisabled}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/18 hover:bg-white/[0.065] hover:text-white disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-white/10 disabled:hover:bg-white/[0.035] disabled:hover:text-zinc-300"
           data-testid="chat-folder-new"
         >
           <FolderPlus size={15} />
@@ -470,7 +477,8 @@ export default function ChatHistorySidebar() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search chats"
-            className="w-full rounded-2xl border border-white/10 bg-[#0b0c0c] py-2.5 pl-9 pr-3 text-sm text-zinc-50 placeholder:text-zinc-500 transition focus:border-cyan-300/45 focus:outline-none focus:ring-2 focus:ring-cyan-300/12"
+            disabled={historyDisabled}
+            className="w-full rounded-2xl border border-white/10 bg-[#0b0c0c] py-2.5 pl-9 pr-3 text-sm text-zinc-50 placeholder:text-zinc-500 transition focus:border-cyan-300/45 focus:outline-none focus:ring-2 focus:ring-cyan-300/12 disabled:cursor-not-allowed disabled:opacity-45"
             data-testid="chat-history-search"
             aria-label="Search chats"
           />
@@ -491,6 +499,10 @@ export default function ChatHistorySidebar() {
         ) : error ? (
           <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-3 text-xs leading-5 text-amber-100">
             {error}
+          </div>
+        ) : historyDisabled ? (
+          <div className="rounded-xl border border-cyan-200/15 bg-cyan-200/[0.055] px-3 py-4 text-sm leading-6 text-cyan-50">
+            Chat history is off for this stateless MVP. Your questions stay in the current session only.
           </div>
         ) : conversations.length === 0 && customFolders.length === 0 ? (
           <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-4 text-sm leading-6 text-zinc-400">
@@ -569,17 +581,19 @@ export default function ChatHistorySidebar() {
       >
         <ChevronRight size={18} />
       </button>
-      <button
-        type="button"
-        onClick={() => {
-          setCollapsed(false)
-          window.setTimeout(() => searchRef.current?.focus(), 30)
-        }}
-        className="mt-2 flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-white/10 hover:text-white"
-        aria-label="Search chats"
-      >
-        <Search size={17} />
-      </button>
+      {historyDisabled ? null : (
+        <button
+          type="button"
+          onClick={() => {
+            setCollapsed(false)
+            window.setTimeout(() => searchRef.current?.focus(), 30)
+          }}
+          className="mt-2 flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-white/10 hover:text-white"
+          aria-label="Search chats"
+        >
+          <Search size={17} />
+        </button>
+      )}
       <Link
         href="/profile"
         className="mt-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-zinc-400 transition hover:text-white"

@@ -1,15 +1,19 @@
 import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { runAgentStream } from "@/lib/ai-engine"
-import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
+import { attachChatHistoryCookie, isChatHistoryPersistenceEnabled, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import { appendChatExchange } from "@/lib/chat-history-store"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
+import {
+  CLEAN_MODEL_BUSY_MESSAGE,
+  isModelFailureText,
+  modelErrorCode,
+  requestIdFromModelError,
+} from "@/lib/openclaw/model-boundary"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 export const maxDuration = 60
-
-const CLEAN_BUSY_MESSAGE = "We're busy right now. Please try again in a moment."
 
 const VALID_AGENTS = [
   "coordinator",
@@ -29,11 +33,11 @@ function sse(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
 }
 
-function isLegacyModelFailureText(text: string): boolean {
-  return /Our AI assistant is handling a high volume|temporarily at capacity|rate_limit|overloaded/i.test(text)
-}
-
-function deterministicSseResponse(agentId: string, message: string): Response {
+function deterministicSseResponse(
+  agentId: string,
+  message: string,
+  conversation: { id: string; title: string }
+): NextResponse {
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     start(controller) {
@@ -41,8 +45,8 @@ function deterministicSseResponse(agentId: string, message: string): Response {
       controller.enqueue(encoder.encode(sse("delta", { text: message })))
       controller.enqueue(encoder.encode(sse("done", {
         agentId: "screening",
-        conversationId: "",
-        conversationTitle: "",
+        conversationId: conversation.id,
+        conversationTitle: conversation.title,
         handoff: null,
         finalText: message,
         deterministic: true,
@@ -51,7 +55,7 @@ function deterministicSseResponse(agentId: string, message: string): Response {
     },
   })
 
-  return new Response(stream, {
+  return new NextResponse(stream, {
     headers: {
       "content-type": "text/event-stream; charset=utf-8",
       "cache-control": "no-cache, no-transform",
@@ -109,9 +113,6 @@ export async function POST(req: NextRequest) {
   }
 
   const deterministicResponse = deterministicClinicalResponse(screeningContext?.trim() || message)
-  if (deterministicResponse) {
-    return deterministicSseResponse(agentId, deterministicResponse)
-  }
 
   const auth = await requireAuth(req, { allowPublic: true })
   if ("response" in auth) return auth.response
@@ -123,11 +124,40 @@ export async function POST(req: NextRequest) {
     canUseWalletScopedData(auth.session, walletAddress) || walletProofMatches
       ? walletAddress
       : undefined
+  const persistChatHistory = isChatHistoryPersistenceEnabled()
   let historyOwner: Awaited<ReturnType<typeof resolveChatHistoryOwner>> | null = null
-  try {
-    historyOwner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
-  } catch (historyError) {
-    console.error("Stream history owner resolution failed:", historyError)
+  if (persistChatHistory) {
+    try {
+      historyOwner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
+    } catch {
+      console.error("[openclaw-stream-history]", { code: "history_owner_resolution_failed" })
+    }
+  }
+
+  // Deterministic answers participate in chat history like any other answer,
+  // so they can be restored from the sidebar after a reload.
+  if (deterministicResponse) {
+    let conversation = { id: conversationId || "", title: "" }
+    try {
+      if (historyOwner && !("response" in historyOwner)) {
+        const saved = await appendChatExchange({
+          ownerKey: historyOwner.ownerKey,
+          conversationId,
+          userContent: message.trim(),
+          agentContent: deterministicResponse,
+          agentId: "screening",
+          collaborators: Array.isArray(collaborators) ? collaborators : undefined,
+          routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
+        })
+        conversation = { id: saved.id, title: saved.title }
+      }
+    } catch {
+      console.error("[openclaw-stream-history]", { code: "history_store_failed" })
+    }
+    const response = deterministicSseResponse(agentId, deterministicResponse, conversation)
+    return historyOwner && !("response" in historyOwner)
+      ? attachChatHistoryCookie(response, historyOwner)
+      : response
   }
 
   const encoder = new TextEncoder()
@@ -170,41 +200,43 @@ export async function POST(req: NextRequest) {
             }
             break
           }
-          if (isLegacyModelFailureText(next.value)) {
-            finalText = CLEAN_BUSY_MESSAGE
-            send("error", { message: CLEAN_BUSY_MESSAGE })
+          if (isModelFailureText(next.value)) {
+            finalText = CLEAN_MODEL_BUSY_MESSAGE
+            send("error", { message: CLEAN_MODEL_BUSY_MESSAGE })
             break
           }
           send("delta", { text: next.value })
         }
       } catch (error) {
-        const status = typeof error === "object" && error !== null && "status" in error
-          ? Number((error as { status?: unknown }).status)
-          : undefined
-        console.error("[openclaw-stream]", { code: status ? `upstream_${status}` : "stream_error" })
-        finalText = CLEAN_BUSY_MESSAGE
-        send("error", { message: CLEAN_BUSY_MESSAGE })
+        console.error("[openclaw-stream]", {
+          code: modelErrorCode(error),
+          requestId: requestIdFromModelError(error),
+        })
+        finalText = CLEAN_MODEL_BUSY_MESSAGE
+        send("error", { message: CLEAN_MODEL_BUSY_MESSAGE })
       }
 
-      // Save chat history (best-effort; never block the stream).
+      // Save chat history only after the Phase 2 PHI gate is explicitly enabled.
       let savedConversationId = conversationId || ""
       let savedTitle = ""
-      try {
-        if (historyOwner && !("response" in historyOwner)) {
-          const conversation = await appendChatExchange({
-            ownerKey: historyOwner.ownerKey,
-            conversationId,
-            userContent: message.trim(),
-            agentContent: finalText,
-            agentId: resolvedAgentId,
-            collaborators: Array.isArray(collaborators) ? collaborators : undefined,
-            routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
-          })
-          savedConversationId = conversation.id
-          savedTitle = conversation.title
+      if (persistChatHistory) {
+        try {
+          if (historyOwner && !("response" in historyOwner)) {
+            const conversation = await appendChatExchange({
+              ownerKey: historyOwner.ownerKey,
+              conversationId,
+              userContent: message.trim(),
+              agentContent: finalText,
+              agentId: resolvedAgentId,
+              collaborators: Array.isArray(collaborators) ? collaborators : undefined,
+              routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
+            })
+            savedConversationId = conversation.id
+            savedTitle = conversation.title
+          }
+        } catch {
+          console.error("[openclaw-stream-history]", { code: "history_save_failed" })
         }
-      } catch (historyError) {
-        console.error("Stream history save failed:", historyError)
       }
 
       send("done", {
@@ -233,7 +265,7 @@ export async function POST(req: NextRequest) {
       connection: "keep-alive",
     },
   })
-  return historyOwner && !("response" in historyOwner)
+  return persistChatHistory && historyOwner && !("response" in historyOwner)
     ? attachChatHistoryCookie(response, historyOwner)
     : response
 }

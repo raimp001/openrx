@@ -10,6 +10,11 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${PORT}`
 const MOCK_LLM = process.env.MOCK_LLM === "1"
 const LLM_MOCK_PORT = Number(process.env.LLM_MOCK_PORT || 18790)
 
+// Admin-gated routes (cron, platform readiness) require a key in production
+// builds (CI). Inject a test-only key so both the app server and the test
+// workers agree on it; a real key from the environment always wins.
+process.env.OPENRX_ADMIN_API_KEY = process.env.OPENRX_ADMIN_API_KEY || "openrx-e2e-admin-key"
+
 const appServerCommand = process.env.CI
   ? `npm run build && npm run start -- --hostname 127.0.0.1 --port ${PORT}`
   : `npm run dev -- --hostname 127.0.0.1 --port ${PORT}`

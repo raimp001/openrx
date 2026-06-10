@@ -419,7 +419,8 @@ test("landing care action stays in chat before a user intentionally opens the di
   await page.getByRole("button", { name: "Find care near me" }).click()
 
   await expect(page).toHaveURL(/\/chat/)
-  await expect(page.getByTestId("chat-section-direct-answer").filter({ hasText: /ZIP code first/i }).last()).toBeVisible()
+  // First hit can pay dev-server compile cost for the stream route.
+  await expect(page.getByTestId("chat-section-direct-answer").filter({ hasText: /ZIP code first/i }).last()).toBeVisible({ timeout: 30_000 })
   await expect(page.getByTestId("care-plan-preview")).toHaveCount(0)
   expect(providerQuery).toBe("")
 })

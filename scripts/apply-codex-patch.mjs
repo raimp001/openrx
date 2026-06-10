@@ -4,8 +4,18 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { brotliDecompressSync, gunzipSync } from "node:zlib"
 
-const payloadDir = "patches/codex-model-boundary-screening-fix"
-const brotliPayloadPath = join(payloadDir, "screening-referral.patch.br.b64")
+const patchPayloads = [
+  {
+    id: "model-boundary-screening-fix",
+    dir: "patches/codex-model-boundary-screening-fix",
+    file: "screening-referral.patch.br.b64",
+  },
+  {
+    id: "screening-source-url-followup",
+    dir: "patches/codex-screening-source-url-followup",
+    file: "screening-referral.patch.br.b64",
+  },
+]
 
 function canRunGitApply(args) {
   try {
@@ -16,7 +26,7 @@ function canRunGitApply(args) {
   }
 }
 
-function readSortedParts(extension) {
+function readSortedParts(payloadDir, extension) {
   return readdirSync(payloadDir)
     .filter((name) => name.endsWith(extension))
     .sort()
@@ -24,22 +34,23 @@ function readSortedParts(extension) {
     .join("")
 }
 
-function loadPatchPayload() {
-  if (!existsSync(payloadDir)) {
+function loadPatchPayload(payload) {
+  if (!existsSync(payload.dir)) {
     return null
   }
 
+  const brotliPayloadPath = join(payload.dir, payload.file)
   if (existsSync(brotliPayloadPath)) {
-    const payload = readFileSync(brotliPayloadPath, "utf8").trim()
-    return brotliDecompressSync(Buffer.from(payload, "base64"))
+    const encoded = readFileSync(brotliPayloadPath, "utf8").trim()
+    return brotliDecompressSync(Buffer.from(encoded, "base64"))
   }
 
-  const brotliParts = readSortedParts(".br.b64part")
+  const brotliParts = readSortedParts(payload.dir, ".br.b64part")
   if (brotliParts) {
     return brotliDecompressSync(Buffer.from(brotliParts, "base64"))
   }
 
-  const gzipParts = readSortedParts(".b64part")
+  const gzipParts = readSortedParts(payload.dir, ".b64part")
   if (gzipParts) {
     return gunzipSync(Buffer.from(gzipParts, "base64"))
   }
@@ -47,27 +58,45 @@ function loadPatchPayload() {
   return null
 }
 
-const patch = loadPatchPayload()
+function applyPatchPayload(payload, patch) {
+  const tmp = mkdtempSync(join(tmpdir(), `openrx-codex-${payload.id}-`))
+  const patchPath = join(tmp, `${payload.id}.patch`)
+  const markerPath = join(tmpdir(), `openrx-codex-${payload.id}.applied`)
+  writeFileSync(patchPath, patch)
 
-if (!patch) {
-  console.log("No Codex patch payload found; continuing without patch.")
-  process.exit(0)
+  if (existsSync(markerPath)) {
+    console.log(`Codex patch ${payload.id} already applied in this workspace.`)
+    return
+  }
+
+  if (canRunGitApply(["apply", "--binary", "--reverse", "--check", patchPath])) {
+    writeFileSync(markerPath, new Date().toISOString())
+    console.log(`Codex patch ${payload.id} already present.`)
+    return
+  }
+
+  try {
+    execFileSync("git", ["apply", "--binary", "--check", patchPath], { stdio: "inherit" })
+    execFileSync("git", ["apply", "--binary", "--whitespace=nowarn", patchPath], { stdio: "inherit" })
+    writeFileSync(markerPath, new Date().toISOString())
+    console.log(`Applied Codex patch ${payload.id}.`)
+  } catch (error) {
+    console.error(`Failed to apply Codex patch ${payload.id}.`)
+    throw error
+  }
 }
 
-const tmp = mkdtempSync(join(tmpdir(), "openrx-codex-patch-"))
-const patchPath = join(tmp, "screening-referral.patch")
-writeFileSync(patchPath, patch)
-
-if (canRunGitApply(["apply", "--binary", "--reverse", "--check", patchPath])) {
-  console.log("Codex screening/referral patch already applied.")
-  process.exit(0)
+let appliedAnyPatch = false
+for (const payload of patchPayloads) {
+  const patch = loadPatchPayload(payload)
+  if (!patch) {
+    console.log(`No Codex patch payload found for ${payload.id}; continuing.`)
+    continue
+  }
+  applyPatchPayload(payload, patch)
+  appliedAnyPatch = true
 }
 
-try {
-  execFileSync("git", ["apply", "--binary", "--check", patchPath], { stdio: "inherit" })
-  execFileSync("git", ["apply", "--binary", "--whitespace=nowarn", patchPath], { stdio: "inherit" })
-  console.log("Applied Codex screening/referral patch for build.")
-} catch (error) {
-  console.error("Failed to apply Codex screening/referral patch.")
-  throw error
+if (!appliedAnyPatch) {
+  console.log("No Codex patch payloads found; continuing without patch.")
 }

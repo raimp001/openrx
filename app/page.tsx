@@ -46,6 +46,11 @@ const HOW_IT_WORKS = [
     title: "Denial to appeal, sandboxed",
     body: "Bring a prior-authorization denial and walk a synthetic case from evidence retrieval to a clinician-reviewable appeal draft, with a simulated FHIR trace and an audit row for every step.",
   },
+  {
+    step: "04",
+    title: "Referrals only with consent",
+    body: "Choose a verified provider and approve exactly the fields you share — every disclosure is consent-scoped, hashed, and audit-logged, and notifications carry only a neutral link.",
+  },
 ]
 
 export default function HomePage() {
@@ -135,7 +140,7 @@ export default function HomePage() {
         <h2 id="how-heading" className="section-title">
           How OpenRx works
         </h2>
-        <ol className="mt-5 grid gap-4 sm:grid-cols-3">
+        <ol className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {HOW_IT_WORKS.map((item) => (
             <li key={item.step} className="surface-card p-5">
               <span className="font-mono text-[11px] text-accent">{item.step}</span>

@@ -1453,17 +1453,32 @@ export default function ScreeningPage() {
                               </div>
                               <div className="mt-2 flex flex-wrap gap-1.5">
                                 <span className="chip">{rec.riskCategory.replaceAll("_", " ")}</span>
-                                {source?.url ? (
-                                  <a href={source.url} target="_blank" rel="noreferrer" className="chip hover:border-teal/30 hover:text-teal">
-                                    {rec.sourceSystem} source
+                                {rec.sourceUrl || source?.url ? (
+                                  <a
+                                    href={rec.sourceUrl || source?.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="chip hover:border-teal/30 hover:text-teal"
+                                    data-testid="recommendation-source-link"
+                                  >
+                                    {rec.sourceSystem}
+                                    {rec.sourceVersion && rec.sourceVersion !== "not_implemented" ? ` · ${rec.sourceVersion}` : " source"}
                                     <ExternalLink size={10} />
                                   </a>
                                 ) : <span className="chip">Needs clinician review</span>}
+                                {rec.evidenceGrade ? (
+                                  <span className="chip" data-testid="recommendation-evidence-grade">Grade {rec.evidenceGrade}</span>
+                                ) : null}
                                 {rec.suggestedTiming ? <span className="chip">{rec.suggestedTiming}</span> : null}
                                 {rec.requiresClinicianReview ? <span className="chip">clinician review</span> : null}
                               </div>
                               <p className="mt-3 text-sm leading-6 text-secondary">{rec.patientFriendlyExplanation}</p>
                               <p className="mt-2 text-xs leading-5 text-muted">{rec.rationale}</p>
+                              {rec.engineVersion ? (
+                                <p className="mt-2 font-mono text-[10px] tracking-wide text-subtle" data-testid="recommendation-engine-stamp">
+                                  {rec.engineVersion}
+                                </p>
+                              ) : null}
                               <div className="mt-4 rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-white/[0.045] p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Next step</p>

@@ -14,9 +14,10 @@ const SIZE_PX: Record<NonNullable<BrandMarkProps["size"]>, { box: number; svg: n
 }
 
 /**
- * OpenRx mark: a geometric decision lens. The nested diamond reads as a
- * clinical signal moving from question to handoff without using a literal cross
- * or Rx glyph, and remains legible at favicon size.
+ * OpenRx mark: an open ring closed by a diamond. The ring is the open record
+ * (open access, nothing hidden); the diamond at the opening is the evidence
+ * marker that completes the loop. Two elements only, so it stays legible at
+ * favicon size, and it carries the diamond equity from the previous mark.
  */
 export function BrandMark({ className, iconClassName, size = "md", tone = "dark" }: BrandMarkProps) {
   const dims = SIZE_PX[size]
@@ -41,10 +42,22 @@ export function BrandMark({ className, iconClassName, size = "md", tone = "dark"
         className={cn("relative", iconClassName)}
         aria-hidden
       >
-        <path d="M12 2.8 21.2 12 12 21.2 2.8 12 12 2.8Z" fill={isLight ? "#F7FBFB" : "#081314"} stroke={isLight ? "#0F3E47" : "#9BEAF3"} strokeWidth="1.9" />
-        <path d="M12 7.25 16.75 12 12 16.75 7.25 12 12 7.25Z" fill={isLight ? "#E6FAF8" : "#0D2A2E"} stroke={isLight ? "#0F766E" : "#2DD4BF"} strokeWidth="1.65" />
-        <circle cx="12" cy="12" r="1.8" fill={isLight ? "#0F766E" : "#CFFAFE"} />
-        <path d="M5.7 12h4M14.3 12h4" stroke={isLight ? "#0B1D22" : "#E6FFFB"} strokeWidth="1.55" strokeLinecap="round" />
+        {/* Open ring: arc sweeps the long way, leaving a gap at the top right */}
+        <path
+          d="M 16.03 5.55 A 7.6 7.6 0 1 0 19.43 10.42"
+          stroke={isLight ? "#0F766E" : "#67E8F9"}
+          strokeWidth="2.1"
+          strokeLinecap="round"
+        />
+        {/* Evidence diamond seals the opening */}
+        <path
+          d="M 18.23 4.84 L 21.03 7.64 L 18.23 10.44 L 15.43 7.64 Z"
+          fill={isLight ? "#E6FAF8" : "#0D2A2E"}
+          stroke={isLight ? "#0F3E47" : "#2DD4BF"}
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+        <circle cx="18.23" cy="7.64" r="1.05" fill={isLight ? "#0F766E" : "#CFFAFE"} />
       </svg>
     </div>
   )

@@ -2,9 +2,10 @@ import { execFileSync } from "node:child_process"
 import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { gunzipSync } from "node:zlib"
+import { brotliDecompressSync, gunzipSync } from "node:zlib"
 
-const partsDir = "patches/codex-model-boundary-screening-fix"
+const payloadDir = "patches/codex-model-boundary-screening-fix"
+const brotliPayloadPath = join(payloadDir, "screening-referral.patch.br.b64")
 
 function canRunGitApply(args) {
   try {
@@ -15,23 +16,36 @@ function canRunGitApply(args) {
   }
 }
 
-if (!existsSync(partsDir)) {
+function loadPatchPayload() {
+  if (!existsSync(payloadDir)) {
+    return null
+  }
+
+  if (existsSync(brotliPayloadPath)) {
+    const payload = readFileSync(brotliPayloadPath, "utf8").trim()
+    return brotliDecompressSync(Buffer.from(payload, "base64"))
+  }
+
+  const gzipParts = readdirSync(payloadDir)
+    .filter((name) => name.endsWith(".b64part"))
+    .sort()
+    .map((name) => readFileSync(join(payloadDir, name), "utf8").trim())
+    .join("")
+
+  if (!gzipParts) {
+    return null
+  }
+
+  return gunzipSync(Buffer.from(gzipParts, "base64"))
+}
+
+const patch = loadPatchPayload()
+
+if (!patch) {
   console.log("No Codex patch payload found; continuing without patch.")
   process.exit(0)
 }
 
-const payload = readdirSync(partsDir)
-  .filter((name) => name.endsWith(".b64part"))
-  .sort()
-  .map((name) => readFileSync(join(partsDir, name), "utf8").trim())
-  .join("")
-
-if (!payload) {
-  console.log("Codex patch payload is empty; continuing without patch.")
-  process.exit(0)
-}
-
-const patch = gunzipSync(Buffer.from(payload, "base64"))
 const tmp = mkdtempSync(join(tmpdir(), "openrx-codex-patch-"))
 const patchPath = join(tmp, "screening-referral.patch")
 writeFileSync(patchPath, patch)

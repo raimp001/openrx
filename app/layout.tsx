@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next"
 import { GeistMono } from "geist/font/mono"
 import { Inter, Fraunces } from "next/font/google"
 import "./globals.css"
-import { Providers } from "./providers"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -87,7 +86,9 @@ export default function RootLayout({
             this page.
           </div>
         </noscript>
-        <Providers>{children}</Providers>
+        {/* Wallet/query providers are scoped to the (app) route group so the
+            public marketing surface ships no wallet JavaScript. */}
+        {children}
       </body>
     </html>
   )

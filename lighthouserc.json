@@ -4,7 +4,7 @@
       "url": ["http://127.0.0.1:3000/"],
       "startServerCommand": "npm run start -- --hostname 127.0.0.1 --port 3000",
       "startServerReadyPattern": "Ready",
-      "numberOfRuns": 1,
+      "numberOfRuns": 3,
       "settings": {
         "chromeFlags": "--no-sandbox --headless=new"
       }

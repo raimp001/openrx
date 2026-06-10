@@ -52,6 +52,7 @@ function recommendation(input: Omit<ScreeningRecommendation, "sourceVersion" | "
     ...input,
     sourceSystem: input.sourceSystem || source?.organization || "PENDING",
     sourceVersion: source?.versionOrDate,
+    sourceUrl: source?.url,
   }
 
   const language = `${rec.rationale} ${rec.recommendedNextStep} ${rec.patientFriendlyExplanation}`.toLowerCase()

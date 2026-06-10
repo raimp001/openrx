@@ -127,6 +127,7 @@ export type ScreeningRecommendation = {
   sourceSystem: ScreeningSourceSystem
   sourceId?: string
   sourceVersion?: string
+  sourceUrl?: string
   evidenceGrade?: string
   requiresClinicianReview: boolean
   patientFriendlyExplanation: string

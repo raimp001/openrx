@@ -7,6 +7,7 @@ import { nextStepLabel, recommendScreenings, screeningIntakeFromLegacy } from ".
 import { getGuidelineSource } from "./screening/sources"
 import { parseCareSearchQuery, searchNpiCareDirectory } from "./npi-care-search"
 import { DEMO_SCENARIOS, type DemoScenario } from "./demo/prior-auth"
+import { isDemoMode } from "./demo/mode"
 import type { ScreeningRecommendation } from "./screening/types"
 import { detectRedFlagText, emergencyResponse } from "./red-flag"
 
@@ -691,8 +692,10 @@ export async function runAgent(params: {
 
   const claude = getClaudeClient()
 
-  // Keep the demo path useful even when the hosted model provider is unavailable.
-  if (!claude && !process.env.OPENAI_API_KEY) {
+  // Keep the demo path useful even when the hosted model provider is
+  // unavailable. In demo mode, never reach the live model at all — serve the
+  // cached per-agent rendering so the demo is deterministic offline.
+  if (isDemoMode() || (!claude && !process.env.OPENAI_API_KEY)) {
     return { response: buildFallbackAgentResponse(agentId, message), agentId }
   }
 
@@ -959,7 +962,7 @@ export async function* runAgentStream(params: {
   }
 
   const claude = getClaudeClient()
-  if (!claude && !process.env.OPENAI_API_KEY) {
+  if (isDemoMode() || (!claude && !process.env.OPENAI_API_KEY)) {
     const fallback = buildFallbackAgentResponse(agentId, message)
     yield fallback
     return { agentId, finalText: fallback }

@@ -79,6 +79,18 @@ export async function POST(req: NextRequest) {
     }
 
     const deterministicResponse = deterministicClinicalResponse(message)
+
+    const auth = await requireAuth(req, { allowPublic: true })
+    if ("response" in auth) return auth.response
+    const walletProofMatches = walletAddress
+      ? await requestWalletProofMatches(req, walletAddress)
+      : false
+    const effectiveWalletAddress = canUseWalletScopedData(auth.session, walletAddress) || walletProofMatches
+      ? walletAddress
+      : undefined
+
+    // Deterministic answers participate in chat history like any other
+    // answer, so they can be restored from the sidebar after a reload.
     if (deterministicResponse) {
       logAgentRequest({
         requestId,
@@ -89,26 +101,39 @@ export async function POST(req: NextRequest) {
         engineVersion: SCREENING_ENGINE_VERSION,
         modelConfigured: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
       })
-      return NextResponse.json({
+      let savedConversation = { id: conversationId || "", title: "" }
+      let deterministicOwner: Awaited<ReturnType<typeof resolveChatHistoryOwner>> | null = null
+      try {
+        deterministicOwner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
+        if (deterministicOwner && !("response" in deterministicOwner)) {
+          const saved = await appendChatExchange({
+            ownerKey: deterministicOwner.ownerKey,
+            conversationId,
+            userContent: message.trim(),
+            agentContent: deterministicResponse,
+            agentId: "screening",
+            collaborators: Array.isArray(collaborators) ? collaborators : undefined,
+            routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
+          })
+          savedConversation = { id: saved.id, title: saved.title }
+        }
+      } catch {
+        console.error("[openclaw-chat-history]", { code: "history_store_failed" })
+      }
+      const deterministicJson = NextResponse.json({
         sessionId: sessionId || `session-${Date.now()}`,
-        conversationId: conversationId || "",
-        conversationTitle: "",
+        conversationId: savedConversation.id,
+        conversationTitle: savedConversation.title,
         response: deterministicResponse,
         agentId: "screening",
         handoff: null,
         live: false,
         deterministic: true,
       })
+      return deterministicOwner && !("response" in deterministicOwner)
+        ? attachChatHistoryCookie(deterministicJson, deterministicOwner)
+        : deterministicJson
     }
-
-    const auth = await requireAuth(req, { allowPublic: true })
-    if ("response" in auth) return auth.response
-    const walletProofMatches = walletAddress
-      ? await requestWalletProofMatches(req, walletAddress)
-      : false
-    const effectiveWalletAddress = canUseWalletScopedData(auth.session, walletAddress) || walletProofMatches
-      ? walletAddress
-      : undefined
 
     const result = agentId === "coordinator"
       ? await runCoordinator(message, sessionId, effectiveWalletAddress)

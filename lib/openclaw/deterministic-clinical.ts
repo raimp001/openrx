@@ -1,3 +1,5 @@
+import { getGuidelineSource } from "../screening/sources"
+
 const RULE_VERSION = "openrx-hotfix-prevention-rules-2026-06-01"
 
 function parseAge(message: string): number | undefined {
@@ -41,6 +43,22 @@ function shouldAnswerWithRules(message: string): boolean {
   return profileOnly || preventionIntent || profileSignal
 }
 
+interface RuleRecommendation {
+  name: string
+  detail: string
+  grade: string
+  ruleId: string
+  sourceId: string
+}
+
+// Reference labels reuse the engine's guideline registry so every citation
+// carries the organization, topic, and full version date.
+function referenceLink(sourceId: string): string | null {
+  const source = getGuidelineSource(sourceId)
+  if (!source?.url) return null
+  return `[${source.organization}: ${source.topic} (${source.versionOrDate})](${source.url})`
+}
+
 export function deterministicClinicalResponse(message: string): string | null {
   if (!shouldAnswerWithRules(message)) return null
 
@@ -54,46 +72,70 @@ export function deterministicClinicalResponse(message: string): string | null {
     return `To build a guideline-backed prevention plan, please share: ${missing.slice(0, 3).join("; ")}.`
   }
 
-  const recommendations: string[] = []
+  const recommendations: RuleRecommendation[] = []
 
   if (age >= 45 && age <= 49) {
-    recommendations.push([
-      "- Colorectal cancer screening (due): Age 45 to 49: start screening; options include stool-based tests, colonoscopy, CT colonography, or flexible sigmoidoscopy",
-      "  Source: USPSTF Colorectal Cancer Screening 2021 · Grade B · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening",
-      `  Rule: uspstf-colorectal-45-49 · ${RULE_VERSION} · effective 2026-06-01`,
-    ].join("\n"))
+    recommendations.push({
+      name: "Colorectal cancer screening",
+      detail: "Age 45 to 49: start screening; options include stool-based tests, colonoscopy, CT colonography, or flexible sigmoidoscopy.",
+      grade: "B",
+      ruleId: "uspstf-colorectal-45-49",
+      sourceId: "uspstf-crc-2021",
+    })
   } else if (age >= 50 && age <= 75) {
-    recommendations.push([
-      "- Colorectal cancer screening (due): Age 50 to 75: continue routine colorectal cancer screening",
-      "  Source: USPSTF Colorectal Cancer Screening 2021 · Grade A · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening",
-      `  Rule: uspstf-colorectal-50-75 · ${RULE_VERSION} · effective 2026-06-01`,
-    ].join("\n"))
+    recommendations.push({
+      name: "Colorectal cancer screening",
+      detail: "Age 50 to 75: continue routine colorectal cancer screening.",
+      grade: "A",
+      ruleId: "uspstf-colorectal-50-75",
+      sourceId: "uspstf-crc-2021",
+    })
   }
 
   if (sex === "female" && age >= 40 && age <= 74) {
-    recommendations.push([
-      "- Breast cancer screening mammography (due): Age 40 to 74: every 2 years",
-      "  Source: USPSTF Breast Cancer Screening 2024 · Grade B · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/breast-cancer-screening",
-      `  Rule: uspstf-breast-biennial-40-74 · ${RULE_VERSION} · effective 2026-06-01`,
-    ].join("\n"))
+    recommendations.push({
+      name: "Breast cancer screening mammography",
+      detail: "Age 40 to 74: every 2 years.",
+      grade: "B",
+      ruleId: "uspstf-breast-biennial-40-74",
+      sourceId: "uspstf-breast-2024",
+    })
   }
 
   if (sex === "female" && age >= 30 && age <= 65) {
-    recommendations.push([
-      "- Cervical cancer screening (due): Age 30 to 65: cytology every 3 years, high-risk HPV testing every 5 years, or co-testing every 5 years",
-      "  Source: USPSTF Cervical Cancer Screening 2018 · Grade A · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/cervical-cancer-screening",
-      `  Rule: uspstf-cervical-30-65 · ${RULE_VERSION} · effective 2026-06-01`,
-    ].join("\n"))
+    recommendations.push({
+      name: "Cervical cancer screening",
+      detail: "Age 30 to 65: cytology every 3 years, high-risk HPV testing every 5 years, or co-testing every 5 years.",
+      grade: "A",
+      ruleId: "uspstf-cervical-30-65",
+      sourceId: "uspstf-cervical-2018",
+    })
   }
 
   if (recommendations.length === 0) {
     return "OpenRx does not have a matching version-stamped screening rule for the details provided. Please talk with a clinician."
   }
 
+  const references = Array.from(new Set(recommendations.map((rec) => rec.sourceId)))
+    .map((sourceId) => referenceLink(sourceId))
+    .filter((link): link is string => Boolean(link))
+    .map((link, index) => `${index + 1}. ${link}`)
+
+  // Format follows the chat renderer's section contract: an inline
+  // "Direct answer:" opener, exact "Due now" / "References" / "Safety note"
+  // heading lines, and "- " bullets with markdown reference links.
   return [
-    "Your guideline-backed prevention plan:",
-    recommendations.join("\n"),
+    `Direct answer: based on the details provided (age ${age}, ${sex}), these guideline-backed screenings apply.`,
     "",
+    "Due now",
+    ...recommendations.map(
+      (rec) => `- ${rec.name} (due): ${rec.detail} Grade ${rec.grade}. Rule: ${rec.ruleId} · ${RULE_VERSION}.`
+    ),
+    "",
+    "References",
+    ...references,
+    "",
+    "Safety note",
     "Educational navigation only. Confirm every screening decision with a clinician.",
   ].join("\n")
 }

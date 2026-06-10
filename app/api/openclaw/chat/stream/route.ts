@@ -28,7 +28,11 @@ function sse(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
 }
 
-function deterministicSseResponse(agentId: string, message: string): Response {
+function deterministicSseResponse(
+  agentId: string,
+  message: string,
+  conversation: { id: string; title: string }
+): NextResponse {
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     start(controller) {
@@ -36,8 +40,8 @@ function deterministicSseResponse(agentId: string, message: string): Response {
       controller.enqueue(encoder.encode(sse("delta", { text: message })))
       controller.enqueue(encoder.encode(sse("done", {
         agentId: "screening",
-        conversationId: "",
-        conversationTitle: "",
+        conversationId: conversation.id,
+        conversationTitle: conversation.title,
         handoff: null,
         finalText: message,
         deterministic: true,
@@ -46,7 +50,7 @@ function deterministicSseResponse(agentId: string, message: string): Response {
     },
   })
 
-  return new Response(stream, {
+  return new NextResponse(stream, {
     headers: {
       "content-type": "text/event-stream; charset=utf-8",
       "cache-control": "no-cache, no-transform",
@@ -104,9 +108,6 @@ export async function POST(req: NextRequest) {
   }
 
   const deterministicResponse = deterministicClinicalResponse(screeningContext?.trim() || message)
-  if (deterministicResponse) {
-    return deterministicSseResponse(agentId, deterministicResponse)
-  }
 
   const auth = await requireAuth(req, { allowPublic: true })
   if ("response" in auth) return auth.response
@@ -123,6 +124,32 @@ export async function POST(req: NextRequest) {
     historyOwner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
   } catch (historyError) {
     console.error("Stream history owner resolution failed:", historyError)
+  }
+
+  // Deterministic answers participate in chat history like any other answer,
+  // so they can be restored from the sidebar after a reload.
+  if (deterministicResponse) {
+    let conversation = { id: conversationId || "", title: "" }
+    try {
+      if (historyOwner && !("response" in historyOwner)) {
+        const saved = await appendChatExchange({
+          ownerKey: historyOwner.ownerKey,
+          conversationId,
+          userContent: message.trim(),
+          agentContent: deterministicResponse,
+          agentId: "screening",
+          collaborators: Array.isArray(collaborators) ? collaborators : undefined,
+          routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
+        })
+        conversation = { id: saved.id, title: saved.title }
+      }
+    } catch {
+      console.error("[openclaw-stream-history]", { code: "history_store_failed" })
+    }
+    const response = deterministicSseResponse(agentId, deterministicResponse, conversation)
+    return historyOwner && !("response" in historyOwner)
+      ? attachChatHistoryCookie(response, historyOwner)
+      : response
   }
 
   const encoder = new TextEncoder()

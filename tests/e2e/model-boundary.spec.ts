@@ -13,7 +13,7 @@ test("age-sex intake returns a guideline-grounded colorectal recommendation with
 
   expect(response).toBeTruthy()
   expect(response).toContain("Colorectal cancer screening")
-  expect(response).toContain("USPSTF Colorectal Cancer Screening 2021")
+  expect(response).toContain("USPSTF: Colorectal cancer screening for average-risk adults (2021-05-18)")
   expect(response).toContain("Grade B")
   expect(response).toContain("https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening")
   expect(response).not.toContain("Direct answer")

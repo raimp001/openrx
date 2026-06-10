@@ -121,11 +121,13 @@ export function deterministicClinicalResponse(message: string): string | null {
     .filter((link): link is string => Boolean(link))
     .map((link, index) => `${index + 1}. ${link}`)
 
-  // Format follows the chat renderer's section contract: an inline
-  // "Direct answer:" opener, exact "Due now" / "References" / "Safety note"
-  // heading lines, and "- " bullets with markdown reference links.
+  // Format follows the chat renderer's section contract: an "Answer" heading,
+  // exact "Due now" / "References" / "Safety note" heading lines, and "- "
+  // bullets with markdown reference links. The patient's raw input is never
+  // echoed back.
   return [
-    `Direct answer: based on the details provided (age ${age}, ${sex}), these guideline-backed screenings apply.`,
+    "Answer",
+    "These guideline-backed screenings apply to the profile provided.",
     "",
     "Due now",
     ...recommendations.map(

@@ -426,6 +426,7 @@ export function buildDeterministicScreeningResponse(message: string): string {
     /lymphoma|hematologic|leukemia|blood cancer/i.test(history)
   )
   return [
+    "Answer",
     "Your guideline-backed screening plan",
     "",
     ...(hasUnmappedHematologicFamilyHistory

@@ -134,6 +134,9 @@ export function deterministicClinicalResponse(message: string): string | null {
       (rec) => `- ${rec.name} (due): ${rec.detail} Grade ${rec.grade}. Rule: ${rec.ruleId} · ${RULE_VERSION}.`
     ),
     "",
+    "What to do now",
+    "- Send your ZIP code and I will list primary care or screening clinics near you, with phone numbers you can call.",
+    "",
     "References",
     ...references,
     "",

@@ -290,17 +290,25 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
     )
   }
 
+  // Only safety-relevant sections keep a tinted box; everything else flows as
+  // plain text so an answer reads as one piece instead of stacked panels.
+  const boxed = ["due", "review", "safety"].includes(section.variant)
+
   return (
     <div
       data-testid={section.heading ? `chat-section-${section.heading.toLowerCase().replace(/[^a-z]+/g, "-")}` : undefined}
       className={cn(
-        "rounded-[12px] border px-4 py-3",
-        tone,
-        idx === 0 && !section.heading && "border-transparent bg-transparent p-0"
+        boxed ? cn("rounded-[12px] border px-4 py-3", tone) : "px-0.5 py-1",
+        idx === 0 && !section.heading && "p-0"
       )}
     >
       {section.heading ? (
-        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-current">
+        <p
+          className={cn(
+            "mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]",
+            boxed ? "text-current" : "text-zinc-400"
+          )}
+        >
           {Icon ? <Icon size={12} /> : null}
           {section.heading}
         </p>
@@ -851,52 +859,44 @@ export default function ChatPage() {
     !isLoadingConversation
   const visibleMessages = showEmptyState ? [] : messages.filter((message) => message.id !== "welcome")
 
+  // One clean field — input and send button in a single container, with the
+  // disclaimer as quiet text underneath rather than boxed inside.
   const renderComposer = (placement: "hero" | "thread") => (
-    <form
-      className={cn(
-        "rounded-[26px] border border-white/12 bg-[#0d0f0f]/95 shadow-[0_26px_90px_rgba(0,0,0,0.50),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition focus-within:border-cyan-200/45 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.10),0_28px_92px_rgba(0,0,0,0.58)]",
-        placement === "hero"
-          ? "mx-auto w-full max-w-3xl p-3.5"
-          : "sticky bottom-2 mb-2 p-2.5"
-      )}
-      onSubmit={(event) => {
-        event.preventDefault()
-        void sendMessage()
-      }}
-      data-testid={placement === "hero" ? "chat-empty-composer" : "chat-composer"}
-    >
-      <label htmlFor="chat-input" className="sr-only">
-        Message OpenRx
-      </label>
-      <textarea
-        ref={inputRef}
-        id="chat-input"
-        data-testid="chat-input"
-        value={input}
-        onChange={(event) => setInput(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault()
-            void sendMessage()
-          } else if (event.key === "Escape" && isLoading) {
-            event.preventDefault()
-            stopGeneration()
-          }
+    <div className={cn(placement === "hero" ? "mx-auto w-full max-w-3xl" : "sticky bottom-2 mb-2")}>
+      <form
+        className="flex items-end gap-2 rounded-[26px] border border-white/12 bg-[#0d0f0f]/95 px-4 py-2.5 shadow-[0_26px_90px_rgba(0,0,0,0.50)] backdrop-blur-xl transition focus-within:border-cyan-200/45 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.10),0_28px_92px_rgba(0,0,0,0.58)]"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void sendMessage()
         }}
-        placeholder="Ask what is due, what it means, or who to call next..."
-        disabled={isLoadingConversation}
-        rows={1}
-        className={cn(
-          "block w-full resize-none overflow-hidden border-0 bg-transparent px-2 py-2 text-zinc-50 outline-none placeholder:text-zinc-400",
-          placement === "hero" ? "min-h-[72px] text-[17px] leading-7" : "min-h-[44px] text-[15px] leading-6"
-        )}
-      />
-      <div className="flex items-center justify-between gap-2 px-1 pb-0.5 pt-1">
-        <p className={cn("text-left text-[11px] text-zinc-400", placement === "hero" && "hidden sm:block")}>
-          {isLoading
-            ? "Press Esc to stop. Streaming the answer…"
-            : "Guideline-linked answers, sources, and explicit links. Not a substitute for clinician judgment."}
-        </p>
+        data-testid={placement === "hero" ? "chat-empty-composer" : "chat-composer"}
+      >
+        <label htmlFor="chat-input" className="sr-only">
+          Message OpenRx
+        </label>
+        <textarea
+          ref={inputRef}
+          id="chat-input"
+          data-testid="chat-input"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault()
+              void sendMessage()
+            } else if (event.key === "Escape" && isLoading) {
+              event.preventDefault()
+              stopGeneration()
+            }
+          }}
+          placeholder="Ask what is due, what it means, or who to call next..."
+          disabled={isLoadingConversation}
+          rows={1}
+          className={cn(
+            "block w-full flex-1 resize-none overflow-hidden border-0 bg-transparent py-1.5 text-zinc-50 outline-none placeholder:text-zinc-400",
+            placement === "hero" ? "min-h-[56px] text-[17px] leading-7" : "min-h-[36px] text-[15px] leading-6"
+          )}
+        />
         {isLoading ? (
           <button
             type="button"
@@ -904,8 +904,8 @@ export default function ChatPage() {
             data-testid="chat-stop-button"
             aria-label="Stop generating"
             className={cn(
-              "inline-flex items-center justify-center rounded-[16px] border border-white/20 bg-white/[0.06] text-zinc-100 transition hover:border-white/40 hover:bg-white/[0.12]",
-              placement === "hero" ? "h-11 w-11" : "h-9 w-9"
+              "mb-0.5 inline-flex shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/[0.06] text-zinc-100 transition hover:border-white/40 hover:bg-white/[0.12]",
+              placement === "hero" ? "h-10 w-10" : "h-9 w-9"
             )}
           >
             <span className={cn("rounded-[2px] bg-zinc-100", placement === "hero" ? "h-3 w-3" : "h-2.5 w-2.5")} />
@@ -917,15 +917,20 @@ export default function ChatPage() {
             disabled={isLoadingConversation || !input.trim()}
             aria-label="Send"
             className={cn(
-              "ml-auto inline-flex items-center justify-center rounded-[16px] bg-cyan-200 text-black shadow-[0_10px_28px_rgba(103,232,249,0.16)] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40",
-              placement === "hero" ? "h-11 w-11" : "h-9 w-9"
+              "mb-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-cyan-200 text-black shadow-[0_10px_28px_rgba(103,232,249,0.16)] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40",
+              placement === "hero" ? "h-10 w-10" : "h-9 w-9"
             )}
           >
             <ArrowUp size={placement === "hero" ? 16 : 14} />
           </button>
         )}
-      </div>
-    </form>
+      </form>
+      <p className={cn("mt-2 px-3 text-center text-[11px] text-zinc-500", placement === "hero" && "hidden sm:block")}>
+        {isLoading
+          ? "Press Esc to stop. Streaming the answer…"
+          : "Guideline-linked answers, sources, and explicit links. Not a substitute for clinician judgment."}
+      </p>
+    </div>
   )
 
   return (
@@ -969,7 +974,7 @@ export default function ChatPage() {
 
           <nav
             aria-label="Care service links"
-            className="mt-7 grid w-full max-w-3xl gap-2 sm:grid-cols-3"
+            className="mt-6 flex w-full max-w-3xl flex-wrap items-center justify-center gap-2"
           >
             {SERVICE_LINKS.map((item) => {
               const Icon = item.icon
@@ -977,19 +982,14 @@ export default function ChatPage() {
                 <button
                   key={item.label}
                   type="button"
+                  title={item.description}
                   onClick={() => {
                     void sendMessage(item.prompt, item.agentId)
                   }}
-                  className="group relative overflow-hidden rounded-[18px] border border-white/10 bg-[#0a0b0b]/82 p-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:-translate-y-0.5 hover:border-cyan-200/24 hover:bg-[#101313]"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.03] px-4 py-2 text-[13px] font-medium text-zinc-200 transition hover:border-cyan-200/35 hover:text-cyan-100"
                 >
-                  <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/30 to-transparent opacity-0 transition group-hover:opacity-100" />
-                  <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl border border-cyan-200/12 bg-cyan-200/[0.055] text-cyan-200">
-                    <Icon size={15} />
-                  </span>
-                  <span className="block text-[13px] font-semibold text-white">{item.label}</span>
-                  <span className="mt-1 block text-[12px] leading-5 text-zinc-500 group-hover:text-zinc-300">
-                    {item.description}
-                  </span>
+                  <Icon size={14} className="text-cyan-200/80" />
+                  {item.label}
                 </button>
               )
             })}

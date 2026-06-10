@@ -70,7 +70,7 @@ export function getRecentActions(limit = 10): AgentAction[] {
 }
 
 // ── Conversation Memory (per-agent sessions) ─────────────
-interface ConversationMessage {
+export interface ConversationMessage {
   role: "system" | "user" | "assistant"
   content: string
 }
@@ -165,29 +165,50 @@ function looksLikeCareSearchQuestion(agentId: string, message: string): boolean 
   return EXPLICIT_CARE_SEARCH_PATTERN.test(message)
 }
 
+const EXPLICIT_CARE_CONTEXT_PATTERN =
+  /\b(find|search|primary care|pcp|physician|doctor|clinic|radiology|imaging|mammogram|ldct|colonoscopy|lab|laboratory)\b/i
+// A screening question is enough context for a ZIP follow-up: answers invite
+// the patient to "send your ZIP code" to get primary-care numbers, so a bare
+// ZIP after a screening exchange must route to clinic search in-thread.
+const SCREENING_CONTEXT_PATTERN = /\b(screen(?:ing|ed)?|prevention|preventive|pap|psa|hpv|due)\b/i
+
 function lastCareSearchContext(messages: ConversationMessage[]): string {
   const userMessages = messages
     .filter((message) => message.role === "user")
     .map((message) => message.content)
     .reverse()
 
-  return userMessages.find((message) => /\b(find|search|primary care|pcp|physician|doctor|clinic|radiology|imaging|mammogram|ldct|colonoscopy|lab|laboratory)\b/i.test(message)) || ""
+  return (
+    userMessages.find(
+      (message) => EXPLICIT_CARE_CONTEXT_PATTERN.test(message) || SCREENING_CONTEXT_PATTERN.test(message)
+    ) || ""
+  )
 }
 
-function continuesCareSearch(message: string, history: ConversationMessage[]): boolean {
-  return ZIP_ONLY_PATTERN.test(message.trim()) && Boolean(lastCareSearchContext(history))
+function continuesCareSearch(message: string, history: ConversationMessage[], agentId?: string): boolean {
+  if (!ZIP_ONLY_PATTERN.test(message.trim())) return false
+  // With in-thread context, always continue. Without it (e.g. the previous
+  // answer came from a route-level deterministic path that bypassed agent
+  // memory), a bare ZIP on a care-facing agent still means "find care here".
+  return (
+    Boolean(lastCareSearchContext(history)) ||
+    (!!agentId && (SCREENING_ELIGIBLE_AGENTS.has(agentId) || CARE_SEARCH_ELIGIBLE_AGENTS.has(agentId)))
+  )
 }
 
-function buildCareSearchQuery(message: string, history: ConversationMessage[]): string {
+export function buildCareSearchQuery(message: string, history: ConversationMessage[]): string {
   const trimmed = message.trim()
   const previous = lastCareSearchContext(history)
-  if (ZIP_ONLY_PATTERN.test(trimmed) && previous) {
-    if (/\b(screening site|these recommendations)\b/i.test(previous)) {
+  if (ZIP_ONLY_PATTERN.test(trimmed)) {
+    // Screening context (or no context at all) without an explicit service
+    // request defaults to a primary-care search — the practical "who do I
+    // call" answer.
+    if (!previous || /\b(screening site|these recommendations)\b/i.test(previous) || !EXPLICIT_CARE_CONTEXT_PATTERN.test(previous)) {
       return `Find primary care near ${trimmed}`
     }
     return `${previous} near ${trimmed}`
   }
-  if (/\b\d{5}(?:-\d{4})?\b/.test(trimmed) && previous && !/\b(find|search|primary care|pcp|physician|doctor|clinic|radiology|imaging|mammogram|ldct|colonoscopy|lab|laboratory)\b/i.test(trimmed)) {
+  if (/\b\d{5}(?:-\d{4})?\b/.test(trimmed) && previous && !EXPLICIT_CARE_CONTEXT_PATTERN.test(trimmed)) {
     return `${previous} ${trimmed}`
   }
   return trimmed
@@ -439,6 +460,9 @@ export function buildDeterministicScreeningResponse(message: string): string {
     ...formatScreeningGroups(recommendations),
     "",
     ...(followUp ? ["Question to refine this", followUp, ""] : []),
+    "What to do now",
+    "- Send your ZIP code and I will list primary care or screening clinics near you, with phone numbers you can call.",
+    "",
     "References",
     ...buildReferenceList(recommendations),
     "",
@@ -618,8 +642,12 @@ export async function runAgent(params: {
   const screeningMessage = screeningContext?.trim() || message
   const isScreeningIntent = looksLikeScreeningQuestion(agentId, screeningMessage)
   const requestsCareNavigation = /\b(find|search|locate|near me|nearby|phone numbers?|who to call)\b/i.test(message)
+  const careSearchHistory = getConversation(sessionKey)
+  // A bare ZIP reply continues care search even mid-screening-conversation —
+  // the screening answer explicitly invites "send your ZIP code".
+  const zipFollowUp = continuesCareSearch(message, careSearchHistory, agentId)
 
-  if (isScreeningIntent && !requestsCareNavigation) {
+  if (isScreeningIntent && !requestsCareNavigation && !zipFollowUp) {
     const response = buildDeterministicScreeningResponse(screeningMessage)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
@@ -627,8 +655,7 @@ export async function runAgent(params: {
     return { response, agentId: "screening" }
   }
 
-  const careSearchHistory = getConversation(sessionKey)
-  if (looksLikeCareSearchQuestion(agentId, message) || continuesCareSearch(message, careSearchHistory)) {
+  if (looksLikeCareSearchQuestion(agentId, message) || zipFollowUp) {
     const history = careSearchHistory
     const response = await buildCareSearchChatResponse(message, history)
     addToConversation(sessionKey, "user", message)
@@ -886,8 +913,10 @@ export async function* runAgentStream(params: {
   const screeningMessage = screeningContext?.trim() || message
   const isScreeningIntent = looksLikeScreeningQuestion(agentId, screeningMessage)
   const requestsCareNavigation = /\b(find|search|locate|near me|nearby|phone numbers?|who to call)\b/i.test(message)
+  const careSearchHistory = getConversation(sessionKey)
+  const zipFollowUp = continuesCareSearch(message, careSearchHistory, agentId)
 
-  if (isScreeningIntent && !requestsCareNavigation) {
+  if (isScreeningIntent && !requestsCareNavigation && !zipFollowUp) {
     const response = buildDeterministicScreeningResponse(screeningMessage)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
@@ -896,8 +925,7 @@ export async function* runAgentStream(params: {
     return { agentId: "screening", finalText: response }
   }
 
-  const careSearchHistory = getConversation(sessionKey)
-  if (looksLikeCareSearchQuestion(agentId, message) || continuesCareSearch(message, careSearchHistory)) {
+  if (looksLikeCareSearchQuestion(agentId, message) || zipFollowUp) {
     const history = careSearchHistory
     const response = await buildCareSearchChatResponse(message, history)
     addToConversation(sessionKey, "user", message)

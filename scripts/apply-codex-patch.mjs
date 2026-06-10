@@ -16,6 +16,14 @@ function canRunGitApply(args) {
   }
 }
 
+function readSortedParts(extension) {
+  return readdirSync(payloadDir)
+    .filter((name) => name.endsWith(extension))
+    .sort()
+    .map((name) => readFileSync(join(payloadDir, name), "utf8").trim())
+    .join("")
+}
+
 function loadPatchPayload() {
   if (!existsSync(payloadDir)) {
     return null
@@ -26,17 +34,17 @@ function loadPatchPayload() {
     return brotliDecompressSync(Buffer.from(payload, "base64"))
   }
 
-  const gzipParts = readdirSync(payloadDir)
-    .filter((name) => name.endsWith(".b64part"))
-    .sort()
-    .map((name) => readFileSync(join(payloadDir, name), "utf8").trim())
-    .join("")
-
-  if (!gzipParts) {
-    return null
+  const brotliParts = readSortedParts(".br.b64part")
+  if (brotliParts) {
+    return brotliDecompressSync(Buffer.from(brotliParts, "base64"))
   }
 
-  return gunzipSync(Buffer.from(gzipParts, "base64"))
+  const gzipParts = readSortedParts(".b64part")
+  if (gzipParts) {
+    return gunzipSync(Buffer.from(gzipParts, "base64"))
+  }
+
+  return null
 }
 
 const patch = loadPatchPayload()

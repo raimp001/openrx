@@ -53,6 +53,7 @@ function recommendation(input: Omit<ScreeningRecommendation, "sourceVersion" | "
     ...input,
     sourceSystem: input.sourceSystem || source?.organization || "PENDING",
     sourceVersion: source?.versionOrDate,
+    sourceUrl: source?.url,
     engineVersion: SCREENING_ENGINE_VERSION,
   }
 

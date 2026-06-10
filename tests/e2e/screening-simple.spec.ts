@@ -4,7 +4,12 @@ import {
   SCREENING_HANDOFF_STORAGE_KEY,
 } from "@/lib/care-handoff"
 
-async function mockScreeningApis(page: Page) {
+type MockScreeningApisOptions = {
+  localCareConnections?: unknown[]
+  onAssessRequest?: (body: Record<string, unknown>) => void
+}
+
+async function mockScreeningApis(page: Page, options: MockScreeningApisOptions = {}) {
   await page.route(/\/api\/screening\/intake$/, async (route) => {
     await route.fulfill({
       status: 200,
@@ -24,6 +29,7 @@ async function mockScreeningApis(page: Page) {
   })
 
   await page.route(/\/api\/screening\/assess$/, async (route) => {
+    options.onAssessRequest?.(route.request().postDataJSON() as Record<string, unknown>)
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -68,7 +74,7 @@ async function mockScreeningApis(page: Page) {
           },
         ],
         nextActions: ["Review this plan with your clinician within 30 days."],
-        localCareConnections: [],
+        localCareConnections: options.localCareConnections || [],
         evidenceCitations: [
           {
             id: "uspstf-colon",
@@ -125,6 +131,52 @@ test("simple screening intake returns free recommendations", async ({ page }) =>
   await page.getByRole("button", { name: "Generate Advanced Review" }).click()
   await expect(page.getByText("Complete payment before advanced review")).toBeVisible()
   await expect(page.getByText("Connect payment access to unlock advanced review.")).toBeVisible()
+})
+
+test("free screening with ZIP shows nearby care matches in preview", async ({ page }) => {
+  let assessBody: Record<string, unknown> | undefined
+  await mockScreeningApis(page, {
+    onAssessRequest: (body) => {
+      assessBody = body
+    },
+    localCareConnections: [
+      {
+        recommendationId: "colon-screening",
+        recommendationName: "Colorectal cancer screening",
+        reason: "Adults over 45 should stay current on colon screening cadence.",
+        services: ["provider"],
+        query: "gastroenterology providers near 97123",
+        riskContext: "Preventive continuity and routine monitoring.",
+        ready: true,
+        prompt: { id: "care-search", image: "", text: "" },
+        matches: [
+          {
+            kind: "provider",
+            npi: "1234567890",
+            name: "OpenRx Gastroenterology",
+            specialty: "Gastroenterology",
+            taxonomyCode: "207RG0100X",
+            status: "A",
+            confidence: "high",
+            fullAddress: "100 Care Way, Hillsboro, OR 97123",
+            phone: "503-555-0101",
+          },
+        ],
+      },
+    ],
+  })
+
+  await page.goto("/screening")
+  await page.getByTestId("screening-narrative-input").fill("I am 58 and need colorectal cancer screening.")
+  await page.getByTestId("screening-location-zip").fill("97123")
+  await page.getByTestId("screening-submit-preview").click()
+
+  expect(assessBody?.locationZip).toBe("97123")
+  await expect(page.getByText("Free screening plan ready.")).toBeVisible()
+  await expect(page.getByText(/Advanced review is optional/)).toBeVisible()
+  await expect(page.getByText("Nearby Care Matches For This Screening")).toBeVisible()
+  await expect(page.getByText("OpenRx Gastroenterology")).toBeVisible()
+  await expect(page.getByText(/OpenRx does not place orders/)).toBeVisible()
 })
 
 test("screening handoff from chat auto-runs the free recommendations", async ({ page }) => {

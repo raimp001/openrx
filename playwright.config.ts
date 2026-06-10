@@ -19,18 +19,22 @@ const appServer = {
   url: baseURL,
   reuseExistingServer: !process.env.CI,
   timeout: 5 * 60 * 1000,
-  ...(MOCK_LLM
-    ? {
-        env: {
-          ...process.env,
+  env: {
+    ...process.env,
+    // Chat history persistence is gated behind a PHI compliance flag in
+    // production; tests run against synthetic data only, with the gate on so
+    // save/restore behavior stays covered.
+    OPENRX_ENABLE_PHI_CHAT_HISTORY: "true",
+    ...(MOCK_LLM
+      ? {
           ANTHROPIC_API_KEY: "sk-ant-mock-e2e",
           ANTHROPIC_BASE_URL: `http://127.0.0.1:${LLM_MOCK_PORT}`,
           OPENAI_API_KEY: "",
           OPENRX_MODEL_TIMEOUT_MS: "3000",
           OPENRX_MODEL_MAX_RETRIES: "0",
-        } as Record<string, string>,
-      }
-    : {}),
+        }
+      : {}),
+  } as Record<string, string>,
 }
 
 export default defineConfig({

@@ -1,20 +1,17 @@
 import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { runAgent, runCoordinator } from "@/lib/ai-engine"
-import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
+import { attachChatHistoryCookie, isChatHistoryPersistenceEnabled, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import { appendChatExchange } from "@/lib/chat-history-store"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
-import { CLEAN_BUSY_MESSAGE, isModelFailureText } from "@/lib/openclaw/clean-failure"
+import {
+  CLEAN_MODEL_BUSY_MESSAGE,
+  isModelFailureText,
+  modelErrorCode,
+  requestIdFromModelError,
+} from "@/lib/openclaw/model-boundary"
 import { logAgentRequest } from "@/lib/observability/log"
 import { SCREENING_ENGINE_VERSION } from "@/lib/screening/version"
-
-function statusFromError(error: unknown): number | undefined {
-  if (!error || typeof error !== "object") return undefined
-  const status = Number((error as { status?: unknown; statusCode?: unknown; code?: unknown }).status ??
-    (error as { statusCode?: unknown }).statusCode ??
-    (error as { code?: unknown }).code)
-  return Number.isFinite(status) ? status : undefined
-}
 
 export async function POST(req: NextRequest) {
   const requestId = crypto.randomUUID()
@@ -104,7 +101,9 @@ export async function POST(req: NextRequest) {
       let savedConversation = { id: conversationId || "", title: "" }
       let deterministicOwner: Awaited<ReturnType<typeof resolveChatHistoryOwner>> | null = null
       try {
-        deterministicOwner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
+        if (isChatHistoryPersistenceEnabled()) {
+          deterministicOwner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
+        }
         if (deterministicOwner && !("response" in deterministicOwner)) {
           const saved = await appendChatExchange({
             ownerKey: deterministicOwner.ownerKey,
@@ -145,14 +144,14 @@ export async function POST(req: NextRequest) {
           walletAddress: effectiveWalletAddress,
         })
 
-    const resultResponse = isModelFailureText(result.response) ? CLEAN_BUSY_MESSAGE : result.response
+    const resultResponse = isModelFailureText(result.response) ? CLEAN_MODEL_BUSY_MESSAGE : result.response
 
     logAgentRequest({
       requestId,
       requestedAgentId: agentId,
       routedAgentId: result.agentId,
       outcome:
-        resultResponse === CLEAN_BUSY_MESSAGE
+        resultResponse === CLEAN_MODEL_BUSY_MESSAGE
           ? "fallback"
           : result.agentId === "triage" && agentId !== "triage"
             ? "clinician_route"
@@ -164,23 +163,26 @@ export async function POST(req: NextRequest) {
     let savedConversationId = conversationId || ""
     let savedTitle = ""
     let owner: Awaited<ReturnType<typeof resolveChatHistoryOwner>> | null = null
-    try {
-      owner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
-      if (owner && !("response" in owner)) {
-        const conversation = await appendChatExchange({
-          ownerKey: owner.ownerKey,
-          conversationId,
-          userContent: message.trim(),
-          agentContent: resultResponse,
-          agentId: result.agentId,
-          collaborators: Array.isArray(collaborators) ? collaborators : undefined,
-          routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
-        })
-        savedConversationId = conversation.id
-        savedTitle = conversation.title
+    const persistChatHistory = isChatHistoryPersistenceEnabled()
+    if (persistChatHistory) {
+      try {
+        owner = await resolveChatHistoryOwner(req, effectiveWalletAddress || walletAddress)
+        if (owner && !("response" in owner)) {
+          const conversation = await appendChatExchange({
+            ownerKey: owner.ownerKey,
+            conversationId,
+            userContent: message.trim(),
+            agentContent: resultResponse,
+            agentId: result.agentId,
+            collaborators: Array.isArray(collaborators) ? collaborators : undefined,
+            routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
+          })
+          savedConversationId = conversation.id
+          savedTitle = conversation.title
+        }
+      } catch {
+        console.error("[openclaw-chat-history]", { code: "history_store_failed" })
       }
-    } catch {
-      console.error("[openclaw-chat-history]", { code: "history_store_failed" })
     }
 
     const response = NextResponse.json({
@@ -193,13 +195,15 @@ export async function POST(req: NextRequest) {
       live: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
     })
 
-    if (owner && !("response" in owner)) {
+    if (persistChatHistory && owner && !("response" in owner)) {
       return attachChatHistoryCookie(response, owner)
     }
     return response
   } catch (error) {
-    const status = statusFromError(error)
-    console.error("[openclaw-chat]", { code: status ? `upstream_${status}` : "chat_error" })
+    console.error("[openclaw-chat]", {
+      code: modelErrorCode(error),
+      requestId: requestIdFromModelError(error),
+    })
     logAgentRequest({
       requestId,
       requestedAgentId: "unknown",
@@ -209,7 +213,7 @@ export async function POST(req: NextRequest) {
       modelConfigured: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
     })
     return NextResponse.json(
-      { error: CLEAN_BUSY_MESSAGE },
+      { error: CLEAN_MODEL_BUSY_MESSAGE },
       { status: 503 }
     )
   }

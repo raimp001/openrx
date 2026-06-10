@@ -723,6 +723,166 @@ model AdminNotificationRecord {
 }
 
 // ============================================================
+// PROVIDER ONBOARDING / REFERRAL COMPLIANCE
+// ============================================================
+
+model ProviderRecord {
+  id                       String   @id @default(cuid())
+  npi                      String   @unique
+  source                   String   @default("self_onboarded")
+  type                     String   @default("individual")
+  facilityType             String?
+  name                     String
+  taxonomy                 String?
+  services                 String[] @default([])
+  location                 Json?
+  serviceRadius            Int?
+  insurance                String[] @default([])
+  telehealth               Boolean  @default(false)
+  acceptingNew             Boolean  @default(false)
+  languages                String[] @default([])
+  nppesMatched             Boolean  @default(false)
+  nppesMatchedAt           DateTime?
+  nppesPracticeDomain      String?
+  nppesSnapshotAt          DateTime?
+  claimedAt                DateTime?
+  listingSuppressed        Boolean  @default(false)
+  verificationStatus       String   @default("pending")
+  identityProofingMethod   String?
+  identityProofingAt       DateTime?
+  identityProofingVerifier String?
+  identityProofingReference String?
+  baaSigned                Boolean  @default(false)
+  baaVersion               String?
+  baaSignedAt              DateTime?
+  sanctionsStatus          String   @default("not_run")
+  sanctionsSource          String?
+  sanctionsCheckedAt       DateTime?
+  sanctionsDetails         Json?
+  licenseStatus            String   @default("not_run")
+  licenseNumber            String?
+  licenseState             String?
+  licenseExpiresAt         DateTime?
+  licenseCheckedAt         DateTime?
+  licenseSource            String?
+  licenseDetails           Json?
+  active                   Boolean  @default(false)
+  badges                   String[] @default([])
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  screenResults            ProviderScreenResultRecord[]
+  referrals                ReferralRequestRecord[]
+  consents                 ConsentRecord[]
+  auditEvents              ProviderAuditEventRecord[]
+
+  @@index([verificationStatus, active])
+  @@index([source, listingSuppressed])
+  @@index([nppesSnapshotAt])
+  @@index([sanctionsStatus, sanctionsCheckedAt])
+  @@index([licenseState, licenseNumber])
+  @@map("providers")
+}
+
+model ProviderScreenResultRecord {
+  id         String   @id @default(cuid())
+  providerId String
+  screenType String
+  status     String
+  source     String
+  sourceVersion String?
+  runAt      DateTime
+  details    Json?
+  provider   ProviderRecord @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, screenType, runAt])
+  @@index([status, runAt])
+  @@map("provider_screen_results")
+}
+
+model ConsentRecord {
+  id            String   @id @default(cuid())
+  patientId     String
+  providerId    String
+  scopeHash     String
+  scopeSnapshot Json
+  grantedAt     DateTime
+  revokedAt     DateTime?
+  provider      ProviderRecord @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  referrals     ReferralRequestRecord[]
+
+  @@index([patientId, providerId, grantedAt])
+  @@index([scopeHash])
+  @@map("consents")
+}
+
+model ReferralRequestRecord {
+  id                         String   @id @default(cuid())
+  patientId                  String
+  providerId                 String
+  recommendationId           String
+  reason                     String
+  status                     String
+  priorStatusBeforeInfoRequest String?
+  sharedDataScope            Json
+  sharedDataScopeHash        String
+  disclosureTemplateId       String
+  disclosureTemplateVersion  String
+  consentId                  String?
+  baaVersion                 String?
+  futureDisclosuresBlocked   Boolean  @default(false)
+  completionType             String?
+  expiresAt                  DateTime?
+  acceptedAt                 DateTime?
+  scheduledAt                DateTime?
+  completedAt                DateTime?
+  consentTimestamp           DateTime?
+  history                    Json      @default("[]")
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+  provider                   ProviderRecord @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  consent                    ConsentRecord? @relation(fields: [consentId], references: [id], onDelete: SetNull)
+
+  @@index([patientId, status, createdAt])
+  @@index([providerId, status])
+  @@index([recommendationId])
+  @@map("referral_requests")
+}
+
+model ProviderAuditEventRecord {
+  id             String   @id @default(cuid())
+  providerId     String?
+  referralId     String?
+  consentId      String?
+  eventType      String
+  actor          String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  provider       ProviderRecord? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@index([providerId, createdAt])
+  @@index([referralId, createdAt])
+  @@index([eventType, createdAt])
+  @@map("provider_audit_events")
+}
+
+model CareNotificationRecord {
+  id            String   @id @default(cuid())
+  recipientType String
+  recipientId   String
+  eventType     String
+  entityId      String
+  deepLink      String
+  channelsSent  String[] @default([])
+  readAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  @@unique([eventType, entityId, recipientId])
+  @@index([recipientType, recipientId, createdAt])
+  @@index([eventType, createdAt])
+  @@map("care_notifications")
+}
+
+// ============================================================
 // SCREENING NAVIGATION / CARE TIMELINE
 // ============================================================
 

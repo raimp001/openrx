@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { attachChatHistoryCookie, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
+import { attachChatHistoryCookie, isChatHistoryPersistenceEnabled, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import { createChatConversation, listChatConversations } from "@/lib/chat-history-store"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
+  if (!isChatHistoryPersistenceEnabled()) {
+    return NextResponse.json({ conversations: [], historyStatus: "disabled" })
+  }
+
   const owner = await resolveChatHistoryOwner(request)
   if ("response" in owner) return owner.response
 
@@ -23,6 +27,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isChatHistoryPersistenceEnabled()) {
+    return NextResponse.json(
+      { error: "Chat history is disabled for the stateless MVP." },
+      { status: 403 }
+    )
+  }
+
   const body = await request.json().catch(() => ({})) as {
     title?: string
     walletAddress?: string

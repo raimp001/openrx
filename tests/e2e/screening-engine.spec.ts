@@ -35,6 +35,7 @@ test("average-risk colorectal screening is due for adults 45-75", () => {
   expect(crc?.status).toBe("due")
   expect(crc?.riskCategory).toBe("average_risk")
   expect(crc?.sourceSystem).toBe("USPSTF")
+  expect(crc?.sourceUrl).toBe("https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening")
   expect(crc?.nextSteps).toContain("request_colonoscopy")
 })
 

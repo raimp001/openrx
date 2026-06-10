@@ -10,6 +10,12 @@ import { DEMO_SCENARIOS, type DemoScenario } from "./demo/prior-auth"
 import { isDemoMode } from "./demo/mode"
 import type { ScreeningRecommendation } from "./screening/types"
 import { detectRedFlagText, emergencyResponse } from "./red-flag"
+import {
+  CLEAN_MODEL_BUSY_MESSAGE,
+  modelErrorCode,
+  requestIdFromModelError,
+  withModelApiBoundary,
+} from "./openclaw/model-boundary"
 
 // ── AI Clients ────────────────────────────────────────────
 // Timeout/retry knobs are env-configurable so tests can simulate upstream
@@ -97,35 +103,28 @@ function addToConversation(sessionKey: string, role: "user" | "assistant", conte
   }
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-function buildFallbackAgentResponse(agentId: string, message: string): string {
-  const trimmedMessage = message.trim()
-  const contextLine = trimmedMessage ? `Direct answer: I’m looking at “${trimmedMessage.slice(0, 140)}${trimmedMessage.length > 140 ? "..." : ""}.”` : "Direct answer: I can help with the next step."
-
+function buildFallbackAgentResponse(agentId: string): string {
   switch (agentId) {
     case "rx":
-      return `${contextLine}\n\nWhat to do now\nConfirm the exact medication names, doses, kidney history, allergies, pregnancy status if relevant, and why the medication is being used. Do not stop or combine prescribed medication without clinician/pharmacist guidance. If this is a refill emergency or you are out of a critical medicine, call the pharmacy or prescriber now.\n\nReferences\n- [MedlinePlus: Medicines](https://medlineplus.gov/medicines.html)\n- [FDA: Drug interactions](https://www.fda.gov/drugs/resources-you-drugs/drug-interactions-what-you-should-know)\n\nSafety note\nThis is medication-safety education, not a prescription change or substitute for a clinician/pharmacist review.`
+      return `What to do now\nConfirm the exact medication names, doses, kidney history, allergies, pregnancy status if relevant, and why the medication is being used. Do not stop or combine prescribed medication without clinician/pharmacist guidance. If this is a refill emergency or you are out of a critical medicine, call the pharmacy or prescriber now.\n\nReferences\n- [MedlinePlus: Medicines](https://medlineplus.gov/medicines.html)\n- [FDA: Drug interactions](https://www.fda.gov/drugs/resources-you-drugs/drug-interactions-what-you-should-know)\n\nSafety note\nThis is medication-safety education, not a prescription change or substitute for a clinician/pharmacist review.`
     case "scheduling":
-      return `${contextLine}\n\nWhat to do now\nTell me the visit type, location, urgency, preferred time window, and insurance plan. If the question is clinical, I’ll answer first; if you ask to find care, OpenRx can then search options and prepare a scheduling request.\n\nReferences\n- [MedlinePlus: Choosing a primary care provider](https://medlineplus.gov/ency/article/001939.htm)\n\nSafety note\nOpenRx can stage a scheduling request, but it does not confirm appointments or place medical orders by itself.`
+      return `What to do now\nTell me the visit type, location, urgency, preferred time window, and insurance plan. If the question is clinical, I’ll answer first; if you ask to find care, OpenRx can then search options and prepare a scheduling request.\n\nReferences\n- [MedlinePlus: Choosing a primary care provider](https://medlineplus.gov/ency/article/001939.htm)\n\nSafety note\nOpenRx can stage a scheduling request, but it does not confirm appointments or place medical orders by itself.`
     case "billing":
-      return `${contextLine}\n\nWhat to do now\nUse the claim number, date of service, insurer, amount owed, EOB/denial reason, and whether the provider is in-network. OpenRx can separate patient responsibility from insurer responsibility and draft next questions for the plan or billing office.\n\nReferences\n- [CMS: Understanding health care bills](https://www.cms.gov/medical-bill-rights/help/guides/understanding-health-care-bills)\n\nSafety note\nThis is billing navigation, not a legal determination or coverage guarantee.`
+      return `What to do now\nUse the claim number, date of service, insurer, amount owed, EOB/denial reason, and whether the provider is in-network. OpenRx can separate patient responsibility from insurer responsibility and draft next questions for the plan or billing office.\n\nReferences\n- [CMS: Understanding health care bills](https://www.cms.gov/medical-bill-rights/help/guides/understanding-health-care-bills)\n\nSafety note\nThis is billing navigation, not a legal determination or coverage guarantee.`
     case "prior-auth":
-      return `${contextLine}\n\nWhat to do now\nConfirm the drug/procedure, payer, diagnosis, urgency, prior treatments, and supporting clinical notes. If there is a denial, collect the denial reason and deadline before drafting an appeal.\n\nReferences\n- [CMS: Electronic prior authorization](https://www.cms.gov/priorities/electronic-prior-authorization/overview)\n\nSafety note\nOpenRx can help prepare and track prior-auth work, but it cannot guarantee approval.`
+      return `What to do now\nConfirm the drug/procedure, payer, diagnosis, urgency, prior treatments, and supporting clinical notes. If there is a denial, collect the denial reason and deadline before drafting an appeal.\n\nReferences\n- [CMS: Electronic prior authorization](https://www.cms.gov/priorities/electronic-prior-authorization/overview)\n\nSafety note\nOpenRx can help prepare and track prior-auth work, but it cannot guarantee approval.`
     case "screening":
-      return `${contextLine}\n\nWhat to do now\nShare age, sex used for screening intervals, family history, symptoms, smoking pack-years/quit date, and prior screening dates. I’ll answer directly in chat and cite the relevant guideline links.\n\nReferences\n- [USPSTF recommendations](https://www.uspreventiveservicestaskforce.org/uspstf/recommendation-topics/uspstf-a-and-b-recommendations)\n- [CDC cancer screening tests](https://www.cdc.gov/cancer/prevention/screening.html)\n\nSafety note\nThis is screening decision support, not a diagnosis or order.`
+      return `What to do now\nShare age, sex used for screening intervals, family history, symptoms, smoking pack-years/quit date, and prior screening dates. I’ll answer directly in chat and cite the relevant guideline links.\n\nReferences\n- [USPSTF recommendations](https://www.uspreventiveservicestaskforce.org/uspstf/recommendation-topics/uspstf-a-and-b-recommendations)\n- [CDC cancer screening tests](https://www.cdc.gov/cancer/prevention/screening.html)\n\nSafety note\nThis is screening decision support, not a diagnosis or order.`
     case "trials":
-      return `${contextLine}\n\nWhat to do now\nConfirm condition, stage, mutation/biomarker if known, current treatment, recent labs, and travel radius. I can summarize likely trial leads, but final eligibility must come from the study team.\n\nReferences\n- [ClinicalTrials.gov](https://clinicaltrials.gov/)\n- [NCI: Clinical trials information](https://www.cancer.gov/research/participate/clinical-trials)\n\nSafety note\nTrial matching is informational and does not determine eligibility.`
+      return `What to do now\nConfirm condition, stage, mutation/biomarker if known, current treatment, recent labs, and travel radius. I can summarize likely trial leads, but final eligibility must come from the study team.\n\nReferences\n- [ClinicalTrials.gov](https://clinicaltrials.gov/)\n- [NCI: Clinical trials information](https://www.cancer.gov/research/participate/clinical-trials)\n\nSafety note\nTrial matching is informational and does not determine eligibility.`
     case "triage":
-      return `${contextLine}\n\nWhat to do now\nIf symptoms include chest pain, trouble breathing, stroke symptoms, severe allergic reaction, severe bleeding, sudden weakness, or fainting, call 911 or seek emergency care now. Otherwise, tell me onset, severity, associated symptoms, medications, and whether symptoms are worsening.\n\nReferences\n- [MedlinePlus: When to use the emergency room](https://medlineplus.gov/ency/patientinstructions/000593.htm)\n- [CDC: Stroke signs and symptoms](https://www.cdc.gov/stroke/signs-symptoms/index.html)\n\nSafety note\nThis is safety triage guidance, not a diagnosis. Emergency symptoms should not wait for chat.`
+      return `What to do now\nIf symptoms include chest pain, trouble breathing, stroke symptoms, severe allergic reaction, severe bleeding, sudden weakness, or fainting, call 911 or seek emergency care now. Otherwise, tell me onset, severity, associated symptoms, medications, and whether symptoms are worsening.\n\nReferences\n- [MedlinePlus: When to use the emergency room](https://medlineplus.gov/ency/patientinstructions/000593.htm)\n- [CDC: Stroke signs and symptoms](https://www.cdc.gov/stroke/signs-symptoms/index.html)\n\nSafety note\nThis is safety triage guidance, not a diagnosis. Emergency symptoms should not wait for chat.`
     case "second-opinion":
-      return `${contextLine}\n\nWhat to do now\nShare the diagnosis, current plan, key test results, medications, and the decision you are unsure about. I’ll turn that into clinician-ready questions and identify what information is missing.\n\nReferences\n- [NCI: Finding health care services](https://www.cancer.gov/about-cancer/managing-care/services)\n\nSafety note\nThis supports preparation for medical review; it does not replace an examining clinician.`
+      return `What to do now\nShare the diagnosis, current plan, key test results, medications, and the decision you are unsure about. I’ll turn that into clinician-ready questions and identify what information is missing.\n\nReferences\n- [NCI: Finding health care services](https://www.cancer.gov/about-cancer/managing-care/services)\n\nSafety note\nThis supports preparation for medical review; it does not replace an examining clinician.`
     case "onboarding":
-      return `${contextLine}\n\nWhat to do now\nStart with only what is needed: contact preference, primary care, pharmacy, medications, insurance if you want cost/network help, and the care goal you want OpenRx to handle first.\n\nReferences\n- [HealthIT.gov: Patient access to health information](https://www.healthit.gov/topic/patient-access-health-information)\n\nSafety note\nOnly share sensitive data when you want OpenRx to use it for care navigation.`
+      return `What to do now\nStart with only what is needed: contact preference, primary care, pharmacy, medications, insurance if you want cost/network help, and the care goal you want OpenRx to handle first.\n\nReferences\n- [HealthIT.gov: Patient access to health information](https://www.healthit.gov/topic/patient-access-health-information)\n\nSafety note\nOnly share sensitive data when you want OpenRx to use it for care navigation.`
     default:
-      return `${contextLine}\n\nWhat to do now\nAsk the clinical question in plain language and include the few details that change the answer: age, sex when relevant, symptoms, medication names/doses, diagnosis, prior test dates, and urgency. I’ll answer in chat first and only hand off when an action is needed.\n\nReferences\n- [MedlinePlus](https://medlineplus.gov/)\n- [CDC](https://www.cdc.gov/)\n\nSafety note\nOpenRx is clinical decision support and care navigation, not a diagnosis or substitute for clinician judgment.`
+      return `What to do now\nAsk the clinical question in plain language and include the few details that change the answer: age, sex when relevant, symptoms, medication names/doses, diagnosis, prior test dates, and urgency. I’ll answer in chat first and only hand off when an action is needed.\n\nReferences\n- [MedlinePlus](https://medlineplus.gov/)\n- [CDC](https://www.cdc.gov/)\n\nSafety note\nOpenRx is clinical decision support and care navigation, not a diagnosis or substitute for clinician judgment.`
   }
 }
 
@@ -210,7 +209,7 @@ async function buildCareSearchChatResponse(message: string, history: Conversatio
   // clinical wording in an action prompt as a city and keeps the first search local.
   if (!/\b\d{5}(?:-\d{4})?\b/.test(query)) {
     return [
-      "Direct answer",
+      "Answer",
       "I can help find public clinic phone numbers, but I need the ZIP code first.",
       "",
       "Question to refine this",
@@ -223,7 +222,7 @@ async function buildCareSearchChatResponse(message: string, history: Conversatio
 
   if (!parsed.ready) {
     return [
-      "Direct answer",
+      "Answer",
       "I can help find public clinic phone numbers, but I need the ZIP code first.",
       "",
       "Question to refine this",
@@ -242,7 +241,7 @@ async function buildCareSearchChatResponse(message: string, history: Conversatio
 
     if (matches.length === 0) {
       return [
-        "Direct answer",
+        "Answer",
         `I could not find a clean match near ${location || "that area"}.`,
         "",
         "What to do now",
@@ -262,7 +261,7 @@ async function buildCareSearchChatResponse(message: string, history: Conversatio
     })
 
     return [
-      "Direct answer",
+      "Answer",
       `Here are public clinic options near ${location || "that area"}. Call first to confirm they take your insurance and are accepting new patients.`,
       "",
       "Care options",
@@ -280,7 +279,7 @@ async function buildCareSearchChatResponse(message: string, history: Conversatio
     ].join("\n\n")
   } catch {
     return [
-      "Direct answer",
+      "Answer",
       "I could not reach the public NPI clinic directory right now.",
       "",
       "What to do now",
@@ -373,25 +372,12 @@ function buildFollowUpQuestion(recommendations: ScreeningRecommendation[]): stri
   return null
 }
 
-function summarizeParsedScreeningInput(message: string): string {
-  const parsed = parseScreeningIntakeNarrative(message).extracted
-  const details = [
-    typeof parsed.age === "number" ? `age ${parsed.age}` : undefined,
-    parsed.gender,
-    parsed.familyHistory.length ? parsed.familyHistory.join("; ") : undefined,
-    parsed.conditions.length ? parsed.conditions.join("; ") : undefined,
-    parsed.symptoms.length ? `symptoms: ${parsed.symptoms.join(", ")}` : undefined,
-  ].filter(Boolean)
-
-  return details.length ? details.join(", ") : "the details you shared"
-}
-
 export function buildDeterministicScreeningResponse(message: string): string {
   const parsed = parseScreeningIntakeNarrative(message)
 
   if (!parsed.ready) {
     return [
-      "Direct answer: I can help, but I need one missing detail before giving screening guidance safely.",
+      "I need one missing detail before giving screening guidance safely.",
       parsed.clarificationQuestion || "Share your age, sex used for screening intervals, symptoms, family history, smoking history, and prior screening dates if known.",
       "",
       "References",
@@ -415,7 +401,9 @@ export function buildDeterministicScreeningResponse(message: string): string {
   if (recommendations.length === 0) {
     const hasFamilyHistory = parsed.extracted.familyHistory.length > 0
     return [
-      `Direct answer: based on what you shared (${summarizeParsedScreeningInput(message)}), ${hasFamilyHistory ? "the family history reported does not by itself map to a routine cancer screening test in OpenRx's source-backed rules." : "I do not yet have enough source-backed detail to show a routine cancer screening recommendation safely."}`,
+      hasFamilyHistory
+        ? "OpenRx does not yet have a source-backed routine screening rule for that family-history pattern."
+        : "OpenRx does not yet have enough source-backed detail to show a routine screening recommendation safely.",
       "",
       "What this means",
       hasFamilyHistory
@@ -433,13 +421,12 @@ export function buildDeterministicScreeningResponse(message: string): string {
     ].join("\n\n")
   }
 
-  const summary = summarizeParsedScreeningInput(message)
   const followUp = buildFollowUpQuestion(recommendations)
   const hasUnmappedHematologicFamilyHistory = parsed.extracted.familyHistory.some((history) =>
     /lymphoma|hematologic|leukemia|blood cancer/i.test(history)
   )
   return [
-    `Direct answer: based on what you shared (${summary}), these are the key next steps.`,
+    "Your guideline-backed screening plan",
     "",
     ...(hasUnmappedHematologicFamilyHistory
       ? [
@@ -478,7 +465,7 @@ export function buildDeterministicPriorAuthResponse(scenario: DemoScenario): str
     (source, index) => `${index + 1}. [${source.organization}: ${source.label} (${source.version})](${source.url})`
   )
   return [
-    `Direct answer: this synthetic ${scenario.specialty.toLowerCase()} denial can be prepared for appeal review, but OpenRx cannot confirm approval or submit to a payer from chat.`,
+    `This synthetic ${scenario.specialty.toLowerCase()} denial can be prepared for appeal review, but OpenRx cannot confirm approval or submit to a payer from chat.`,
     "",
     "Why this may be appealable",
     `- Denial reason: ${scenario.denialReason}`,
@@ -586,42 +573,9 @@ async function createCompletionWithRetry(params: {
   max_tokens: number
   temperature: number
 }) {
-  let lastError: unknown = null
-
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      return await openai.chat.completions.create(params, { timeout: 20000 })
-    } catch (error) {
-      lastError = error
-      const status = typeof error === "object" && error !== null && "status" in error
-        ? Number((error as { status?: unknown }).status)
-        : undefined
-      const retryable = status === 408 || status === 429 || (typeof status === "number" && status >= 500)
-      if (!retryable || attempt === 1) break
-      await delay(350 * (attempt + 1))
-    }
-  }
-
-  throw lastError
-}
-
-function friendlyAIError(status?: number, rawMessage?: string): string {
-  if (status === 401) {
-    return "Our AI service needs a configuration update. The care team has been notified — please try again shortly."
-  }
-  if (status === 429 || (rawMessage && rawMessage.includes("rate_limit"))) {
-    return "Our AI assistant is handling a high volume of requests right now. Please wait a moment and try again."
-  }
-  if (status === 529 || (rawMessage && rawMessage.includes("overloaded"))) {
-    return "Our AI assistant is temporarily at capacity. Please try again in a few minutes."
-  }
-  if (typeof status === "number" && status >= 500) {
-    return "Our AI service experienced a temporary issue. Please try again in a moment."
-  }
-  if (rawMessage && (rawMessage.includes("timeout") || rawMessage.includes("timed out") || rawMessage.includes("ETIMEDOUT"))) {
-    return "The request took longer than expected. Please try again — shorter questions tend to get faster responses."
-  }
-  return "Something went wrong while processing your request. Please try again, and if the issue continues, contact your care team."
+return withModelApiBoundary("ai-engine-openai-chat", () =>
+    openai.chat.completions.create(params, { timeout: 20000 })
+  )
 }
 
 // ── Core Agent Engine ────────────────────────────────────
@@ -696,7 +650,7 @@ export async function runAgent(params: {
   // unavailable. In demo mode, never reach the live model at all — serve the
   // cached per-agent rendering so the demo is deterministic offline.
   if (isDemoMode() || (!claude && !process.env.OPENAI_API_KEY)) {
-    return { response: buildFallbackAgentResponse(agentId, message), agentId }
+    return { response: buildFallbackAgentResponse(agentId), agentId }
   }
 
   const patientContext = params._cachedPatientContext ?? await getPatientContext(walletAddress)
@@ -712,7 +666,7 @@ IMPORTANT RULES:
 - Behave like a clinical evidence chat assistant: answer directly in this chat first. Do not tell the user to open another page just to see clinical guidance.
 - Keep patient-facing answers short, plain, and skimmable. Prefer 3-6 bullets. Avoid long paragraphs. Use simple words.
 - For clinical, medication, symptom, screening, prevention, billing, or prior-auth questions, use this visible structure when useful:
-  Direct answer
+  Answer
   What to do now
   References
   Safety note
@@ -748,24 +702,28 @@ IMPORTANT RULES:
         // Extended thinking: give the model a private scratchpad (budget_tokens)
         // before producing its visible response. Reasoning blocks are stripped
         // so only the answer text reaches the caller.
-        const completion = await claude.messages.create({
-          model: "claude-sonnet-4-6",
-          max_tokens: 16000,
-          thinking: { type: "enabled", budget_tokens: 10000 },
-          system: systemPrompt,
-          messages: anthropicMessages,
-        })
+        const completion = await withModelApiBoundary("ai-engine-claude-reasoning", () =>
+          claude.messages.create({
+            model: "claude-sonnet-4-6",
+            max_tokens: 16000,
+            thinking: { type: "enabled", budget_tokens: 10000 },
+            system: systemPrompt,
+            messages: anthropicMessages,
+          })
+        )
         response = completion.content
           .filter((b) => b.type === "text")
           .map((b) => (b as { type: "text"; text: string }).text)
           .join("") || "I couldn't process that. Could you try again?"
       } else {
-        const completion = await claude.messages.create({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1200,
-          system: systemPrompt,
-          messages: anthropicMessages,
-        })
+        const completion = await withModelApiBoundary("ai-engine-claude-chat", () =>
+          claude.messages.create({
+            model: "claude-sonnet-4-6",
+            max_tokens: 1200,
+            system: systemPrompt,
+            messages: anthropicMessages,
+          })
+        )
         response = completion.content
           .filter((b) => b.type === "text")
           .map((b) => (b as { type: "text"; text: string }).text)
@@ -802,15 +760,12 @@ IMPORTANT RULES:
 
     return { response, agentId, handoff }
   } catch (error: unknown) {
-    const errMsg = error instanceof Error ? error.message : String(error)
-    const status = typeof error === "object" && error !== null && "status" in error
-      ? Number((error as { status?: unknown }).status)
-      : undefined
-    console.error(`Agent ${agentId} error:`, errMsg || error)
-
-    const errorNote = friendlyAIError(status, errMsg)
-    const fallback = buildFallbackAgentResponse(agentId, message)
-    return { response: `${errorNote}\n\n${fallback}`, agentId }
+    console.error("[agent-model]", {
+      agentId,
+      code: modelErrorCode(error),
+      requestId: requestIdFromModelError(error),
+    })
+    return { response: CLEAN_MODEL_BUSY_MESSAGE, agentId }
   }
 }
 
@@ -963,7 +918,7 @@ export async function* runAgentStream(params: {
 
   const claude = getClaudeClient()
   if (isDemoMode() || (!claude && !process.env.OPENAI_API_KEY)) {
-    const fallback = buildFallbackAgentResponse(agentId, message)
+    const fallback = buildFallbackAgentResponse(agentId)
     yield fallback
     return { agentId, finalText: fallback }
   }
@@ -979,7 +934,7 @@ IMPORTANT RULES:
 - Behave like a clinical evidence chat assistant: answer directly in this chat first. Do not tell the user to open another page just to see clinical guidance.
 - Keep patient-facing answers short, plain, and skimmable. Prefer 3-6 bullets. Avoid long paragraphs. Use simple words.
 - For clinical, medication, symptom, screening, prevention, billing, or prior-auth questions, use this visible structure when useful:
-  Direct answer
+  Answer
   What to do now
   References
   Safety note
@@ -1002,12 +957,14 @@ IMPORTANT RULES:
         { role: "user", content: message },
       ]
 
-      const stream = claude.messages.stream({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1200,
-        system: systemPrompt,
-        messages: anthropicMessages,
-      })
+      const stream = await withModelApiBoundary("ai-engine-claude-stream", async () =>
+        claude.messages.stream({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1200,
+          system: systemPrompt,
+          messages: anthropicMessages,
+        })
+      )
 
       for await (const event of stream) {
         if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
@@ -1017,19 +974,21 @@ IMPORTANT RULES:
         }
       }
     } else {
-      const completion = await openai.chat.completions.create(
-        {
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...conv,
-            { role: "user", content: message },
-          ],
-          max_tokens: 1000,
-          temperature: 0.3,
-          stream: true,
-        },
-        { timeout: 30000 }
+      const completion = await withModelApiBoundary("ai-engine-openai-stream", () =>
+        openai.chat.completions.create(
+          {
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...conv,
+              { role: "user", content: message },
+            ],
+            max_tokens: 1000,
+            temperature: 0.3,
+            stream: true,
+          },
+          { timeout: 30000 }
+        )
       )
 
       for await (const chunk of completion) {
@@ -1055,15 +1014,12 @@ IMPORTANT RULES:
 
     return { agentId, finalText, handoff }
   } catch (error: unknown) {
-    const errMsg = error instanceof Error ? error.message : String(error)
-    const status = typeof error === "object" && error !== null && "status" in error
-      ? Number((error as { status?: unknown }).status)
-      : undefined
-    console.error(`Stream agent ${agentId} error:`, errMsg || error)
-    const errorNote = friendlyAIError(status, errMsg)
-    const fallback = buildFallbackAgentResponse(agentId, message)
-    const merged = `${errorNote}\n\n${fallback}`
-    if (collected.length === 0) yield merged
-    return { agentId, finalText: collected || merged }
+    console.error("[agent-stream-model]", {
+      agentId,
+      code: modelErrorCode(error),
+      requestId: requestIdFromModelError(error),
+    })
+    if (collected.length === 0) yield CLEAN_MODEL_BUSY_MESSAGE
+    return { agentId, finalText: collected || CLEAN_MODEL_BUSY_MESSAGE }
   }
 }

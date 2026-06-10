@@ -15,6 +15,11 @@ import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "
 import { NextRequest, NextResponse } from "next/server"
 import { runParallelExperts } from "@/lib/ai-engine"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
+import {
+  CLEAN_MODEL_BUSY_MESSAGE,
+  modelErrorCode,
+  requestIdFromModelError,
+} from "@/lib/openclaw/model-boundary"
 
 const VALID_EXPERT_IDS = new Set<string>(OPENCLAW_CONFIG.agents.map((a) => a.id))
 const MAX_EXPERTS = 5
@@ -66,7 +71,10 @@ export async function POST(req: NextRequest) {
       live: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
     })
   } catch (error) {
-    console.error("Parallel experts API error:", error)
-    return NextResponse.json({ error: "Failed to process expert fan-out" }, { status: 500 })
+    console.error("[openclaw-experts]", {
+      code: modelErrorCode(error),
+      requestId: requestIdFromModelError(error),
+    })
+    return NextResponse.json({ error: CLEAN_MODEL_BUSY_MESSAGE }, { status: 503 })
   }
 }

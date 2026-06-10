@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
 import { reviewSecondOpinion, type SecondOpinionInput, type SecondOpinionResult } from "@/lib/basehealth"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
+import {
+  CLEAN_MODEL_BUSY_MESSAGE,
+  modelErrorCode,
+  requestIdFromModelError,
+  withModelApiBoundary,
+} from "@/lib/openclaw/model-boundary"
 
 // Pull Orion's (second-opinion agent) system prompt from config
 const ORION = OPENCLAW_CONFIG.agents.find((a) => a.id === "second-opinion")!
@@ -38,13 +44,13 @@ async function reviewWithClaude(input: SecondOpinionInput): Promise<SecondOpinio
     .join("\n")
 
   // Extended thinking enabled — Orion reasons privately before answering
-  const resp = await client.messages.create({
+  const resp = await withModelApiBoundary("second-opinion-claude", () => client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 16000,
     thinking: { type: "enabled", budget_tokens: 8000 },
     system: ORION.systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
-  })
+  }))
 
   const text = resp.content.find((b) => b.type === "text")?.text || ""
   let raw: Partial<SecondOpinionResult>
@@ -96,11 +102,14 @@ export async function POST(request: NextRequest) {
       redFlags: mergedRedFlags,
       poweredBy: process.env.ANTHROPIC_API_KEY ? "claude" : "heuristic",
     })
-  } catch (err) {
-    console.error("Second-opinion error:", err)
+  } catch (error) {
+    console.error("[second-opinion-review]", {
+      code: modelErrorCode(error),
+      requestId: requestIdFromModelError(error),
+    })
     return NextResponse.json(
-      { error: "Failed to generate second-opinion review." },
-      { status: 500 }
+      { error: CLEAN_MODEL_BUSY_MESSAGE },
+      { status: 503 }
     )
   }
 }

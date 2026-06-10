@@ -380,15 +380,36 @@ function buildGeneralScreeningReferences(): string[] {
   ]
 }
 
-function buildFollowUpQuestion(recommendations: ScreeningRecommendation[]): string | null {
-  if (recommendations.some((rec) => rec.id === "lung-smoking-history-needed" || rec.id === "lung-smoking-history-clarify")) {
-    return "One follow-up that would sharpen this: has the patient ever smoked at least 20 pack-years, and if former, how many years since quitting?"
-  }
-  if (recommendations.some((rec) => rec.id === "uspstf-average-risk-cervical")) {
-    return "One follow-up if relevant: does the patient have a cervix, and when was the last Pap/HPV test?"
-  }
+function buildFollowUpQuestion(
+  recommendations: ScreeningRecommendation[],
+  extracted?: ReturnType<typeof parseScreeningIntakeNarrative>["extracted"]
+): string | null {
   if (recommendations.some((rec) => rec.status === "needs_clinician_review" || rec.status === "high_risk")) {
     return "One follow-up that would help: what were the exact family diagnosis ages, genetic test result, and prior screening dates?"
+  }
+
+  // Actively gather the high-yield risk factors that change a screening plan
+  // instead of silently assuming average risk.
+  const missing: string[] = []
+  if (extracted && extracted.familyHistory.length === 0 && extracted.genes.length === 0) {
+    missing.push("family history of cancer (which relative, which cancer, and age at diagnosis)")
+  }
+  if (
+    !extracted ||
+    (extracted.smoker === undefined && extracted.smokingPackYears === undefined) ||
+    recommendations.some((rec) => rec.id === "lung-smoking-history-needed" || rec.id === "lung-smoking-history-clarify")
+  ) {
+    missing.push("smoking history (total pack-years, and quit date if former)")
+  }
+  if (extracted && !extracted.conditions.some((item) => /colonoscopy|fit|stool|cologuard|mammogram|pap|hpv|ldct|psa/i.test(item))) {
+    missing.push("your most recent screening tests and dates")
+  }
+  if (missing.length > 0) {
+    return `These details could change the plan — share any that apply: ${missing.join("; ")}.`
+  }
+
+  if (recommendations.some((rec) => rec.id === "uspstf-average-risk-cervical")) {
+    return "One follow-up if relevant: does the patient have a cervix, and when was the last Pap/HPV test?"
   }
   return null
 }
@@ -442,7 +463,7 @@ export function buildDeterministicScreeningResponse(message: string): string {
     ].join("\n\n")
   }
 
-  const followUp = buildFollowUpQuestion(recommendations)
+  const followUp = buildFollowUpQuestion(recommendations, parsed.extracted)
   const hasUnmappedHematologicFamilyHistory = parsed.extracted.familyHistory.some((history) =>
     /lymphoma|hematologic|leukemia|blood cancer/i.test(history)
   )

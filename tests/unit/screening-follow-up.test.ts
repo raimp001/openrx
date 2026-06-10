@@ -1,0 +1,27 @@
+import { describe, expect, it } from "vitest"
+import { buildDeterministicScreeningResponse } from "@/lib/ai-engine"
+
+describe("screening answers actively gather missing risk factors", () => {
+  it("an age/sex-only profile is asked about family history, smoking, and prior screenings", () => {
+    const response = buildDeterministicScreeningResponse("I am a 45 year old man, what screening is due?")
+    expect(response).toContain("Question to refine this")
+    expect(response).toMatch(/family history of cancer/i)
+    expect(response).toMatch(/smoking history/i)
+    expect(response).toMatch(/screening tests and dates/i)
+  })
+
+  it("reported family history is not asked for again, but smoking still is", () => {
+    const response = buildDeterministicScreeningResponse("I am 45 male, my father had colon cancer at age 48")
+    expect(response).not.toMatch(/share any that apply: family history/i)
+    // Family-history cases route to the clinician-review follow-up instead.
+    expect(response).toMatch(/family diagnosis ages|smoking/i)
+  })
+
+  it("the follow-up answer with risk factors produces the richer plan", () => {
+    const response = buildDeterministicScreeningResponse(
+      "I am a 60 year old man, current smoker with 30 pack-years, father had colon cancer at age 48."
+    )
+    expect(response).toContain("Low-dose CT lung cancer screening")
+    expect(response).toContain("Colonoscopy and GI review")
+  })
+})

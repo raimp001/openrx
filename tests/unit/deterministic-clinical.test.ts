@@ -31,4 +31,12 @@ describe("deterministic clinical hotfix rules", () => {
   it("simple age/sex prevention questions are still answered by the rules", () => {
     expect(deterministicClinicalResponse("What cancer screening does a 50-year-old woman need?")).toContain("USPSTF")
   })
+
+  it("every age/sex answer asks for the risk factors that could change the plan", () => {
+    const response = deterministicClinicalResponse("age 45 male")
+    expect(response).toContain("Question to refine this")
+    expect(response).toMatch(/family history of cancer/i)
+    expect(response).toMatch(/smoking history/i)
+    expect(response).toMatch(/screening tests and dates|genetic results/i)
+  })
 })

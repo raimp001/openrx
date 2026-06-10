@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && (test -z \"$DATABASE_URL\" || prisma migrate deploy) && next build",
+    "build": "node scripts/apply-codex-patch.mjs && prisma generate && (test -z \"$DATABASE_URL\" || prisma migrate deploy) && next build",
     "db:deploy": "prisma migrate deploy",
     "start": "next start",
     "lint": "next lint",

@@ -502,7 +502,7 @@ export default function ChatHistorySidebar() {
           </div>
         ) : historyDisabled ? (
           <div className="rounded-xl border border-cyan-200/15 bg-cyan-200/[0.055] px-3 py-4 text-sm leading-6 text-cyan-50">
-            Chat history is off for this stateless MVP. Your questions stay in the current session only.
+            Private by default — your questions are not saved after this session ends.
           </div>
         ) : conversations.length === 0 && customFolders.length === 0 ? (
           <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-4 text-sm leading-6 text-zinc-400">

@@ -141,11 +141,11 @@ export async function POST(req: NextRequest) {
     }
 
     const result = agentId === "coordinator"
-      ? await runCoordinator(message, conversationId || sessionId, effectiveWalletAddress)
+      ? await runCoordinator(message, conversationId || sessionId, effectiveWalletAddress, screeningContext?.trim())
       : await runAgent({
           agentId,
           message,
-          screeningContext: agentId === "screening" ? screeningContext?.trim() : undefined,
+          screeningContext: ["screening", "coordinator", "wellness"].includes(agentId as string) ? screeningContext?.trim() : undefined,
           sessionId: conversationId || sessionId,
           walletAddress: effectiveWalletAddress,
         })

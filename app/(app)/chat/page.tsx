@@ -639,7 +639,9 @@ export default function ChatPage() {
         agentOverride ||
         (continuesLocationSearch || continuesScreeningIntake ? activeAgent : workflow.route.primaryAgent) ||
         currentAgent
-      const screeningContext = selectedAgent === "screening"
+      // Serverless instances share no memory, so the client carries the
+      // conversation: send recent user turns for any screening-eligible agent.
+      const screeningContext = ["screening", "coordinator", "wellness"].includes(selectedAgent)
         ? [
             ...messages
               .filter((message) => message.role === "user")

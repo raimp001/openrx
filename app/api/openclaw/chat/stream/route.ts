@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
         const generator = runAgentStream({
           agentId: agentId as string,
           message,
-          screeningContext: agentId === "screening" ? screeningContext?.trim() : undefined,
+          screeningContext: ["screening", "coordinator", "wellness"].includes(agentId as string) ? screeningContext?.trim() : undefined,
           sessionId: conversationId || sessionId,
           walletAddress: effectiveWalletAddress,
         })

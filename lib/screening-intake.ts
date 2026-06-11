@@ -206,8 +206,8 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
 
   const formerSmoking = /\bformer smoker\b|\bquit smoking\b|\bquit\s+\d{1,2}\s+years?\s+ago\b|\bused to smoke\b|\bex-smoker\b/.test(lowered)
   const currentSmoking =
-    /\bcurrent smoker\b|\bsmoking now\b|\bsmokes\b/.test(lowered) ||
-    (/\bsmoker\b|\bsmoking\b/.test(lowered) && !formerSmoking)
+    /\bcurrent smoker\b|\bsmoking now\b|\bsmokes\b|\bi smoke\b/.test(lowered) ||
+    (/\bsmoker\b|\bsmoking\b|\bsmoke\b/.test(lowered) && !formerSmoking)
   const smoker = currentSmoking ? true : formerSmoking ? false : undefined
 
   const symptoms = unique(

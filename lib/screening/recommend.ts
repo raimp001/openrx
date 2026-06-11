@@ -552,7 +552,13 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
         clinicianSummary: "USPSTF lung screening criteria met from supplied age/pack-year/current-or-recent smoking history.",
         nextSteps: ["request_ldct", "request_imaging", "request_care_navigation", "download_clinician_summary"],
       }))
-    } else if (intake.smoking.currentSmoker || intake.smoking.formerSmoker) {
+    } else if (
+      intake.smoking.currentSmoker ||
+      intake.smoking.formerSmoker ||
+      // Pack-years with unknown current/quit status must never fall through
+      // silently — it's the highest-stakes screening signal in the intake.
+      typeof intake.smoking.packYears === "number"
+    ) {
       addUnique(recommendations, recommendation({
         id: "lung-smoking-history-clarify",
         cancerType: "lung cancer",

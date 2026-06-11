@@ -103,6 +103,20 @@ function addToConversation(sessionKey: string, role: "user" | "assistant", conte
   }
 }
 
+// Route-level deterministic answers (hotfix rules) bypass runAgent, so the
+// routes record those exchanges here — otherwise follow-ups like a bare ZIP
+// or "my father had colon cancer at 48" lose the earlier turn's context.
+export function recordAgentExchange(params: {
+  agentId: string
+  sessionId?: string
+  userMessage: string
+  assistantMessage: string
+}): void {
+  const sessionKey = params.sessionId || `${params.agentId}-default`
+  addToConversation(sessionKey, "user", params.userMessage)
+  addToConversation(sessionKey, "assistant", params.assistantMessage)
+}
+
 function buildFallbackAgentResponse(agentId: string): string {
   switch (agentId) {
     case "rx":
@@ -150,6 +164,18 @@ const CARE_SEARCH_ELIGIBLE_AGENTS = new Set(["scheduling", "coordinator", "scree
 const ZIP_ONLY_PATTERN = /^\s*\d{5}(?:-\d{4})?\s*$/
 const EXPLICIT_CARE_SEARCH_PATTERN =
   /\b(find|search|locate|near me|nearby|phone numbers?|who to call|primary care|pcp|physician|doctor|clinic|radiology|imaging center|mammogram center|colonoscopy center|lab near|laboratory)\b/i
+
+const RISK_FACTOR_FOLLOW_UP_PATTERN =
+  /\b(smok\w*|pack[-\s]?years?|quit|family history|mother|father|dad|mom|brother|sister|sibling|grand\w*|aunt|uncle|brca\d?|lynch|palb2|chek2|mlh1|msh[26]|pms2|mutation|germline|hereditary|colonoscopy|mammogram|pap|hpv|psa|ldct|cancer)\b/i
+
+// A reply that only carries risk factors ("I smoke, 30 pack-years",
+// "my mother had breast cancer at 48") must continue the screening
+// conversation that asked for it, regardless of which agent the router picks.
+function isScreeningFollowUp(agentId: string, message: string, history: ConversationMessage[]): boolean {
+  if (!SCREENING_ELIGIBLE_AGENTS.has(agentId)) return false
+  if (!RISK_FACTOR_FOLLOW_UP_PATTERN.test(message)) return false
+  return history.some((item) => item.role === "assistant" && /screening/i.test(item.content))
+}
 
 function looksLikeScreeningQuestion(agentId: string, message: string): boolean {
   if (!SCREENING_ELIGIBLE_AGENTS.has(agentId)) return false
@@ -414,6 +440,24 @@ function buildFollowUpQuestion(
   return null
 }
 
+// When a screening follow-up omits age/sex ("my father had colon cancer at
+// 48"), merge the session's recent user turns so the engine keeps the
+// demographics it already asked for. Only structured fields are parsed from
+// the merged text, never echoed.
+function mergeScreeningContext(screeningMessage: string, history: ConversationMessage[]): string {
+  const parsedNow = parseScreeningIntakeNarrative(screeningMessage)
+  if (typeof parsedNow.extracted.age === "number" && parsedNow.extracted.gender) {
+    return screeningMessage
+  }
+  const priorUserTurns = history
+    .filter((item) => item.role === "user")
+    .slice(-4)
+    .map((item) => item.content)
+    .join("\n")
+  if (!priorUserTurns) return screeningMessage
+  return `${priorUserTurns}\n${screeningMessage}`.slice(0, 6000)
+}
+
 export function buildDeterministicScreeningResponse(message: string): string {
   const parsed = parseScreeningIntakeNarrative(message)
 
@@ -661,15 +705,18 @@ export async function runAgent(params: {
   }
 
   const screeningMessage = screeningContext?.trim() || message
-  const isScreeningIntent = looksLikeScreeningQuestion(agentId, screeningMessage)
-  const requestsCareNavigation = /\b(find|search|locate|near me|nearby|phone numbers?|who to call)\b/i.test(message)
   const careSearchHistory = getConversation(sessionKey)
+  const isScreeningIntent =
+    looksLikeScreeningQuestion(agentId, screeningMessage) ||
+    isScreeningFollowUp(agentId, message, careSearchHistory)
+  const requestsCareNavigation = /\b(find|search|locate|near me|nearby|phone numbers?|who to call)\b/i.test(message)
   // A bare ZIP reply continues care search even mid-screening-conversation —
   // the screening answer explicitly invites "send your ZIP code".
   const zipFollowUp = continuesCareSearch(message, careSearchHistory, agentId)
+  const effectiveScreeningMessage = mergeScreeningContext(screeningMessage, careSearchHistory)
 
   if (isScreeningIntent && !requestsCareNavigation && !zipFollowUp) {
-    const response = buildDeterministicScreeningResponse(screeningMessage)
+    const response = buildDeterministicScreeningResponse(effectiveScreeningMessage)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
     logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
@@ -686,7 +733,7 @@ export async function runAgent(params: {
   }
 
   if (isScreeningIntent) {
-    const response = buildDeterministicScreeningResponse(screeningMessage)
+    const response = buildDeterministicScreeningResponse(effectiveScreeningMessage)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
     logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
@@ -932,13 +979,16 @@ export async function* runAgentStream(params: {
   }
 
   const screeningMessage = screeningContext?.trim() || message
-  const isScreeningIntent = looksLikeScreeningQuestion(agentId, screeningMessage)
-  const requestsCareNavigation = /\b(find|search|locate|near me|nearby|phone numbers?|who to call)\b/i.test(message)
   const careSearchHistory = getConversation(sessionKey)
+  const isScreeningIntent =
+    looksLikeScreeningQuestion(agentId, screeningMessage) ||
+    isScreeningFollowUp(agentId, message, careSearchHistory)
+  const requestsCareNavigation = /\b(find|search|locate|near me|nearby|phone numbers?|who to call)\b/i.test(message)
   const zipFollowUp = continuesCareSearch(message, careSearchHistory, agentId)
+  const effectiveScreeningMessage = mergeScreeningContext(screeningMessage, careSearchHistory)
 
   if (isScreeningIntent && !requestsCareNavigation && !zipFollowUp) {
-    const response = buildDeterministicScreeningResponse(screeningMessage)
+    const response = buildDeterministicScreeningResponse(effectiveScreeningMessage)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
     logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")
@@ -958,7 +1008,7 @@ export async function* runAgentStream(params: {
 
   // Deterministic screening path: emit the response in one chunk.
   if (isScreeningIntent) {
-    const response = buildDeterministicScreeningResponse(screeningMessage)
+    const response = buildDeterministicScreeningResponse(effectiveScreeningMessage)
     addToConversation(sessionKey, "user", message)
     addToConversation(sessionKey, "assistant", response)
     logAction("screening", "deterministic-screening-response", "Rules-based screening response generated.", "portal")

@@ -1,6 +1,6 @@
 import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
-import { runAgentStream } from "@/lib/ai-engine"
+import { recordAgentExchange, runAgentStream } from "@/lib/ai-engine"
 import { attachChatHistoryCookie, isChatHistoryPersistenceEnabled, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import { appendChatExchange } from "@/lib/chat-history-store"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
@@ -137,6 +137,12 @@ export async function POST(req: NextRequest) {
   // Deterministic answers participate in chat history like any other answer,
   // so they can be restored from the sidebar after a reload.
   if (deterministicResponse) {
+    recordAgentExchange({
+      agentId: agentId as string,
+      sessionId: conversationId || sessionId,
+      userMessage: message.trim(),
+      assistantMessage: deterministicResponse,
+    })
     let conversation = { id: conversationId || "", title: "" }
     try {
       if (historyOwner && !("response" in historyOwner)) {
@@ -150,6 +156,16 @@ export async function POST(req: NextRequest) {
           routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
         })
         conversation = { id: saved.id, title: saved.title }
+        // The client adopts the saved conversation id as its next sessionId,
+        // so mirror this exchange under that key for follow-up context.
+        if (saved.id && saved.id !== (conversationId || sessionId)) {
+          recordAgentExchange({
+            agentId: agentId as string,
+            sessionId: saved.id,
+            userMessage: message.trim(),
+            assistantMessage: deterministicResponse,
+          })
+        }
       }
     } catch {
       console.error("[openclaw-stream-history]", { code: "history_store_failed" })
@@ -184,7 +200,7 @@ export async function POST(req: NextRequest) {
           agentId: agentId as string,
           message,
           screeningContext: agentId === "screening" ? screeningContext?.trim() : undefined,
-          sessionId,
+          sessionId: conversationId || sessionId,
           walletAddress: effectiveWalletAddress,
         })
 

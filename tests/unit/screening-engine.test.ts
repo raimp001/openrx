@@ -112,6 +112,11 @@ describe("lung LDCT eligibility boundaries (USPSTF 2021)", () => {
     expect(recs).not.toContain("uspstf-lung-ldct")
   })
 
+  it("pack-years with unknown current/quit status still surfaces lung guidance", () => {
+    const recs = ids({ age: 60, gender: "male", conditions: ["30 pack-years"] })
+    expect(recs).toContain("lung-smoking-history-clarify")
+  })
+
   it("age 50-80 with unknown smoking history asks to clarify exposure", () => {
     expect(ids({ age: 55, gender: "male" })).toContain("lung-smoking-history-needed")
   })

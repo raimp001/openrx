@@ -1,6 +1,6 @@
 import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
-import { runAgent, runCoordinator } from "@/lib/ai-engine"
+import { recordAgentExchange, runAgent, runCoordinator } from "@/lib/ai-engine"
 import { attachChatHistoryCookie, isChatHistoryPersistenceEnabled, resolveChatHistoryOwner } from "@/lib/chat-history-owner"
 import { appendChatExchange } from "@/lib/chat-history-store"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
     // Deterministic answers participate in chat history like any other
     // answer, so they can be restored from the sidebar after a reload.
     if (deterministicResponse) {
+      recordAgentExchange({ agentId, sessionId: conversationId || sessionId, userMessage: message.trim(), assistantMessage: deterministicResponse })
       logAgentRequest({
         requestId,
         requestedAgentId: agentId,
@@ -115,6 +116,11 @@ export async function POST(req: NextRequest) {
             routingInfo: typeof routingInfo === "string" ? routingInfo : undefined,
           })
           savedConversation = { id: saved.id, title: saved.title }
+          // The client adopts the saved conversation id as its next
+          // sessionId, so mirror this exchange under that key too.
+          if (saved.id && saved.id !== (conversationId || sessionId)) {
+            recordAgentExchange({ agentId, sessionId: saved.id, userMessage: message.trim(), assistantMessage: deterministicResponse })
+          }
         }
       } catch {
         console.error("[openclaw-chat-history]", { code: "history_store_failed" })
@@ -135,12 +141,12 @@ export async function POST(req: NextRequest) {
     }
 
     const result = agentId === "coordinator"
-      ? await runCoordinator(message, sessionId, effectiveWalletAddress)
+      ? await runCoordinator(message, conversationId || sessionId, effectiveWalletAddress)
       : await runAgent({
           agentId,
           message,
           screeningContext: agentId === "screening" ? screeningContext?.trim() : undefined,
-          sessionId,
+          sessionId: conversationId || sessionId,
           walletAddress: effectiveWalletAddress,
         })
 

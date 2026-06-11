@@ -25,3 +25,25 @@ describe("screening answers actively gather missing risk factors", () => {
     expect(response).toContain("Colonoscopy and GI review")
   })
 })
+
+describe("risk-factor replies continue the screening conversation", () => {
+  it("a smoking follow-up after a deterministic screening answer yields LDCT guidance", async () => {
+    const { recordAgentExchange, runAgent } = await import("@/lib/ai-engine")
+    const sessionId = `follow-up-test-${Date.now()}`
+    recordAgentExchange({
+      agentId: "coordinator",
+      sessionId,
+      userMessage: "age 60 male",
+      assistantMessage: "Answer\nThese guideline-backed screenings apply to the profile provided.\nDue now\n- Colorectal cancer screening (due)...",
+    })
+
+    const result = await runAgent({
+      agentId: "coordinator",
+      message: "I smoke, about 30 pack-years",
+      sessionId,
+    })
+
+    expect(result.agentId).toBe("screening")
+    expect(result.response).toContain("Low-dose CT lung cancer screening")
+  })
+})

@@ -171,9 +171,21 @@ const RISK_FACTOR_FOLLOW_UP_PATTERN =
 // A reply that only carries risk factors ("I smoke, 30 pack-years",
 // "my mother had breast cancer at 48") must continue the screening
 // conversation that asked for it, regardless of which agent the router picks.
-function isScreeningFollowUp(agentId: string, message: string, history: ConversationMessage[]): boolean {
+function isScreeningFollowUp(
+  agentId: string,
+  message: string,
+  history: ConversationMessage[],
+  screeningContext?: string
+): boolean {
   if (!SCREENING_ELIGIBLE_AGENTS.has(agentId)) return false
   if (!RISK_FACTOR_FOLLOW_UP_PATTERN.test(message)) return false
+  // Stateless path for serverless: the client carries prior turns as
+  // screeningContext. Multi-turn context that parses to a usable age means
+  // this risk-factor reply belongs to a screening conversation.
+  const trimmedContext = screeningContext?.trim()
+  if (trimmedContext && trimmedContext !== message.trim()) {
+    if (typeof parseScreeningIntakeNarrative(trimmedContext).extracted.age === "number") return true
+  }
   return history.some((item) => item.role === "assistant" && /screening/i.test(item.content))
 }
 
@@ -708,7 +720,7 @@ export async function runAgent(params: {
   const careSearchHistory = getConversation(sessionKey)
   const isScreeningIntent =
     looksLikeScreeningQuestion(agentId, screeningMessage) ||
-    isScreeningFollowUp(agentId, message, careSearchHistory)
+    isScreeningFollowUp(agentId, message, careSearchHistory, screeningContext)
   const requestsCareNavigation = /\b(find|search|locate|near me|nearby|phone numbers?|who to call)\b/i.test(message)
   // A bare ZIP reply continues care search even mid-screening-conversation —
   // the screening answer explicitly invites "send your ZIP code".
@@ -901,7 +913,8 @@ export async function runParallelExperts(params: {
 export async function runCoordinator(
   message: string,
   sessionId?: string,
-  walletAddress?: string
+  walletAddress?: string,
+  screeningContext?: string
 ): Promise<{
   response: string
   agentId: string
@@ -910,6 +923,7 @@ export async function runCoordinator(
   const result = await runAgent({
     agentId: "coordinator",
     message,
+    screeningContext,
     sessionId,
     walletAddress,
   })
@@ -982,7 +996,7 @@ export async function* runAgentStream(params: {
   const careSearchHistory = getConversation(sessionKey)
   const isScreeningIntent =
     looksLikeScreeningQuestion(agentId, screeningMessage) ||
-    isScreeningFollowUp(agentId, message, careSearchHistory)
+    isScreeningFollowUp(agentId, message, careSearchHistory, screeningContext)
   const requestsCareNavigation = /\b(find|search|locate|near me|nearby|phone numbers?|who to call)\b/i.test(message)
   const zipFollowUp = continuesCareSearch(message, careSearchHistory, agentId)
   const effectiveScreeningMessage = mergeScreeningContext(screeningMessage, careSearchHistory)

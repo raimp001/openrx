@@ -47,3 +47,18 @@ describe("risk-factor replies continue the screening conversation", () => {
     expect(result.response).toContain("Low-dose CT lung cancer screening")
   })
 })
+
+describe("stateless follow-up (serverless: no shared memory between turns)", () => {
+  it("client-carried context turns a risk-factor reply into the richer plan on a cold instance", async () => {
+    const { runAgent } = await import("@/lib/ai-engine")
+    const result = await runAgent({
+      agentId: "coordinator",
+      message: "I smoke, about 30 pack-years",
+      screeningContext: "age 60 male\nI smoke, about 30 pack-years",
+      sessionId: `stateless-${Date.now()}`,
+    })
+
+    expect(result.agentId).toBe("screening")
+    expect(result.response).toContain("Low-dose CT lung cancer screening")
+  })
+})

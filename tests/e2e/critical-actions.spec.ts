@@ -52,7 +52,8 @@ test("Ask page saves and restores a clinical chat from the history sidebar", asy
   await page.getByTestId("chat-input").fill(question)
   await page.getByTestId("chat-send-button").click()
 
-  await expect(page.getByTestId("chat-message-agent").filter({ hasText: "Colorectal cancer screening" }).last()).toBeVisible()
+  // First hit can pay dev-server compile cost for the stream route.
+  await expect(page.getByTestId("chat-message-agent").filter({ hasText: "Colorectal cancer screening" }).last()).toBeVisible({ timeout: 30_000 })
   await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
   await expect(page).toHaveURL(/\/chat\?c=/)
   const history = page.locator('aside[aria-label="Chat history"]:visible')

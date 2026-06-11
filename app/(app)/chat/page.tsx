@@ -134,7 +134,7 @@ const SECTION_LABELS: Record<string, { variant: "due" | "review" | "upcoming" | 
 }
 
 const sectionTone: Record<string, string> = {
-  due: "text-red-100 bg-red-950/30 border-red-500/20",
+  due: "text-cyan-50 bg-cyan-950/30 border-cyan-300/20",
   review: "text-amber-100 bg-amber-950/30 border-amber-400/20",
   upcoming: "text-sky-100 bg-sky-950/24 border-sky-400/20",
   current: "text-emerald-100 bg-emerald-950/24 border-emerald-400/20",
@@ -298,36 +298,45 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
     <div
       data-testid={section.heading ? `chat-section-${section.heading.toLowerCase().replace(/[^a-z]+/g, "-")}` : undefined}
       className={cn(
-        boxed ? cn("rounded-[12px] border px-4 py-3", tone) : "px-0.5 py-1",
+        boxed ? cn("rounded-[14px] border px-4 py-3.5", tone) : "px-0.5 py-1.5",
         idx === 0 && !section.heading && "p-0"
       )}
     >
       {section.heading ? (
         <p
           className={cn(
-            "mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]",
-            boxed ? "text-current" : "text-zinc-400"
+            "mb-2.5 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase",
+            boxed ? "tracking-[0.12em] text-current" : "tracking-[0.16em] text-zinc-500"
           )}
         >
           {Icon ? <Icon size={12} /> : null}
           {section.heading}
         </p>
       ) : null}
-      <div className="space-y-1.5 text-[14px] leading-6 text-zinc-100">
+      <div className={cn("space-y-2", section.variant === "answer" ? "text-[17px] leading-8" : "text-[15px] leading-7", "text-zinc-100")}>
         {blocks.map((block, i) => {
-          if (block.kind === "blank") return <div key={`b-${i}`} className="h-1" />
+          if (block.kind === "blank") return <div key={`b-${i}`} className="h-1.5" />
+          // Audit stamps (rule ids, engine versions) read as fine print, never
+          // as part of the clinical sentence.
+          if (/\bRule: |openrx-screening-engine-\d|openrx-hotfix-prevention-rules-\d/.test(block.text)) {
+            return (
+              <p key={`b-${i}`} className={cn("font-mono text-[10.5px] tracking-wide text-zinc-500", block.kind === "bullet" && "pl-5")}>
+                {block.text}
+              </p>
+            )
+          }
           if (block.kind === "bullet") {
             return (
               <p
                 key={`b-${i}`}
-                className="pl-4 before:-ml-4 before:mr-2 before:text-cyan-300 before:content-['•']"
+                className="pl-5 before:-ml-5 before:mr-2.5 before:text-cyan-300/70 before:content-['•']"
               >
                 {renderInlineLinks(block.text, `b-${i}`)}
               </p>
             )
           }
           return (
-            <p key={`b-${i}`} className="text-zinc-100">
+            <p key={`b-${i}`} className={cn(section.variant === "answer" && "font-serif text-zinc-50")}>
               {renderInlineLinks(block.text, `b-${i}`)}
             </p>
           )
@@ -538,9 +547,12 @@ export default function ChatPage() {
   useEffect(() => {
     const id = searchParams.get("c") || searchParams.get("conversationId") || ""
     if (!id) {
-      renderedConversationIdRef.current = ""
+      // Keep renderedConversationIdRef: this effect re-runs on the state
+      // commit before the ?c= navigation lands, and clearing the ref here
+      // forced a redundant "Restoring the clinical thread" reload of the
+      // exact messages already on screen.
       setConversationId("")
-      if (!searchParams.get("prompt")) {
+      if (!searchParams.get("prompt") && !renderedConversationIdRef.current) {
         setMessages([buildWelcome(isConnected)])
       }
       return
@@ -954,7 +966,7 @@ export default function ChatPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             {isConnected ? "Personalized workspace" : "Clinical answers + phone-number handoffs"}
           </div>
-          <h1 className="max-w-3xl text-[clamp(2.35rem,5.4vw,4.35rem)] font-semibold leading-[0.96] tracking-[-0.065em] text-white">
+          <h1 className="max-w-3xl font-serif text-[clamp(2.3rem,5.2vw,4.1rem)] font-medium leading-[1.04] tracking-[-0.015em] text-white text-balance">
             Ask a clinical question.
           </h1>
           <p className="mt-5 max-w-xl text-balance text-[15px] leading-7 text-zinc-300 sm:text-[17px]">
@@ -1118,9 +1130,9 @@ export default function ChatPage() {
             msg.content.includes("I need one missing detail before giving screening guidance safely")
           return (
             <article key={msg.id} data-testid="chat-message-agent" className="animate-fade-in space-y-3">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md border border-white/10 bg-white/[0.06] text-cyan-300">
-                  <Icon size={12} />
+              <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-200/15 bg-cyan-200/[0.06] text-cyan-300/80">
+                  <Icon size={10} />
                 </span>
                 {meta?.label || "OpenRx"}
                 {isStreamingThis ? (

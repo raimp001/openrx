@@ -134,17 +134,17 @@ const SECTION_LABELS: Record<string, { variant: "due" | "review" | "upcoming" | 
 }
 
 const sectionTone: Record<string, string> = {
-  due: "text-cyan-50 bg-cyan-950/30 border-cyan-300/20",
-  review: "text-amber-100 bg-amber-950/30 border-amber-400/20",
-  upcoming: "text-sky-100 bg-sky-950/24 border-sky-400/20",
-  current: "text-emerald-100 bg-emerald-950/24 border-emerald-400/20",
-  followup: "text-zinc-200 bg-white/[0.04] border-white/10",
-  next: "text-zinc-100 bg-white/[0.05] border-white/12",
-  answer: "text-white bg-white/[0.06] border-white/12",
-  refs: "text-zinc-300 bg-white/[0.04] border-white/10",
-  safety: "text-amber-100 bg-amber-950/30 border-amber-400/20",
-  care: "text-cyan-50 bg-cyan-950/18 border-cyan-200/14",
-  info: "text-zinc-300 bg-white/[0.04] border-white/10",
+  due: "text-[#134E4A] bg-[#F0FDFA] border-[#99F6E4]",
+  review: "text-amber-900 bg-amber-50 border-amber-200",
+  upcoming: "text-sky-900 bg-sky-50 border-sky-200",
+  current: "text-emerald-900 bg-emerald-50 border-emerald-200",
+  followup: "text-[#57534E] bg-white border-[#E7E5E0]",
+  next: "text-[#44403C] bg-white border-[#E7E5E0]",
+  answer: "text-[#1C1917] bg-white border-[#E7E5E0]",
+  refs: "text-[#57534E] bg-white border-[#E7E5E0]",
+  safety: "text-amber-900 bg-amber-50 border-amber-200",
+  care: "text-[#134E4A] bg-[#F0FDFA] border-[#99F6E4]",
+  info: "text-[#57534E] bg-white border-[#E7E5E0]",
 }
 
 interface ParsedSection {
@@ -227,7 +227,7 @@ function renderInlineLinks(text: string, keyPrefix: string) {
         href={part.url}
         target={part.url.startsWith("tel:") ? undefined : "_blank"}
         rel={part.url.startsWith("tel:") ? undefined : "noreferrer"}
-        className="font-medium text-cyan-200 underline decoration-cyan-200/40 underline-offset-2 transition hover:text-cyan-100 hover:decoration-cyan-100"
+        className="font-medium text-[#0F766E] underline decoration-[#0F766E]/30 underline-offset-2 transition hover:text-[#115E59] hover:decoration-[#115E59]"
       >
         {part.label}
       </a>
@@ -280,7 +280,7 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
           {items.map((block, i) => (
             <div
               key={`care-${i}`}
-              className="rounded-[14px] border border-white/10 bg-black/20 px-3 py-2.5 text-[14px] leading-6 text-zinc-100"
+              className="rounded-[14px] border border-[#CCECE8] bg-white px-3 py-2.5 text-[14px] leading-6 text-[#1C1917]"
             >
               {renderInlineLinks(block.text, `care-${i}`)}
             </div>
@@ -306,21 +306,21 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
         <p
           className={cn(
             "mb-2.5 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase",
-            boxed ? "tracking-[0.12em] text-current" : "tracking-[0.16em] text-zinc-500"
+            boxed ? "tracking-[0.12em] text-current" : "tracking-[0.16em] text-[#A8A29E]"
           )}
         >
           {Icon ? <Icon size={12} /> : null}
           {section.heading}
         </p>
       ) : null}
-      <div className={cn("space-y-2", section.variant === "answer" ? "text-[17px] leading-8" : "text-[15px] leading-7", "text-zinc-100")}>
+      <div className={cn("space-y-2", section.variant === "answer" ? "text-[17px] leading-8" : "text-[15px] leading-7", boxed ? "text-current" : "text-[#1C1917]")}>
         {blocks.map((block, i) => {
           if (block.kind === "blank") return <div key={`b-${i}`} className="h-1.5" />
           // Audit stamps (rule ids, engine versions) read as fine print, never
           // as part of the clinical sentence.
           if (/\bRule: |openrx-screening-engine-\d|openrx-hotfix-prevention-rules-\d/.test(block.text)) {
             return (
-              <p key={`b-${i}`} className={cn("font-mono text-[10.5px] tracking-wide text-zinc-500", block.kind === "bullet" && "pl-5")}>
+              <p key={`b-${i}`} className={cn("font-mono text-[10.5px] tracking-wide text-stone-400", block.kind === "bullet" && "pl-5")}>
                 {block.text}
               </p>
             )
@@ -329,14 +329,14 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
             return (
               <p
                 key={`b-${i}`}
-                className="pl-5 before:-ml-5 before:mr-2.5 before:text-cyan-300/70 before:content-['•']"
+                className="pl-5 before:-ml-5 before:mr-2.5 before:text-[#0F766E]/55 before:content-['•']"
               >
                 {renderInlineLinks(block.text, `b-${i}`)}
               </p>
             )
           }
           return (
-            <p key={`b-${i}`} className={cn(section.variant === "answer" && "font-serif text-zinc-50")}>
+            <p key={`b-${i}`} className={cn(section.variant === "answer" && "font-serif text-[#1C1917]")}>
               {renderInlineLinks(block.text, `b-${i}`)}
             </p>
           )
@@ -349,8 +349,8 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
 function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
   if (!citations.length) return null
   return (
-    <div data-testid="chat-citations" className="mt-3 flex flex-wrap gap-2 border-t border-white/12 pt-3">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300">Sources</span>
+    <div data-testid="chat-citations" className="mt-3 flex flex-wrap gap-2 border-t border-[#E7E5E0] pt-3">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#57534E]">Sources</span>
       {citations.map((c, i) => (
         <a
           key={`${c.url}-${i}`}
@@ -359,7 +359,7 @@ function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
           rel="noreferrer"
           onClick={() => trackWorkflowEvent("source_opened", { surface: "chat" })}
           data-testid="chat-citation"
-          className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/20 bg-cyan-200/[0.08] px-2.5 py-1 text-[11px] font-medium text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-200/[0.14]"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#E7E5E0] bg-white px-2.5 py-1 text-[11px] font-medium text-[#0F766E] transition hover:border-[#99F6E4] hover:bg-[#F0FDFA]"
         >
           {c.label}
           <ExternalLink size={10} />
@@ -433,7 +433,7 @@ function CopyButton({ text }: { text: string }) {
       onClick={onCopy}
       data-testid="chat-copy-button"
       aria-label={copied ? "Copied" : "Copy answer"}
-      className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] font-medium text-zinc-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+      className="inline-flex items-center gap-1.5 rounded-md border border-[#E7E5E0] bg-white px-2 py-1 text-[11px] font-medium text-[#57534E] transition hover:border-[#D6D3CD] hover:bg-stone-50 hover:text-[#1C1917]"
     >
       {copied ? <Check size={11} /> : <Copy size={11} />}
       {copied ? "Copied" : "Copy"}
@@ -443,7 +443,7 @@ function CopyButton({ text }: { text: string }) {
 
 function StreamingCursor() {
   return (
-    <span className="ml-0.5 inline-block h-[14px] w-[2px] translate-y-[2px] animate-pulse bg-cyan-300/80 align-middle" aria-hidden />
+    <span className="ml-0.5 inline-block h-[14px] w-[2px] translate-y-[2px] animate-pulse bg-[#0F766E]/80 align-middle" aria-hidden />
   )
 }
 
@@ -878,7 +878,7 @@ export default function ChatPage() {
   const renderComposer = (placement: "hero" | "thread") => (
     <div className={cn(placement === "hero" ? "mx-auto w-full max-w-3xl" : "sticky bottom-2 mb-2")}>
       <form
-        className="flex items-end gap-2 rounded-[26px] border border-white/12 bg-[#0d0f0f]/95 px-4 py-2.5 shadow-[0_26px_90px_rgba(0,0,0,0.50)] backdrop-blur-xl transition focus-within:border-cyan-200/45 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.10),0_28px_92px_rgba(0,0,0,0.58)]"
+        className="flex items-end gap-2 rounded-[26px] border border-[#E7E5E0] bg-white px-4 py-2.5 shadow-[0_1px_2px_rgba(28,25,23,0.04),0_16px_44px_rgba(28,25,23,0.07)] transition focus-within:border-[#0F766E]/40 focus-within:shadow-[0_0_0_3px_rgba(15,118,110,0.10),0_16px_44px_rgba(28,25,23,0.08)]"
         onSubmit={(event) => {
           event.preventDefault()
           void sendMessage()
@@ -907,7 +907,7 @@ export default function ChatPage() {
           disabled={isLoadingConversation}
           rows={1}
           className={cn(
-            "block w-full flex-1 resize-none overflow-hidden border-0 bg-transparent py-1.5 text-zinc-50 outline-none placeholder:text-zinc-400",
+            "block w-full flex-1 resize-none overflow-hidden border-0 bg-transparent py-1.5 text-[#1C1917] outline-none placeholder:text-[#A8A29E] focus-visible:shadow-none",
             placement === "hero" ? "min-h-[56px] text-[17px] leading-7" : "min-h-[36px] text-[15px] leading-6"
           )}
         />
@@ -918,11 +918,11 @@ export default function ChatPage() {
             data-testid="chat-stop-button"
             aria-label="Stop generating"
             className={cn(
-              "mb-0.5 inline-flex shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/[0.06] text-zinc-100 transition hover:border-white/40 hover:bg-white/[0.12]",
+              "mb-0.5 inline-flex shrink-0 items-center justify-center rounded-full border border-[#E7E5E0] bg-white text-[#57534E] transition hover:border-[#D6D3CD] hover:bg-stone-50",
               placement === "hero" ? "h-10 w-10" : "h-9 w-9"
             )}
           >
-            <span className={cn("rounded-[2px] bg-zinc-100", placement === "hero" ? "h-3 w-3" : "h-2.5 w-2.5")} />
+            <span className={cn("rounded-[2px] bg-[#57534E]", placement === "hero" ? "h-3 w-3" : "h-2.5 w-2.5")} />
           </button>
         ) : (
           <button
@@ -931,7 +931,7 @@ export default function ChatPage() {
             disabled={isLoadingConversation || !input.trim()}
             aria-label="Send"
             className={cn(
-              "mb-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-cyan-200 text-black shadow-[0_10px_28px_rgba(103,232,249,0.16)] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40",
+              "mb-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-[#0F766E] text-white shadow-[0_10px_24px_rgba(15,118,110,0.22)] transition hover:bg-[#115E59] disabled:cursor-not-allowed disabled:opacity-40",
               placement === "hero" ? "h-10 w-10" : "h-9 w-9"
             )}
           >
@@ -939,7 +939,7 @@ export default function ChatPage() {
           </button>
         )}
       </form>
-      <p className={cn("mt-2 px-3 text-center text-[11px] text-zinc-500", placement === "hero" && "hidden sm:block")}>
+      <p className={cn("mt-2 px-3 text-center text-[11px] text-[#A8A29E]", placement === "hero" && "hidden sm:block")}>
         {isLoading
           ? "Press Esc to stop. Streaming the answer…"
           : "Guideline-linked answers, sources, and explicit links. Not a substitute for clinician judgment."}
@@ -951,25 +951,24 @@ export default function ChatPage() {
     <div
       data-openrx-chat-workspace
       className={cn(
-        "relative isolate mx-auto flex min-h-screen animate-fade-in flex-col overflow-hidden bg-[#030303] px-4 text-zinc-100 sm:px-6",
+        "relative isolate mx-auto flex min-h-screen animate-fade-in flex-col overflow-hidden bg-[#FAFAF7] px-4 text-[#1C1917] sm:px-6",
         showEmptyState ? "max-w-6xl justify-center" : "max-w-3xl"
       )}
     >
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_10%,rgba(103,232,249,0.10),transparent_32%),radial-gradient(circle_at_78%_68%,rgba(20,184,166,0.075),transparent_28%),linear-gradient(180deg,#030303_0%,#050505_58%,#070707_100%)]" />
-      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.7)_1px,transparent_1px)] [background-size:44px_44px]" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(15,118,110,0.05),transparent_38%),linear-gradient(180deg,#FAFAF7_0%,#FAFAF7_64%,#F6F5F1_100%)]" />
       {showEmptyState ? (
         <main
           data-testid="chat-empty-state"
           className="flex min-h-screen flex-1 flex-col items-center justify-center px-3 py-12 text-center"
         >
-          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/35 px-3 py-1.5 text-[12px] font-medium text-zinc-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#E7E5E0] bg-white px-3 py-1.5 text-[12px] font-medium text-[#57534E] shadow-[0_1px_2px_rgba(28,25,23,0.04)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             {isConnected ? "Personalized workspace" : "Clinical answers + phone-number handoffs"}
           </div>
-          <h1 className="max-w-3xl font-serif text-[clamp(2.3rem,5.2vw,4.1rem)] font-medium leading-[1.04] tracking-[-0.015em] text-white text-balance">
+          <h1 className="max-w-3xl font-serif text-[clamp(2.3rem,5.2vw,4.1rem)] font-medium leading-[1.04] tracking-[-0.015em] text-[#1C1917] text-balance">
             Ask a clinical question.
           </h1>
-          <p className="mt-5 max-w-xl text-balance text-[15px] leading-7 text-zinc-300 sm:text-[17px]">
+          <p className="mt-5 max-w-xl text-balance text-[15px] leading-7 text-[#57534E] sm:text-[17px]">
             Get a sourced answer and a next step.
           </p>
 
@@ -979,7 +978,7 @@ export default function ChatPage() {
             <div
               role="alert"
               data-testid="chat-error"
-              className="mt-3 flex max-w-3xl items-center gap-2 rounded-[10px] border border-red-400/25 bg-red-950/30 px-3 py-2 text-left text-[13px] text-red-100"
+              className="mt-3 flex max-w-3xl items-center gap-2 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-left text-[13px] text-red-700"
             >
               <AlertTriangle size={14} />
               {errorBanner}
@@ -1000,49 +999,49 @@ export default function ChatPage() {
                   onClick={() => {
                     void sendMessage(item.prompt, item.agentId)
                   }}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.03] px-4 py-2 text-[13px] font-medium text-zinc-200 transition hover:border-cyan-200/35 hover:text-cyan-100"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#E7E5E0] bg-white px-4 py-2 text-[13px] font-medium text-[#44403C] shadow-[0_1px_2px_rgba(28,25,23,0.04)] transition hover:border-[#99F6E4] hover:text-[#0F766E]"
                 >
-                  <Icon size={14} className="text-cyan-200/80" />
+                  <Icon size={14} className="text-[#0F766E]" />
                   {item.label}
                 </button>
               )
             })}
           </nav>
 
-          <div className="mt-6 flex max-w-3xl flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-zinc-400">
+          <div className="mt-6 flex max-w-3xl flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-[#A8A29E]">
             <span>Guideline-linked answers</span>
             <span>Demo mode first</span>
             <span>Wallet optional</span>
             <span>No hidden data sale</span>
             <span>Not a substitute for clinician judgment</span>
           </div>
-          <div className="mt-7 w-full max-w-3xl rounded-[18px] border border-white/9 bg-white/[0.025] p-4 text-left">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Example result</p>
+          <div className="mt-7 w-full max-w-3xl rounded-[18px] border border-[#E7E5E0] bg-white p-4 text-left shadow-[0_1px_2px_rgba(28,25,23,0.04),0_8px_24px_rgba(28,25,23,0.04)]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A8A29E]">Example result</p>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[13px] font-semibold text-white">Colorectal screening may be due</p>
-                <p className="mt-1 text-[12px] text-zinc-400">USPSTF · ask for FIT or colonoscopy options</p>
+                <p className="text-[13px] font-semibold text-[#1C1917]">Colorectal screening may be due</p>
+                <p className="mt-1 text-[12px] text-[#57534E]">USPSTF · ask for FIT or colonoscopy options</p>
               </div>
-              <span className="rounded-full border border-cyan-200/16 bg-cyan-200/[0.07] px-3 py-1.5 text-[11px] font-semibold text-cyan-100">Add to Care Plan</span>
+              <span className="rounded-full border border-[#99F6E4] bg-[#F0FDFA] px-3 py-1.5 text-[11px] font-semibold text-[#0F766E]">Add to Care Plan</span>
             </div>
           </div>
         </main>
       ) : (
         <>
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-white/10 pb-3 pt-4">
+      <header className="flex items-center justify-between border-b border-[#E7E5E0] pb-3 pt-4">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">Ask OpenRx</p>
-          <h1 className="text-[18px] font-semibold tracking-tight text-white">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#A8A29E]">Ask OpenRx</p>
+          <h1 className="text-[18px] font-semibold tracking-tight text-[#1C1917]">
             Clinical answers and care links
           </h1>
         </div>
         <div className="flex items-center gap-2">
           <span
             data-testid="chat-status-indicator"
-            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200"
+            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             online
           </span>
           <span
@@ -1050,19 +1049,19 @@ export default function ChatPage() {
             className={cn(
               "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex",
               isConnected
-                ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-                : "border-white/12 bg-white/[0.05] text-zinc-300"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-[#E7E5E0] bg-white text-[#57534E]"
             )}
           >
             <span
-              className={cn("h-1.5 w-1.5 rounded-full", isConnected ? "bg-emerald-400" : "bg-zinc-600")}
+              className={cn("h-1.5 w-1.5 rounded-full", isConnected ? "bg-emerald-500" : "bg-stone-300")}
             />
             {isConnected ? "Personalized" : "General"}
           </span>
           <button
             type="button"
             onClick={clearChat}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E7E5E0] bg-white px-3 py-1.5 text-xs font-medium text-[#57534E] transition hover:bg-stone-50 hover:text-[#1C1917] disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isLoading || messages.length <= 1}
             data-testid="chat-clear"
             aria-label="Clear"
@@ -1082,8 +1081,8 @@ export default function ChatPage() {
         aria-label="Chat conversation"
       >
         {isLoadingConversation ? (
-          <div className="mx-auto max-w-sm rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm text-zinc-400" data-testid="chat-loading-conversation">
-            <Loader2 size={15} className="mx-auto mb-2 animate-spin text-cyan-300" />
+          <div className="mx-auto max-w-sm rounded-[14px] border border-[#E7E5E0] bg-white px-4 py-3 text-center text-sm text-[#57534E]" data-testid="chat-loading-conversation">
+            <Loader2 size={15} className="mx-auto mb-2 animate-spin text-[#0F766E]" />
             Restoring the clinical thread...
           </div>
         ) : null}
@@ -1091,7 +1090,7 @@ export default function ChatPage() {
         {visibleMessages.map((msg, index) => {
           if (msg.role === "system") {
             return (
-              <div key={msg.id} data-testid="chat-message-system" className="chat-bubble-system mx-auto max-w-2xl">
+              <div key={msg.id} data-testid="chat-message-system" className="mx-auto max-w-2xl rounded-[10px] border border-[#E7E5E0] bg-stone-100 px-3 py-2 text-[12px] leading-5 text-[#57534E]">
                 {msg.content}
               </div>
             )
@@ -1101,7 +1100,7 @@ export default function ChatPage() {
               <div key={msg.id} className="flex justify-end">
                 <div
                   data-testid="chat-message-user"
-                  className="max-w-[85%] whitespace-pre-wrap rounded-[16px] border border-cyan-200/14 bg-cyan-200/[0.10] px-4 py-3 text-[15px] leading-7 text-cyan-50"
+                  className="max-w-[85%] whitespace-pre-wrap rounded-[16px] bg-[#0F766E] px-4 py-3 text-[15px] leading-7 text-white shadow-[0_2px_8px_rgba(15,118,110,0.18)]"
                 >
                   {msg.content}
                 </div>
@@ -1130,24 +1129,24 @@ export default function ChatPage() {
             msg.content.includes("I need one missing detail before giving screening guidance safely")
           return (
             <article key={msg.id} data-testid="chat-message-agent" className="animate-fade-in space-y-3">
-              <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-200/15 bg-cyan-200/[0.06] text-cyan-300/80">
+              <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#A8A29E]">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#99F6E4] bg-[#F0FDFA] text-[#0F766E]">
                   <Icon size={10} />
                 </span>
                 {meta?.label || "OpenRx"}
                 {isStreamingThis ? (
-                  <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-zinc-500">
+                  <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-[#A8A29E]">
                     streaming…
                   </span>
                 ) : null}
               </div>
               {showEmptyStreamingIndicator ? (
-                <div className="flex items-center gap-1 text-[14px] text-zinc-400" data-testid="chat-loading">
+                <div className="flex items-center gap-1 text-[14px] text-[#57534E]" data-testid="chat-loading">
                   Thinking
                   <span className="ml-1 inline-flex items-center gap-1">
-                    <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "0ms" }} />
-                    <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "120ms" }} />
-                    <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "240ms" }} />
+                    <span className="typing-dot h-1 w-1 rounded-full bg-stone-400" style={{ animationDelay: "0ms" }} />
+                    <span className="typing-dot h-1 w-1 rounded-full bg-stone-400" style={{ animationDelay: "120ms" }} />
+                    <span className="typing-dot h-1 w-1 rounded-full bg-stone-400" style={{ animationDelay: "240ms" }} />
                   </span>
                 </div>
               ) : (
@@ -1158,6 +1157,7 @@ export default function ChatPage() {
                   </div>
                   {msg.actionPlan && msg.actionPlan.length > 0 && !isStreamingThis && !isClarifyingScreeningIntake ? (
                     <ChatActionPlan
+                      tone="light"
                       items={msg.actionPlan}
                       onPrompt={(prompt, targetAgentId) => {
                         void sendMessage(prompt, targetAgentId)
@@ -1166,14 +1166,16 @@ export default function ChatPage() {
                   ) : null}
                   {safetyHold?.messageId === msg.id ? (
                     <RedFlagAlert
+                      tone="light"
                       finding={safetyHold.finding}
                       acknowledged={safetyHold.acknowledged}
                       onAcknowledge={() => setSafetyHold((current) => current ? { ...current, acknowledged: true } : current)}
                     />
                   ) : null}
-                  {carePlanDraft && !isStreamingThis && !isClarifyingScreeningIntake ? <CarePlanPreview draft={carePlanDraft} compact /> : null}
+                  {carePlanDraft && !isStreamingThis && !isClarifyingScreeningIntake ? <CarePlanPreview draft={carePlanDraft} compact tone="light" /> : null}
                   {!isStreamingThis && msg.content.trim() ? (
                     <TrustDrawer
+                      tone="light"
                       sources={trustSources}
                       inputsUsed={carePlanDraft ? [carePlanDraft.patientContextSummary] : hasScreeningInputs ? [screeningInputSummary!] : []}
                       inputsNotUsed={carePlanDraft || hasScreeningInputs ? ["Insurance and payer network", "Full medical record"] : ["No saved patient profile required"]}
@@ -1184,7 +1186,7 @@ export default function ChatPage() {
                   ) : null}
                   <div className="flex flex-wrap items-center gap-2">
                     {!isStreamingThis && msg.content.trim() ? <CopyButton text={msg.content} /> : null}
-                    {!isStreamingThis && msg.content.trim() && !isClarifyingScreeningIntake ? <SupportOpenRx /> : null}
+                    {!isStreamingThis && msg.content.trim() && !isClarifyingScreeningIntake ? <SupportOpenRx tone="light" /> : null}
                   </div>
                 </>
               )}
@@ -1200,7 +1202,7 @@ export default function ChatPage() {
         <div
           role="alert"
           data-testid="chat-error"
-          className="mb-3 flex items-center gap-2 rounded-[10px] border border-red-400/25 bg-red-950/30 px-3 py-2 text-[13px] text-red-100"
+          className="mb-3 flex items-center gap-2 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700"
         >
           <AlertTriangle size={14} />
           {errorBanner}

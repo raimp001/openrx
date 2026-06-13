@@ -1,32 +1,18 @@
 import type { Metadata, Viewport } from "next"
+import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
-import { Inter, Fraunces } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
 
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-sans",
-  weight: ["400", "500", "600", "700"],
-})
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-serif",
-  weight: ["400", "500", "600", "700"],
-})
-
 export const metadata: Metadata = {
-  title: "OpenRx | Clinical answers to prior authorization action",
+  title: "OpenRx | Prior-auth automation and screening navigation",
   description:
-    "Ask a clinical question in plain English. OpenRx provides source-linked answers and a sandboxed path from denial to appeal preparation. Decision support, not a substitute for clinician judgment.",
+    "OpenRx connects source-linked screening guidance, care navigation, provider handoffs, and prior authorization workflow infrastructure.",
   metadataBase: new URL("https://openrx.health"),
   openGraph: {
-    title: "OpenRx | Clinical answers to prior authorization action",
+    title: "OpenRx | Prior-auth automation and screening navigation",
     description:
-      "See source-linked clinical workflow and a synthetic denial-to-appeal prior authorization demo.",
+      "See guideline-grounded screening navigation and source-linked prior authorization workflow infrastructure.",
     type: "website",
     images: [
       { url: "/og-image.svg", width: 1200, height: 630, alt: "OpenRx clinical workflow workspace" },
@@ -35,9 +21,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "OpenRx | Clinical answers to prior authorization action",
+    title: "OpenRx | Prior-auth automation and screening navigation",
     description:
-      "Ask a clinical question. See source-linked guidance and a synthetic denial-to-appeal workflow.",
+      "Source-linked screening navigation, provider handoffs, and prior authorization workflow infrastructure.",
     images: ["/og-image.png"],
   },
   icons: {
@@ -67,7 +53,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${GeistMono.variable} ${fraunces.variable} min-h-screen bg-surface text-primary antialiased`}>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} min-h-screen bg-surface text-primary antialiased`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}

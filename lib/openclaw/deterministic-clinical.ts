@@ -1,26 +1,7 @@
-const RULE_VERSION = "openrx-hotfix-prevention-rules-2026-06-01"
-
-function parseAge(message: string): number | undefined {
-  const patterns = [
-    /\bage\s*(?:is|:)?\s*(\d{1,3})\b/i,
-    /\b(\d{1,3})\s*(?:yo|y\/o|years?\s*old|year[-\s]old)\b/i,
-    /\bi\s*am\s*(\d{1,3})\b/i,
-    /\b(\d{1,3})\s+(?:male|female|man|woman|m|f)\b/i,
-  ]
-  for (const pattern of patterns) {
-    const match = message.match(pattern)
-    if (!match) continue
-    const age = Number.parseInt(match[1], 10)
-    if (Number.isFinite(age) && age > 0 && age < 130) return age
-  }
-  return undefined
-}
-
-function parseSex(message: string): "female" | "male" | "unknown" {
-  if (/\b(female|woman|girl|f)\b/i.test(message)) return "female"
-  if (/\b(male|man|boy|m)\b/i.test(message)) return "male"
-  return "unknown"
-}
+import { parseScreeningIntakeNarrative } from "@/lib/screening-intake"
+import { getGuidelineSource } from "@/lib/screening/sources"
+import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
+import type { ScreeningRecommendation } from "@/lib/screening/types"
 
 function shouldAnswerWithRules(message: string): boolean {
   const lower = message.toLowerCase().trim()
@@ -31,58 +12,68 @@ function shouldAnswerWithRules(message: string): boolean {
   return profileOnly || preventionIntent || profileSignal
 }
 
+function sourceDisplayName(rec: ScreeningRecommendation): string {
+  const source = getGuidelineSource(rec.sourceId)
+  const organization = source?.organization || rec.sourceSystem
+  const version = source?.versionOrDate || rec.sourceVersion || ""
+  const year = version.match(/\b(19|20)\d{2}\b/)?.[0]
+  const topic = source?.topic || rec.screeningName
+  const compactTopic =
+    topic.toLowerCase().includes("colorectal") ? "Colorectal Cancer Screening" :
+    topic.toLowerCase().includes("breast") ? "Breast Cancer Screening" :
+    topic.toLowerCase().includes("cervical") ? "Cervical Cancer Screening" :
+    topic.toLowerCase().includes("lung") ? "Lung Cancer Screening" :
+    topic.toLowerCase().includes("prostate") ? "Prostate Cancer Screening" :
+    topic.toLowerCase().includes("brca") ? "BRCA-Related Cancer Risk Assessment" :
+    topic
+  return [organization, compactTopic, year].filter(Boolean).join(" ")
+}
+
+function formatRecommendation(rec: ScreeningRecommendation): string {
+  const grade = rec.evidenceGrade ? `Grade ${rec.evidenceGrade}` : "Grade not assigned"
+  const sourceUrl = rec.sourceUrl || getGuidelineSource(rec.sourceId)?.url || ""
+  const sourceVersion = rec.sourceVersion || getGuidelineSource(rec.sourceId)?.versionOrDate || "version pending"
+  return [
+    `- ${rec.screeningName} (${rec.status.replace(/_/g, " ")}): ${rec.patientFriendlyExplanation}`,
+    `  Source: ${sourceDisplayName(rec)} · ${grade} · ${sourceUrl}`,
+    `  Rule: ${rec.id} · ${rec.sourceId || rec.sourceSystem} · source version ${sourceVersion}`,
+  ].join("\n")
+}
+
 export function deterministicClinicalResponse(message: string): string | null {
   if (!shouldAnswerWithRules(message)) return null
 
-  const age = parseAge(message)
-  const sex = parseSex(message)
-
-  if (typeof age !== "number" || sex === "unknown") {
-    const missing: string[] = []
-    if (typeof age !== "number") missing.push("age")
-    if (sex === "unknown") missing.push("sex at birth")
-    return `To build a guideline-backed prevention plan, please share: ${missing.slice(0, 3).join("; ")}.`
+  const parsed = parseScreeningIntakeNarrative(message)
+  if (!parsed.ready) {
+    return [
+      "To build a guideline-backed prevention plan, please share:",
+      parsed.clarificationQuestion || "Age; sex used for screening intervals; and any symptoms, family history, known inherited mutations, smoking history, or prior screening dates.",
+    ].join("\n")
   }
 
-  const recommendations: string[] = []
+  const engineResult = recommendScreenings(screeningIntakeFromLegacy({
+    age: parsed.extracted.age,
+    gender: parsed.extracted.gender,
+    smoker: parsed.extracted.smoker,
+    familyHistory: parsed.extracted.familyHistory,
+    symptoms: parsed.extracted.symptoms,
+    conditions: parsed.extracted.conditions,
+  }))
 
-  if (age >= 45 && age <= 49) {
-    recommendations.push([
-      "- Colorectal cancer screening (due): Age 45 to 49: start screening; options include stool-based tests, colonoscopy, CT colonography, or flexible sigmoidoscopy",
-      "  Source: USPSTF Colorectal Cancer Screening 2021 · Grade B · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening",
-      `  Rule: uspstf-colorectal-45-49 · ${RULE_VERSION} · effective 2026-06-01`,
-    ].join("\n"))
-  } else if (age >= 50 && age <= 75) {
-    recommendations.push([
-      "- Colorectal cancer screening (due): Age 50 to 75: continue routine colorectal cancer screening",
-      "  Source: USPSTF Colorectal Cancer Screening 2021 · Grade A · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening",
-      `  Rule: uspstf-colorectal-50-75 · ${RULE_VERSION} · effective 2026-06-01`,
-    ].join("\n"))
-  }
+  const sourceBackedRecommendations = engineResult.recommendations.filter((rec) =>
+    Boolean(rec.sourceUrl || getGuidelineSource(rec.sourceId)?.url)
+  )
 
-  if (sex === "female" && age >= 40 && age <= 74) {
-    recommendations.push([
-      "- Breast cancer screening mammography (due): Age 40 to 74: every 2 years",
-      "  Source: USPSTF Breast Cancer Screening 2024 · Grade B · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/breast-cancer-screening",
-      `  Rule: uspstf-breast-biennial-40-74 · ${RULE_VERSION} · effective 2026-06-01`,
-    ].join("\n"))
-  }
-
-  if (sex === "female" && age >= 30 && age <= 65) {
-    recommendations.push([
-      "- Cervical cancer screening (due): Age 30 to 65: cytology every 3 years, high-risk HPV testing every 5 years, or co-testing every 5 years",
-      "  Source: USPSTF Cervical Cancer Screening 2018 · Grade A · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/cervical-cancer-screening",
-      `  Rule: uspstf-cervical-30-65 · ${RULE_VERSION} · effective 2026-06-01`,
-    ].join("\n"))
-  }
-
-  if (recommendations.length === 0) {
-    return "OpenRx does not have a matching version-stamped screening rule for the details provided. Please talk with a clinician."
+  if (sourceBackedRecommendations.length === 0) {
+    return [
+      "OpenRx does not have a matching source-linked, version-stamped screening rule for the details provided.",
+      "Please talk with a clinician or high-risk screening clinic instead of relying on a guessed recommendation.",
+    ].join("\n")
   }
 
   return [
     "Your guideline-backed prevention plan:",
-    recommendations.join("\n"),
+    sourceBackedRecommendations.map(formatRecommendation).join("\n"),
     "",
     "Educational navigation only. Confirm every screening decision with a clinician.",
   ].join("\n")

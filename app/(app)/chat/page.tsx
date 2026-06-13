@@ -42,6 +42,7 @@ import { trackWorkflowEvent } from "@/lib/product-analytics"
 import { detectRedFlagText, type RedFlagResult } from "@/lib/red-flag"
 import { parseScreeningIntakeNarrative, summarizeScreeningIntake } from "@/lib/screening-intake"
 import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
+import { CLEAN_MODEL_BUSY_MESSAGE } from "@/lib/openclaw/model-boundary"
 
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
@@ -120,7 +121,6 @@ function isCompactScreeningFollowUp(message: string): boolean {
 
 const SECTION_LABELS: Record<string, { variant: "due" | "review" | "upcoming" | "current" | "info" | "safety" | "followup" | "next" | "answer" | "refs" | "care"; icon?: typeof CheckCircle2 }> = {
   "Answer": { variant: "answer" },
-  "Direct answer": { variant: "answer" },
   "Due now": { variant: "due", icon: AlertTriangle },
   "Needs clinician review": { variant: "review", icon: ShieldAlert },
   "Upcoming or depends": { variant: "upcoming", icon: Clock3 },
@@ -176,11 +176,16 @@ function parseAnswer(content: string): ParsedAnswer {
       current = { heading: trimmed, variant: known.variant, icon: known.icon, lines: [] }
       continue
     }
-    // Recognise an inline "Direct answer: ..." opener as its own section so the
-    // top of the answer stands out visually and is testable.
+    if (/^Direct answer$/i.test(trimmed)) {
+      flush()
+      current = { heading: "Answer", variant: "answer", lines: [] }
+      continue
+    }
+    // Legacy saved chats may contain this opener. Normalize it to the patient-safe
+    // "Answer" section so the phrase is never rendered back to the user.
     const directAnswerMatch = trimmed.match(/^Direct answer:\s*(.*)$/i)
     if (directAnswerMatch && current.heading === null && current.lines.length === 0) {
-      current = { heading: "Direct answer", variant: "answer", lines: [directAnswerMatch[1] || ""] }
+      current = { heading: "Answer", variant: "answer", lines: [directAnswerMatch[1] || ""] }
       flush()
       current = { heading: null, variant: "info", lines: [] }
       continue
@@ -193,15 +198,30 @@ function parseAnswer(content: string): ParsedAnswer {
   }
   flush()
 
-  // Pull all hyperlinks for the citation rail
-  const linkPattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g
+  // Pull all hyperlinks for the citation rail. Deterministic guideline outputs
+  // often use "Source: ... · URL" lines instead of Markdown links.
+  const labelForBareUrl = (url: string, matchIndex: number) => {
+    const lineStart = content.lastIndexOf("\n", matchIndex) + 1
+    const lineEndIndex = content.indexOf("\n", matchIndex)
+    const lineEnd = lineEndIndex === -1 ? content.length : lineEndIndex
+    const line = content.slice(lineStart, lineEnd)
+    const beforeUrl = line.slice(0, Math.max(0, line.indexOf(url))).trim()
+    const sourceLabel = beforeUrl
+      .replace(/^[-\d.\s]*/, "")
+      .replace(/^Source:\s*/i, "")
+      .replace(/[·\s]+$/, "")
+      .trim()
+    return sourceLabel || url
+  }
+  const linkPattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)]+)/g
   const citations: Array<{ label: string; url: string }> = []
   const seen = new Set<string>()
   let match: RegExpExecArray | null
   while ((match = linkPattern.exec(content)) !== null) {
-    if (!seen.has(match[2])) {
-      seen.add(match[2])
-      citations.push({ label: match[1], url: match[2] })
+    const url = match[2] || match[3]
+    if (url && !seen.has(url)) {
+      seen.add(url)
+      citations.push({ label: match[1] || labelForBareUrl(url, match.index), url })
     }
   }
 
@@ -704,7 +724,7 @@ export default function ChatPage() {
             signal: controller.signal,
           })
           const data = await fallbackRes.json()
-          const text = data.response || data.error || "I couldn't compose a response — try rephrasing."
+          const text = data.response || data.error || CLEAN_MODEL_BUSY_MESSAGE
           setMessages((prev) => prev.map((m) => (m.id === agentMsgId ? { ...m, content: text } : m)))
           trackWorkflowEvent("answer_generated", { surface: "chat", has_sources: text.includes("http") })
           if (data.conversationId && data.conversationId !== conversationId) {
@@ -763,7 +783,7 @@ export default function ChatPage() {
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === agentMsgId
-                      ? { ...m, content: parsed.message || "Stream interrupted. Please try again." }
+                      ? { ...m, content: parsed.message || CLEAN_MODEL_BUSY_MESSAGE }
                       : m
                   )
                 )
@@ -798,7 +818,7 @@ export default function ChatPage() {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === agentMsgId
-                ? { ...m, content: "I couldn't compose a response — try rephrasing." }
+                ? { ...m, content: CLEAN_MODEL_BUSY_MESSAGE }
                 : m
             )
           )

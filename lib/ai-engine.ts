@@ -702,7 +702,7 @@ IMPORTANT RULES:
         response = completion.content
           .filter((b) => b.type === "text")
           .map((b) => (b as { type: "text"; text: string }).text)
-          .join("") || "I couldn't process that. Could you try again?"
+          .join("") || CLEAN_MODEL_BUSY_MESSAGE
       } else {
         const completion = await withModelApiBoundary("ai-engine-claude-chat", () =>
           claude.messages.create({
@@ -715,7 +715,7 @@ IMPORTANT RULES:
         response = completion.content
           .filter((b) => b.type === "text")
           .map((b) => (b as { type: "text"; text: string }).text)
-          .join("") || "I couldn't process that. Could you try again?"
+          .join("") || CLEAN_MODEL_BUSY_MESSAGE
       }
     } else {
       const completion = await createCompletionWithRetry({
@@ -728,7 +728,7 @@ IMPORTANT RULES:
         max_tokens: 1000,
         temperature: 0.3,
       })
-      response = completion.choices[0]?.message?.content || "I couldn't process that. Could you try again?"
+      response = completion.choices[0]?.message?.content || CLEAN_MODEL_BUSY_MESSAGE
     }
 
     // Check for handoff

@@ -899,13 +899,14 @@ export default function ScreeningPage() {
   }
 
   return (
-    <div ref={scrollRef} className="animate-slide-up space-y-6">
+    <div ref={scrollRef} className="animate-slide-up space-y-4 sm:space-y-6">
       <AppPageHeader
         eyebrow="Screening details"
         title="Check what's due."
-        description="Add family history, known mutations, prior findings, symptoms, or smoking history when relevant."
+        description="One sentence is enough. Add family history, mutations, prior findings, symptoms, or smoking when relevant."
+        className="p-4 sm:p-6"
         meta={
-          <div className="flex flex-wrap gap-2">
+          <div className="hidden flex-wrap gap-2 sm:flex">
             <span className="metric-chip">
               <Activity size={11} className="text-accent" />
               Free guideline preview
@@ -925,7 +926,7 @@ export default function ScreeningPage() {
         actions={
           <Link
             href="/chat?prompt=What%20screening%20is%20due%20for%20me%3F%20Ask%20one%20follow-up%20only%20if%20needed%2C%20then%20give%20recommendations%20in%20chat.&topic=screening"
-            className="control-button-primary"
+            className="control-button-primary hidden sm:inline-flex"
           >
             Ask instead
           </Link>
@@ -1069,33 +1070,12 @@ export default function ScreeningPage() {
           <ClinicalSection
             kicker="Screening intake"
             title="Start with one sentence"
-            description="Describe age, family history, known mutations, smoking history, prior polyps, or symptoms. OpenRx will extract what it can and only ask for more when it genuinely needs it."
-            aside={
-              <div className="space-y-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Recommended format</p>
-                <p className="text-sm leading-6 text-secondary">
-                  Best results come from one short narrative with age plus either hereditary risk, prior findings, or a current concern.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {NARRATIVE_STARTERS.slice(0, 2).map((starter, index) => (
-                    <button
-                      key={starter}
-                      type="button"
-                      onClick={() => setNarrative(starter)}
-                      className="text-left"
-                    >
-                      <ChoiceChip>Example {index + 1}</ChoiceChip>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            }
+            className="p-4 sm:p-6"
           >
             <div className="space-y-4">
               <ClinicalField
                 label="Plain-English history"
                 htmlFor="screening-narrative"
-                hint="Include age, family history, mutations, smoking, prior abnormal findings, or symptoms."
               >
                 <ClinicalTextarea
                   id="screening-narrative"
@@ -1103,11 +1083,26 @@ export default function ScreeningPage() {
                   aria-label="Tell us your history in plain English"
                   value={narrative}
                   onChange={(event) => setNarrative(event.target.value)}
-                  rows={5}
+                  rows={4}
                   placeholder="I am 58, father had prostate cancer at 52, BRCA2 mutation carrier, former smoker."
                   className="resize-y"
                 />
               </ClinicalField>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <button
+                  data-testid="screening-submit-preview"
+                  onClick={() => void runScreening("preview")}
+                  disabled={running || !canRunPreview}
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-cyan-200 px-4 py-3 text-sm font-bold text-black transition hover:bg-cyan-100 disabled:opacity-60 sm:w-auto"
+                >
+                  {running ? <Loader2 size={14} className="animate-spin" /> : <Activity size={14} />}
+                  Get My Free Recommendations
+                </button>
+                <p className="text-[11px] leading-5 text-muted">
+                  Add ZIP below only if you want nearby providers, labs, or imaging centers.
+                </p>
+              </div>
 
               <div className="flex flex-wrap gap-2">
                 {NARRATIVE_STARTERS.map((starter, index) => (
@@ -1284,17 +1279,8 @@ export default function ScreeningPage() {
             </div>
           </ClinicalSection>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button
-              data-testid="screening-submit-preview"
-              onClick={() => void runScreening("preview")}
-              disabled={running || !canRunPreview}
-              className="inline-flex items-center gap-2 rounded-2xl bg-midnight px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#12211d] disabled:opacity-60"
-            >
-              {running ? <Loader2 size={14} className="animate-spin" /> : <Activity size={14} />}
-              Get My Free Recommendations
-            </button>
-            {(assessment?.accessLevel === "preview" || paymentIntent || paymentReady) && (
+          {(assessment?.accessLevel === "preview" || paymentIntent || paymentReady) && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
                 onClick={() => void runScreening("deep")}
                 disabled={running || creatingIntent}
@@ -1303,8 +1289,8 @@ export default function ScreeningPage() {
                 {running ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
                 Generate Advanced Review
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {assessment?.accessLevel === "preview" && (
             <p className="text-[11px] text-muted mt-2">

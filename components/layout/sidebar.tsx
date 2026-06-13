@@ -136,14 +136,11 @@ export default function Sidebar() {
 
       {mobileOpen ? <div className="fixed inset-0 z-40 bg-black/24 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} /> : null}
 
-      <aside
-        className={cn(
-          "shell-rail fixed left-0 top-0 z-50 flex h-screen w-[244px] flex-col border-r transition-transform duration-200 lg:hidden",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        {sidebarContent}
-      </aside>
+      {mobileOpen ? (
+        <aside className="shell-rail fixed left-0 top-0 z-50 flex h-screen w-[244px] flex-col border-r lg:hidden">
+          {sidebarContent}
+        </aside>
+      ) : null}
 
       <aside className="shell-rail fixed left-0 top-0 z-40 hidden h-screen w-[76px] flex-col border-r lg:flex">
         {sidebarContent}

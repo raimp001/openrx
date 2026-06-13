@@ -13,6 +13,7 @@ import {
   PROVIDER_HANDOFF_STORAGE_KEY,
   resolveCareHandoff,
 } from "@/lib/care-handoff"
+import type { ProviderHandoffPayload } from "@/lib/care-handoff"
 import type { ScreeningIntake } from "@/lib/screening/types"
 
 function intake(overrides: Partial<ScreeningIntake> = {}): ScreeningIntake {
@@ -168,7 +169,8 @@ test("screening chat answers common age-sex prompts directly with source links",
   expect(parsed.extracted.age).toBe(50)
   expect(parsed.extracted.gender).toBe("female")
   expect(parsed.extracted.conditions).not.toContain("cancer")
-  expect(response).toContain("Direct answer")
+  expect(response).not.toContain("Direct answer")
+  expect(response).toContain("Your guideline-backed screening plan")
   expect(response).toContain("Breast cancer screening")
   expect(response).toContain("Colorectal cancer screening")
   expect(response).toContain("Cervical cancer screening")
@@ -215,11 +217,11 @@ test("compact family lymphoma follow-up is parsed and answered without repeating
 
   expect(parsed.extracted.age).toBe(38)
   expect(parsed.extracted.familyHistory).toContain("family history of lymphoma or hematologic cancer")
-  expect(response).toContain("age 38")
   expect(response).toContain("lymphoma")
-  expect(response).toContain("does not by itself map to a routine cancer screening test")
+  expect(response).toContain("source-backed routine screening rule")
   expect(response).toContain("What sex was assigned at birth")
   expect(response).toContain("References")
+  expect(response).not.toContain("Direct answer")
   expect(response).not.toContain("I need one missing detail before giving screening guidance safely")
 })
 
@@ -232,9 +234,10 @@ test("screening context merges a short follow-up without exposing it to the gene
   })
 
   expect(response.agentId).toBe("screening")
-  expect(response.response).toContain("age 38")
+  expect(response.response).toContain("lymphoma")
   expect(response.response).toContain("Cervical cancer screening")
   expect(response.response).toContain("References")
+  expect(response.response).not.toContain("Direct answer")
   expect(response.response).not.toContain("handling a high volume")
 })
 
@@ -313,7 +316,8 @@ test("chat screening questions stay in chat instead of forcing a screening-page 
   const response = buildDeterministicScreeningResponse("I am 58 male, father had prostate cancer at 52, BRCA mutation carrier. What recs?")
 
   expect(action).toBeNull()
-  expect(response).toContain("Direct answer")
+  expect(response).not.toContain("Direct answer")
+  expect(response).toContain("Your guideline-backed screening plan")
   expect(response).toContain("Genetic counseling")
   expect(response).toContain("References")
 })
@@ -380,7 +384,8 @@ test("chat care-network handoff preserves provider query for automatic search", 
   expect(action?.label).toBe("Search care network")
   expect(action?.href).toBe("/providers?handoff=chat")
   expect(action?.storageKey).toBe(PROVIDER_HANDOFF_STORAGE_KEY)
-  expect(action?.payload.autorun).toBe(true)
+  const payload = action?.payload as ProviderHandoffPayload | undefined
+  expect(payload?.autorun).toBe(true)
 })
 
 test("landing care-network handoff does not require patients to choose scheduling first", () => {

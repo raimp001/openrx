@@ -6,6 +6,8 @@ import {
   canRunCronSideEffectsAfterAgentFailure,
 } from "@/lib/openclaw/cron-dispatch"
 
+const mutableEnv = process.env as unknown as Record<string, string | undefined>
+
 test("admin-only launch surfaces reject unauthenticated requests", async ({ request }) => {
   const endpoints = [
     "/api/admin/applications",
@@ -21,7 +23,7 @@ test("admin-only launch surfaces reject unauthenticated requests", async ({ requ
 })
 
 test("production does not trust unsigned wallet headers by default", () => {
-  const originalNodeEnv = process.env.NODE_ENV
+  const originalNodeEnv = mutableEnv.NODE_ENV
   const originalAllowUnsigned = process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER
   const wallet = "0x0000000000000000000000000000000000000001"
   const fakeRequest = {
@@ -29,7 +31,7 @@ test("production does not trust unsigned wallet headers by default", () => {
   } as Parameters<typeof requestWalletMatches>[0]
 
   try {
-    process.env.NODE_ENV = "production"
+    mutableEnv.NODE_ENV = "production"
     delete process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER
 
     expect(allowsUnsignedWalletHeader()).toBe(false)
@@ -39,7 +41,7 @@ test("production does not trust unsigned wallet headers by default", () => {
     expect(allowsUnsignedWalletHeader()).toBe(true)
     expect(requestWalletMatches(fakeRequest, wallet)).toBe(true)
   } finally {
-    process.env.NODE_ENV = originalNodeEnv
+    mutableEnv.NODE_ENV = originalNodeEnv
     if (originalAllowUnsigned === undefined) {
       delete process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER
     } else {
@@ -49,7 +51,7 @@ test("production does not trust unsigned wallet headers by default", () => {
 })
 
 test("wallet proof messages are bound to one wallet", async () => {
-  const originalNodeEnv = process.env.NODE_ENV
+  const originalNodeEnv = mutableEnv.NODE_ENV
   const originalAllowUnsigned = process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER
   const wallet = "0x0000000000000000000000000000000000000001"
   const otherWallet = "0x0000000000000000000000000000000000000002"
@@ -63,14 +65,14 @@ test("wallet proof messages are bound to one wallet", async () => {
   } as Parameters<typeof requestWalletMatches>[0]
 
   try {
-    process.env.NODE_ENV = "production"
+    mutableEnv.NODE_ENV = "production"
     delete process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER
 
     expect(walletAuthMessageMatches(message, wallet)).toBe(true)
     expect(walletAuthMessageMatches(message, otherWallet)).toBe(false)
     expect(await requestWalletProofMatches(fakeRequest, wallet)).toBe(false)
   } finally {
-    process.env.NODE_ENV = originalNodeEnv
+    mutableEnv.NODE_ENV = originalNodeEnv
     if (originalAllowUnsigned === undefined) {
       delete process.env.OPENRX_ALLOW_UNSIGNED_WALLET_HEADER
     } else {
@@ -80,11 +82,11 @@ test("wallet proof messages are bound to one wallet", async () => {
 })
 
 test("production ignores live cron request overrides by default", () => {
-  const originalNodeEnv = process.env.NODE_ENV
+  const originalNodeEnv = mutableEnv.NODE_ENV
   const originalAllowOverrides = process.env.OPENRX_ALLOW_CRON_REQUEST_OVERRIDES
 
   try {
-    process.env.NODE_ENV = "production"
+    mutableEnv.NODE_ENV = "production"
     delete process.env.OPENRX_ALLOW_CRON_REQUEST_OVERRIDES
 
     expect(allowsCronRequestOverrides({ authSource: "admin_api_key", dryRun: false })).toBe(false)
@@ -95,7 +97,7 @@ test("production ignores live cron request overrides by default", () => {
     expect(allowsCronRequestOverrides({ authSource: "admin_api_key", dryRun: false })).toBe(true)
     expect(allowsCronRequestOverrides({ authSource: "agent_token", dryRun: false })).toBe(false)
   } finally {
-    process.env.NODE_ENV = originalNodeEnv
+    mutableEnv.NODE_ENV = originalNodeEnv
     if (originalAllowOverrides === undefined) {
       delete process.env.OPENRX_ALLOW_CRON_REQUEST_OVERRIDES
     } else {

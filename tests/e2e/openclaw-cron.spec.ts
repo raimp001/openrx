@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-function adminHeaders() {
+function adminHeaders(): Record<string, string> {
   const apiKey = process.env.OPENRX_ADMIN_API_KEY
   return apiKey ? { "x-admin-api-key": apiKey } : {}
 }

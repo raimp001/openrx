@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 test("Ask page sends a patient question through the OpenClaw chat surface", async ({ page }) => {
-  let receivedBody: { message?: string; agentId?: string } | null = null
+  let receivedBody: { message?: string; agentId?: string } = {}
 
   await page.route(/\/api\/openclaw\/status$/, async (route) => {
     await route.fulfill({
@@ -53,8 +53,9 @@ test("Ask page saves and restores a clinical chat from the history sidebar", asy
   await page.getByTestId("chat-send-button").click()
 
   // First hit can pay dev-server compile cost for the stream route.
-  await expect(page.getByTestId("chat-message-agent").filter({ hasText: "Colorectal cancer screening" }).last()).toBeVisible({ timeout: 30_000 })
-  await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
+  const savedAnswer = page.getByTestId("chat-message-agent").last()
+  await expect(savedAnswer).toContainText("Colorectal cancer screening", { timeout: 30_000 })
+  await expect(savedAnswer).not.toContainText("Direct answer")
   await expect(page).toHaveURL(/\/chat\?c=/)
   const history = page.locator('aside[aria-label="Chat history"]:visible')
   await expect(history).toBeVisible()

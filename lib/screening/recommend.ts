@@ -408,7 +408,7 @@ function addFamilyHistoryOverrides(recommendations: ScreeningRecommendation[], i
     addUnique(recommendations, recommendation({
       id: "brca-family-history-risk-assessment",
       cancerType: mutationOnly ? "hereditary cancer risk" : "breast/ovarian hereditary risk",
-      screeningName: mutationOnly ? "Inherited-risk assessment" : "BRCA-related risk assessment",
+      screeningName: mutationOnly ? "Genetic counseling and inherited-risk review" : "Genetic counseling and BRCA-related risk assessment",
       status: "needs_clinician_review",
       riskCategory: "hereditary_risk",
       rationale: mutationOnly
@@ -421,7 +421,7 @@ function addFamilyHistoryOverrides(recommendations: ScreeningRecommendation[], i
       requiresClinicianReview: true,
       patientFriendlyExplanation: mutationOnly
         ? "A reported inherited-risk result may change which screenings are appropriate and when they should start. A clinician or genetic counselor should review it."
-        : "Your family history may mean you should be checked for hereditary risk before choosing a routine screening plan.",
+        : "Your family history may mean you should be checked for hereditary risk and offered genetic counseling before choosing a routine screening plan.",
       clinicianSummary: mutationOnly
         ? "Known familial mutation/hereditary signal reported without breast/ovarian family-history pattern; route to genetics/high-risk review."
         : "USPSTF BRCA-related risk assessment pathway triggered by family history/familial mutation signal.",

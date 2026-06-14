@@ -1,147 +1,130 @@
-import { getGuidelineSource } from "../screening/sources"
-
-const RULE_VERSION = "openrx-hotfix-prevention-rules-2026-06-01"
-
-function parseAge(message: string): number | undefined {
-  const patterns = [
-    // "52 year old" / "52-year-old" before "age N" so a relative's diagnosis
-    // age ("mother at age 48") cannot hijack the patient age.
-    /\b(\d{1,3})[-\s]*(?:yo|y\/o|years?[-\s]*old)\b/i,
-    /(?<!\bat\s)\bage\s*(?:is|:)?\s*(\d{1,3})\b/i,
-    /\bi\s*am\s*(\d{1,3})\b/i,
-    /\b(\d{1,3})\s+(?:male|female|man|woman|m|f)\b/i,
-  ]
-  for (const pattern of patterns) {
-    const match = message.match(pattern)
-    if (!match) continue
-    const age = Number.parseInt(match[1], 10)
-    if (Number.isFinite(age) && age > 0 && age < 130) return age
-  }
-  return undefined
-}
-
-function parseSex(message: string): "female" | "male" | "unknown" {
-  if (/\b(female|woman|girl|f)\b/i.test(message)) return "female"
-  if (/\b(male|man|boy|m)\b/i.test(message)) return "male"
-  return "unknown"
-}
-
-// Risk modifiers these simple age/sex rules do not encode. When present, the
-// full screening engine (family history, hereditary risk, smoking pack-years,
-// personal history, red flags) must produce the answer instead.
-function hasRiskModifiers(lower: string): boolean {
-  return /\b(family|mother|father|mom|dad|brother|sister|sibling|parent|uncle|aunt|grand\w*|cousin|hereditary|inherited|germline|mutation|brca\d?|palb2|chek2|lynch|mlh1|msh[26]|pms2|apc|mutyh|epcam|hoxb13|smok\w*|pack[-\s]?years?|survivor|history of|polyp|adenoma|colitis|crohn|symptom|bleeding|lump|mass|weight loss|hemoptysis|coughing blood)\b/.test(lower)
-}
+import { parseScreeningIntakeNarrative } from "@/lib/screening-intake"
+import { getGuidelineSource } from "@/lib/screening/sources"
+import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
+import type { ScreeningRecommendation } from "@/lib/screening/types"
 
 function shouldAnswerWithRules(message: string): boolean {
   const lower = message.toLowerCase().trim()
   if (!lower) return false
-  if (hasRiskModifiers(lower)) return false
   const profileOnly = /^(?:i\s*am\s*)?(?:age\s*)?\d{1,3}\s*(?:yo|y\/o|years?\s*old|year[-\s]old)?\s*(?:male|female|man|woman|m|f)\.?$/.test(lower)
   const preventionIntent = /\b(screen|screening|preventive|prevention|risk|cancer|uspstf|checkup|due|genetic|colonoscopy|mammogram|pap|hpv)\b/.test(lower)
   const profileSignal = /\b(age|aged|\d{1,3}\s*(?:yo|y\/o|years?\s*old|year[-\s]old|male|female|man|woman|m|f)|brca1|brca2|lynch|pack[-\s]?years?)\b/.test(lower)
   return profileOnly || preventionIntent || profileSignal
 }
 
-interface RuleRecommendation {
-  name: string
-  detail: string
-  grade: string
-  ruleId: string
-  sourceId: string
+function sourceDisplayName(rec: ScreeningRecommendation): string {
+  const source = getGuidelineSource(rec.sourceId)
+  if (source) {
+    return `${source.organization}: ${source.topic} (${source.versionOrDate})`
+  }
+
+  return [rec.sourceSystem, rec.screeningName, rec.sourceVersion ? `(${rec.sourceVersion})` : ""].filter(Boolean).join(" ")
 }
 
-// Reference labels reuse the engine's guideline registry so every citation
-// carries the organization, topic, and full version date.
-function referenceLink(sourceId: string): string | null {
-  const source = getGuidelineSource(sourceId)
-  if (!source?.url) return null
-  return `[${source.organization}: ${source.topic} (${source.versionOrDate})](${source.url})`
+function groupTitle(rec: ScreeningRecommendation): "Due now" | "Needs clinician review" | "Upcoming or depends" | "Current / not indicated" {
+  if (
+    rec.requiresClinicianReview ||
+    rec.status === "urgent_clinician_review" ||
+    rec.status === "high_risk" ||
+    rec.status === "needs_clinician_review" ||
+    rec.status === "surveillance_or_follow_up"
+  ) {
+    return "Needs clinician review"
+  }
+  if (rec.status === "due") return "Due now"
+  if (rec.status === "not_due") return "Current / not indicated"
+  return "Upcoming or depends"
+}
+
+function formatRecommendation(rec: ScreeningRecommendation): string {
+  const source = getGuidelineSource(rec.sourceId)
+  const sourceUrl = rec.sourceUrl || source?.url
+  const sourceVersion = rec.sourceVersion || source?.versionOrDate || "version pending"
+  const grade = rec.evidenceGrade ? `Grade ${rec.evidenceGrade}` : "Grade not assigned"
+  const sourceText = sourceUrl
+    ? `[${sourceDisplayName(rec)}](${sourceUrl})`
+    : sourceDisplayName(rec)
+  const review = rec.requiresClinicianReview ? " Review this with a clinician." : ""
+
+  return [
+    `- ${rec.screeningName} (${rec.status.replace(/_/g, " ")}): ${rec.patientFriendlyExplanation}${review}`,
+    `  Source: ${sourceText} · ${grade} · Rule: ${rec.id} · source version ${sourceVersion}`,
+  ].join("\n")
+}
+
+function formatGroups(recommendations: ScreeningRecommendation[]): string[] {
+  const order: Array<ReturnType<typeof groupTitle>> = [
+    "Due now",
+    "Needs clinician review",
+    "Upcoming or depends",
+    "Current / not indicated",
+  ]
+  const grouped = new Map<ReturnType<typeof groupTitle>, ScreeningRecommendation[]>()
+  recommendations.forEach((rec) => {
+    const group = groupTitle(rec)
+    grouped.set(group, [...(grouped.get(group) || []), rec])
+  })
+
+  return order.flatMap((group) => {
+    const items = grouped.get(group) || []
+    if (!items.length) return []
+    return [group, ...items.map(formatRecommendation), ""]
+  })
 }
 
 export function deterministicClinicalResponse(message: string): string | null {
   if (!shouldAnswerWithRules(message)) return null
 
-  const age = parseAge(message)
-  const sex = parseSex(message)
-
-  if (typeof age !== "number" || sex === "unknown") {
-    const missing: string[] = []
-    if (typeof age !== "number") missing.push("age")
-    if (sex === "unknown") missing.push("sex at birth")
-    return `To build a guideline-backed prevention plan, please share: ${missing.slice(0, 3).join("; ")}.`
+  const parsed = parseScreeningIntakeNarrative(message)
+  if (!parsed.ready) {
+    return [
+      "Answer",
+      "To build a guideline-backed prevention plan, please share the missing details below.",
+      "",
+      "Question to refine this",
+      parsed.clarificationQuestion || "Share age, sex used for screening intervals, symptoms, family history, known inherited mutations, smoking history, and prior screening dates if known.",
+      "",
+      "Safety note",
+      "OpenRx is clinical decision support, not a diagnosis, medical order, or insurance approval.",
+    ].join("\n")
   }
 
-  const recommendations: RuleRecommendation[] = []
+  const engineResult = recommendScreenings(screeningIntakeFromLegacy({
+    age: parsed.extracted.age,
+    gender: parsed.extracted.gender,
+    smoker: parsed.extracted.smoker,
+    familyHistory: parsed.extracted.familyHistory,
+    symptoms: parsed.extracted.symptoms,
+    conditions: parsed.extracted.conditions,
+  }))
 
-  if (age >= 45 && age <= 49) {
-    recommendations.push({
-      name: "Colorectal cancer screening",
-      detail: "Age 45 to 49: start screening; options include stool-based tests, colonoscopy, CT colonography, or flexible sigmoidoscopy.",
-      grade: "B",
-      ruleId: "uspstf-colorectal-45-49",
-      sourceId: "uspstf-crc-2021",
-    })
-  } else if (age >= 50 && age <= 75) {
-    recommendations.push({
-      name: "Colorectal cancer screening",
-      detail: "Age 50 to 75: continue routine colorectal cancer screening.",
-      grade: "A",
-      ruleId: "uspstf-colorectal-50-75",
-      sourceId: "uspstf-crc-2021",
-    })
+  const sourceBackedRecommendations = engineResult.recommendations.filter((rec) =>
+    Boolean(rec.sourceUrl || getGuidelineSource(rec.sourceId)?.url)
+  )
+
+  if (sourceBackedRecommendations.length === 0) {
+    return [
+      "Answer",
+      "OpenRx does not have a matching source-linked, version-stamped screening rule for the details provided.",
+      "",
+      "What to do now",
+      "- Talk with a clinician or high-risk screening clinic instead of relying on a guessed recommendation.",
+      "",
+      "Safety note",
+      "OpenRx should route unclear or unencoded guideline paths to clinician review.",
+    ].join("\n")
   }
 
-  if (sex === "female" && age >= 40 && age <= 74) {
-    recommendations.push({
-      name: "Breast cancer screening mammography",
-      detail: "Age 40 to 74: every 2 years.",
-      grade: "B",
-      ruleId: "uspstf-breast-biennial-40-74",
-      sourceId: "uspstf-breast-2024",
-    })
-  }
-
-  if (sex === "female" && age >= 30 && age <= 65) {
-    recommendations.push({
-      name: "Cervical cancer screening",
-      detail: "Age 30 to 65: cytology every 3 years, high-risk HPV testing every 5 years, or co-testing every 5 years.",
-      grade: "A",
-      ruleId: "uspstf-cervical-30-65",
-      sourceId: "uspstf-cervical-2018",
-    })
-  }
-
-  if (recommendations.length === 0) {
-    return "OpenRx does not have a matching version-stamped screening rule for the details provided. Please talk with a clinician."
-  }
-
-  const references = Array.from(new Set(recommendations.map((rec) => rec.sourceId)))
-    .map((sourceId) => referenceLink(sourceId))
-    .filter((link): link is string => Boolean(link))
-    .map((link, index) => `${index + 1}. ${link}`)
-
-  // Format follows the chat renderer's section contract: an "Answer" heading,
-  // exact "Due now" / "References" / "Safety note" heading lines, and "- "
-  // bullets with markdown reference links. The patient's raw input is never
-  // echoed back.
   return [
     "Answer",
     "These guideline-backed screenings apply to the profile provided.",
     "",
-    "Due now",
-    ...recommendations.map(
-      (rec) => `- ${rec.name} (due): ${rec.detail} Grade ${rec.grade}. Rule: ${rec.ruleId} · ${RULE_VERSION}.`
-    ),
-    "",
+    ...formatGroups(sourceBackedRecommendations),
     "Question to refine this",
-    "This plan assumes average risk. Three details could change it — share any that apply: family history of cancer (which relative, which cancer, and age at diagnosis); smoking history (total pack-years, and quit date if former); your most recent screening tests and dates, or any known genetic results (for example BRCA or Lynch).",
+    "This plan assumes the details provided are accurate. Family history, symptoms, smoking exposure, prior test dates, or genetic results can change the pathway.",
     "",
     "What to do now",
     "- Send your ZIP code and I will list primary care or screening clinics near you, with phone numbers you can call.",
-    "",
-    "References",
-    ...references,
     "",
     "Safety note",
     "Educational navigation only. Confirm every screening decision with a clinician.",

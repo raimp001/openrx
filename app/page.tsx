@@ -1,10 +1,26 @@
+import type { CSSProperties } from "react"
 import type { Metadata } from "next"
 import Link from "next/link"
-import { SCREENING_ENGINE_VERSION } from "@/lib/screening/version"
+import {
+  ArrowRight,
+  BadgeCheck,
+  BookOpen,
+  CheckCircle2,
+  ClipboardCheck,
+  DatabaseZap,
+  FileText,
+  GitBranch,
+  HeartPulse,
+  MapPinned,
+  ShieldCheck,
+  Stethoscope,
+} from "lucide-react"
 
-// The public landing surface is fully static: crawlers, link previews, and
-// non-JS clients must receive the complete marketing copy, the decision-support
-// disclaimer, and a working demo entry point without hydration.
+import { BrandMark, BrandWordmark } from "@/components/brand-logo"
+import { openRxCssVariableThemes, openRxDesignTokens } from "@/lib/design-tokens"
+
+// Keep the public landing page static so crawlers, link previews, and non-JS
+// clients receive the clinical-safety framing and working entry points.
 export const dynamic = "force-static"
 
 export const metadata: Metadata = {
@@ -21,7 +37,7 @@ const softwareApplicationJsonLd = {
   operatingSystem: "Web",
   url: "https://openrx.health",
   description:
-    "Ask a clinical question in plain English. OpenRx provides source-linked, version-stamped answers from a deterministic guideline engine and a sandboxed path from denial to appeal preparation.",
+    "OpenRx provides source-linked, version-stamped screening navigation and prior-authorization workflow infrastructure from deterministic guideline and audit engines.",
   offers: {
     "@type": "Offer",
     price: "0",
@@ -30,151 +46,311 @@ const softwareApplicationJsonLd = {
   },
 }
 
-const HOW_IT_WORKS = [
+const landingStyle = {
+  ...openRxCssVariableThemes.patientLight,
+  fontFamily: openRxDesignTokens.typography.fontFamily.patient,
+} as CSSProperties
+
+const proofPoints = [
+  { label: "Deterministic guideline engine", icon: DatabaseZap },
+  { label: "USPSTF source and grade links", icon: BookOpen },
+  { label: "Provider and referral gates", icon: ShieldCheck },
+  { label: "PHI-minimal navigation", icon: BadgeCheck },
+]
+
+const handoffSteps = [
   {
-    step: "01",
-    title: "Ask in plain English",
-    body: "Type a clinical question the way you would say it — “age 45 male, what screening is due?” No forms, no portal maze.",
+    label: "Patient input",
+    detail: "age 45 male",
+    icon: HeartPulse,
   },
   {
-    step: "02",
-    title: "A deterministic engine answers",
-    body: "Screening guidance comes from encoded USPSTF rules, not model improvisation. Every recommendation carries its source, evidence grade, guideline version, and engine version.",
+    label: "Rules engine",
+    detail: "USPSTF 2021, Grade B",
+    icon: GitBranch,
   },
   {
-    step: "03",
-    title: "Denial to appeal, sandboxed",
-    body: "Bring a prior-authorization denial and walk a synthetic case from evidence retrieval to a clinician-reviewable appeal draft, with a simulated FHIR trace and an audit row for every step.",
-  },
-  {
-    step: "04",
-    title: "Referrals only with consent",
-    body: "Choose a verified provider and approve exactly the fields you share — every disclosure is consent-scoped, hashed, and audit-logged, and notifications carry only a neutral link.",
+    label: "Care navigation",
+    detail: "provider, lab, trial, prior auth",
+    icon: MapPinned,
   },
 ]
 
+function CareInfrastructureVisual() {
+  return (
+    <div
+      className="relative min-h-[420px] overflow-hidden rounded-[1rem] border border-[var(--orx-border)] bg-[var(--orx-background-raised)] p-4 shadow-[var(--orx-shadow-card)] sm:p-5 lg:min-h-[520px]"
+      aria-label="OpenRx source-linked care navigation flow"
+    >
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(10, 28, 46, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(10, 28, 46, 0.07) 1px, transparent 1px)",
+          backgroundSize: "36px 36px",
+        }}
+      />
+
+      <div className="relative z-10 flex h-full flex-col justify-between gap-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[0.72rem] font-bold uppercase tracking-[0.08em] text-[var(--orx-text-muted)]">
+              Auditable care layer
+            </p>
+            <p className="mt-1 text-sm font-semibold text-[var(--orx-text-primary)]">
+              One input, deterministic plan, consented handoff
+            </p>
+          </div>
+          <span className="rounded-full border border-[var(--orx-trust-border)] bg-[var(--orx-trust-muted)] px-3 py-1 text-xs font-bold text-[var(--orx-trust)]">
+            Live rails ready
+          </span>
+        </div>
+
+        <div className="grid gap-3">
+          {handoffSteps.map((step, index) => {
+            const Icon = step.icon
+
+            return (
+              <div
+                key={step.label}
+                className="relative rounded-[0.75rem] border border-[var(--orx-border)] bg-[rgba(255,255,255,0.82)] p-4 shadow-[0_1px_2px_rgba(6,17,29,0.04)] backdrop-blur"
+              >
+                {index < handoffSteps.length - 1 ? (
+                  <div
+                    aria-hidden
+                    className="absolute left-8 top-full h-3 w-px bg-[var(--orx-border-strong)]"
+                  />
+                ) : null}
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.5rem] bg-[var(--orx-surface-accent)] text-[var(--orx-action)]">
+                    <Icon size={18} strokeWidth={1.8} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-[var(--orx-text-primary)]">{step.label}</p>
+                    <p className="mt-1 text-sm text-[var(--orx-text-secondary)]">{step.detail}</p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="rounded-[0.75rem] border border-[var(--orx-border-strong)] bg-[var(--orx-surface)] p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-[var(--orx-surface-accent)] px-2.5 py-1 text-xs font-bold text-[var(--orx-action)]">
+              Colorectal screening
+            </span>
+            <span className="rounded-full bg-[var(--orx-trust-muted)] px-2.5 py-1 text-xs font-bold text-[var(--orx-trust)]">
+              Due
+            </span>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-[var(--orx-text-secondary)]">
+            For average-risk adults, colorectal cancer screening begins at age 45.
+          </p>
+          <a
+            href="https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-[var(--orx-action)] underline-offset-4 hover:underline"
+          >
+            USPSTF 2021, Grade B
+            <ArrowRight size={14} />
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function HomePage() {
   return (
-    <main id="main-content" className="relative mx-auto w-full max-w-[1100px] px-5 pb-20 pt-10 sm:px-8 sm:pt-16">
+    <div style={landingStyle} className="min-h-screen bg-[var(--orx-background)] text-[var(--orx-text-primary)]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd) }}
       />
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
 
-      {/* Hero */}
-      <section aria-labelledby="hero-heading" className="route-stack">
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-          Decision support · source-linked · auditable
-        </p>
-        <h1
-          id="hero-heading"
-          className="max-w-[16ch] font-serif text-[clamp(2.4rem,6vw,4.2rem)] font-medium leading-[1.04] tracking-[-0.015em] text-primary text-balance"
-        >
-          Ask a clinical question. Get an answer you can audit.
-        </h1>
-        <p className="max-w-[58ch] text-[15.5px] leading-relaxed text-secondary">
-          OpenRx answers in plain English and shows its work: every screening recommendation is
-          generated by a deterministic guideline engine and stamped with its source, evidence grade,
-          and guideline version — then carries you from a coverage denial to a prepared appeal in a
-          clearly labeled sandbox.
-        </p>
-        <div className="flex flex-wrap items-center gap-3 pt-1">
-          <Link
-            href="/chat"
-            className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-[13.5px] font-semibold text-black transition hover:bg-accent-light"
-          >
-            Ask a clinical question
+      <header className="sticky top-0 z-40 border-b border-[var(--orx-border)] bg-[rgba(247,248,244,0.86)] backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-3" aria-label="OpenRx home">
+            <BrandMark tone="light" />
+            <BrandWordmark
+              subtitle
+              titleAs="span"
+              titleClassName="text-[var(--orx-text-primary)]"
+              subtitleClassName="text-[var(--orx-text-muted)]"
+            />
           </Link>
+
+          <nav className="hidden items-center gap-6 text-sm font-semibold text-[var(--orx-text-secondary)] md:flex" aria-label="Main">
+            <Link href="/demo" className="transition hover:text-[var(--orx-action)]">
+              API/docs
+            </Link>
+            <Link href="/trust" className="transition hover:text-[var(--orx-action)]">
+              Trust
+            </Link>
+            <Link href="/providers" className="transition hover:text-[var(--orx-action)]">
+              Providers
+            </Link>
+          </nav>
+
           <Link
-            href="/demo"
-            className="inline-flex items-center gap-2 rounded-full border border-border-strong px-6 py-3 text-[13.5px] font-semibold text-primary transition hover:border-accent hover:text-accent"
+            href="/screening"
+            className="inline-flex min-h-11 items-center justify-center rounded-[0.5rem] bg-[var(--orx-action)] px-4 text-sm font-bold text-[var(--orx-action-text)] shadow-[var(--orx-shadow-card)] transition hover:bg-[var(--orx-action-hover)] focus-visible:shadow-[var(--orx-shadow-focus)]"
           >
-            See the denial-to-appeal demo
+            Check screening
           </Link>
         </div>
-      </section>
+      </header>
 
-      {/* Specimen: a real version-stamped recommendation, rendered statically */}
-      <section aria-label="Example of a version-stamped recommendation" className="mt-14">
-        <div className="surface-hero overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border px-5 py-3">
-            <span className="section-title">What an auditable answer looks like</span>
-            <span className="font-mono text-[10.5px] text-subtle">specimen · synthetic input</span>
-          </div>
-          <div className="grid gap-0 sm:grid-cols-[1fr_1.4fr]">
-            <div className="border-b border-border px-5 py-5 sm:border-b-0 sm:border-r">
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-subtle">Patient asks</p>
-              <p className="mt-3 font-serif text-[22px] leading-snug text-primary">
-                &ldquo;age 45 male — what screening is due?&rdquo;
+      <main id="main-content" tabIndex={-1}>
+        <section className="relative overflow-hidden">
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "linear-gradient(115deg, rgba(238,246,255,0.96) 0%, rgba(247,248,244,0.94) 42%, rgba(224,240,236,0.72) 100%)",
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 opacity-70"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(10, 28, 46, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(10, 28, 46, 0.05) 1px, transparent 1px)",
+              backgroundSize: "44px 44px",
+              maskImage: "linear-gradient(to bottom, black 0%, black 72%, transparent 100%)",
+            }}
+          />
+
+          <div className="relative mx-auto grid min-h-[86svh] w-full max-w-7xl gap-10 px-4 pb-12 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-[minmax(0,0.92fr)_minmax(420px,0.78fr)] lg:items-center lg:px-8 lg:pb-16">
+            <div className="max-w-3xl">
+              <p className="inline-flex items-center gap-2 rounded-full border border-[var(--orx-border)] bg-[rgba(255,255,255,0.74)] px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-[var(--orx-text-secondary)]">
+                <ShieldCheck size={14} />
+                Guideline-grounded care navigation + prior-auth automation
               </p>
+
+              <h1 className="mt-6 font-serif text-[clamp(4rem,16vw,8.5rem)] font-semibold leading-[0.86] tracking-[-0.04em] text-[var(--orx-text-primary)]">
+                OpenRx
+              </h1>
+
+              <p className="mt-6 max-w-2xl text-[clamp(1.35rem,4vw,2rem)] font-semibold leading-tight text-[var(--orx-text-primary)]">
+                Prior-auth infrastructure and cancer screening navigation in one auditable care layer.
+              </p>
+
+              <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--orx-text-secondary)] sm:text-lg">
+                Patients get a plain-language path from profile to screening, providers, labs, imaging, and trials.
+                Developers get deterministic recommendations, source links, audit logs, and MCP-ready workflow rails.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/demo"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.5rem] bg-[var(--orx-action)] px-5 text-sm font-bold text-[var(--orx-action-text)] shadow-[var(--orx-shadow-card)] transition hover:bg-[var(--orx-action-hover)] focus-visible:shadow-[var(--orx-shadow-focus)]"
+                >
+                  View API/docs
+                  <ArrowRight size={16} />
+                </Link>
+                <Link
+                  href="/screening"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.5rem] border border-[var(--orx-border-strong)] bg-[var(--orx-surface)] px-5 text-sm font-bold text-[var(--orx-text-primary)] shadow-[var(--orx-shadow-card)] transition hover:border-[var(--orx-action)] focus-visible:shadow-[var(--orx-shadow-focus)]"
+                >
+                  Check my screening
+                  <HeartPulse size={16} />
+                </Link>
+              </div>
+
+              <div className="mt-8 hidden max-w-2xl gap-3 sm:grid sm:grid-cols-3">
+                {[
+                  ["LLM boundary", "Models parse and explain. Rules decide."],
+                  ["Clinical provenance", "Every recommendation shows source, grade, and version."],
+                  ["Navigation handoff", "Consent before referral. Minimum necessary fields only."],
+                ].map(([label, detail]) => (
+                  <div key={label} className="rounded-[0.5rem] border border-[var(--orx-border)] bg-[rgba(255,255,255,0.62)] p-3">
+                    <p className="text-xs font-bold text-[var(--orx-text-primary)]">{label}</p>
+                    <p className="mt-1 text-xs leading-5 text-[var(--orx-text-muted)]">{detail}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="px-5 py-5">
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-subtle">Engine answers</p>
-              <p className="mt-3 text-[15px] font-medium text-primary">
-                Colorectal cancer screening — <span className="text-accent">due</span>
-              </p>
-              <p className="mt-1.5 max-w-[52ch] text-[13.5px] leading-relaxed text-muted">
-                USPSTF recommends colorectal cancer screening for average-risk adults ages 45 to 75.
-              </p>
-              <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-[11px] leading-relaxed sm:grid-cols-3">
-                <div>
-                  <dt className="text-subtle">Source</dt>
-                  <dd className="text-secondary">USPSTF · 2021-05-18</dd>
-                </div>
-                <div>
-                  <dt className="text-subtle">Evidence grade</dt>
-                  <dd className="text-secondary">B</dd>
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <dt className="text-subtle">Engine version</dt>
-                  <dd className="text-secondary">{SCREENING_ENGINE_VERSION}</dd>
-                </div>
-              </dl>
+
+            <div className="hidden lg:block">
+              <CareInfrastructureVisual />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* How it works */}
-      <section aria-labelledby="how-heading" className="mt-16">
-        <h2 id="how-heading" className="section-title">
-          How OpenRx works
-        </h2>
-        <ol className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {HOW_IT_WORKS.map((item) => (
-            <li key={item.step} className="surface-card p-5">
-              <span className="font-mono text-[11px] text-accent">{item.step}</span>
-              <h3 className="mt-3 font-serif text-[19px] font-medium leading-snug text-primary">{item.title}</h3>
-              <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{item.body}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
+        <section className="border-y border-[var(--orx-border)] bg-[var(--orx-background-raised)]">
+          <div className="mx-auto grid w-full max-w-7xl gap-3 px-4 py-5 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
+            {proofPoints.map((item) => {
+              const Icon = item.icon
 
-      {/* Decision-support disclaimer */}
-      <section aria-labelledby="disclaimer-heading" className="mt-16">
-        <div className="surface-muted px-5 py-5">
-          <h2 id="disclaimer-heading" className="section-title">
-            What OpenRx is — and is not
-          </h2>
-          <p className="mt-3 max-w-[72ch] text-[13.5px] leading-relaxed text-secondary">
-            OpenRx is clinical decision support and care navigation, not a diagnosis, medical order,
-            prescription, or insurance approval, and not a substitute for clinician judgment. The
-            denial-to-appeal workflow runs on synthetic cases in a sandbox: an authorized clinician
-            must review medical necessity, current guideline access, and payer criteria before any
-            real submission. If you have emergency symptoms, call 911 or seek emergency care now.
-          </p>
-        </div>
-      </section>
+              return (
+                <div key={item.label} className="flex items-center gap-3 text-sm font-semibold text-[var(--orx-text-secondary)]">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.5rem] bg-[var(--orx-surface-muted)] text-[var(--orx-trust)]">
+                    <Icon size={17} strokeWidth={1.8} />
+                  </span>
+                  {item.label}
+                </div>
+              )
+            })}
+          </div>
+        </section>
 
-      {/* Footer links */}
-      <footer className="mt-16 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border pt-6 text-[12.5px] text-muted">
-        <Link href="/chat" className="transition hover:text-accent">Open the chat</Link>
-        <Link href="/demo" className="transition hover:text-accent">Denial-to-appeal demo</Link>
-        <Link href="/trust" className="transition hover:text-accent">Trust &amp; safety</Link>
-        <Link href="/privacy-explained" className="transition hover:text-accent">Privacy, explained</Link>
-        <span className="ml-auto font-mono text-[10.5px] text-subtle">openrx.health</span>
-      </footer>
-    </main>
+        <section className="bg-[var(--orx-background)]">
+          <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-12 sm:px-6 lg:grid-cols-[0.8fr_1fr] lg:px-8">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--orx-text-muted)]">
+                Safety boundary
+              </p>
+              <h2 className="mt-3 max-w-xl font-serif text-3xl font-semibold leading-tight text-[var(--orx-text-primary)]">
+                Useful without pretending to be the clinician.
+              </h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                {
+                  icon: ClipboardCheck,
+                  title: "Screening plans are deterministic",
+                  body: "Guideline data produces the recommendation. The model never invents clinical guidance.",
+                },
+                {
+                  icon: Stethoscope,
+                  title: "Clinical decisions stay human",
+                  body: "OpenRx educates, navigates, and prepares handoffs. It does not diagnose or place orders.",
+                },
+                {
+                  icon: FileText,
+                  title: "Referral data is consented",
+                  body: "Disclosure scopes are fixed by recommendation type and shown before consent.",
+                },
+                {
+                  icon: CheckCircle2,
+                  title: "Built for audit trails",
+                  body: "Recommendations, versions, consent, BAA gates, and handoff state transitions are logged.",
+                },
+              ].map((item) => {
+                const Icon = item.icon
+
+                return (
+                  <article key={item.title} className="rounded-[0.5rem] border border-[var(--orx-border)] bg-[var(--orx-surface)] p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-[0.5rem] bg-[var(--orx-surface-accent)] text-[var(--orx-action)]">
+                        <Icon size={17} />
+                      </span>
+                      <h3 className="text-sm font-bold text-[var(--orx-text-primary)]">{item.title}</h3>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-[var(--orx-text-secondary)]">{item.body}</p>
+                  </article>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
   )
 }

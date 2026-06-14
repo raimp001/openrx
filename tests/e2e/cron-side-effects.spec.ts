@@ -33,13 +33,15 @@ test("appointment reminder side effects create patient notifications", async () 
 
   if (!prisma) {
     test.skip(true, "Prisma client is unavailable without DATABASE_URL.")
+    return
   }
 
+  const db = prisma
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const originalEmailMode = process.env.OPENRX_CRON_EMAIL_MODE
   process.env.OPENRX_CRON_EMAIL_MODE = "off"
 
-  const patientUser = await prisma.user.create({
+  const patientUser = await db.user.create({
     data: {
       email: `patient-${suffix}@example.com`,
       name: "Reminder Patient",
@@ -47,7 +49,7 @@ test("appointment reminder side effects create patient notifications", async () 
     },
   })
 
-  const doctorUser = await prisma.user.create({
+  const doctorUser = await db.user.create({
     data: {
       email: `doctor-${suffix}@example.com`,
       name: "Reminder Doctor",
@@ -56,13 +58,13 @@ test("appointment reminder side effects create patient notifications", async () 
   })
 
   try {
-    const patient = await prisma.patientProfile.create({
+    const patient = await db.patientProfile.create({
       data: {
         userId: patientUser.id,
       },
     })
 
-    const doctor = await prisma.doctorProfile.create({
+    const doctor = await db.doctorProfile.create({
       data: {
         userId: doctorUser.id,
         specialty: "Internal Medicine",
@@ -70,7 +72,7 @@ test("appointment reminder side effects create patient notifications", async () 
       },
     })
 
-    const appointment = await prisma.appointment.create({
+    const appointment = await db.appointment.create({
       data: {
         patientId: patient.id,
         doctorId: doctor.id,
@@ -94,7 +96,7 @@ test("appointment reminder side effects create patient notifications", async () 
     expect(result.failed).toBe(false)
     expect(result.notificationsCreated).toBeGreaterThan(0)
 
-    const notifications = await prisma.notification.findMany({
+    const notifications = await db.notification.findMany({
       where: {
         userId: patientUser.id,
         type: NotificationType.APPOINTMENT_REMINDER,
@@ -104,18 +106,18 @@ test("appointment reminder side effects create patient notifications", async () 
     expect(notifications.length).toBeGreaterThan(0)
     expect(notifications[0]?.title).toContain("Appointment")
 
-    await prisma.appointment.delete({ where: { id: appointment.id } })
-    await prisma.doctorProfile.delete({ where: { id: doctor.id } })
-    await prisma.patientProfile.delete({ where: { id: patient.id } })
+    await db.appointment.delete({ where: { id: appointment.id } })
+    await db.doctorProfile.delete({ where: { id: doctor.id } })
+    await db.patientProfile.delete({ where: { id: patient.id } })
   } finally {
-    await prisma.notification.deleteMany({
+    await db.notification.deleteMany({
       where: {
         userId: {
           in: [patientUser.id, doctorUser.id],
         },
       },
     })
-    await prisma.user.deleteMany({
+    await db.user.deleteMany({
       where: {
         id: {
           in: [patientUser.id, doctorUser.id],

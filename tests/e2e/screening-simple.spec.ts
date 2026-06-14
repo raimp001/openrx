@@ -473,6 +473,7 @@ test("landing care action stays in chat before a user intentionally opens the di
   await expect(page).toHaveURL(/\/chat/)
   // First hit can pay dev-server compile cost for the stream route.
   await expect(page.getByTestId("chat-section-answer").filter({ hasText: /ZIP code first/i }).last()).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText("Direct answer")).toHaveCount(0)
   await expect(page.getByTestId("care-plan-preview")).toHaveCount(0)
   expect(providerQuery).toBe("")
 })
@@ -532,12 +533,12 @@ test("screening answer finds clinic numbers in the same chat after a ZIP follow-
   await mockChatStream(page, (body) => {
     routedRequests.push(body)
     if (body.message === "Find a clinic or screening site for these recommendations.") {
-      return "Direct answer\n\nI can help find public clinic phone numbers, but I need the ZIP code first."
+      return "Answer\n\nI can help find public clinic phone numbers, but I need the ZIP code first."
     }
     if (body.message === "97123") {
-      return "Direct answer\n\nHere are public clinic options near 97123. Call first to confirm availability.\n\nCare options\n\n- Hillsboro Primary Care: [(503) 555-0100](tel:+15035550100). Internal Medicine."
+      return "Answer\n\nHere are public clinic options near 97123. Call first to confirm availability.\n\nCare options\n\n- Hillsboro Primary Care: [(503) 555-0100](tel:+15035550100). Internal Medicine."
     }
-    return "Direct answer\n\nColorectal cancer screening may be due now.\n\nReferences\n\n- [USPSTF: Colorectal cancer screening](https://www.uspreventiveservicestaskforce.org)"
+    return "Answer\n\nColorectal cancer screening may be due now.\n\nReferences\n\n- [USPSTF: Colorectal cancer screening](https://www.uspreventiveservicestaskforce.org)"
   })
 
   await page.goto("/chat")
@@ -633,6 +634,7 @@ test("chat renders structured screening sections and a citation rail", async ({ 
 
   // Structured section testids exposed by the redesigned answer renderer
   await expect(page.getByTestId("chat-section-answer")).toBeVisible()
+  await expect(page.getByText("Direct answer")).toHaveCount(0)
   await expect(page.getByTestId("chat-section-due-now")).toBeVisible()
   await expect(page.getByTestId("chat-section-references")).toHaveCount(0) // refs render as a rail
   await expect(page.getByTestId("chat-citations")).toBeVisible()
@@ -655,9 +657,9 @@ test("chat retains compact screening clarification in place and suppresses prema
   await mockChatStream(page, (body) => {
     requests.push(body)
     if (!body.screeningContext?.includes("38 hx lymphoma in dad")) {
-      return "Direct answer\n\nI can help, but I need one missing detail before giving screening guidance safely.\n\nShare one line with your age and any known family/genetic risk.\n\nSafety note: OpenRx is clinical decision support."
+      return "Answer\n\nI can help, but I need one missing detail before giving screening guidance safely.\n\nShare one line with your age and any known family/genetic risk.\n\nSafety note: OpenRx is clinical decision support."
     }
-    return "Direct answer: based on what you shared (age 38, family history of lymphoma), this history alone does not create a routine cancer screening test.\n\nQuestion to refine this\n\nWhat sex was assigned at birth, and do you have symptoms or a known inherited mutation?\n\nReferences\n\n1. [CDC: Cancer screening tests](https://www.cdc.gov/cancer/prevention/screening.html)"
+    return "Answer\n\nOpenRx does not have a version-stamped routine screening rule for family history of lymphoma alone.\n\nQuestion to refine this\n\nWhat sex was assigned at birth, and do you have symptoms or a known inherited mutation?\n\nReferences\n\n1. [CDC: Cancer screening tests](https://www.cdc.gov/cancer/prevention/screening.html)"
   })
 
   await page.goto("/chat")
@@ -670,6 +672,7 @@ test("chat retains compact screening clarification in place and suppresses prema
   const followUpAnswer = page.getByTestId("chat-message-agent").last()
   await expect(followUpAnswer.getByText(/family history of lymphoma/i).first()).toBeVisible()
   await expect(followUpAnswer.getByText(/What sex was assigned at birth/i)).toBeVisible()
+  await expect(followUpAnswer).not.toContainText("Direct answer")
   await followUpAnswer.getByTestId("trust-drawer").click()
   await expect(followUpAnswer.getByText(/Age 38/).last()).toBeVisible()
   expect(requests[1]?.agentId).toBe("screening")
@@ -692,7 +695,7 @@ test("chat shows quick prompts on first load and hides them after first send", a
     })
   })
   await mockChatStream(page, () =>
-    "Direct answer: ack.\n\nWhat to do now\nNothing to do.\n\nReferences\n- [CDC](https://www.cdc.gov/)\n\nSafety note\nDecision support only."
+    "Answer\n\nAcknowledged.\n\nWhat to do now\nNothing to do.\n\nReferences\n- [CDC](https://www.cdc.gov/)\n\nSafety note\nDecision support only."
   )
 
   await page.goto("/chat")

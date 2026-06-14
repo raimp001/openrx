@@ -346,7 +346,8 @@ function addHereditaryRiskRecommendations(recommendations: ScreeningRecommendati
       : `Known pathogenic or likely pathogenic variants (${variantLabel}) can change screening start age, modality, and interval.`,
     recommendedNextStep: "Request genetic counseling or high-risk clinic review before relying on average-risk screening intervals.",
     suggestedTiming: "Before choosing a routine screening interval",
-    sourceId: "pending-high-risk-oncology",
+    sourceId: "uspstf-brca-2019",
+    evidenceGrade: "B",
     requiresClinicianReview: true,
     patientFriendlyExplanation: "A known inherited-risk result may mean your screening plan should be different from average-risk guidelines. OpenRx can help organize genetic counseling or high-risk clinic review.",
     clinicianSummary: `Known hereditary cancer signal: ${variantLabel}. Exact NCCN interval logic is not encoded; route to genetics/high-risk specialist review.`,
@@ -395,7 +396,8 @@ function addFamilyHistoryOverrides(recommendations: ScreeningRecommendation[], i
       rationale: "Family prostate cancer or inherited-risk variants can change prostate screening timing and should not be handled as routine average-risk screening alone.",
       recommendedNextStep: "Request a PSA shared-decision visit with primary care or urology, and genetics/high-risk review when a mutation is known or suspected.",
       suggestedTiming: "Now or at the next preventive visit",
-      sourceId: "pending-high-risk-oncology",
+      sourceId: "uspstf-prostate-2018",
+      evidenceGrade: "C",
       requiresClinicianReview: true,
       patientFriendlyExplanation: "Because you reported prostate cancer family history or an inherited-risk signal, ask for a PSA discussion and high-risk review rather than treating this as routine screening only.",
       clinicianSummary: `Prostate hereditary-risk signal detected: ${prostateFamily.map((entry) => `${entry.relationship}:${entry.cancerType}${entry.diagnosisAge ? `@${entry.diagnosisAge}` : ""}`).join("; ") || "mutation/familial signal"}. Exact NCCN interval logic is not encoded; route to urology/genetics or high-risk review.`,
@@ -408,7 +410,7 @@ function addFamilyHistoryOverrides(recommendations: ScreeningRecommendation[], i
     addUnique(recommendations, recommendation({
       id: "brca-family-history-risk-assessment",
       cancerType: mutationOnly ? "hereditary cancer risk" : "breast/ovarian hereditary risk",
-      screeningName: mutationOnly ? "Inherited-risk assessment" : "BRCA-related risk assessment",
+      screeningName: mutationOnly ? "Genetic counseling and inherited-risk review" : "Genetic counseling and BRCA-related risk assessment",
       status: "needs_clinician_review",
       riskCategory: "hereditary_risk",
       rationale: mutationOnly
@@ -421,7 +423,7 @@ function addFamilyHistoryOverrides(recommendations: ScreeningRecommendation[], i
       requiresClinicianReview: true,
       patientFriendlyExplanation: mutationOnly
         ? "A reported inherited-risk result may change which screenings are appropriate and when they should start. A clinician or genetic counselor should review it."
-        : "Your family history may mean you should be checked for hereditary risk before choosing a routine screening plan.",
+        : "Your family history may mean you should be checked for hereditary risk and offered genetic counseling before choosing a routine screening plan.",
       clinicianSummary: mutationOnly
         ? "Known familial mutation/hereditary signal reported without breast/ovarian family-history pattern; route to genetics/high-risk review."
         : "USPSTF BRCA-related risk assessment pathway triggered by family history/familial mutation signal.",

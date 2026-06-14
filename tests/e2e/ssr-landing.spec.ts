@@ -11,21 +11,21 @@ test.describe("server-rendered landing page", () => {
     expect(res.status()).toBe(200)
     const html = await res.text()
 
-    // Headline and marketing copy
-    expect(html).toContain("Ask a clinical question. Get an answer you can audit.")
-    expect(html).toContain("How OpenRx works")
-    expect(html).toContain("A deterministic engine answers")
+    // Brand, value proposition, and clinical-safety copy
+    expect(html).toContain("OpenRx")
+    expect(html).toContain("Prior-auth infrastructure and cancer screening navigation in one auditable care layer.")
+    expect(html).toContain("Screening plans are deterministic")
 
     // Decision-support disclaimer
-    expect(html).toContain("not a substitute for clinician judgment")
+    expect(html).toContain("It does not diagnose or place orders.")
 
-    // Working demo entry point and chat entry
+    // Working developer and patient entry points
     expect(html).toMatch(/href="\/demo"/)
-    expect(html).toMatch(/href="\/chat"/)
+    expect(html).toMatch(/href="\/screening"/)
 
-    // Version-stamped specimen is server-rendered
-    expect(html).toMatch(/openrx-screening-engine-\d{4}-\d{2}-\d{2}/)
-    expect(html).toContain("2021-05-18")
+    // Source-stamped specimen is server-rendered
+    expect(html).toContain("USPSTF 2021, Grade B")
+    expect(html).toContain("colorectal-cancer-screening")
 
     // noscript fallback so the page is never blank
     expect(html).toContain("<noscript>")
@@ -51,8 +51,9 @@ test.describe("server-rendered landing page", () => {
 
   test("landing page renders and navigates to the demo in a browser", async ({ page }) => {
     await page.goto("/")
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Ask a clinical question")
-    await page.getByRole("link", { name: "See the denial-to-appeal demo" }).click()
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("OpenRx")
+    await expect(page.getByText("Prior-auth infrastructure and cancer screening navigation")).toBeVisible()
+    await page.getByRole("link", { name: "View API/docs" }).click()
     await expect(page).toHaveURL(/\/demo/, { timeout: 30_000 })
   })
 })

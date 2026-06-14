@@ -24,7 +24,8 @@ test.describe("golden path 1 — minimal input", () => {
     expect(body.response).toContain("Colorectal cancer screening")
     expect(body.response).toContain("USPSTF")
     expect(body.response).toMatch(/Grade [AB]/)
-    expect(body.response).toMatch(/openrx-hotfix-prevention-rules-\d{4}-\d{2}-\d{2}/)
+    expect(body.response).toContain("Rule: uspstf-average-risk-colorectal")
+    expect(body.response).toContain("source version 2021-05-18")
     expect(body.response).not.toMatch(ERROR_TEXT)
   })
 

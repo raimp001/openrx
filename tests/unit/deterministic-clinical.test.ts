@@ -1,31 +1,46 @@
 import { describe, expect, it } from "vitest"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
 
-describe("deterministic clinical hotfix rules", () => {
+describe("deterministic clinical screening response", () => {
   it('"age 45 male" returns a version-stamped, source-linked plan', () => {
     const response = deterministicClinicalResponse("age 45 male")
     expect(response).toBeTruthy()
     expect(response).toContain("USPSTF")
     expect(response).toContain("Grade B")
     expect(response).toContain("Rule:")
-    expect(response).toMatch(/uspstf-colorectal-45-49/)
-    expect(response).toMatch(/openrx-hotfix-prevention-rules/)
+    expect(response).toContain("Colorectal cancer screening")
+    expect(response).toContain("Rule: uspstf-average-risk-colorectal")
+    expect(response).toContain("USPSTF: Colorectal cancer screening for average-risk adults (2021-05-18)")
+    expect(response).not.toContain("Direct answer")
   })
 
   it("garbage input is not answered by the simple rules", () => {
     expect(deterministicClinicalResponse("asdf qwerty")).toBeNull()
   })
 
-  it("missing sex asks one clear question instead of answering", () => {
+  it("age-only colorectal screening prompts return an engine-backed recommendation", () => {
     const response = deterministicClinicalResponse("age 45, what screening is due?")
-    expect(response).toMatch(/sex at birth/i)
-    expect(response).not.toContain("Rule:")
+    expect(response).toContain("Colorectal cancer screening")
+    expect(response).toContain("Rule: uspstf-average-risk-colorectal")
+    expect(response).toContain("Grade B")
+    expect(response).not.toContain("Direct answer")
   })
 
-  it("defers to the full screening engine when risk modifiers are present", () => {
-    expect(deterministicClinicalResponse("age 52 female, smoker, family history of breast cancer")).toBeNull()
-    expect(deterministicClinicalResponse("45 male, BRCA2 mutation carrier")).toBeNull()
-    expect(deterministicClinicalResponse("60 male with 30 pack-years, what screening is due?")).toBeNull()
+  it("routes risk modifiers through the deterministic screening engine", () => {
+    const breastRisk = deterministicClinicalResponse("age 52 female, smoker, family history of breast cancer")
+    expect(breastRisk).toContain("Genetic counseling and BRCA-related risk assessment")
+    expect(breastRisk).toContain("Rule: brca-family-history-risk-assessment")
+    expect(breastRisk).not.toContain("Direct answer")
+
+    const hereditaryRisk = deterministicClinicalResponse("45 male, BRCA2 mutation carrier")
+    expect(hereditaryRisk).toContain("Genetic counseling")
+    expect(hereditaryRisk).toContain("Rule:")
+    expect(hereditaryRisk).not.toContain("Direct answer")
+
+    const lungRisk = deterministicClinicalResponse("60 male with 30 pack-years, what screening is due?")
+    expect(lungRisk).toContain("Clarify lung screening eligibility")
+    expect(lungRisk).toContain("USPSTF: Lung cancer screening (2021-03-09)")
+    expect(lungRisk).not.toContain("Direct answer")
   })
 
   it("simple age/sex prevention questions are still answered by the rules", () => {
@@ -35,8 +50,8 @@ describe("deterministic clinical hotfix rules", () => {
   it("every age/sex answer asks for the risk factors that could change the plan", () => {
     const response = deterministicClinicalResponse("age 45 male")
     expect(response).toContain("Question to refine this")
-    expect(response).toMatch(/family history of cancer/i)
-    expect(response).toMatch(/smoking history/i)
-    expect(response).toMatch(/screening tests and dates|genetic results/i)
+    expect(response).toMatch(/family history/i)
+    expect(response).toMatch(/smoking exposure/i)
+    expect(response).toMatch(/prior test dates|genetic results/i)
   })
 })

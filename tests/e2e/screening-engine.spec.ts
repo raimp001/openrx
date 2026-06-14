@@ -75,7 +75,8 @@ test("BRCA2 routes to hereditary genetics and high-risk review", () => {
 
   expect(hereditary?.status).toBe("high_risk")
   expect(hereditary?.riskCategory).toBe("hereditary_risk")
-  expect(hereditary?.sourceSystem).toBe("PENDING")
+  expect(hereditary?.sourceSystem).toBe("USPSTF")
+  expect(hereditary?.sourceUrl).toContain("brca-related-cancer-risk-assessment")
   expect(hereditary?.nextSteps).toContain("request_genetic_counseling")
 })
 

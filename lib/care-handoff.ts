@@ -10,10 +10,17 @@ export interface ScreeningHandoffPayload {
 }
 
 export interface ProviderHandoffPayload {
-  source: "chat" | "link"
+  source: "chat" | "link" | "screening"
   query: string
   autorun: boolean
   createdAt: number
+  recommendationId?: string
+  recommendationName?: string
+  sourceSystem?: string
+  sourceVersion?: string
+  evidenceGrade?: string
+  sourceUrl?: string
+  locationHint?: string
 }
 
 export interface SchedulingHandoffPayload {

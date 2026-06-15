@@ -200,7 +200,7 @@ test("screening handoff from chat auto-runs the free recommendations", async ({ 
   await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
 })
 
-test("screening recommendation continues care search inside chat", async ({ page }) => {
+test("screening recommendation opens provider directory with recommendation context", async ({ page }) => {
   await mockScreeningApis(page)
   let providerQuery = ""
   await page.route(/\/api\/providers\/search.*/, async (route) => {
@@ -244,12 +244,13 @@ test("screening recommendation continues care search inside chat", async ({ page
   await page.getByTestId("screening-submit-preview").click()
   await page.getByTestId("recommendation-find-schedule").first().click()
 
-  await expect(page).toHaveURL(/\/chat\?topic=scheduling&autorun=1&prompt=/)
-  expect(decodeURIComponent(page.url())).toContain("Find who I can call for Colorectal cancer screening")
-  expect(providerQuery).toBe("")
+  await expect(page).toHaveURL(/\/providers\?handoff=screening/)
+  await expect(page.getByTestId("provider-handoff-notice")).toContainText("Loaded the screening recommendation")
+  await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
+  expect(providerQuery.toLowerCase()).toContain("colonoscopy")
 })
 
-test("screening recommendation chat handoff does not depend on sessionStorage", async ({ page }) => {
+test("screening recommendation provider handoff does not depend on sessionStorage", async ({ page }) => {
   await mockScreeningApis(page)
   let providerQuery = ""
   await page.addInitScript(() => {
@@ -299,9 +300,10 @@ test("screening recommendation chat handoff does not depend on sessionStorage", 
   await page.getByTestId("screening-submit-preview").click()
   await page.getByTestId("recommendation-find-schedule").first().click()
 
-  await expect(page).toHaveURL(/\/chat\?topic=scheduling&autorun=1&prompt=/)
-  expect(decodeURIComponent(page.url())).toContain("Find who I can call for Colorectal cancer screening")
-  expect(providerQuery).toBe("")
+  await expect(page).toHaveURL(/\/providers\?handoff=screening/)
+  await expect(page.getByTestId("provider-handoff-notice")).toContainText("Loaded the screening recommendation")
+  await expect(page.getByText("OpenRx Gastroenterology").first()).toBeVisible()
+  expect(providerQuery.toLowerCase()).toContain("colonoscopy")
 })
 
 test("screening recommendation can be saved into My Care without navigation", async ({ page }) => {

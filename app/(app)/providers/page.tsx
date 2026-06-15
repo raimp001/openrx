@@ -55,11 +55,22 @@ function parseProviderHandoff(raw: string | null): ProviderHandoffPayload | null
   try {
     const payload = JSON.parse(raw) as Partial<ProviderHandoffPayload>
     if (!payload.query || !isFreshCareHandoff(payload.createdAt)) return null
+    const source =
+      payload.source === "screening" || payload.source === "link"
+        ? payload.source
+        : "chat"
     return {
-      source: payload.source === "link" ? "link" : "chat",
+      source,
       query: payload.query,
       autorun: payload.autorun !== false,
       createdAt: payload.createdAt || Date.now(),
+      recommendationId: payload.recommendationId,
+      recommendationName: payload.recommendationName,
+      sourceSystem: payload.sourceSystem,
+      sourceVersion: payload.sourceVersion,
+      evidenceGrade: payload.evidenceGrade,
+      sourceUrl: payload.sourceUrl,
+      locationHint: payload.locationHint,
     }
   } catch {
     return null
@@ -194,9 +205,15 @@ export default function ProvidersPage() {
 
     setQuery(nextQuery.trim())
     const handoffSource = params.get("handoff")
+    const isScreeningHandoff =
+      stored?.source === "screening" ||
+      stored?.source === "link" ||
+      handoffSource === "screening"
     setHandoffNotice(
-      stored?.source === "link" || handoffSource === "screening"
-        ? "Loaded the screening recommendation and started the care-network search here."
+      isScreeningHandoff
+        ? stored?.recommendationName
+          ? `Loaded the screening recommendation for ${stored.recommendationName} and started the care-network search here.`
+          : "Loaded the screening recommendation and started the care-network search here."
         : "Loaded your chat context and started the care-network search here."
     )
     if (

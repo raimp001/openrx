@@ -50,10 +50,14 @@ import { carePlanFromScreeningRecommendations } from "@/lib/care-plan"
 import { trackWorkflowEvent } from "@/lib/product-analytics"
 import { detectRedFlagText } from "@/lib/red-flag"
 import {
+  PROVIDER_HANDOFF_STORAGE_KEY,
   SCREENING_HANDOFF_STORAGE_KEY,
   isFreshCareHandoff,
+  providerSearchHrefFromHandoff,
   safeSessionGetItem,
   safeSessionRemoveItem,
+  safeSessionSetItem,
+  type ProviderHandoffPayload,
   type ScreeningHandoffPayload,
 } from "@/lib/care-handoff"
 
@@ -199,6 +203,44 @@ function parseScreeningHandoff(raw: string | null): ScreeningHandoffPayload | nu
   } catch {
     return null
   }
+}
+
+const LOCATION_SIGNAL = /\b(?:near|in|around)\b|\b\d{5}(?:-\d{4})?\b/i
+
+function recommendationHasAnyStep(rec: StructuredScreeningRecommendation, steps: ScreeningNextStep[]) {
+  return steps.some((step) => rec.nextSteps.includes(step))
+}
+
+function careSearchQueryForRecommendation(rec: StructuredScreeningRecommendation): string {
+  const signal = `${rec.screeningName} ${rec.cancerType} ${rec.recommendedNextStep}`.toLowerCase()
+
+  if (recommendationHasAnyStep(rec, ["request_colonoscopy"]) || /colorectal|colonoscop|colon/.test(signal)) {
+    return "gastroenterology providers for colonoscopy"
+  }
+  if (recommendationHasAnyStep(rec, ["request_mammogram"]) || /mammogram|breast/.test(signal)) {
+    return "mammogram imaging centers"
+  }
+  if (recommendationHasAnyStep(rec, ["request_ldct", "request_imaging"]) || /lung|ldct|low-dose ct/.test(signal)) {
+    return "radiology centers for low-dose CT screening"
+  }
+  if (recommendationHasAnyStep(rec, ["request_cervical_screening"]) || /cervical|pap|hpv/.test(signal)) {
+    return "primary care or gynecology providers for cervical cancer screening"
+  }
+  if (recommendationHasAnyStep(rec, ["request_psa_discussion"]) || /prostate|psa/.test(signal)) {
+    return "primary care or urology providers for prostate screening discussion"
+  }
+  if (recommendationHasAnyStep(rec, ["request_genetic_counseling"]) || /genetic|hereditary|brca|lynch/.test(signal)) {
+    return "genetic counseling providers"
+  }
+
+  return `providers for ${rec.screeningName}`
+}
+
+function appendLocationHint(query: string, locationHint: string) {
+  const cleanQuery = query.trim()
+  const cleanLocation = locationHint.trim()
+  if (!cleanQuery || !cleanLocation || LOCATION_SIGNAL.test(cleanQuery)) return cleanQuery
+  return `${cleanQuery} near ${cleanLocation}`
 }
 
 type RecommendationSectionId = "urgent" | "due_now" | "needs_review" | "upcoming" | "not_enough" | "not_indicated"
@@ -788,6 +830,13 @@ export default function ScreeningPage() {
     return (direct || byName)?.matches || []
   }
 
+  function careConnectionForRecommendation(rec: StructuredScreeningRecommendation): LocalCareConnection | undefined {
+    return (
+      localCareConnections.find((connection) => connection.recommendationId === rec.id) ||
+      localCareConnections.find((connection) => connection.recommendationName === rec.screeningName)
+    )
+  }
+
   async function startReferralConsent(rec: StructuredScreeningRecommendation, action: ScreeningNextStep) {
     setReferralPanel({
       recommendationId: rec.id,
@@ -889,8 +938,26 @@ export default function ScreeningPage() {
 
   function openProviderSearchFromRecommendation(rec: StructuredScreeningRecommendation) {
     if (typeof window === "undefined") return
-    const prompt = `Find who I can call for ${rec.screeningName}.`
-    window.location.href = `/chat?topic=scheduling&autorun=1&prompt=${encodeURIComponent(prompt)}`
+    const locationHint = locationZip.trim() || intakePreview?.location || snapshot.patient?.address || ""
+    const connection = careConnectionForRecommendation(rec)
+    const baseQuery = connection?.query?.trim() || careSearchQueryForRecommendation(rec)
+    const query = appendLocationHint(baseQuery, locationHint)
+    const payload: ProviderHandoffPayload = {
+      source: "screening",
+      query,
+      autorun: true,
+      createdAt: Date.now(),
+      recommendationId: rec.id,
+      recommendationName: rec.screeningName,
+      sourceSystem: rec.sourceSystem,
+      sourceVersion: rec.sourceVersion,
+      evidenceGrade: rec.evidenceGrade,
+      sourceUrl: rec.sourceUrl,
+      locationHint: locationHint || undefined,
+    }
+
+    safeSessionSetItem(PROVIDER_HANDOFF_STORAGE_KEY, JSON.stringify(payload))
+    window.location.href = providerSearchHrefFromHandoff(query, "screening")
   }
 
   function draftClinicianMessage(rec: StructuredScreeningRecommendation) {
@@ -1470,7 +1537,7 @@ export default function ScreeningPage() {
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Next step</p>
                                   <span className="text-[10px] text-muted">
-                                    Opens chat to find phone numbers. No order is placed here.
+                                    Opens the care directory. No order is placed here.
                                   </span>
                                 </div>
                                 <div className="mt-3 flex flex-wrap items-center gap-2">

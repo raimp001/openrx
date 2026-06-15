@@ -16,8 +16,8 @@
   --color-surface-muted-rgb: 24 24 27;
   --color-text-rgb: 244 244 245;
   --color-secondary-rgb: 212 212 216;
-  --color-muted-rgb: 161 161 170;
-  --color-subtle-rgb: 113 113 122;
+  --color-muted-rgb: 190 190 200;
+  --color-subtle-rgb: 161 161 170;
   --color-border-rgb: 39 39 42;
   --color-border-strong-rgb: 63 63 70;
   --color-navy-rgb: 165 243 252;
@@ -436,4 +436,33 @@ body:not(:has([data-openrx-chat-workspace])) .bg-teal.text-white,
 body:not(:has([data-openrx-chat-workspace])) .control-button-primary,
 body:not(:has([data-openrx-chat-workspace])) .control-button-accent {
   color: #050505 !important;
+}
+
+.text-zinc-500 {
+  color: rgb(var(--color-subtle-rgb)) !important;
+}
+
+.text-zinc-400 {
+  color: rgb(var(--color-muted-rgb)) !important;
+}
+
+.text-zinc-300 {
+  color: rgb(var(--color-secondary-rgb)) !important;
+}
+
+.placeholder\:text-zinc-500::placeholder,
+.placeholder\:text-zinc-400::placeholder,
+.placeholder\:text-subtle::placeholder,
+.placeholder\:text-muted::placeholder {
+  opacity: 1;
+}
+
+.placeholder\:text-zinc-500::placeholder,
+.placeholder\:text-subtle::placeholder {
+  color: rgb(var(--color-subtle-rgb)) !important;
+}
+
+.placeholder\:text-zinc-400::placeholder,
+.placeholder\:text-muted::placeholder {
+  color: rgb(var(--color-muted-rgb)) !important;
 }

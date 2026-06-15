@@ -69,9 +69,9 @@ const config: Config = {
           100: withAlpha("--color-border-rgb"),
         },
         "soft-red": withAlpha("--color-danger-rgb"),
-        "soft-blue": "#1D4ED8",
-        midnight: withAlpha("--color-navy-rgb"),
-        night: withAlpha("--color-navy-rgb"),
+        "soft-blue": "#93C5FD",
+        midnight: "#0A1C2E",
+        night: "#06111D",
       },
       fontFamily: {
         serif: ["var(--font-serif)", "Georgia", "serif"],

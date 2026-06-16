@@ -13,6 +13,7 @@ import {
 } from "@/lib/openclaw/cron-dispatch"
 import { recordCronRun, upsertWorkerHeartbeat } from "@/lib/openclaw/runtime-persistence"
 import { executeCronSideEffects } from "@/lib/openclaw/cron-side-effects"
+import { resolveClinicalModelAvailability } from "@/lib/openai-healthcare"
 
 interface CronRequestBody {
   message?: string
@@ -226,7 +227,8 @@ async function executeCronRequest(
   }
 
   const sessionId = body.sessionId || `cron-${job.id}-${Date.now()}`
-  const liveModelConfigured = !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY)
+  const modelAvailability = resolveClinicalModelAvailability()
+  const liveModelConfigured = modelAvailability.liveModelConfigured
 
   const result = liveModelConfigured
     ? await runAgent({
@@ -237,7 +239,7 @@ async function executeCronRequest(
       })
     : {
         response:
-          "AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
+          "AI service is unavailable. Set ANTHROPIC_API_KEY or enable the OpenAI API BAA gate.",
         agentId: job.agentId,
       }
 

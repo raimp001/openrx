@@ -5,7 +5,7 @@ OpenRx is a **Next.js 14 healthcare clinic management platform** powered by **Op
 ## Tech Stack
 
 - **Framework**: Next.js 14 (App Router), TypeScript, Tailwind CSS
-- **AI**: Anthropic Claude (primary), OpenAI GPT-4o-mini (fallback)
+- **AI**: Anthropic Claude (primary), OpenAI API fallback only when the OpenAI BAA gate is explicitly enabled
 - **Database**: PostgreSQL via Prisma ORM
 - **Payments**: Coinbase Base / USDC (wagmi + onchainkit)
 - **Testing**: Playwright (E2E)
@@ -109,6 +109,9 @@ Roles: `PATIENT`, `DOCTOR`, `ADMIN`, `PHARMACIST`
 # Required
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
+OPENRX_OPENAI_BAA_ENABLED=true
+OPENRX_OPENAI_CLINICAL_MODE=api_baa
+OPENRX_OPENAI_CLINICIAN_MODEL=gpt-4o-mini
 DATABASE_URL=postgresql://...
 
 # Optional AI model overrides
@@ -252,4 +255,3 @@ OpenRx uses Coinbase Base / USDC for payments via wagmi + onchainkit. Reference 
 - [Automated Mass Payouts](https://docs.cdp.coinbase.com/get-started/demo-apps/app-examples/automated-mass-payouts)
 - [Onchain Commerce Shop](https://docs.cdp.coinbase.com/get-started/demo-apps/app-examples/onchain-commerce-shop)
 - [Aave Lending Integration](https://docs.cdp.coinbase.com/get-started/demo-apps/app-examples/aave-lending)
-

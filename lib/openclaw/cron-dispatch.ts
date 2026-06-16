@@ -58,7 +58,8 @@ const RESPONSE_FAILURE_MARKERS: Array<{
   },
   {
     match: (value) =>
-      value === "AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
+      value === "AI service is unavailable. Set ANTHROPIC_API_KEY or OPENAI_API_KEY." ||
+      value === "AI service is unavailable. Set ANTHROPIC_API_KEY or enable the OpenAI API BAA gate.",
     failureReason: "missing_model_credentials",
     httpStatus: 503,
   },

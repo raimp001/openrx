@@ -10,12 +10,14 @@ import {
   modelErrorCode,
   requestIdFromModelError,
 } from "@/lib/openclaw/model-boundary"
+import { resolveClinicalModelAvailability } from "@/lib/openai-healthcare"
 import { logAgentRequest } from "@/lib/observability/log"
 import { SCREENING_ENGINE_VERSION } from "@/lib/screening/version"
 
 export async function POST(req: NextRequest) {
   const requestId = crypto.randomUUID()
   const startedAt = Date.now()
+  const modelAvailability = resolveClinicalModelAvailability()
   try {
     const body = await req.json()
     const { message, agentId, screeningContext, sessionId, walletAddress, conversationId, collaborators, routingInfo } = body as {
@@ -97,7 +99,7 @@ export async function POST(req: NextRequest) {
         outcome: "deterministic",
         latencyMs: Date.now() - startedAt,
         engineVersion: SCREENING_ENGINE_VERSION,
-        modelConfigured: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
+        modelConfigured: modelAvailability.liveModelConfigured,
       })
       let savedConversation = { id: conversationId || "", title: "" }
       let deterministicOwner: Awaited<ReturnType<typeof resolveChatHistoryOwner>> | null = null
@@ -163,7 +165,7 @@ export async function POST(req: NextRequest) {
             ? "clinician_route"
             : "success",
       latencyMs: Date.now() - startedAt,
-      modelConfigured: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
+      modelConfigured: modelAvailability.liveModelConfigured,
     })
 
     let savedConversationId = conversationId || ""
@@ -198,7 +200,7 @@ export async function POST(req: NextRequest) {
       response: resultResponse,
       agentId: result.agentId,
       handoff: result.handoff || null,
-      live: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
+      live: modelAvailability.liveModelConfigured,
     })
 
     if (persistChatHistory && owner && !("response" in owner)) {
@@ -216,7 +218,7 @@ export async function POST(req: NextRequest) {
       routedAgentId: "unknown",
       outcome: "error",
       latencyMs: Date.now() - startedAt,
-      modelConfigured: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
+      modelConfigured: modelAvailability.liveModelConfigured,
     })
     return NextResponse.json(
       { error: CLEAN_MODEL_BUSY_MESSAGE },

@@ -7,6 +7,7 @@ import {
   cleanModelErrorState,
   withModelApiBoundary,
 } from "@/lib/openclaw/model-boundary"
+import { resolveOpenAIHealthcareConfig } from "@/lib/openai-healthcare"
 
 test("age-sex intake returns a guideline-grounded colorectal recommendation without echo template", () => {
   const response = deterministicClinicalResponse("age 45 male")
@@ -46,6 +47,58 @@ test("no-key fallback answer does not echo raw patient input", async () => {
     else process.env.ANTHROPIC_API_KEY = anthropicKey
     if (openaiKey === undefined) delete process.env.OPENAI_API_KEY
     else process.env.OPENAI_API_KEY = openaiKey
+  }
+})
+
+test("OpenAI API PHI use requires both a server key and an explicit BAA gate", () => {
+  const noBaa = resolveOpenAIHealthcareConfig({
+    OPENAI_API_KEY: "sk-test",
+    OPENRX_OPENAI_BAA_ENABLED: "false",
+  })
+  const withBaa = resolveOpenAIHealthcareConfig({
+    OPENAI_API_KEY: "sk-test",
+    OPENRX_OPENAI_BAA_ENABLED: "true",
+  })
+  const clinicianWorkspace = resolveOpenAIHealthcareConfig({
+    OPENAI_API_KEY: "sk-test",
+    OPENRX_OPENAI_BAA_ENABLED: "true",
+    OPENRX_OPENAI_CLINICAL_MODE: "chatgpt_for_clinicians",
+  })
+
+  expect(noBaa.apiKeyConfigured).toBe(true)
+  expect(noBaa.apiPhiAllowed).toBe(false)
+  expect(noBaa.disabledReason).toContain("BAA")
+  expect(withBaa.apiPhiAllowed).toBe(true)
+  expect(clinicianWorkspace.apiPhiAllowed).toBe(false)
+  expect(clinicianWorkspace.disabledReason).toContain("workspace product")
+})
+
+test("OpenAI key without BAA does not activate patient chat model fallback", async () => {
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  const openaiKey = process.env.OPENAI_API_KEY
+  const openaiBaa = process.env.OPENRX_OPENAI_BAA_ENABLED
+  const openaiLegacyBaa = process.env.OPENAI_BAA_ENABLED
+  delete process.env.ANTHROPIC_API_KEY
+  process.env.OPENAI_API_KEY = "sk-test"
+  delete process.env.OPENRX_OPENAI_BAA_ENABLED
+  delete process.env.OPENAI_BAA_ENABLED
+
+  try {
+    const result = await runAgent({ agentId: "rx", message: "Can I take ibuprofen with warfarin?" })
+
+    expect(result.response).toContain("What to do now")
+    expect(result.response).not.toBe(CLEAN_MODEL_BUSY_MESSAGE)
+    expect(result.response).not.toContain("high volume")
+    expect(result.response).not.toContain("warfarin")
+  } finally {
+    if (anthropicKey === undefined) delete process.env.ANTHROPIC_API_KEY
+    else process.env.ANTHROPIC_API_KEY = anthropicKey
+    if (openaiKey === undefined) delete process.env.OPENAI_API_KEY
+    else process.env.OPENAI_API_KEY = openaiKey
+    if (openaiBaa === undefined) delete process.env.OPENRX_OPENAI_BAA_ENABLED
+    else process.env.OPENRX_OPENAI_BAA_ENABLED = openaiBaa
+    if (openaiLegacyBaa === undefined) delete process.env.OPENAI_BAA_ENABLED
+    else process.env.OPENAI_BAA_ENABLED = openaiLegacyBaa
   }
 })
 

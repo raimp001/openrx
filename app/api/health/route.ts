@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getDatabaseHealth } from "@/lib/database-health"
+import { resolveOpenAIHealthcareConfig } from "@/lib/openai-healthcare"
 import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
 import { SCREENING_ENGINE_VERSION } from "@/lib/screening/version"
 
@@ -17,11 +18,18 @@ const MODEL_PING_TIMEOUT_MS = 3500
 
 async function checkModelApi(): Promise<HealthComponent> {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey && !process.env.OPENAI_API_KEY) {
+  const openai = resolveOpenAIHealthcareConfig()
+  if (!apiKey && !openai.apiKeyConfigured) {
     return { status: "not_configured", detail: "No model API key configured; deterministic fallbacks only." }
   }
   if (!apiKey) {
-    return { status: "ok", detail: "OpenAI key configured (reachability not probed)." }
+    if (openai.apiPhiAllowed) {
+      return { status: "ok", detail: `OpenAI API BAA gate enabled for PHI-adjacent calls (${openai.clinicianModel}; reachability not probed).` }
+    }
+    return {
+      status: "not_configured",
+      detail: "OpenAI key is present, but PHI-adjacent API calls are disabled until OPENRX_OPENAI_BAA_ENABLED=true.",
+    }
   }
 
   // Lightweight reachability ping — an authenticated metadata request, never a

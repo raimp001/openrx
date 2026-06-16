@@ -1,6 +1,7 @@
 import OpenAI from "openai"
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
 import type { ScreeningAssessment } from "@/lib/basehealth"
+import { resolveOpenAIHealthcareConfig } from "@/lib/openai-healthcare"
 
 export interface ScreeningEvidenceCitation {
   id: string
@@ -20,6 +21,8 @@ export interface OpenAIClinicalEvidenceConfig {
   model: string
   allowedDomains: string[]
   timeoutMs: number
+  baaEnabled: boolean
+  disabledReason?: string
 }
 
 interface PubMedSearchResponse {
@@ -164,14 +167,22 @@ export function resolveOpenAIClinicalEvidenceConfig(
   env: Record<string, string | undefined> = process.env
 ): OpenAIClinicalEvidenceConfig {
   const mode = normalizeEnvMode(env.OPENRX_OPENAI_EVIDENCE_MODE)
-  const hasKey = Boolean(env.OPENAI_API_KEY?.trim())
+  const healthcareConfig = resolveOpenAIHealthcareConfig(env)
+  const enabled = mode !== "off" && healthcareConfig.apiPhiAllowed
+  const disabledReason = enabled
+    ? undefined
+    : mode === "off"
+      ? "OpenAI clinical evidence search is disabled by OPENRX_OPENAI_EVIDENCE_MODE."
+      : healthcareConfig.disabledReason
 
   return {
-    enabled: mode !== "off" && hasKey,
+    enabled,
     mode,
     model: env.OPENRX_OPENAI_EVIDENCE_MODEL?.trim() || DEFAULT_OPENAI_EVIDENCE_MODEL,
     allowedDomains: parseAllowedDomains(env.OPENRX_OPENAI_EVIDENCE_ALLOWED_DOMAINS),
     timeoutMs: parseTimeoutMs(env.OPENRX_OPENAI_EVIDENCE_TIMEOUT_MS),
+    baaEnabled: healthcareConfig.baaEnabled,
+    ...(disabledReason ? { disabledReason } : {}),
   }
 }
 

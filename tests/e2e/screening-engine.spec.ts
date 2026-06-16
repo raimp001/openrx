@@ -275,18 +275,26 @@ test("screening next-step requests use internal IDs and do not store raw wallet 
   expect(JSON.stringify(request).toLowerCase()).not.toContain(walletAddress.toLowerCase())
 })
 
-test("OpenAI clinical evidence config enables source search only when a server key exists", () => {
+test("OpenAI clinical evidence config requires a server key and BAA gate", () => {
   const disabled = resolveOpenAIClinicalEvidenceConfig({
     OPENRX_OPENAI_EVIDENCE_MODE: "auto",
     OPENAI_API_KEY: "",
   })
-  const enabled = resolveOpenAIClinicalEvidenceConfig({
+  const keyOnly = resolveOpenAIClinicalEvidenceConfig({
     OPENRX_OPENAI_EVIDENCE_MODE: "auto",
     OPENAI_API_KEY: "sk-test",
   })
+  const enabled = resolveOpenAIClinicalEvidenceConfig({
+    OPENRX_OPENAI_EVIDENCE_MODE: "auto",
+    OPENAI_API_KEY: "sk-test",
+    OPENRX_OPENAI_BAA_ENABLED: "true",
+  })
 
   expect(disabled.enabled).toBe(false)
+  expect(keyOnly.enabled).toBe(false)
+  expect(keyOnly.disabledReason).toContain("BAA")
   expect(enabled.enabled).toBe(true)
+  expect(enabled.baaEnabled).toBe(true)
   expect(enabled.model).toBe("gpt-5.4")
   expect(enabled.allowedDomains).toContain("pubmed.ncbi.nlm.nih.gov")
   expect(enabled.allowedDomains).toContain("uspreventiveservicestaskforce.org")

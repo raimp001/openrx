@@ -15,6 +15,7 @@ import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "
 import { NextRequest, NextResponse } from "next/server"
 import { runParallelExperts } from "@/lib/ai-engine"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
+import { resolveClinicalModelAvailability } from "@/lib/openai-healthcare"
 import {
   CLEAN_MODEL_BUSY_MESSAGE,
   modelErrorCode,
@@ -26,6 +27,7 @@ const MAX_EXPERTS = 5
 
 export async function POST(req: NextRequest) {
   try {
+    const modelAvailability = resolveClinicalModelAvailability()
     const body = await req.json()
     const { message, expertIds, sessionId, walletAddress } = body as {
       message: string
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       sessionId: sessionId || `session-${Date.now()}`,
       experts: results,
-      live: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
+      live: modelAvailability.liveModelConfigured,
     })
   } catch (error) {
     console.error("[openclaw-experts]", {

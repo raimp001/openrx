@@ -102,10 +102,19 @@ Set these for production deployments:
 
 ```env
 # Required for live AI responses
+ANTHROPIC_API_KEY=...
+
+# Optional OpenAI API fallback for PHI-adjacent clinical chat.
+# OPENAI_API_KEY alone is not enough: only enable this after OpenAI has
+# executed a BAA covering API Services for this deployment/use case.
 OPENAI_API_KEY=...
+OPENRX_OPENAI_BAA_ENABLED=true
+OPENRX_OPENAI_CLINICAL_MODE=api_baa
+OPENRX_OPENAI_CLINICIAN_MODEL=gpt-4o-mini
 
 # Optional: advanced screening evidence synthesis with OpenAI Responses + web_search.
-# This enriches paid/deep screening review with cited guideline/literature sources.
+# This enriches paid/deep screening review with cited guideline/literature sources,
+# and follows the same OPENRX_OPENAI_BAA_ENABLED gate.
 OPENRX_OPENAI_EVIDENCE_MODE=auto
 OPENRX_OPENAI_EVIDENCE_MODEL=gpt-5.4
 OPENRX_OPENAI_EVIDENCE_ALLOWED_DOMAINS=uspreventiveservicestaskforce.org,cdc.gov,cancer.gov,pubmed.ncbi.nlm.nih.gov,ncbi.nlm.nih.gov,nccn.org,acog.org,auanet.org,cancer.org,radiologyinfo.org
@@ -123,6 +132,11 @@ OPENRX_EMAIL_FROM=OpenRx <no-reply@yourdomain.com>
 # Optional admin API hardening (for /api/admin/* read/update endpoints)
 OPENRX_ADMIN_API_KEY=...
 ```
+
+OpenAI healthcare modes are intentionally separated:
+
+- `OPENRX_OPENAI_CLINICAL_MODE=api_baa` is the only mode that lets the OpenRx backend send PHI-adjacent prompts to the OpenAI API, and only when `OPENRX_OPENAI_BAA_ENABLED=true`.
+- `chatgpt_for_clinicians` and `chatgpt_for_healthcare` describe separate ChatGPT workspaces for clinicians/organizations. They do not make backend API calls PHI-ready by themselves.
 
 Optional live pricing integration:
 

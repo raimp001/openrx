@@ -1,8 +1,8 @@
 import { requireAuth } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
-import OpenAI from "openai"
 import { deterministicClinicalResponse } from "@/lib/openclaw/deterministic-clinical"
+import { createOpenAIClinicalClient, resolveOpenAIHealthcareConfig } from "@/lib/openai-healthcare"
 import {
   CLEAN_MODEL_BUSY_MESSAGE,
   modelErrorCode,
@@ -101,9 +101,10 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = (SYSTEM_PROMPTS[agentType] ?? SYSTEM_PROMPTS.general) + buildContextBlock(patientContext)
     const claudeKey = process.env.ANTHROPIC_API_KEY
-    const openaiKey = process.env.OPENAI_API_KEY
+    const openai = createOpenAIClinicalClient()
+    const openaiConfig = resolveOpenAIHealthcareConfig()
 
-    if (!claudeKey && !openaiKey) {
+    if (!claudeKey && !openai) {
       if (wantsStream) return oneShotStream(CLEAN_MODEL_BUSY_MESSAGE, "openrx-clean-error")
       return NextResponse.json({ error: CLEAN_MODEL_BUSY_MESSAGE }, { status: 503 })
     }
@@ -128,10 +129,14 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const openai = new OpenAI({ apiKey: openaiKey! })
+    if (!openai) {
+      if (wantsStream) return oneShotStream(CLEAN_MODEL_BUSY_MESSAGE, "openrx-clean-error")
+      return NextResponse.json({ error: CLEAN_MODEL_BUSY_MESSAGE }, { status: 503 })
+    }
+
     const response = await withModelApiBoundary("ai-chat-openai", () =>
       openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: openaiConfig.clinicianModel,
         messages: [
           { role: "system", content: systemPrompt },
           ...sanitizedMessages,
@@ -142,8 +147,8 @@ export async function POST(request: NextRequest) {
       })
     )
     const assistantMessage = response.choices[0]?.message?.content ?? "No response"
-    if (wantsStream) return oneShotStream(assistantMessage, "gpt-4o-mini")
-    return NextResponse.json({ message: assistantMessage, sessionId, model: "gpt-4o-mini" })
+    if (wantsStream) return oneShotStream(assistantMessage, openaiConfig.clinicianModel)
+    return NextResponse.json({ message: assistantMessage, sessionId, model: openaiConfig.clinicianModel })
   } catch (error) {
     console.error("[AI chat]", {
       code: modelErrorCode(error),

@@ -1,5 +1,4 @@
 import Anthropic from "@anthropic-ai/sdk"
-import OpenAI from "openai"
 import { OPENCLAW_CONFIG } from "./openclaw/config"
 import { getLiveSnapshotByWallet } from "./live-data.server"
 import { parseScreeningIntakeNarrative } from "./screening-intake"
@@ -10,6 +9,11 @@ import { DEMO_SCENARIOS, type DemoScenario } from "./demo/prior-auth"
 import { isDemoMode } from "./demo/mode"
 import type { ScreeningRecommendation } from "./screening/types"
 import { detectRedFlagText, emergencyResponse } from "./red-flag"
+import {
+  createOpenAIClinicalClient,
+  resolveClinicalModelAvailability,
+  resolveOpenAIHealthcareConfig,
+} from "./openai-healthcare"
 import {
   CLEAN_MODEL_BUSY_MESSAGE,
   modelErrorCode,
@@ -31,10 +35,6 @@ const getClaudeClient = () =>
         maxRetries: MODEL_MAX_RETRIES,
       })
     : null
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-})
 
 // ── Agent Action Log (in-memory, production would use DB) ─
 export interface AgentAction {
@@ -675,7 +675,15 @@ async function createCompletionWithRetry(params: {
   max_tokens: number
   temperature: number
 }) {
-return withModelApiBoundary("ai-engine-openai-chat", () =>
+  const openai = createOpenAIClinicalClient()
+  if (!openai) {
+    throw Object.assign(new Error("OpenAI clinical API is not BAA-enabled."), {
+      status: 503,
+      code: "openai_clinical_not_configured",
+    })
+  }
+
+  return withModelApiBoundary("ai-engine-openai-chat", () =>
     openai.chat.completions.create(params, { timeout: 20000 })
   )
 }
@@ -753,11 +761,12 @@ export async function runAgent(params: {
   }
 
   const claude = getClaudeClient()
+  const modelAvailability = resolveClinicalModelAvailability()
 
   // Keep the demo path useful even when the hosted model provider is
   // unavailable. In demo mode, never reach the live model at all — serve the
   // cached per-agent rendering so the demo is deterministic offline.
-  if (isDemoMode() || (!claude && !process.env.OPENAI_API_KEY)) {
+  if (isDemoMode() || (!claude && !modelAvailability.openai.apiPhiAllowed)) {
     return { response: buildFallbackAgentResponse(agentId), agentId }
   }
 
@@ -838,8 +847,9 @@ IMPORTANT RULES:
           .join("") || CLEAN_MODEL_BUSY_MESSAGE
       }
     } else {
+      const openAIConfig = resolveOpenAIHealthcareConfig()
       const completion = await createCompletionWithRetry({
-        model: "gpt-4o-mini",
+        model: openAIConfig.clinicianModel,
         messages: [
           { role: "system", content: systemPrompt },
           ...conv,
@@ -956,8 +966,8 @@ export async function runCoordinator(
 // ── Streaming Agent ──────────────────────────────────────
 // Yields text chunks as the model generates them so the UI can render
 // progressively (Claude.ai-style). Falls back to one synchronous chunk
-// when neither Anthropic nor OpenAI keys are configured (preserving the
-// fallback experience).
+// when neither Anthropic nor BAA-gated OpenAI API access is configured
+// (preserving the fallback experience).
 export async function* runAgentStream(params: {
   agentId: string
   message: string
@@ -1031,7 +1041,9 @@ export async function* runAgentStream(params: {
   }
 
   const claude = getClaudeClient()
-  if (isDemoMode() || (!claude && !process.env.OPENAI_API_KEY)) {
+  const openai = createOpenAIClinicalClient()
+  const openAIConfig = resolveOpenAIHealthcareConfig()
+  if (isDemoMode() || (!claude && !openai)) {
     const fallback = buildFallbackAgentResponse(agentId)
     yield fallback
     return { agentId, finalText: fallback }
@@ -1087,11 +1099,11 @@ IMPORTANT RULES:
           yield chunk
         }
       }
-    } else {
+    } else if (openai) {
       const completion = await withModelApiBoundary("ai-engine-openai-stream", () =>
         openai.chat.completions.create(
           {
-            model: "gpt-4o-mini",
+            model: openAIConfig.clinicianModel,
             messages: [
               { role: "system", content: systemPrompt },
               ...conv,
@@ -1112,6 +1124,9 @@ IMPORTANT RULES:
           yield delta
         }
       }
+    } else {
+      yield buildFallbackAgentResponse(agentId)
+      return { agentId, finalText: buildFallbackAgentResponse(agentId) }
     }
 
     let handoff: string | undefined

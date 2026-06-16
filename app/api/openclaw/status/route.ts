@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { OPENCLAW_CONFIG } from "@/lib/openclaw/config"
 import { getRecentActions } from "@/lib/ai-engine"
 import { listRecentCronRuns, listWorkerHeartbeats } from "@/lib/openclaw/runtime-persistence"
+import { resolveClinicalModelAvailability } from "@/lib/openai-healthcare"
 
 type WorkerRecord = Awaited<ReturnType<typeof listWorkerHeartbeats>>[number]
 
@@ -103,7 +104,7 @@ function summarizeScheduler(workers: WorkerRecord[]) {
 }
 
 export async function GET() {
-  const hasLLM = !!(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY)
+  const modelAvailability = resolveClinicalModelAvailability()
   const recentActions = getRecentActions(5)
   const [allWorkers, recentRuns] = await Promise.all([
     listWorkerHeartbeats(20),
@@ -125,10 +126,17 @@ export async function GET() {
     .slice(0, 5)
 
   return NextResponse.json({
-    connected: hasLLM,
+    connected: modelAvailability.liveModelConfigured,
     gateway: {
-      status: hasLLM ? "live" : "offline",
-      engine: hasLLM ? "OpenAI GPT-4o-mini" : "not-configured",
+      status: modelAvailability.liveModelConfigured ? "live" : "offline",
+      engine: modelAvailability.providerLabel,
+      openai: {
+        apiKeyConfigured: modelAvailability.openai.apiKeyConfigured,
+        baaEnabled: modelAvailability.openai.baaEnabled,
+        clinicalMode: modelAvailability.openai.clinicalMode,
+        apiPhiAllowed: modelAvailability.openai.apiPhiAllowed,
+        disabledReason: modelAvailability.openai.disabledReason || null,
+      },
     },
     scheduler: summarizeScheduler(allWorkers),
     recentCronHealth: {

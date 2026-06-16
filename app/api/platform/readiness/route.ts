@@ -11,6 +11,7 @@ import {
 import { listRecentCronRuns, listWorkerHeartbeats } from "@/lib/openclaw/runtime-persistence"
 import { allowsUnsignedWalletHeader } from "@/lib/api-auth"
 import { allowsCronRequestOverrides } from "@/lib/openclaw/cron-dispatch"
+import { resolveClinicalModelAvailability } from "@/lib/openai-healthcare"
 
 export const dynamic = "force-dynamic"
 
@@ -152,7 +153,8 @@ export async function GET(request: NextRequest) {
   })
   const applicationStoreConfigured = !!(process.env.OPENRX_APPLICATIONS_PATH || "").trim()
   const publicBaseUrlConfigured = !!(process.env.OPENRX_APP_BASE_URL || process.env.VERCEL_URL || "").trim()
-  const liveModelConfigured = !!(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY)
+  const modelAvailability = resolveClinicalModelAvailability()
+  const liveModelConfigured = modelAvailability.liveModelConfigured
   const recentCronCutoff = Date.now() - RECENT_CRON_HEALTH_WINDOW_MS
   const recentCronHealthRuns = recentCronRuns.filter((run) => toEpoch(run.createdAt) >= recentCronCutoff)
   const failedRecentCronRuns = recentCronHealthRuns.filter((run) => !run.ok).length
@@ -241,7 +243,11 @@ export async function GET(request: NextRequest) {
       title: "Atlas agent responses",
       description: "Chat and care-agent endpoints return a useful answer even when a model provider is rate-limited.",
       status: toStatus(true),
-      metric: liveModelConfigured ? "Live model key configured" : "Safe fallback enabled",
+      metric: liveModelConfigured
+        ? `Live model configured: ${modelAvailability.providerLabel}`
+        : modelAvailability.openai.apiKeyConfigured
+          ? "OpenAI key present; BAA gate disabled"
+          : "Safe fallback enabled",
       href: "/chat",
     },
     {

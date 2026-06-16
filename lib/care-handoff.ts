@@ -163,6 +163,29 @@ const CARE_SEARCH_TERMS = [
   "clinician",
 ]
 
+const TRIAL_TERMS = [
+  "clinical trial",
+  "trial",
+  "study",
+  "studies",
+  "research",
+  "enrollment",
+  "enroll",
+  "recruiting",
+]
+
+const PROVIDER_NETWORK_TERMS = [
+  "join network",
+  "provider onboarding",
+  "provider sign up",
+  "physician participate",
+  "provider participate",
+  "clinician participate",
+  "onboard",
+  "accept referrals",
+  "receive referrals",
+]
+
 const BILLING_TERMS = [
   "bill",
   "billing",
@@ -184,6 +207,69 @@ function includesAny(value: string, terms: string[]) {
 
 function hasClinicalContext(value: string) {
   return /\b(?:age\s*)?\d{2}\b/.test(value) || includesAny(value, ["father", "mother", "sibling", "smoker", "mutation"])
+}
+
+function careDirectoryQueryForMessage(value: string) {
+  const lowered = value.toLowerCase()
+  const location = value.match(/\b\d{5}(?:-\d{4})?\b/)?.[0]
+
+  if (/\b(colon|colorectal|fit|cologuard|colonoscop)/.test(lowered)) {
+    return `Find primary care, gastroenterology, and colonoscopy centers${location ? ` near ${location}` : " near me"}`
+  }
+  if (/\b(mammogram|breast|brca)/.test(lowered)) {
+    return `Find primary care and mammography imaging centers${location ? ` near ${location}` : " near me"}`
+  }
+  if (/\b(cervical|pap|hpv)/.test(lowered)) {
+    return `Find primary care and gynecology clinics${location ? ` near ${location}` : " near me"}`
+  }
+  if (/\b(lung|ldct|smok|pack[- ]?years?)/.test(lowered)) {
+    return `Find primary care and radiology centers for lung cancer screening${location ? ` near ${location}` : " near me"}`
+  }
+  if (/\b(prostate|psa)/.test(lowered)) {
+    return `Find primary care and urology clinics${location ? ` near ${location}` : " near me"}`
+  }
+  if (/\b(lab|laboratory|blood work|blood test|testing)/.test(lowered)) {
+    return `Find labs${location ? ` near ${location}` : " near me"}`
+  }
+  if (/\b(radiology|imaging|scan|mri|ct|ultrasound|x-?ray)/.test(lowered)) {
+    return `Find imaging centers${location ? ` near ${location}` : " near me"}`
+  }
+  if (/\b(caregiver|home care|home health)/.test(lowered)) {
+    return `Find caregiver and home health options${location ? ` near ${location}` : " near me"}`
+  }
+
+  const compact = value.replace(/\s+/g, " ").trim()
+  if (compact.length >= 8 && compact.length <= 130) return compact
+  return `Find primary care and screening options${location ? ` near ${location}` : " near me"}`
+}
+
+function trialConditionForMessage(value: string) {
+  const lowered = value.toLowerCase()
+  if (/\b(prostate|psa)\b/.test(lowered)) return "prostate cancer"
+  if (/\b(breast|brca)\b/.test(lowered)) return "breast cancer"
+  if (/\b(colon|colorectal|fit|colonoscop)\b/.test(lowered)) return "colorectal cancer"
+  if (/\b(lung|ldct|smok)\b/.test(lowered)) return "lung cancer"
+  if (/\b(cervical|pap|hpv)\b/.test(lowered)) return "cervical cancer"
+  if (/\bcancer\b/.test(lowered)) return "cancer"
+  return ""
+}
+
+function clinicalTrialsHrefFromMessage(value: string) {
+  const condition = trialConditionForMessage(value)
+  const location = value.match(/\b\d{5}(?:-\d{4})?\b/)?.[0] || ""
+  const params = new URLSearchParams({ handoff: "chat", autorun: "1" })
+  if (condition) params.set("condition", condition)
+  if (location) params.set("location", location)
+  return `/clinical-trials?${params.toString()}`
+}
+
+function pharmacyHrefFromMessage(value: string) {
+  const location = value.match(/\b\d{5}(?:-\d{4})?\b/)?.[0]
+  const q = /\b(pharmacy|prescription|refill|medication|drug)\b/i.test(value)
+    ? value.replace(/\s+/g, " ").trim()
+    : `Find pharmacy${location ? ` near ${location}` : " near me"}`
+  const params = new URLSearchParams({ handoff: "chat", autorun: "1", q })
+  return `/pharmacy?${params.toString()}`
 }
 
 export function isFreshCareHandoff(createdAt?: number, ttlMs = 15 * 60 * 1000) {
@@ -245,8 +331,11 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
 
   const screeningKeywords = includesAny(lowered, SCREENING_TERMS) || agentId === "screening"
   const careSearchKeywords = includesAny(lowered, CARE_SEARCH_TERMS) || agentId === "scheduling"
+  const trialKeywords = includesAny(lowered, TRIAL_TERMS) || agentId === "trials"
+  const providerNetworkKeywords = includesAny(lowered, PROVIDER_NETWORK_TERMS)
   const billingKeywords = includesAny(lowered, BILLING_TERMS) || agentId === "billing"
   if (screeningKeywords) {
+    const directoryQuery = careDirectoryQueryForMessage(trimmed)
     pushUnique({
       id: "schedule-screening",
       label: "Find who to call",
@@ -258,6 +347,14 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       kind: "lab",
     })
     pushUnique({
+      id: "open-care-directory",
+      label: "Open care directory",
+      description: "Search providers, labs, and imaging centers for this screening need.",
+      actionType: "deep_link",
+      href: providerSearchHrefFromHandoff(directoryQuery, "screening"),
+      kind: "referral",
+    })
+    pushUnique({
       id: "schedule-followup",
       label: "Prepare call script",
       description: "Turn this answer into a short script for primary care or the screening site.",
@@ -265,7 +362,27 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       prompt: "Help me prepare what to say when I call about these recommendations.",
       kind: "schedule",
     })
+    const trialHref = clinicalTrialsHrefFromMessage(trimmed)
+    if (trialKeywords || trialConditionForMessage(trimmed)) {
+      pushUnique({
+        id: "open-trials",
+        label: "Search trials",
+        description: "Open clinical trial candidates. This does not assert eligibility.",
+        actionType: "deep_link",
+        href: trialHref,
+        kind: "education",
+      })
+    }
   } else if (careSearchKeywords) {
+    const directoryQuery = careDirectoryQueryForMessage(trimmed)
+    pushUnique({
+      id: "open-care-directory",
+      label: "Open care directory",
+      description: "Search public provider, lab, imaging, and caregiver results with this request.",
+      actionType: "deep_link",
+      href: providerSearchHrefFromHandoff(directoryQuery, "chat"),
+      kind: "referral",
+    })
     pushUnique({
       id: "find-provider",
       label: "Find phone numbers",
@@ -284,6 +401,16 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       prompt: "Help me prepare a short call script for this appointment.",
       kind: "schedule",
     })
+    if (/\b(provider|physician|clinician|doctor|clinic).*\b(join|onboard|participate|network|referral)/.test(lowered) || providerNetworkKeywords) {
+      pushUnique({
+        id: "join-provider-network",
+        label: "Join as provider",
+        description: "Open provider onboarding for verified referral participation.",
+        actionType: "deep_link",
+        href: "/join-network",
+        kind: "referral",
+      })
+    }
   } else if (billingKeywords) {
     pushUnique({
       id: "open-billing",
@@ -302,6 +429,14 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       kind: "referral",
     })
   } else if (agentId === "rx" || /\b(medication|prescription|drug|interaction|refill|pharmacy)\b/.test(lowered)) {
+    pushUnique({
+      id: "open-pharmacy-search",
+      label: "Open pharmacy search",
+      description: "Search public pharmacy directory results with this request.",
+      actionType: "deep_link",
+      href: pharmacyHrefFromMessage(trimmed),
+      kind: "referral",
+    })
     pushUnique({
       id: "find-pharmacy",
       label: "Find pharmacy numbers",
@@ -338,6 +473,28 @@ export function buildActionPlan(message: string, agentId: string): ActionPlanIte
       actionType: "chat_prompt",
       prompt: "What warning signs would make this urgent?",
       kind: "message",
+    })
+  }
+
+  if (trialKeywords && !items.find((item) => item.id === "open-trials")) {
+    pushUnique({
+      id: "open-trials",
+      label: "Search trials",
+      description: "Open clinical trial candidates. This does not assert eligibility.",
+      actionType: "deep_link",
+      href: clinicalTrialsHrefFromMessage(trimmed),
+      kind: "education",
+    })
+  }
+
+  if (providerNetworkKeywords && !items.find((item) => item.id === "join-provider-network")) {
+    pushUnique({
+      id: "join-provider-network",
+      label: "Join as provider",
+      description: "Open provider onboarding for verified referral participation.",
+      actionType: "deep_link",
+      href: "/join-network",
+      kind: "referral",
     })
   }
 

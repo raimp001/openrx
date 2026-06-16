@@ -81,6 +81,17 @@ interface ChatMessage {
   timestamp: Date
 }
 
+function isClarifyingScreeningMessage(message: ChatMessage) {
+  return (
+    message.agentId === "screening" &&
+    message.content.includes("I need one missing detail before giving screening guidance safely")
+  )
+}
+
+function isCleanModelBusyMessage(message: ChatMessage) {
+  return message.content.trim() === CLEAN_MODEL_BUSY_MESSAGE
+}
+
 type StoredChatMessage = {
   id: string
   role: "user" | "agent" | "system"
@@ -464,6 +475,41 @@ function CopyButton({ text }: { text: string }) {
 function StreamingCursor() {
   return (
     <span className="ml-0.5 inline-block h-[14px] w-[2px] translate-y-[2px] animate-pulse bg-cyan-300/80 align-middle" aria-hidden />
+  )
+}
+
+function SmartCareActions({
+  items,
+  onPrompt,
+  variant,
+}: {
+  items: ActionPlanItem[]
+  onPrompt: (prompt: string, targetAgentId?: ActionPlanItem["targetAgentId"]) => void
+  variant: "rail" | "dock"
+}) {
+  if (!items.length) return null
+
+  if (variant === "dock") {
+    return (
+      <div className="sticky bottom-[86px] z-20 mx-auto mb-2 w-full xl:hidden">
+        <ChatActionPlan items={items} title="Care actions" layout="dock" onPrompt={onPrompt} />
+      </div>
+    )
+  }
+
+  return (
+    <aside
+      data-testid="chat-smart-actions-rail"
+      aria-label="Care actions"
+      className="fixed right-5 top-24 z-20 hidden w-[330px] xl:block 2xl:right-[calc((100vw-1440px)/2+24px)]"
+    >
+      <div className="rounded-[24px] border border-white/12 bg-black/50 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+        <ChatActionPlan items={items} title="Care actions" layout="rail" onPrompt={onPrompt} />
+        <p className="px-3 pb-2 pt-3 text-[11px] leading-5 text-zinc-300">
+          These actions search public directories or prepare the next message. They do not place orders or confirm provider availability.
+        </p>
+      </div>
+    </aside>
   )
 }
 
@@ -891,7 +937,28 @@ export default function ChatPage() {
     messages.every((message) => message.id === "welcome") &&
     !isLoading &&
     !isLoadingConversation
-  const visibleMessages = showEmptyState ? [] : messages.filter((message) => message.id !== "welcome")
+  const visibleMessages = useMemo(
+    () => showEmptyState ? [] : messages.filter((message) => message.id !== "welcome"),
+    [messages, showEmptyState]
+  )
+  const latestActionItems = useMemo(() => {
+    if (isLoading) return []
+    const latest = [...visibleMessages]
+      .reverse()
+      .find((message) =>
+        message.role === "agent" &&
+        message.content.trim() &&
+        message.actionPlan?.length &&
+        streamingId !== message.id &&
+        !isClarifyingScreeningMessage(message) &&
+        !isCleanModelBusyMessage(message)
+      )
+    return latest?.actionPlan || []
+  }, [isLoading, streamingId, visibleMessages])
+
+  const handleActionPrompt = useCallback((prompt: string, targetAgentId?: ActionPlanItem["targetAgentId"]) => {
+    void sendMessage(prompt, targetAgentId)
+  }, [sendMessage])
 
   // One clean field — input and send button in a single container, with the
   // disclaimer as quiet text underneath rather than boxed inside.
@@ -960,7 +1027,7 @@ export default function ChatPage() {
           </button>
         )}
       </form>
-      <p className={cn("mt-2 px-3 text-center text-[11px] text-zinc-500", placement === "hero" && "hidden sm:block")}>
+      <p className={cn("mt-2 px-3 text-center text-[11px] text-zinc-300", placement === "hero" && "hidden sm:block")}>
         {isLoading
           ? "Press Esc to stop. Streaming the answer…"
           : "Guideline-linked answers, sources, and explicit links. Not a substitute for clinician judgment."}
@@ -1050,10 +1117,11 @@ export default function ChatPage() {
         </main>
       ) : (
         <>
+      <SmartCareActions items={latestActionItems} onPrompt={handleActionPrompt} variant="rail" />
       {/* Header */}
       <header className="flex items-center justify-between border-b border-white/10 pb-3 pt-4">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">Ask OpenRx</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">Ask OpenRx</p>
           <h1 className="text-[18px] font-semibold tracking-tight text-white">
             Clinical answers and care links
           </h1>
@@ -1146,18 +1214,16 @@ export default function ChatPage() {
             ? summarizeScreeningIntake(parseScreeningIntakeNarrative(recentUserContext).extracted)
             : null
           const hasScreeningInputs = Boolean(screeningInputSummary && !screeningInputSummary.startsWith("Limited context"))
-          const isClarifyingScreeningIntake =
-            msg.agentId === "screening" &&
-            msg.content.includes("I need one missing detail before giving screening guidance safely")
+          const isClarifyingScreeningIntake = isClarifyingScreeningMessage(msg)
           return (
             <article key={msg.id} data-testid="chat-message-agent" className="animate-fade-in space-y-3">
-              <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+              <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-300">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-200/15 bg-cyan-200/[0.06] text-cyan-300/80">
                   <Icon size={10} />
                 </span>
                 {meta?.label || "OpenRx"}
                 {isStreamingThis ? (
-                  <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-zinc-500">
+                  <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-zinc-300">
                     streaming…
                   </span>
                 ) : null}
@@ -1177,14 +1243,6 @@ export default function ChatPage() {
                     <ChatAnswer content={msg.content} />
                     {isStreamingThis ? <StreamingCursor /> : null}
                   </div>
-                  {msg.actionPlan && msg.actionPlan.length > 0 && !isStreamingThis && !isClarifyingScreeningIntake ? (
-                    <ChatActionPlan
-                      items={msg.actionPlan}
-                      onPrompt={(prompt, targetAgentId) => {
-                        void sendMessage(prompt, targetAgentId)
-                      }}
-                    />
-                  ) : null}
                   {safetyHold?.messageId === msg.id ? (
                     <RedFlagAlert
                       finding={safetyHold.finding}
@@ -1227,6 +1285,8 @@ export default function ChatPage() {
           {errorBanner}
         </div>
       ) : null}
+
+      <SmartCareActions items={latestActionItems} onPrompt={handleActionPrompt} variant="dock" />
 
       {/* Composer */}
       {renderComposer("thread")}

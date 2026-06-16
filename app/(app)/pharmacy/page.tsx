@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { BadgeCheck, Building2, Loader2, MapPin, Phone, Pill, Search, ShieldCheck } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
@@ -46,6 +47,8 @@ const EXAMPLE_QUERIES = [
 
 export default function PharmacyPage() {
   const { snapshot } = useLiveSnapshot()
+  const searchParams = useSearchParams()
+  const seededHandoffRef = useRef(false)
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<Pharmacy[]>([])
   const [count, setCount] = useState(0)
@@ -55,6 +58,7 @@ export default function PharmacyPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [error, setError] = useState("")
+  const [handoffNotice, setHandoffNotice] = useState("")
   const [selectedPharmacy, setSelectedPharmacy] = useState<string | null>(null)
 
   const profileLocation = snapshot.patient?.address || ""
@@ -110,6 +114,22 @@ export default function PharmacyPage() {
     },
     [query]
   )
+
+  useEffect(() => {
+    if (seededHandoffRef.current) return
+    seededHandoffRef.current = true
+
+    const nextQuery = (searchParams.get("q") || searchParams.get("query") || "").trim()
+    if (!nextQuery) return
+
+    setQuery(nextQuery)
+    if (searchParams.get("handoff")) {
+      setHandoffNotice("Loaded your chat context and started the pharmacy search here.")
+    }
+    if (searchParams.get("autorun") === "1" || searchParams.get("handoff") === "chat") {
+      void searchPharmacies(nextQuery)
+    }
+  }, [searchParams, searchPharmacies])
 
   function useProfileLocation() {
     if (!query.trim()) {
@@ -178,6 +198,7 @@ export default function PharmacyPage() {
           </button>
           <span className="text-[10px] text-muted">{profileLocation || "No profile address saved yet"}</span>
         </div>
+        {handoffNotice ? <p data-testid="pharmacy-handoff-notice" className="mt-3 text-xs text-accent">{handoffNotice}</p> : null}
         {error ? <p className="mt-3 text-xs text-soft-red">{error}</p> : null}
       </OpsPanel>
 

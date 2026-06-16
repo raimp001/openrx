@@ -3,6 +3,7 @@ import {
   PROVIDER_HANDOFF_STORAGE_KEY,
   SCREENING_HANDOFF_STORAGE_KEY,
 } from "@/lib/care-handoff"
+import { CLEAN_MODEL_BUSY_MESSAGE } from "@/lib/openclaw/model-boundary"
 
 type MockScreeningApisOptions = {
   localCareConnections?: unknown[]
@@ -645,6 +646,34 @@ test("chat renders structured screening sections and a citation rail", async ({ 
   const citations = page.getByTestId("chat-citation")
   await expect(citations.first()).toBeVisible()
   expect(await citations.count()).toBeGreaterThan(0)
+})
+
+test("chat surfaces smart care actions with directory links", async ({ page }) => {
+  await mockChatStream(page, () =>
+    "Answer\n\nColorectal screening may be due now.\n\nDue now\n\n- Colorectal cancer screening. Source: USPSTF 2021 · Grade B · https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening\n\nSafety note\n\nConfirm timing and options with a clinician."
+  )
+
+  await page.goto("/chat")
+  await page.getByTestId("chat-input").fill("What cancer screening does a 50-year-old woman need?")
+  await page.getByTestId("chat-send-button").click()
+
+  const actionPlan = page.getByTestId("chat-action-plan").first()
+  await expect(actionPlan).toContainText(/Care actions/)
+  const directoryAction = page.getByTestId("chat-action-plan-item").filter({ hasText: "Open care directory" }).first()
+  await expect(directoryAction).toHaveAttribute("href", /\/providers\?/)
+  await expect(directoryAction).toHaveAttribute("href", /handoff=screening/)
+  await expect(directoryAction).toHaveAttribute("href", /autorun=1/)
+})
+
+test("chat suppresses care actions for clean model busy state", async ({ page }) => {
+  await mockChatStream(page, () => CLEAN_MODEL_BUSY_MESSAGE)
+
+  await page.goto("/chat")
+  await page.getByTestId("chat-input").fill("What cancer screening does a 50-year-old woman need?")
+  await page.getByTestId("chat-send-button").click()
+
+  await expect(page.getByText(CLEAN_MODEL_BUSY_MESSAGE)).toBeVisible()
+  await expect(page.getByTestId("chat-action-plan")).toHaveCount(0)
 })
 
 test("chat retains compact screening clarification in place and suppresses premature care actions", async ({ page }) => {

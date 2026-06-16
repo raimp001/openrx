@@ -163,4 +163,8 @@ test("Clinical trial matching submits criteria and renders next-step context", a
     "href",
     "https://clinicaltrials.gov/study/NCT00000001"
   )
+
+  await page.goto("/clinical-trials?handoff=chat&autorun=1&condition=prostate%20cancer&location=Seattle")
+  await expect(page.getByTestId("trials-handoff-notice")).toContainText("Loaded your chat context")
+  await expect(page.getByText("Precision Screening Study")).toBeVisible()
 })

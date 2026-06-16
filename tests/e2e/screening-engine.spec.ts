@@ -326,10 +326,16 @@ test("chat screening questions stay in chat instead of forcing a screening-page 
 })
 
 test("screening care actions route to clinic search even from an older screening context", async () => {
-  const action = buildActionPlan("What cancer screening does a 50-year-old woman need?", "screening")
+  const actionPlan = buildActionPlan("What cancer screening does a 50-year-old woman need?", "screening")
+  const action = actionPlan
     .find((item) => item.id === "schedule-screening")
+  const directoryAction = actionPlan.find((item) => item.id === "open-care-directory")
 
   expect(action?.targetAgentId).toBe("scheduling")
+  expect(directoryAction?.actionType).toBe("deep_link")
+  expect(directoryAction?.href).toContain("/providers?")
+  expect(directoryAction?.href).toContain("handoff=screening")
+  expect(directoryAction?.href).toContain("autorun=1")
   const response = await runAgent({
     agentId: "screening",
     message: action?.prompt || "",

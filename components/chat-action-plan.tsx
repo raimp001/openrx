@@ -1,8 +1,9 @@
 "use client"
 
-import { ArrowRight, Calendar, ClipboardCheck, FlaskConical, MessageSquare, PhoneCall, Stethoscope } from "lucide-react"
+import { ArrowUpRight, Calendar, ClipboardCheck, FlaskConical, MessageSquare, PhoneCall, Stethoscope } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { ActionPlanItem } from "@/lib/care-handoff"
+import { cn } from "@/lib/utils"
 
 // Action card surfaced in chat answers — gives the user a clinically restrained
 // "do something next" prompt instead of leaving them with prose only.
@@ -21,28 +22,35 @@ interface ChatActionPlanProps {
   // Optional headline — defaults to a link-oriented label because these cards
   // are explicit exits from the chat, not hidden redirects.
   title?: string
+  layout?: "inline" | "rail" | "dock"
   testIdPrefix?: string
   onPrompt?: (prompt: string, targetAgentId?: ActionPlanItem["targetAgentId"]) => void
 }
 
-export function ChatActionPlan({ items, title = "Next step", testIdPrefix = "chat-action", onPrompt }: ChatActionPlanProps) {
+export function ChatActionPlan({ items, title = "Next step", layout = "inline", testIdPrefix = "chat-action", onPrompt }: ChatActionPlanProps) {
   if (!items.length) return null
   const allPromptActions = items.every((item) => item.actionType === "chat_prompt")
+  const isRail = layout === "rail"
+  const isDock = layout === "dock"
   return (
     <section
       data-testid={`${testIdPrefix}-plan`}
       aria-label={title}
-      className="rounded-[18px] border border-white/10 bg-[#0b0d0d]/82 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+      className={cn(
+        "border border-white/12 bg-[#0b0d0d]/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl",
+        isDock ? "rounded-[22px] p-3" : "rounded-[20px] p-3.5",
+        isRail && "bg-[#090b0b]/94"
+      )}
     >
       <header className="mb-2 flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-200">
           {title}
         </p>
-        <span className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+        <span className="text-[10px] uppercase tracking-[0.14em] text-zinc-400">
           {allPromptActions ? "stays here" : "sources + actions"}
         </span>
       </header>
-      <ul className="flex flex-wrap gap-2">
+      <ul className={cn(isDock ? "flex gap-2 overflow-x-auto pb-0.5" : "grid gap-2", layout === "inline" && "sm:grid-cols-2")}>
         {items.map((item) => {
           const Icon = KIND_ICON[item.kind]
           const href = item.href || "#"
@@ -52,20 +60,38 @@ export function ChatActionPlan({ items, title = "Next step", testIdPrefix = "cha
           const rel = external && !tel ? "noreferrer" : undefined
           const content = (
             <>
-              <Icon size={12} />
-              <span>{item.label}</span>
-              {item.actionType === "chat_prompt" ? null : <ArrowRight size={12} />}
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-200/16 bg-cyan-200/[0.08] text-cyan-100">
+                <Icon size={14} />
+              </span>
+              <span className={cn("min-w-0 flex-1", isDock && "w-36")}>
+                <span className="block truncate text-[13px] font-semibold text-zinc-50">{item.label}</span>
+                {!isDock ? (
+                  <span className="mt-0.5 block text-[11px] font-medium leading-5 text-zinc-300">
+                    {item.description}
+                  </span>
+                ) : null}
+              </span>
+              {item.actionType === "chat_prompt" ? null : (
+                <ArrowUpRight size={14} className="shrink-0 text-cyan-100/85" />
+              )}
             </>
           )
+          const itemClassName = cn(
+            "group flex h-full items-center gap-2.5 rounded-[15px] border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/35",
+            item.actionType === "chat_prompt"
+              ? "border-cyan-200/18 bg-cyan-200/[0.075] hover:border-cyan-200/38 hover:bg-cyan-200/[0.13]"
+              : "border-white/12 bg-white/[0.055] hover:border-white/25 hover:bg-white/[0.095]",
+            isDock ? "min-w-[210px]" : "w-full"
+          )
           return (
-            <li key={item.id}>
+            <li key={item.id} className={cn(isDock ? "shrink-0" : "min-w-0")}>
               {item.actionType === "chat_prompt" && item.prompt && onPrompt ? (
                 <button
                   type="button"
                   onClick={() => onPrompt(item.prompt!, item.targetAgentId)}
                   title={item.description}
                   data-testid={`${testIdPrefix}-plan-item`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/18 bg-cyan-200/[0.075] px-3 py-1.5 text-[12px] font-semibold text-cyan-100 transition hover:border-cyan-200/38 hover:bg-cyan-200/[0.13]"
+                  className={itemClassName}
                 >
                   {content}
                 </button>
@@ -76,7 +102,7 @@ export function ChatActionPlan({ items, title = "Next step", testIdPrefix = "cha
                   rel={rel}
                   title={item.description}
                   data-testid={`${testIdPrefix}-plan-item`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[12px] font-semibold text-zinc-100 transition hover:border-white/25 hover:bg-white/[0.09]"
+                  className={itemClassName}
                 >
                   {content}
                 </a>

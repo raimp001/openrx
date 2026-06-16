@@ -61,4 +61,8 @@ test("pharmacy finder works with natural-language and ZIP-only inputs", async ({
   await searchButton.click({ force: true })
   await expect(page.getByRole("heading", { name: "Hillsboro Pharmacy (97123)" })).toBeVisible()
   await expect(page.getByText("Need one more detail before search")).toHaveCount(0)
+
+  await page.goto("/pharmacy?handoff=chat&autorun=1&q=" + encodeURIComponent("Find pharmacy near Hillsboro OR"))
+  await expect(page.getByTestId("pharmacy-handoff-notice")).toContainText("Loaded your chat context")
+  await expect(page.getByRole("heading", { name: "Hillsboro Pharmacy (Find pharmacy near Hillsboro OR)" })).toBeVisible()
 })

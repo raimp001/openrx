@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ExternalLink, FlaskConical, Loader2, MapPin, Search, ShieldCheck, Sparkles } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
@@ -14,12 +15,15 @@ const SEARCH_EXAMPLES = [
 ]
 
 export default function ClinicalTrialsPage() {
+  const searchParams = useSearchParams()
+  const seededHandoffRef = useRef(false)
   const [condition, setCondition] = useState("")
   const [location, setLocation] = useState("")
   const [loading, setLoading] = useState(false)
   const [matches, setMatches] = useState<TrialMatch[]>([])
   const [hasSearched, setHasSearched] = useState(false)
   const [error, setError] = useState("")
+  const [handoffNotice, setHandoffNotice] = useState("")
 
   const searchTrials = useCallback(async (nextCondition = condition, nextLocation = location) => {
     if (!nextCondition.trim() && !nextLocation.trim()) {
@@ -49,6 +53,24 @@ export default function ClinicalTrialsPage() {
       setLoading(false)
     }
   }, [condition, location])
+
+  useEffect(() => {
+    if (seededHandoffRef.current) return
+    seededHandoffRef.current = true
+
+    const nextCondition = (searchParams.get("condition") || searchParams.get("q") || "").trim()
+    const nextLocation = (searchParams.get("location") || searchParams.get("zip") || "").trim()
+    if (!nextCondition && !nextLocation) return
+
+    setCondition(nextCondition)
+    setLocation(nextLocation)
+    if (searchParams.get("handoff")) {
+      setHandoffNotice("Loaded your chat context and started a directional trial search here. Eligibility still belongs to the study site.")
+    }
+    if (searchParams.get("autorun") === "1" || searchParams.get("handoff") === "chat") {
+      void searchTrials(nextCondition, nextLocation)
+    }
+  }, [searchParams, searchTrials])
 
   const searchSummary = useMemo(() => {
     if (!hasSearched) return "Search by condition, geography, or both."
@@ -159,6 +181,11 @@ export default function ClinicalTrialsPage() {
           ))}
         </div>
 
+        {handoffNotice ? (
+          <p data-testid="trials-handoff-notice" className="mt-4 text-sm text-accent">
+            {handoffNotice}
+          </p>
+        ) : null}
         {error ? <p className="mt-4 text-sm text-soft-red">{error}</p> : null}
       </ClinicalSection>
 

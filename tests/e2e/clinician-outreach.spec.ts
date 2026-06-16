@@ -124,7 +124,7 @@ test.describe("chat action plan", () => {
     ]).catch(() => undefined)
 
     if (await actionPlan.first().isVisible().catch(() => false)) {
-      await expect(actionPlan.first()).toContainText(/Next step/i)
+      await expect(actionPlan.first()).toContainText(/Care actions|Next step/i)
       await expect(page.getByTestId("chat-action-plan-item").first()).toBeVisible()
     }
   })

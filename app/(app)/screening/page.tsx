@@ -49,6 +49,7 @@ import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
 import { carePlanFromScreeningRecommendations } from "@/lib/care-plan"
 import { trackWorkflowEvent } from "@/lib/product-analytics"
 import { detectRedFlagText } from "@/lib/red-flag"
+import { usePrefetchLinks } from "@/lib/hooks/use-prefetch-links"
 import {
   PROVIDER_HANDOFF_STORAGE_KEY,
   SCREENING_HANDOFF_STORAGE_KEY,
@@ -165,6 +166,78 @@ const NARRATIVE_STARTERS = [
   "I am 39, current smoker, mother had breast cancer at 44.",
   "I am 67 with diabetes, hypertension, and prior abnormal colon polyp.",
 ]
+
+const SAFE_SCREENING_RETRY_MESSAGE =
+  "We couldn’t finish that request. Try again in a moment, or shorten your summary to age, sex used for screening, family history, mutations, and prior tests."
+const SAFE_PAYMENT_RETRY_MESSAGE =
+  "We couldn’t finish the payment step. Try again in a moment. No screening recommendation was changed."
+const SAFE_REFERRAL_RETRY_MESSAGE =
+  "We couldn’t finish the referral step. Try again in a moment. No PHI was transmitted."
+
+function formatGrade(value?: string): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  return /^grade\b/i.test(trimmed) ? trimmed : `Grade ${trimmed}`
+}
+
+function visibleSourceVersion(
+  rec: StructuredScreeningRecommendation,
+  source?: ReturnType<typeof getGuidelineSource>
+): string {
+  const version = rec.sourceVersion || source?.versionOrDate || ""
+  return version && version !== "not_implemented" ? version : "Clinician-review pathway"
+}
+
+function sourceUrlForRecommendation(
+  rec: StructuredScreeningRecommendation,
+  source?: ReturnType<typeof getGuidelineSource>
+): string | undefined {
+  return rec.sourceUrl || source?.url
+}
+
+function ScreeningPlanSkeleton() {
+  return (
+    <section
+      data-testid="screening-plan-skeleton"
+      aria-live="polite"
+      aria-label="Screening plan loading"
+      className="surface-card p-5 sm:p-6"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-xl flex-1">
+          <div className="orx-skeleton h-3 w-32 rounded-full" />
+          <div className="orx-skeleton mt-4 h-8 w-72 max-w-full rounded-lg" />
+          <div className="orx-skeleton mt-3 h-4 w-full rounded-full" />
+          <div className="orx-skeleton mt-2 h-4 w-4/5 rounded-full" />
+        </div>
+        <div className="grid w-full max-w-xs grid-cols-3 gap-2">
+          <div className="orx-skeleton h-8 rounded-full" />
+          <div className="orx-skeleton h-8 rounded-full" />
+          <div className="orx-skeleton h-8 rounded-full" />
+        </div>
+      </div>
+      <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {[0, 1].map((item) => (
+          <div key={item} className="rounded-[20px] border border-white/10 bg-white/[0.045] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="orx-skeleton h-5 w-44 rounded-lg" />
+              <div className="orx-skeleton h-6 w-20 rounded-full" />
+            </div>
+            <div className="mt-3 flex gap-2">
+              <div className="orx-skeleton h-6 w-24 rounded-full" />
+              <div className="orx-skeleton h-6 w-20 rounded-full" />
+              <div className="orx-skeleton h-6 w-28 rounded-full" />
+            </div>
+            <div className="orx-skeleton mt-4 h-4 w-full rounded-full" />
+            <div className="orx-skeleton mt-2 h-4 w-5/6 rounded-full" />
+            <div className="orx-skeleton mt-4 h-10 w-40 rounded-xl" />
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
 
 function formatWallet(address?: string): string {
   if (!address) return ""
@@ -372,6 +445,14 @@ export default function ScreeningPage() {
     () => assessment?.structuredRecommendations || [],
     [assessment?.structuredRecommendations]
   )
+  const sourcePrefetchUrls = useMemo(() => {
+    const recommendationUrls = structuredRecommendations
+      .map((rec) => sourceUrlForRecommendation(rec, getGuidelineSource(rec.sourceId)))
+      .filter((url): url is string => Boolean(url))
+    const evidenceUrls = evidenceCitations.map((citation) => citation.url)
+    return [...recommendationUrls, ...evidenceUrls]
+  }, [evidenceCitations, structuredRecommendations])
+  usePrefetchLinks(sourcePrefetchUrls, "screening-guideline-sources")
   const narrativeRedFlag = useMemo(() => detectRedFlagText(`${narrative} ${symptoms}`), [narrative, symptoms])
   const carePlanDraft = useMemo(
     () => structuredRecommendations.length > 0
@@ -471,7 +552,7 @@ export default function ScreeningPage() {
     setShowPaymentGate(true)
     if (data.fee) setFee(data.fee)
     if (data.recipientAddress) setRecipientAddress(data.recipientAddress)
-    setError(data.error || "Payment is required before personalized recommendations are generated.")
+    setError("Payment is required before advanced inherited-risk recommendations are released.")
   }
 
   async function ensureScreeningPaymentIntent(): Promise<PaymentRecord | null> {
@@ -499,7 +580,7 @@ export default function ScreeningPage() {
         recipientAddress?: string
       }
       if (!response.ok || data.error || !data.payment) {
-        throw new Error(data.error || "Failed to create screening payment intent.")
+        throw new Error("payment_intent_failed")
       }
 
       setPaymentIntent(data.payment)
@@ -509,8 +590,8 @@ export default function ScreeningPage() {
       setVerifyTxHash("")
       setPaymentReady(false)
       return data.payment
-    } catch (issue) {
-      setError(issue instanceof Error ? issue.message : "Failed to create screening payment intent.")
+    } catch {
+      setError(SAFE_PAYMENT_RETRY_MESSAGE)
       return null
     } finally {
       setCreatingIntent(false)
@@ -539,8 +620,8 @@ export default function ScreeningPage() {
         recipientAddress: intent.recipientAddress,
       })
       setVerifyTxHash(result.paymentId)
-    } catch (issue) {
-      setError(issue instanceof Error ? issue.message : "Failed to launch payment.")
+    } catch {
+      setError(SAFE_PAYMENT_RETRY_MESSAGE)
     } finally {
       setLaunchingPay(false)
     }
@@ -579,14 +660,14 @@ export default function ScreeningPage() {
       })
       const data = (await response.json()) as { error?: string }
       if (!response.ok || data.error) {
-        throw new Error(data.error || "Payment verification failed.")
+        throw new Error("payment_verification_failed")
       }
       setVerifyTxHash(txHash)
       setPaymentId(resolvedPaymentId)
       setPaymentReady(true)
-    } catch (issue) {
+    } catch {
       setPaymentReady(false)
-      setError(issue instanceof Error ? issue.message : "Payment verification failed.")
+      setError(SAFE_PAYMENT_RETRY_MESSAGE)
     } finally {
       setVerifyingPayment(false)
     }
@@ -718,7 +799,7 @@ export default function ScreeningPage() {
         return
       }
       if (!response.ok || data.error) {
-        throw new Error(data.error || "Failed to compute screening assessment.")
+        throw new Error("screening_assessment_failed")
       }
 
       setAssessment(data)
@@ -728,15 +809,8 @@ export default function ScreeningPage() {
       if (data.accessLevel === "deep") {
         setShowPaymentGate(false)
       }
-    } catch (issue) {
-      const message = issue instanceof Error ? issue.message : ""
-      if (!message || message.toLowerCase().includes("failed to compute screening assessment")) {
-        setError(
-          "Couldn’t generate recommendations yet. Try a short summary like: 'I am 58, father had prostate cancer at 52, BRCA2 mutation, former smoker.'"
-        )
-      } else {
-        setError(message)
-      }
+    } catch {
+      setError(SAFE_SCREENING_RETRY_MESSAGE)
     } finally {
       setRunning(false)
     }
@@ -790,16 +864,16 @@ export default function ScreeningPage() {
       })
       const data = (await response.json()) as { error?: string; message?: string; request?: { id: string; status: string } }
       if (!response.ok && !data.request) {
-        throw new Error(data.error || "Could not create the next-step request.")
+        throw new Error("next_step_failed")
       }
       setNextStepStatus((current) => ({
         ...current,
         [key]: data.message || `Request ${data.request?.id || ""} is ${data.request?.status || "requested"}.`,
       }))
-    } catch (issue) {
+    } catch {
       setNextStepStatus((current) => ({
         ...current,
-        [key]: issue instanceof Error ? issue.message : "Could not create the next-step request.",
+        [key]: "Couldn’t prepare that request. Try again in a moment.",
       }))
     }
   }
@@ -861,7 +935,7 @@ export default function ScreeningPage() {
       })
       const data = (await response.json()) as ScreeningReferralPreviewResponse
       if (!response.ok || data.error) {
-        throw new Error(data.error || "Could not prepare referral consent.")
+        throw new Error("referral_preview_failed")
       }
       setReferralPanel({
         recommendationId: rec.id,
@@ -878,14 +952,14 @@ export default function ScreeningPage() {
         referralTargets: data.referralTargets.length,
         contactOnly: data.seededContactOnly.length,
       })
-    } catch (issue) {
+    } catch {
       setReferralPanel({
         recommendationId: rec.id,
         action,
         loading: false,
         consentAccepted: false,
         selectedProviderId: "",
-        error: issue instanceof Error ? issue.message : "Could not prepare referral consent.",
+        error: SAFE_REFERRAL_RETRY_MESSAGE,
       })
     }
   }
@@ -915,7 +989,7 @@ export default function ScreeningPage() {
       })
       const data = (await response.json()) as ScreeningReferralPreviewResponse
       if (!response.ok || data.error) {
-        throw new Error(data.error || "Referral could not be created.")
+        throw new Error("referral_create_failed")
       }
       setReferralPanel((current) => current ? {
         ...current,
@@ -927,11 +1001,11 @@ export default function ScreeningPage() {
         surface: "screening",
         recommendationId: referralPanel.recommendationId,
       })
-    } catch (issue) {
+    } catch {
       setReferralPanel((current) => current ? {
         ...current,
         loading: false,
-        error: issue instanceof Error ? issue.message : "Referral could not be created, and no PHI was transmitted.",
+        error: SAFE_REFERRAL_RETRY_MESSAGE,
       } : current)
     }
   }
@@ -1374,10 +1448,18 @@ export default function ScreeningPage() {
             {assessment ? <span className="rounded-full border border-white/12 bg-white/8 px-2 py-1 text-[10px] font-bold uppercase text-white/70">preview ready</span> : null}
           </div>
           {!assessment ? (
-            <div className="space-y-3 text-xs leading-6 text-white/66">
-              <p>Run the free preview to see likely next steps.</p>
-              <p>No wallet is required. Only the details in your sentence are used.</p>
-            </div>
+            running ? (
+              <div className="space-y-3" data-testid="screening-next-steps-skeleton">
+                <div className="orx-skeleton h-4 w-44 rounded-full bg-white/15" />
+                <div className="orx-skeleton h-16 rounded-[16px] bg-white/12" />
+                <div className="orx-skeleton h-16 rounded-[16px] bg-white/12" />
+              </div>
+            ) : (
+              <div className="space-y-3 text-xs leading-6 text-white/66">
+                <p>Run the free preview to see likely next steps.</p>
+                <p>No wallet is required. Only the details in your sentence are used.</p>
+              </div>
+            )
           ) : (
             <>
               <p className="text-sm leading-6 text-white/72">OpenRx found {structuredRecommendations.length || assessment.recommendedScreenings.length} possible care item{structuredRecommendations.length === 1 ? "" : "s"} from the information supplied.</p>
@@ -1417,6 +1499,8 @@ export default function ScreeningPage() {
           )}
         </div>
       </div>
+
+      {running && !assessment ? <ScreeningPlanSkeleton /> : null}
 
       {assessment && (
         <section className="reveal reveal-delay-1 surface-card p-5 sm:p-6">
@@ -1490,6 +1574,9 @@ export default function ScreeningPage() {
                           const requestKey = primaryAction ? `${rec.id}:${primaryAction}` : ""
                           const hasLocationContext = Boolean(locationZip.trim() || intakePreview?.location || snapshot.patient?.address?.trim())
                           const source = getGuidelineSource(rec.sourceId)
+                          const sourceUrl = sourceUrlForRecommendation(rec, source)
+                          const sourceVersion = visibleSourceVersion(rec, source)
+                          const gradeLabel = formatGrade(rec.evidenceGrade)
                           const activeReferralPanel = referralPanel?.recommendationId === rec.id ? referralPanel : null
                           return (
                             <div
@@ -1507,32 +1594,46 @@ export default function ScreeningPage() {
                               </div>
                               <div className="mt-2 flex flex-wrap gap-1.5">
                                 <span className="chip">{rec.riskCategory.replaceAll("_", " ")}</span>
-                                {rec.sourceUrl || source?.url ? (
+                                {sourceUrl ? (
                                   <a
-                                    href={rec.sourceUrl || source?.url}
+                                    href={sourceUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="chip hover:border-teal/30 hover:text-teal"
+                                    className="chip border-teal/20 bg-teal/10 text-teal hover:border-teal/40"
                                     data-testid="recommendation-source-link"
                                   >
                                     {rec.sourceSystem}
-                                    {rec.sourceVersion && rec.sourceVersion !== "not_implemented" ? ` · ${rec.sourceVersion}` : " source"}
+                                    <span data-testid="recommendation-source-version"> · {sourceVersion}</span>
                                     <ExternalLink size={10} />
                                   </a>
                                 ) : <span className="chip">Needs clinician review</span>}
-                                {rec.evidenceGrade ? (
-                                  <span className="chip" data-testid="recommendation-evidence-grade">Grade {rec.evidenceGrade}</span>
+                                {gradeLabel ? (
+                                  <span className="chip border-teal/20 bg-teal/10 text-teal" data-testid="recommendation-evidence-grade">{gradeLabel}</span>
                                 ) : null}
                                 {rec.suggestedTiming ? <span className="chip">{rec.suggestedTiming}</span> : null}
                                 {rec.requiresClinicianReview ? <span className="chip">clinician review</span> : null}
                               </div>
+                              <div
+                                data-testid="recommendation-trust-strip"
+                                className="mt-3 grid grid-cols-1 gap-2 rounded-[16px] border border-teal/15 bg-teal/[0.055] p-3 text-[11px] leading-5 text-secondary sm:grid-cols-3"
+                              >
+                                <span>
+                                  <span className="block font-bold uppercase tracking-[0.12em] text-teal">Source</span>
+                                  {rec.sourceSystem} · {sourceVersion}
+                                </span>
+                                <span>
+                                  <span className="block font-bold uppercase tracking-[0.12em] text-teal">Grade</span>
+                                  {gradeLabel || "Clinician review"}
+                                </span>
+                                <span>
+                                  <span className="block font-bold uppercase tracking-[0.12em] text-teal">Rule version</span>
+                                  <span className="font-mono text-[10px]" data-testid="recommendation-engine-stamp">
+                                    {rec.engineVersion || "unstamped"}
+                                  </span>
+                                </span>
+                              </div>
                               <p className="mt-3 text-sm leading-6 text-secondary">{rec.patientFriendlyExplanation}</p>
                               <p className="mt-2 text-xs leading-5 text-muted">{rec.rationale}</p>
-                              {rec.engineVersion ? (
-                                <p className="mt-2 font-mono text-[10px] tracking-wide text-subtle" data-testid="recommendation-engine-stamp">
-                                  {rec.engineVersion}
-                                </p>
-                              ) : null}
                               <div className="mt-4 rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-white/[0.045] p-3">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Next step</p>

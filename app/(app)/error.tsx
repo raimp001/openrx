@@ -19,7 +19,7 @@ export default function Error({
         <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">OpenRx recovery</p>
         <h2 className="mt-3 font-serif text-[2.2rem] leading-tight text-primary">This page stalled before it finished loading.</h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-secondary">
-          {error.message || "An unexpected error occurred. Retry first. If it persists, go back to the dashboard and re-enter the workflow from a stable page."}
+          Retry first. If it persists, go back to the dashboard and re-enter the workflow from a stable page.
         </p>
         {error.digest ? (
           <p className="mt-3 text-[11px] text-muted">Reference: {error.digest}</p>

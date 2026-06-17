@@ -436,49 +436,145 @@ a {
   }
 }
 
-body:not(:has([data-openrx-chat-workspace])) .bg-white,
-body:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,255,255"],
-body:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,247"],
-body:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,248"],
-body:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,239"],
-body:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,242"],
-body:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(247,250,255"],
-body:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(247,240"],
-body:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(239,246,255"] {
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .bg-white,
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,255,255"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,247"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,248"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,239"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,242"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(247,250,255"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(247,240"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(239,246,255"] {
   background-color: rgb(var(--color-surface-rgb) / 0.78) !important;
 }
 
-body:not(:has([data-openrx-chat-workspace])) [class*="bg-white/"] {
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-white/"] {
   background-color: rgb(255 255 255 / 0.065) !important;
 }
 
-body:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,255,255"],
-body:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(239,246,255"],
-body:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(239,250,247"],
-body:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,247"],
-body:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,248"],
-body:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,239"],
-body:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,242"],
-body:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(247,240"],
-body:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(244,236,224"] {
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,255,255"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(239,246,255"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(239,250,247"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,247"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,248"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,239"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,242"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(247,240"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(244,236,224"] {
   background: linear-gradient(180deg, rgb(var(--color-surface-rgb) / 0.94), rgb(var(--color-surface-muted-rgb) / 0.88)) !important;
 }
 
-body:not(:has([data-openrx-chat-workspace])) [class*="border-[rgba"] {
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-[rgba"] {
   border-color: rgb(var(--color-border-rgb) / 0.72) !important;
 }
 
-body:not(:has([data-openrx-chat-workspace])) [class*="hover:bg-white"]:hover,
-body:not(:has([data-openrx-chat-workspace])) [class*="hover:bg-[rgba"]:hover {
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="hover:bg-white"]:hover,
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="hover:bg-[rgba"]:hover {
   background-color: rgb(255 255 255 / 0.10) !important;
 }
 
-body:not(:has([data-openrx-chat-workspace])) .bg-primary.text-white,
-body:not(:has([data-openrx-chat-workspace])) .bg-navy.text-white,
-body:not(:has([data-openrx-chat-workspace])) .bg-teal.text-white,
-body:not(:has([data-openrx-chat-workspace])) .control-button-primary,
-body:not(:has([data-openrx-chat-workspace])) .control-button-accent {
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .bg-primary.text-white,
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .bg-navy.text-white,
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .bg-teal.text-white,
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .control-button-primary,
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .control-button-accent {
   color: #050505 !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-yellow-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-yellow-100"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-amber-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-amber-100"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-orange-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-orange-100"] {
+  background-color: rgb(var(--color-warning-rgb) / 0.16) !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-yellow-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-amber-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-orange-"] {
+  border-color: rgb(var(--color-warning-rgb) / 0.32) !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-yellow-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-amber-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-orange-"] {
+  color: #fde68a !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-red-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-red-100"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-rose-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-rose-100"] {
+  background-color: rgb(var(--color-danger-rgb) / 0.16) !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-red-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-rose-"] {
+  border-color: rgb(var(--color-danger-rgb) / 0.34) !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-red-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-rose-"] {
+  color: #fecaca !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-green-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-green-100"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-emerald-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-emerald-100"] {
+  background-color: rgb(var(--color-success-rgb) / 0.14) !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-green-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-emerald-"] {
+  border-color: rgb(var(--color-success-rgb) / 0.30) !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-green-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-emerald-"] {
+  color: #a7f3d0 !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-blue-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-blue-100"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-sky-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-sky-100"] {
+  background-color: rgb(96 165 250 / 0.14) !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-blue-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-sky-"] {
+  border-color: rgb(96 165 250 / 0.30) !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-blue-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-sky-"] {
+  color: #bfdbfe !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-slate-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-slate-100"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-gray-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-gray-100"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-zinc-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-zinc-100"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-neutral-50"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-neutral-100"] {
+  background-color: rgb(var(--color-surface-muted-rgb) / 0.72) !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-slate-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-gray-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-zinc-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-neutral-"] {
+  border-color: rgb(var(--color-border-rgb) / 0.86) !important;
+}
+
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-slate-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-gray-"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-neutral-"] {
+  color: rgb(var(--color-secondary-rgb)) !important;
 }
 
 .text-zinc-500 {

@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <Providers>
-    <div className="relative min-h-screen overflow-x-hidden">
+    <div data-openrx-app-shell className="relative min-h-screen overflow-x-hidden">
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>

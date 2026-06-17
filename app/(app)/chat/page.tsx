@@ -43,6 +43,7 @@ import { detectRedFlagText, type RedFlagResult } from "@/lib/red-flag"
 import { parseScreeningIntakeNarrative, summarizeScreeningIntake } from "@/lib/screening-intake"
 import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
 import { CLEAN_MODEL_BUSY_MESSAGE } from "@/lib/openclaw/model-boundary"
+import { usePrefetchLinks } from "@/lib/hooks/use-prefetch-links"
 
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
@@ -402,6 +403,7 @@ function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
 
 function ChatAnswer({ content }: { content: string }) {
   const parsed = useMemo(() => parseAnswer(content), [content])
+  usePrefetchLinks(parsed.citations.map((citation) => citation.url), "chat-guideline-citations")
   return (
     <div className="space-y-3">
       {parsed.sections.map((section, i) => (
@@ -792,7 +794,7 @@ export default function ChatPage() {
             signal: controller.signal,
           })
           const data = await fallbackRes.json()
-          const text = data.response || data.error || CLEAN_MODEL_BUSY_MESSAGE
+          const text = data.response || CLEAN_MODEL_BUSY_MESSAGE
           setMessages((prev) => prev.map((m) => (m.id === agentMsgId ? { ...m, content: text } : m)))
           trackWorkflowEvent("answer_generated", { surface: "chat", has_sources: text.includes("http") })
           if (data.conversationId && data.conversationId !== conversationId) {
@@ -846,12 +848,11 @@ export default function ChatPage() {
             }
           } else if (event === "error") {
             try {
-              const parsed = JSON.parse(data) as { message?: string }
               if (accumulated.length === 0) {
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === agentMsgId
-                      ? { ...m, content: parsed.message || CLEAN_MODEL_BUSY_MESSAGE }
+                      ? { ...m, content: CLEAN_MODEL_BUSY_MESSAGE }
                       : m
                   )
                 )

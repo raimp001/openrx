@@ -67,7 +67,11 @@ async function mockScreeningApis(page: Page, options: MockScreeningApisOptions =
             recommendedNextStep: "Request colonoscopy or discuss FIT/colonoscopy options with a clinician.",
             suggestedTiming: "Start now",
             sourceSystem: "USPSTF",
+            sourceId: "uspstf-crc-2021",
+            sourceVersion: "2021-05-18",
+            sourceUrl: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening",
             evidenceGrade: "B",
+            engineVersion: "openrx-screening-engine-2026-06-09",
             requiresClinicianReview: false,
             patientFriendlyExplanation: "Based on age, colorectal screening may be due now.",
             clinicianSummary: "USPSTF average-risk CRC screening; verify prior screening and symptoms.",
@@ -123,6 +127,11 @@ test("simple screening intake returns free recommendations", async ({ page }) =>
   await expect(page.getByTestId("screening-section-due_now")).toBeVisible()
   await expect(page.getByTestId("screening-recommendation-card")).toHaveCount(1)
   await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
+  await expect(page.getByTestId("recommendation-source-link")).toContainText("USPSTF")
+  await expect(page.getByTestId("recommendation-source-version")).toContainText("2021-05-18")
+  await expect(page.getByTestId("recommendation-evidence-grade")).toContainText("Grade B")
+  await expect(page.getByTestId("recommendation-engine-stamp")).toContainText("openrx-screening-engine-2026-06-09")
+  expect(await page.locator('head link[rel="prefetch"][href*="uspreventiveservicestaskforce"]').count()).toBeGreaterThan(0)
   await expect(page.getByText("Evidence Sources")).toBeVisible()
   await expect(page.getByText("Failed to compute screening assessment.")).toHaveCount(0)
   await expect(page.getByTestId("care-plan-preview")).toBeVisible()
@@ -132,6 +141,76 @@ test("simple screening intake returns free recommendations", async ({ page }) =>
   await page.getByRole("button", { name: "Generate Advanced Review" }).click()
   await expect(page.getByText("Complete payment before advanced review")).toBeVisible()
   await expect(page.getByText("Connect payment access to unlock advanced review.")).toBeVisible()
+})
+
+test("screening preview shows a content-shaped skeleton while recommendations load", async ({ page }) => {
+  await page.route(/\/api\/screening\/intake$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ready: true,
+        extracted: { age: 58, gender: "male", familyHistory: [], conditions: [], symptoms: [] },
+      }),
+    })
+  })
+  await page.route(/\/api\/screening\/assess$/, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 700))
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        patientId: "wallet-1234",
+        generatedAt: "2026-02-26T12:00:00.000Z",
+        overallRiskScore: 20,
+        riskTier: "average",
+        factors: [],
+        recommendedScreenings: [],
+        structuredRecommendations: [],
+        nextActions: [],
+        evidenceCitations: [],
+        accessLevel: "preview",
+        isPreview: true,
+      }),
+    })
+  })
+
+  await page.goto("/screening")
+  await page.getByTestId("screening-narrative-input").fill("I am 58 male.")
+  await page.getByTestId("screening-submit-preview").click()
+
+  await expect(page.getByTestId("screening-plan-skeleton")).toBeVisible()
+  await expect(page.getByTestId("screening-next-steps-skeleton")).toBeVisible()
+})
+
+test("screening dependency failure maps to safe retry copy without raw payload leakage", async ({ page }) => {
+  await page.route(/\/api\/screening\/intake$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ready: true,
+        extracted: { age: 58, gender: "male", familyHistory: [], conditions: [], symptoms: [] },
+      }),
+    })
+  })
+  await page.route(/\/api\/screening\/assess$/, async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "upstream_500 raw provider payload for age 58 male should never render",
+      }),
+    })
+  })
+
+  await page.goto("/screening")
+  await page.getByTestId("screening-narrative-input").fill("I am 58 male.")
+  await page.getByTestId("screening-submit-preview").click()
+
+  await expect(page.getByTestId("screening-error")).toContainText("We couldn’t finish that request")
+  await expect(page.getByText("upstream_500")).toHaveCount(0)
+  await expect(page.getByText("raw provider payload")).toHaveCount(0)
 })
 
 test("free screening with ZIP shows nearby care matches in preview", async ({ page }) => {
@@ -663,6 +742,7 @@ test("chat surfaces smart care actions with directory links", async ({ page }) =
   await expect(directoryAction).toHaveAttribute("href", /\/providers\?/)
   await expect(directoryAction).toHaveAttribute("href", /handoff=screening/)
   await expect(directoryAction).toHaveAttribute("href", /autorun=1/)
+  expect(await page.locator('head link[rel="prefetch"][href*="uspreventiveservicestaskforce"]').count()).toBeGreaterThan(0)
 })
 
 test("chat suppresses care actions for clean model busy state", async ({ page }) => {

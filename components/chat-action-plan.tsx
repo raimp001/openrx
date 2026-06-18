@@ -37,16 +37,16 @@ export function ChatActionPlan({ items, title = "Next step", layout = "inline", 
       data-testid={`${testIdPrefix}-plan`}
       aria-label={title}
       className={cn(
-        "border border-white/12 bg-[#0b0d0d]/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl",
-        isDock ? "rounded-[22px] p-3" : "rounded-[20px] p-3.5",
-        isRail && "bg-[#090b0b]/94"
+        "border border-white/12 bg-[#0b0d0d]/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl",
+        isDock ? "rounded-[22px] p-3" : "rounded-[22px] p-3",
+        isRail && "bg-[#090b0b]/90"
       )}
     >
-      <header className="mb-2 flex items-center justify-between">
+      <header className="mb-2.5 flex items-center justify-between gap-3 px-1">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-200">
           {title}
         </p>
-        <span className="text-[10px] uppercase tracking-[0.14em] text-zinc-400">
+        <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-zinc-400">
           {allPromptActions ? "stays here" : "sources + actions"}
         </span>
       </header>
@@ -60,7 +60,7 @@ export function ChatActionPlan({ items, title = "Next step", layout = "inline", 
           const rel = external && !tel ? "noreferrer" : undefined
           const content = (
             <>
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-200/16 bg-cyan-200/[0.08] text-cyan-100">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-200/16 bg-cyan-200/[0.10] text-cyan-100 transition group-hover:border-cyan-200/32 group-hover:bg-cyan-200/[0.16]">
                 <Icon size={14} />
               </span>
               <span className={cn("min-w-0 flex-1", isDock && "w-36")}>
@@ -77,10 +77,10 @@ export function ChatActionPlan({ items, title = "Next step", layout = "inline", 
             </>
           )
           const itemClassName = cn(
-            "group flex h-full items-center gap-2.5 rounded-[15px] border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/35",
+            "group flex h-full items-center gap-2.5 rounded-[16px] border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/35",
             item.actionType === "chat_prompt"
-              ? "border-cyan-200/18 bg-cyan-200/[0.075] hover:border-cyan-200/38 hover:bg-cyan-200/[0.13]"
-              : "border-white/12 bg-white/[0.055] hover:border-white/25 hover:bg-white/[0.095]",
+              ? "border-cyan-200/20 bg-cyan-200/[0.08] hover:border-cyan-200/40 hover:bg-cyan-200/[0.14]"
+              : "border-white/12 bg-white/[0.055] hover:border-cyan-200/28 hover:bg-white/[0.095]",
             isDock ? "min-w-[210px]" : "w-full"
           )
           return (

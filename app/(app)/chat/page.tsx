@@ -71,6 +71,37 @@ const SERVICE_LINKS: Array<{ label: string; description: string; prompt: string;
   },
 ]
 
+const TRUST_MARKERS = [
+  "Guideline-linked answers",
+  "Sources shown inline",
+  "Action links, not dead-end advice",
+  "Clinician judgment stays central",
+]
+
+const CARE_PATH_PREVIEW: Array<{ label: string; description: string; icon: typeof ShieldCheck }> = [
+  {
+    label: "Answer",
+    description: "Plain-language response with the clinical safety boundary visible.",
+    icon: Bot,
+  },
+  {
+    label: "Evidence",
+    description: "Guideline source, grade, and citation links stay attached.",
+    icon: ShieldCheck,
+  },
+  {
+    label: "Action",
+    description: "Open providers, labs, imaging, trials, pharmacy, or a call script.",
+    icon: Stethoscope,
+  },
+]
+
+const EXAMPLE_QUESTIONS = [
+  "45 male. What cancer screening is due?",
+  "Find a GI or colonoscopy center near 97123.",
+  "Help me message my PCP about mammogram options.",
+]
+
 interface ChatMessage {
   id: string
   role: "user" | "agent" | "system"
@@ -493,7 +524,7 @@ function SmartCareActions({
 
   if (variant === "dock") {
     return (
-      <div className="sticky bottom-[86px] z-20 mx-auto mb-2 w-full xl:hidden">
+      <div className="sticky bottom-[86px] z-20 mx-auto mb-2 w-full 2xl:hidden">
         <ChatActionPlan items={items} title="Care actions" layout="dock" onPrompt={onPrompt} />
       </div>
     )
@@ -503,10 +534,10 @@ function SmartCareActions({
     <aside
       data-testid="chat-smart-actions-rail"
       aria-label="Care actions"
-      className="fixed right-5 top-24 z-20 hidden w-[330px] xl:block 2xl:right-[calc((100vw-1440px)/2+24px)]"
+      className="fixed right-5 top-24 z-20 hidden w-[330px] 2xl:right-[calc((100vw-1440px)/2+24px)] 2xl:block"
     >
       <div className="rounded-[24px] border border-white/12 bg-black/50 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-        <ChatActionPlan items={items} title="Care actions" layout="rail" onPrompt={onPrompt} />
+        <ChatActionPlan items={items} title="Care actions" layout="rail" testIdPrefix="chat-rail-action" onPrompt={onPrompt} />
         <p className="px-3 pb-2 pt-3 text-[11px] leading-5 text-zinc-300">
           These actions search public directories or prepare the next message. They do not place orders or confirm provider availability.
         </p>
@@ -964,9 +995,12 @@ export default function ChatPage() {
   // One clean field — input and send button in a single container, with the
   // disclaimer as quiet text underneath rather than boxed inside.
   const renderComposer = (placement: "hero" | "thread") => (
-    <div className={cn(placement === "hero" ? "mx-auto w-full max-w-3xl" : "sticky bottom-2 mb-2")}>
+    <div className={cn(placement === "hero" ? "w-full" : "sticky bottom-2 mb-2")}>
       <form
-        className="flex items-end gap-2 rounded-[26px] border border-white/12 bg-[#0d0f0f]/95 px-4 py-2.5 shadow-[0_26px_90px_rgba(0,0,0,0.50)] backdrop-blur-xl transition focus-within:border-cyan-200/45 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.10),0_28px_92px_rgba(0,0,0,0.58)]"
+        className={cn(
+          "group flex items-end gap-2 border border-white/12 bg-[#0d0f0f]/95 px-4 shadow-[0_26px_90px_rgba(0,0,0,0.50)] backdrop-blur-xl transition focus-within:border-cyan-200/45 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.10),0_28px_92px_rgba(0,0,0,0.58)]",
+          placement === "hero" ? "rounded-[30px] py-3" : "rounded-[26px] py-2.5"
+        )}
         onSubmit={(event) => {
           event.preventDefault()
           void sendMessage()
@@ -1041,7 +1075,7 @@ export default function ChatPage() {
       data-openrx-chat-workspace
       className={cn(
         "relative isolate mx-auto flex min-h-screen animate-fade-in flex-col overflow-hidden bg-[#030303] px-4 text-zinc-100 sm:px-6",
-        showEmptyState ? "max-w-6xl justify-center" : "max-w-3xl"
+        showEmptyState ? "max-w-7xl justify-center" : "max-w-3xl"
       )}
     >
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_10%,rgba(103,232,249,0.10),transparent_32%),radial-gradient(circle_at_78%_68%,rgba(20,184,166,0.075),transparent_28%),linear-gradient(180deg,#030303_0%,#050505_58%,#070707_100%)]" />
@@ -1049,72 +1083,124 @@ export default function ChatPage() {
       {showEmptyState ? (
         <main
           data-testid="chat-empty-state"
-          className="flex min-h-screen flex-1 flex-col items-center justify-center px-3 py-12 text-center"
+          className="grid min-h-screen flex-1 items-center gap-8 px-2 py-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-6"
         >
-          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/35 px-3 py-1.5 text-[12px] font-medium text-zinc-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            {isConnected ? "Personalized workspace" : "Clinical answers + phone-number handoffs"}
-          </div>
-          <h1 className="max-w-3xl font-serif text-[clamp(2.3rem,5.2vw,4.1rem)] font-medium leading-[1.04] tracking-[-0.015em] text-white text-balance">
-            Ask a clinical question.
-          </h1>
-          <p className="mt-5 max-w-xl text-balance text-[15px] leading-7 text-zinc-300 sm:text-[17px]">
-            Get a sourced answer and a next step.
-          </p>
-
-          <div className="mt-10 w-full">{renderComposer("hero")}</div>
-
-          {errorBanner ? (
-            <div
-              role="alert"
-              data-testid="chat-error"
-              className="mt-3 flex max-w-3xl items-center gap-2 rounded-[10px] border border-red-400/25 bg-red-950/30 px-3 py-2 text-left text-[13px] text-red-100"
-            >
-              <AlertTriangle size={14} />
-              {errorBanner}
+          <section className="mx-auto w-full max-w-3xl lg:mx-0">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/35 px-3 py-1.5 text-[12px] font-medium text-zinc-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              {isConnected ? "Personalized workspace" : "Clinical answers + phone-number handoffs"}
             </div>
-          ) : null}
+            <h1 className="mt-7 max-w-3xl font-serif text-[clamp(2.8rem,7.4vw,5.7rem)] font-medium leading-[0.94] tracking-[-0.018em] text-white text-balance">
+              Ask a clinical question.
+            </h1>
+            <p className="mt-5 max-w-2xl text-balance text-[16px] leading-8 text-zinc-300 sm:text-[18px]">
+              OpenRx turns a plain-language question into a sourced answer, then gives you the next useful link: screening plan, provider, lab, pharmacy, clinical trial, or clinician message.
+            </p>
 
-          <nav
-            aria-label="Care service links"
-            className="mt-6 flex w-full max-w-3xl flex-wrap items-center justify-center gap-2"
-          >
-            {SERVICE_LINKS.map((item) => {
-              const Icon = item.icon
-              return (
-                <button
-                  key={item.label}
-                  type="button"
-                  title={item.description}
-                  onClick={() => {
-                    void sendMessage(item.prompt, item.agentId)
-                  }}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.03] px-4 py-2 text-[13px] font-medium text-zinc-200 transition hover:border-cyan-200/35 hover:text-cyan-100"
-                >
-                  <Icon size={14} className="text-cyan-200/80" />
-                  {item.label}
-                </button>
-              )
-            })}
-          </nav>
+            <div className="mt-9">{renderComposer("hero")}</div>
 
-          <div className="mt-6 flex max-w-3xl flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-zinc-400">
-            <span>Guideline-linked answers</span>
-            <span>Demo mode first</span>
-            <span>Wallet optional</span>
-            <span>No hidden data sale</span>
-            <span>Not a substitute for clinician judgment</span>
-          </div>
-          <div className="mt-7 w-full max-w-3xl rounded-[18px] border border-white/9 bg-white/[0.025] p-4 text-left">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Example result</p>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[13px] font-semibold text-white">Colorectal screening may be due</p>
-                <p className="mt-1 text-[12px] text-zinc-400">USPSTF · ask for FIT or colonoscopy options</p>
+            {errorBanner ? (
+              <div
+                role="alert"
+                data-testid="chat-error"
+                className="mt-3 flex max-w-3xl items-center gap-2 rounded-[10px] border border-red-400/25 bg-red-950/30 px-3 py-2 text-left text-[13px] text-red-100"
+              >
+                <AlertTriangle size={14} />
+                {errorBanner}
               </div>
-              <span className="rounded-full border border-cyan-200/16 bg-cyan-200/[0.07] px-3 py-1.5 text-[11px] font-semibold text-cyan-100">Add to Care Plan</span>
+            ) : null}
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-3" aria-label="Example questions">
+              {EXAMPLE_QUESTIONS.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  onClick={() => setInput(question)}
+                  className="min-h-[68px] rounded-[16px] border border-white/10 bg-white/[0.035] px-3 py-3 text-left text-[13px] font-medium leading-5 text-zinc-200 transition hover:border-cyan-200/28 hover:bg-cyan-200/[0.07] hover:text-cyan-50"
+                >
+                  {question}
+                </button>
+              ))}
             </div>
-          </div>
+
+            <nav
+              aria-label="Care service links"
+              className="mt-5 grid w-full gap-2 sm:grid-cols-3"
+            >
+              {SERVICE_LINKS.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    title={item.description}
+                    onClick={() => {
+                      void sendMessage(item.prompt, item.agentId)
+                    }}
+                    className="group flex min-h-[78px] items-start gap-3 rounded-[18px] border border-white/12 bg-white/[0.045] px-3.5 py-3 text-left transition hover:border-cyan-200/35 hover:bg-cyan-200/[0.075]"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyan-200/16 bg-cyan-200/[0.08] text-cyan-100">
+                      <Icon size={15} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[13px] font-semibold text-zinc-50">{item.label}</span>
+                      <span className="mt-0.5 block text-[11px] leading-5 text-zinc-400 group-hover:text-zinc-300">{item.description}</span>
+                    </span>
+                  </button>
+                )
+              })}
+            </nav>
+
+            <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-zinc-400">
+              {TRUST_MARKERS.map((marker) => (
+                <span key={marker} className="inline-flex items-center gap-1.5">
+                  <span className="h-1 w-1 rounded-full bg-cyan-200/70" />
+                  {marker}
+                </span>
+              ))}
+            </div>
+          </section>
+
+          <aside className="mx-auto w-full max-w-[380px] lg:mx-0" aria-label="OpenRx answer workflow">
+            <div className="overflow-hidden rounded-[28px] border border-white/12 bg-[#0b0d0d]/78 shadow-[0_30px_90px_rgba(0,0,0,0.46)] backdrop-blur-2xl">
+              <div className="border-b border-white/10 bg-white/[0.035] px-5 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">What happens next</p>
+                <p className="mt-2 text-[17px] font-semibold tracking-tight text-white">Answer, evidence, action.</p>
+              </div>
+              <div className="grid gap-3 p-4">
+                {CARE_PATH_PREVIEW.map((step, index) => {
+                  const Icon = step.icon
+                  return (
+                    <div key={step.label} className="relative rounded-[18px] border border-white/10 bg-white/[0.04] p-3.5">
+                      {index < CARE_PATH_PREVIEW.length - 1 ? (
+                        <span aria-hidden className="absolute left-[29px] top-[56px] h-6 w-px bg-white/12" />
+                      ) : null}
+                      <div className="flex gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-black">
+                          <Icon size={14} />
+                        </span>
+                        <span>
+                          <span className="block text-[13px] font-semibold text-zinc-50">{step.label}</span>
+                          <span className="mt-1 block text-[12px] leading-5 text-zinc-300">{step.description}</span>
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="border-t border-white/10 p-4">
+                <div className="rounded-[18px] border border-cyan-200/18 bg-cyan-200/[0.07] p-3.5">
+                  <p className="text-[12px] font-semibold text-cyan-50">Example output</p>
+                  <p className="mt-2 text-[13px] leading-6 text-zinc-200">Colorectal screening may be due. Source: USPSTF 2021, Grade B.</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-full border border-cyan-200/18 bg-black/24 px-2.5 py-1 text-[11px] font-semibold text-cyan-100">Find care</span>
+                    <span className="rounded-full border border-cyan-200/18 bg-black/24 px-2.5 py-1 text-[11px] font-semibold text-cyan-100">Open source</span>
+                    <span className="rounded-full border border-cyan-200/18 bg-black/24 px-2.5 py-1 text-[11px] font-semibold text-cyan-100">Call script</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
         </main>
       ) : (
         <>

@@ -84,6 +84,27 @@ CREATE TABLE IF NOT EXISTS consents (
 CREATE INDEX IF NOT EXISTS consents_patient_provider_granted_idx ON consents ("patientId", "providerId", "grantedAt");
 CREATE INDEX IF NOT EXISTS consents_scope_hash_idx ON consents ("scopeHash");
 
+ALTER TABLE IF EXISTS consents ADD COLUMN IF NOT EXISTS scope JSONB;
+ALTER TABLE IF EXISTS consents ADD COLUMN IF NOT EXISTS "recommendationId" TEXT;
+ALTER TABLE IF EXISTS consents ADD COLUMN IF NOT EXISTS "disclosurePayloadHash" TEXT;
+ALTER TABLE IF EXISTS consents ADD COLUMN IF NOT EXISTS "legalBasis" TEXT NOT NULL DEFAULT 'undetermined';
+ALTER TABLE IF EXISTS consents ADD COLUMN IF NOT EXISTS "consentTextVersion" TEXT;
+ALTER TABLE IF EXISTS consents ADD COLUMN IF NOT EXISTS "expiresAt" TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS consent_receipts (
+  id TEXT PRIMARY KEY,
+  "consentId" TEXT NOT NULL REFERENCES consents(id) ON DELETE CASCADE,
+  "patientId" TEXT NOT NULL,
+  "providerName" TEXT NOT NULL,
+  fields JSONB NOT NULL,
+  "grantedAt" TIMESTAMPTZ NOT NULL,
+  "sourceRec" JSONB NOT NULL,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS consent_receipts_consent_idx ON consent_receipts ("consentId");
+CREATE INDEX IF NOT EXISTS consent_receipts_patient_created_idx ON consent_receipts ("patientId", "createdAt");
+
 CREATE TABLE IF NOT EXISTS referral_requests (
   id TEXT PRIMARY KEY,
   "patientId" TEXT NOT NULL,

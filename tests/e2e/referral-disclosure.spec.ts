@@ -1,8 +1,11 @@
 import { expect, test } from "@playwright/test"
 import {
   buildDisclosureAuditMetadata,
+  CONSENT_TEXT_VERSION,
   consentScopeMatchesDisclosure,
   createConsentScopeSnapshot,
+  narrowDisclosureScope,
+  requiredDisclosureFieldIds,
   resolveReferralDisclosureScope,
 } from "@/lib/referral-disclosure"
 import type { ScreeningIntake, ScreeningRecommendation } from "@/lib/screening/types"
@@ -107,4 +110,78 @@ test("consent scope hash must match disclosed fields and audit metadata", () => 
     baaVersion: "baa-2026-06",
   })
   expect(JSON.stringify(audit)).toContain("intake.demographics.age")
+  expect(audit).toMatchObject({
+    disclosurePayloadHash: consent.disclosurePayloadHash,
+    consentTextVersion: CONSENT_TEXT_VERSION,
+    legalBasis: "undetermined",
+  })
+})
+
+test("optional fields can be narrowed and are removed from the payload hash", () => {
+  const fullScope = resolveReferralDisclosureScope({
+    recommendationId: "uspstf-colorectal-45-49",
+    recommendation,
+    intake,
+  })
+  const requiredOnly = narrowDisclosureScope({
+    scope: fullScope,
+    selectedFieldIds: requiredDisclosureFieldIds(fullScope),
+  })
+
+  expect(requiredOnly.fields.every((field) => field.required)).toBe(true)
+  expect(requiredOnly.fields.map((field) => field.path)).not.toContain("intake.priorScreening.colorectal")
+  expect(requiredOnly.disclosurePayloadHash).not.toBe(fullScope.disclosurePayloadHash)
+})
+
+test("deselecting a required field blocks disclosure", () => {
+  const fullScope = resolveReferralDisclosureScope({
+    recommendationId: "uspstf-colorectal-45-49",
+    recommendation,
+    intake,
+  })
+  const selected = requiredDisclosureFieldIds(fullScope).filter((fieldId) => fieldId !== "intake.demographics.age")
+
+  expect(() => narrowDisclosureScope({
+    scope: fullScope,
+    selectedFieldIds: selected,
+  })).toThrow(/missing required fields/)
+})
+
+test("client cannot widen disclosure outside the server whitelist", () => {
+  const fullScope = resolveReferralDisclosureScope({
+    recommendationId: "uspstf-colorectal-45-49",
+    recommendation,
+    intake,
+  })
+
+  expect(() => narrowDisclosureScope({
+    scope: fullScope,
+    selectedFieldIds: [...requiredDisclosureFieldIds(fullScope), "intake.rawNarrative.fullText"],
+  })).toThrow(/outside the server whitelist/)
+})
+
+test("consent persists recommendation binding legal basis expiry and selected field ids", () => {
+  const fullScope = resolveReferralDisclosureScope({
+    recommendationId: "uspstf-colorectal-45-49",
+    recommendation,
+    intake,
+  })
+  const narrowed = narrowDisclosureScope({
+    scope: fullScope,
+    selectedFieldIds: requiredDisclosureFieldIds(fullScope),
+  })
+  const consent = createConsentScopeSnapshot({
+    id: "consent_required_only",
+    patientId: "patient_1",
+    providerId: "provider_1",
+    scope: narrowed,
+    grantedAt: "2026-06-09T12:00:00.000Z",
+  })
+
+  expect(consent.recommendationId).toBe("uspstf-colorectal-45-49")
+  expect(consent.legalBasis).toBe("undetermined")
+  expect(consent.consentTextVersion).toBe(CONSENT_TEXT_VERSION)
+  expect(consent.expiresAt).toBeTruthy()
+  expect(consent.selectedFieldIds).toEqual(requiredDisclosureFieldIds(fullScope))
+  expect(consent.disclosurePayloadHash).toBe(narrowed.disclosurePayloadHash)
 })

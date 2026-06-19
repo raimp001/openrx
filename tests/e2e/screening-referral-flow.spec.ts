@@ -148,9 +148,11 @@ test("BRCA family-history risk assessment can preview genetic counseling disclos
     "recommendation.screeningName",
     "recommendation.sourceId",
     "recommendation.sourceVersion",
+    "recommendation.evidenceGrade",
     "intake.demographics.age",
     "intake.demographics.sexAtBirth",
     "intake.familyHistory.allCancerSignals",
     "intake.genetics.knownPathogenicVariants",
   ])
+  expect(plan.displayedFields.find((field) => field.path === "intake.familyHistory.allCancerSignals")?.required).toBe(true)
 })

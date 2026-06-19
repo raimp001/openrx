@@ -5,7 +5,7 @@ import { canUseWalletScopedData, requestWalletProofMatches, requireAuth } from "
 import { getDatabaseHealth } from "@/lib/database-health"
 import { prisma } from "@/lib/db"
 import { planPhiSafeNotification } from "@/lib/phi-safe-notifications"
-import { createConsentScopeSnapshot } from "@/lib/referral-disclosure"
+import { buildConsentReceipt, CONSENT_TEXT_VERSION, createConsentScopeSnapshot, narrowDisclosureScope } from "@/lib/referral-disclosure"
 import {
   createConsentedReferralRequestDraft,
   type ReferralProviderCandidate,
@@ -32,6 +32,7 @@ interface ReferralScreeningRequestBody {
   directoryMatches?: CareDirectoryMatch[]
   providerId?: string
   consentAccepted?: boolean
+  selectedFieldIds?: string[]
   displayedFields?: ScreeningReferralFieldPreview[]
 }
 
@@ -89,7 +90,8 @@ async function createReferral(params: {
   plan: ReturnType<typeof buildScreeningReferralPlan>
   provider: ReferralProviderCandidate
   patientId: string
-  displayedFields: ScreeningReferralFieldPreview[]
+  selectedFieldIds: string[]
+  displayedFields?: ScreeningReferralFieldPreview[]
 }) {
   if (!params.plan.recommendation || !params.plan.disclosureScope) {
     throw new Error("Referral plan is not supported for PHI disclosure.")
@@ -98,12 +100,27 @@ async function createReferral(params: {
   const now = new Date()
   const consentId = `consent_${crypto.randomUUID()}`
   const referralId = `ref_${crypto.randomUUID()}`
+  const selectedScope = narrowDisclosureScope({
+    scope: params.plan.disclosureScope,
+    selectedFieldIds: params.selectedFieldIds,
+  })
+  const receipt = buildConsentReceipt({
+    consentId,
+    patientId: params.patientId,
+    providerName: params.provider.name,
+    recommendation: params.plan.recommendation,
+    scope: selectedScope,
+    grantedAt: now.toISOString(),
+  })
   const consent = createConsentScopeSnapshot({
     id: consentId,
     patientId: params.patientId,
     providerId: params.provider.id,
-    scope: params.plan.disclosureScope,
+    scope: selectedScope,
     grantedAt: now.toISOString(),
+    legalBasis: "undetermined",
+    consentTextVersion: CONSENT_TEXT_VERSION,
+    receipt,
   })
   const draft = createConsentedReferralRequestDraft({
     id: referralId,
@@ -112,6 +129,7 @@ async function createReferral(params: {
     recommendation: params.plan.recommendation,
     intake: params.plan.intake,
     consent,
+    selectedFieldIds: params.selectedFieldIds,
     displayedFields: params.displayedFields,
     now,
   })
@@ -180,6 +198,24 @@ async function createReferral(params: {
         providerId: draft.providerId,
         referralId: draft.id,
         consentId: draft.consentId,
+        eventType: "consent.granted",
+        actor: "patient",
+        metadata: cleanJson({
+          recommendationId: draft.recommendationId,
+          disclosurePayloadHash: draft.sharedDataScopeHash,
+          consentTextVersion: consent.consentTextVersion,
+          legalBasis: consent.legalBasis,
+          expiresAt: consent.expiresAt,
+          selectedFieldIds: consent.selectedFieldIds,
+        }),
+        createdAt: now,
+      },
+    })
+    await tx.providerAuditEventRecord.create({
+      data: {
+        providerId: draft.providerId,
+        referralId: draft.id,
+        consentId: draft.consentId,
         eventType: "referral.phi_disclosure",
         actor: "system",
         metadata: cleanJson(draft.auditMetadata),
@@ -226,11 +262,17 @@ async function createReferral(params: {
       recommendationId: draft.recommendationId,
       disclosureTemplateVersion: draft.disclosureTemplateVersion,
       scopeHash: draft.sharedDataScopeHash,
+      disclosurePayloadHash: draft.sharedDataScopeHash,
     },
     consent: {
       id: consent.id,
       scopeHash: consent.scopeHash,
+      disclosurePayloadHash: consent.disclosurePayloadHash,
       grantedAt: consent.grantedAt,
+      expiresAt: consent.expiresAt,
+      legalBasis: consent.legalBasis,
+      consentTextVersion: consent.consentTextVersion,
+      receipt: draft.receipt,
     },
     notificationCount: providerNotification.notification && patientNotification.notification ? 2 : 0,
   }
@@ -294,6 +336,9 @@ export async function POST(request: NextRequest) {
   if (!body.consentAccepted) {
     return safeError("Patient consent is required before any PHI is disclosed.")
   }
+  if (!Array.isArray(body.selectedFieldIds) || body.selectedFieldIds.length === 0) {
+    return safeError("Select the exact fields to share before creating the referral.")
+  }
   if (!body.providerId) {
     return safeError("Choose a verified OpenRx provider before creating the referral.")
   }
@@ -313,7 +358,8 @@ export async function POST(request: NextRequest) {
       plan,
       provider,
       patientId: patientId || plan.patientId,
-      displayedFields: body.displayedFields || [],
+      selectedFieldIds: body.selectedFieldIds,
+      displayedFields: body.displayedFields?.length ? body.displayedFields : undefined,
     })
     return NextResponse.json({
       ...baseResponse,

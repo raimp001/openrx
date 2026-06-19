@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { createConsentScopeSnapshot, resolveReferralDisclosureScope } from "@/lib/referral-disclosure"
+import { createConsentScopeSnapshot, narrowDisclosureScope, requiredDisclosureFieldIds, resolveReferralDisclosureScope } from "@/lib/referral-disclosure"
 import {
   buildPatientReferralShortlist,
   createConsentedReferralRequestDraft,
@@ -75,13 +75,18 @@ const intake: ScreeningIntake = {
   symptoms: {},
 }
 
-function consentFor(providerId = "provider_1") {
-  const scope = resolveReferralDisclosureScope({
+function consentFor(providerId = "provider_1", selectedFieldIds?: string[]) {
+  const fullScope = resolveReferralDisclosureScope({
     recommendationId: recommendation.id,
     recommendation,
     intake,
   })
+  const scope = narrowDisclosureScope({
+    scope: fullScope,
+    selectedFieldIds: selectedFieldIds || fullScope.fields.map((field) => field.path),
+  })
   return {
+    fullScope,
     scope,
     consent: createConsentScopeSnapshot({
       id: "consent_1",
@@ -121,6 +126,10 @@ test("ReferralRequest cannot be created without matching consent and exact scope
 
   expect(referral.status).toBe("requested")
   expect(referral.sharedDataScopeHash).toBe(scope.scopeHash)
+  expect(referral.receipt).toMatchObject({
+    consentId: "consent_1",
+    providerName: "OpenRx Gastroenterology",
+  })
   expect(referral.consentId).toBe("consent_1")
   expect(referral.auditMetadata).toMatchObject({
     recommendationId: recommendation.id,
@@ -203,6 +212,7 @@ test("consent screen field list must be byte-equal to transmitted fields", () =>
     recommendation,
     intake,
     consent,
+    selectedFieldIds: scope.fields.map((field) => field.path),
     displayedFields: displayedFields.slice(1),
     now: NOW,
   })).toThrow(/byte-equal/)
@@ -214,9 +224,51 @@ test("consent screen field list must be byte-equal to transmitted fields", () =>
     recommendation,
     intake,
     consent,
+    selectedFieldIds: scope.fields.map((field) => field.path),
     displayedFields,
     now: NOW,
   })
 
   expect(JSON.stringify(referral.transmittedFields.map((field) => ({ path: field.path, label: field.label })))).toBe(JSON.stringify(displayedFields))
+})
+
+test("optional field removed from consent is not transmitted", () => {
+  const provider = activeProvider()
+  const fullScope = resolveReferralDisclosureScope({
+    recommendationId: recommendation.id,
+    recommendation,
+    intake,
+  })
+  const requiredOnlyIds = requiredDisclosureFieldIds(fullScope)
+  const { consent } = consentFor(provider.id, requiredOnlyIds)
+  const referral = createConsentedReferralRequestDraft({
+    id: "ref_required_only",
+    patientId: "patient_1",
+    provider,
+    recommendation,
+    intake,
+    consent,
+    selectedFieldIds: requiredOnlyIds,
+    now: NOW,
+  })
+
+  expect(referral.transmittedFields.every((field) => field.required)).toBe(true)
+  expect(referral.transmittedFields.map((field) => field.path)).not.toContain("intake.priorScreening.colorectal")
+  expect(referral.sharedDataScopeHash).toBe(consent.disclosurePayloadHash)
+})
+
+test("binding prevents consent reuse across provider or recommendation", () => {
+  const provider = activeProvider()
+  const { consent } = consentFor("provider_a")
+
+  expect(() => createConsentedReferralRequestDraft({
+    id: "ref_wrong_provider",
+    patientId: "patient_1",
+    provider,
+    recommendation,
+    intake,
+    consent,
+    selectedFieldIds: consent.selectedFieldIds,
+    now: NOW,
+  })).toThrow(/does not match/)
 })

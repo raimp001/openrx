@@ -6,14 +6,18 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  Check,
+  ClipboardCheck,
   CreditCard,
   ExternalLink,
+  FileText,
   Loader2,
   MapPin,
   Phone,
   Search,
   ShieldCheck,
   Wallet,
+  X,
 } from "lucide-react"
 import { AppPageHeader } from "@/components/layout/app-page"
 import { BaseUsdcTransaction } from "@/components/payments/base-usdc-transaction"
@@ -119,7 +123,11 @@ interface ScreeningReferralPreviewResponse {
   patientId: string
   databaseReady?: boolean
   databaseMessage?: string
-  displayedFields: Array<{ path: string; label: string }>
+  displayedFields: Array<{ path: string; label: string; value: unknown; required: boolean; requiredReason?: string }>
+  disclosurePayloadHash?: string
+  disclosureTemplateVersion?: string
+  consentTextVersion?: string
+  legalBasis?: "undetermined"
   requiredServices: string[]
   referralTargets: ReferralProviderOption[]
   seededContactOnly: ReferralProviderOption[]
@@ -143,7 +151,25 @@ interface ScreeningReferralPreviewResponse {
     consent: {
       id: string
       scopeHash: string
+      disclosurePayloadHash?: string
       grantedAt: string
+      expiresAt?: string
+      legalBasis?: "patient_directed" | "baa_governed" | "undetermined"
+      consentTextVersion?: string
+      receipt?: {
+        consentId: string
+        patientId: string
+        providerName: string
+        fields: Array<{ path: string; label: string; value: unknown; required: boolean }>
+        grantedAt: string
+        sourceRec: {
+          recommendationId: string
+          screeningName: string
+          sourceSystem: string
+          sourceVersion?: string
+          evidenceGrade?: string
+        }
+      }
     }
   }
   error?: string
@@ -153,7 +179,7 @@ interface ReferralPanelState {
   recommendationId: string
   action: ScreeningNextStep
   loading: boolean
-  consentAccepted: boolean
+  selectedFieldIds: string[]
   selectedProviderId: string
   preview?: ScreeningReferralPreviewResponse
   status?: string
@@ -243,6 +269,42 @@ function formatWallet(address?: string): string {
   if (!address) return ""
   if (address.length < 12) return address
   return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
+function formatDisclosureValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "Not reported"
+  if (typeof value === "boolean") return value ? "Yes" : "No"
+  if (typeof value === "number") return String(value)
+  if (typeof value === "string") return value
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "None reported"
+    return value
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") return String(entry)
+        const data = entry as Record<string, unknown>
+        return Object.entries(data)
+          .filter(([, item]) => item !== undefined && item !== null && item !== "")
+          .map(([key, item]) => `${key}: ${String(item)}`)
+          .join("; ")
+      })
+      .join(" | ")
+  }
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, item]) => item !== undefined && item !== null && item !== "")
+      .map(([key, item]) => `${key}: ${String(item)}`)
+    return entries.length ? entries.join("; ") : "None reported"
+  }
+  return String(value)
+}
+
+function requiredDisclosureIds(preview?: ScreeningReferralPreviewResponse): string[] {
+  return preview?.displayedFields.filter((field) => field.required).map((field) => field.path) || []
+}
+
+function selectedDisclosureFields(preview: ScreeningReferralPreviewResponse, selectedFieldIds: string[]) {
+  const selected = new Set(selectedFieldIds)
+  return preview.displayedFields.filter((field) => selected.has(field.path))
 }
 
 function isBaseTxHash(value: string): boolean {
@@ -916,7 +978,7 @@ export default function ScreeningPage() {
       recommendationId: rec.id,
       action,
       loading: true,
-      consentAccepted: false,
+      selectedFieldIds: [],
       selectedProviderId: "",
       status: "Checking verified referral options...",
     })
@@ -937,11 +999,12 @@ export default function ScreeningPage() {
       if (!response.ok || data.error) {
         throw new Error("referral_preview_failed")
       }
+      const defaultFieldIds = requiredDisclosureIds(data)
       setReferralPanel({
         recommendationId: rec.id,
         action,
         loading: false,
-        consentAccepted: false,
+        selectedFieldIds: defaultFieldIds,
         selectedProviderId: "",
         preview: data,
         status: data.message,
@@ -957,7 +1020,7 @@ export default function ScreeningPage() {
         recommendationId: rec.id,
         action,
         loading: false,
-        consentAccepted: false,
+        selectedFieldIds: [],
         selectedProviderId: "",
         error: SAFE_REFERRAL_RETRY_MESSAGE,
       })
@@ -965,7 +1028,15 @@ export default function ScreeningPage() {
   }
 
   async function submitReferralConsent() {
-    if (!referralPanel?.preview || !referralPanel.selectedProviderId || !referralPanel.consentAccepted) return
+    if (!referralPanel?.preview || !referralPanel.selectedProviderId) return
+    const missingRequired = requiredDisclosureIds(referralPanel.preview).filter((fieldId) => !referralPanel.selectedFieldIds.includes(fieldId))
+    if (missingRequired.length) {
+      setReferralPanel((current) => current ? {
+        ...current,
+        error: "Required fields were removed. Share them to continue, or decline the referral without sharing PHI.",
+      } : current)
+      return
+    }
     setReferralPanel((current) => current ? {
       ...current,
       loading: true,
@@ -983,8 +1054,8 @@ export default function ScreeningPage() {
           recommendationId: referralPanel.recommendationId,
           screeningInput: currentScreeningReferralInput(),
           providerId: referralPanel.selectedProviderId,
-          consentAccepted: referralPanel.consentAccepted,
-          displayedFields: referralPanel.preview.displayedFields,
+          consentAccepted: true,
+          selectedFieldIds: referralPanel.selectedFieldIds,
         }),
       })
       const data = (await response.json()) as ScreeningReferralPreviewResponse
@@ -1578,6 +1649,14 @@ export default function ScreeningPage() {
                           const sourceVersion = visibleSourceVersion(rec, source)
                           const gradeLabel = formatGrade(rec.evidenceGrade)
                           const activeReferralPanel = referralPanel?.recommendationId === rec.id ? referralPanel : null
+                          const activePreview = activeReferralPanel?.preview
+                          const selectedProvider = activePreview?.referralTargets.find((provider) => provider.id === activeReferralPanel?.selectedProviderId)
+                          const selectedFields = activePreview && activeReferralPanel
+                            ? selectedDisclosureFields(activePreview, activeReferralPanel.selectedFieldIds)
+                            : []
+                          const missingRequiredFields = activePreview && activeReferralPanel
+                            ? activePreview.displayedFields.filter((field) => field.required && !activeReferralPanel.selectedFieldIds.includes(field.path))
+                            : []
                           return (
                             <div
                               key={rec.id}
@@ -1689,23 +1768,27 @@ export default function ScreeningPage() {
                                 {activeReferralPanel && !activeReferralPanel.loading ? (
                                   <div
                                     data-testid="screening-referral-consent-panel"
-                                    className="mt-4 rounded-2xl border border-teal/20 bg-teal/5 p-3"
+                                    className="mt-4 overflow-hidden rounded-[24px] border border-white/12 bg-[#070b0b]/92 shadow-[0_22px_70px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl"
                                   >
                                     {activeReferralPanel.error ? (
-                                      <p className="text-xs leading-5 text-soft-red">{activeReferralPanel.error}</p>
+                                      <p className="m-4 rounded-[16px] border border-red-300/20 bg-red-400/[0.08] p-3 text-xs leading-5 text-red-100">{activeReferralPanel.error}</p>
                                     ) : null}
                                     {activeReferralPanel.preview ? (
-                                      <div className="space-y-3">
-                                        <div className="flex flex-wrap items-center justify-between gap-2">
-                                          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">
-                                            Referral consent
-                                          </p>
+                                      <div className="space-y-4 p-4">
+                                        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-3">
+                                          <div>
+                                            <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-cyan-100">
+                                              <ShieldCheck size={13} />
+                                              Consent preview
+                                            </p>
+                                            <p className="mt-1 text-sm font-semibold text-primary">Choose exactly what OpenRx may share.</p>
+                                          </div>
                                           {activeReferralPanel.preview.evidence?.sourceUrl ? (
                                             <a
                                               href={activeReferralPanel.preview.evidence.sourceUrl}
                                               target="_blank"
                                               rel="noreferrer"
-                                              className="chip hover:border-teal/30 hover:text-teal"
+                                              className="inline-flex items-center gap-1 rounded-full border border-cyan-200/20 bg-cyan-200/[0.08] px-2.5 py-1 text-[11px] font-semibold text-cyan-100 hover:border-cyan-200/40"
                                             >
                                               {activeReferralPanel.preview.evidence.sourceSystem} {activeReferralPanel.preview.evidence.evidenceGrade}
                                               <ExternalLink size={10} />
@@ -1718,16 +1801,21 @@ export default function ScreeningPage() {
 
                                         {activeReferralPanel.preview.referralTargets.length > 0 ? (
                                           <div className="space-y-2">
-                                            <p className="text-[11px] font-semibold text-primary">Choose a verified OpenRx provider</p>
+                                            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Choose one verified provider</p>
                                             {activeReferralPanel.preview.referralTargets.map((provider) => (
                                               <label
                                                 key={provider.id}
-                                                className="flex cursor-pointer items-start gap-2 rounded-xl border border-white/10 bg-white/[0.055] p-3"
+                                                className={cn(
+                                                  "flex cursor-pointer items-start gap-3 rounded-[18px] border p-3 transition",
+                                                  activeReferralPanel.selectedProviderId === provider.id
+                                                    ? "border-cyan-200/28 bg-cyan-200/[0.08]"
+                                                    : "border-white/10 bg-white/[0.045] hover:border-white/18 hover:bg-white/[0.07]"
+                                                )}
                                               >
                                                 <input
                                                   type="radio"
                                                   name={`referral-provider-${rec.id}`}
-                                                  className="mt-1"
+                                                  className="mt-1 accent-cyan-200"
                                                   checked={activeReferralPanel.selectedProviderId === provider.id}
                                                   onChange={() => setReferralPanel((current) => current ? {
                                                     ...current,
@@ -1737,8 +1825,9 @@ export default function ScreeningPage() {
                                                 />
                                                 <span className="min-w-0 flex-1">
                                                   <span className="block text-xs font-semibold text-primary">{provider.name}</span>
-                                                  <span className="mt-0.5 block text-[11px] text-teal">
-                                                    {provider.specialty || "OpenRx network provider"} · verified + BAA
+                                                  <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-cyan-200/18 bg-cyan-200/[0.08] px-2 py-0.5 text-[10px] font-semibold text-cyan-100">
+                                                    <ShieldCheck size={10} />
+                                                    {provider.specialty || "OpenRx network provider"} - verified + BAA
                                                   </span>
                                                   {provider.address ? (
                                                     <span className="mt-1 block text-[11px] text-muted">{provider.address}</span>
@@ -1769,10 +1858,10 @@ export default function ScreeningPage() {
 
                                         {activeReferralPanel.preview.seededContactOnly.length > 0 ? (
                                           <div className="space-y-2">
-                                            <p className="text-[11px] font-semibold text-primary">Public directory only</p>
+                                            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Public directory only</p>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                               {activeReferralPanel.preview.seededContactOnly.slice(0, 4).map((provider) => (
-                                                <div key={provider.id} className="rounded-xl border border-white/10 bg-white/[0.045] p-3">
+                                                <div key={provider.id} className="rounded-[16px] border border-white/10 bg-white/[0.04] p-3">
                                                   <p className="text-xs font-semibold text-primary">{provider.name}</p>
                                                   <p className="text-[11px] text-muted mt-1">{provider.statusLabel}</p>
                                                   {provider.phone ? <p className="text-[11px] text-muted mt-1">{provider.phone}</p> : null}
@@ -1783,56 +1872,169 @@ export default function ScreeningPage() {
                                         ) : null}
 
                                         {activeReferralPanel.preview.supported ? (
-                                          <div className="space-y-2">
-                                            <p className="text-[11px] font-semibold text-primary">
-                                              Exact fields OpenRx will disclose after consent
-                                            </p>
-                                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                                              {activeReferralPanel.preview.displayedFields.map((field) => (
-                                                <li
-                                                  key={field.path}
-                                                  data-testid="referral-disclosure-field"
-                                                  className="rounded-lg border border-white/10 bg-white/[0.045] px-2 py-1.5 text-[11px] text-secondary"
-                                                >
-                                                  <span className="font-semibold text-primary">{field.label}</span>
-                                                  <span className="block text-[10px] text-muted">{field.path}</span>
-                                                </li>
-                                              ))}
-                                            </ul>
-                                            <label className="flex items-start gap-2 text-[11px] leading-5 text-secondary">
-                                              <input
-                                                type="checkbox"
-                                                className="mt-1"
-                                                checked={activeReferralPanel.consentAccepted}
-                                                onChange={(event) => setReferralPanel((current) => current ? {
-                                                  ...current,
-                                                  consentAccepted: event.target.checked,
-                                                  error: undefined,
-                                                } : current)}
-                                              />
-                                              I consent to share exactly these fields with the provider I selected. I understand OpenRx is not placing a clinical order.
-                                            </label>
-                                            <button
-                                              type="button"
-                                              data-testid="referral-create-request"
-                                              disabled={
-                                                !activeReferralPanel.selectedProviderId ||
-                                                !activeReferralPanel.consentAccepted ||
-                                                Boolean(activeReferralPanel.preview.created)
-                                              }
-                                              onClick={() => void submitReferralConsent()}
-                                              className="inline-flex items-center gap-1 rounded-2xl bg-teal px-3 py-2 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
-                                            >
-                                              Create referral request
-                                              <ArrowRight size={12} />
-                                            </button>
+                                          <div className="space-y-3 rounded-[22px] border border-white/12 bg-white/[0.045] p-3">
+                                            <div className="grid gap-2 sm:grid-cols-3">
+                                              <div className="rounded-[16px] border border-white/10 bg-black/20 p-3">
+                                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-100">Who</p>
+                                                <p className="mt-1 text-sm font-semibold text-primary">{selectedProvider?.name || "Choose a verified provider"}</p>
+                                                <p className="mt-1 text-[11px] leading-5 text-secondary">
+                                                  {selectedProvider ? `${selectedProvider.specialty || "OpenRx network provider"} - verified + BAA` : "No PHI can move until one provider is selected."}
+                                                </p>
+                                              </div>
+                                              <div className="rounded-[16px] border border-white/10 bg-black/20 p-3">
+                                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-100">Why</p>
+                                                <p className="mt-1 text-sm font-semibold text-primary">{rec.screeningName}</p>
+                                                <p className="mt-1 text-[11px] leading-5 text-secondary">{rec.sourceSystem} - {sourceVersion} - {gradeLabel || "Clinician review"}</p>
+                                              </div>
+                                              <div className="rounded-[16px] border border-white/10 bg-black/20 p-3">
+                                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-100">Proof</p>
+                                                <p className="mt-1 break-all font-mono text-[10px] leading-5 text-secondary">
+                                                  {(activeReferralPanel.preview.disclosurePayloadHash || "").slice(0, 18) || "Preview hash"}...
+                                                </p>
+                                                <p className="mt-1 text-[11px] leading-5 text-secondary">
+                                                  Consent text {activeReferralPanel.preview.consentTextVersion || "versioned"}; legal basis {activeReferralPanel.preview.legalBasis || "undetermined"}.
+                                                </p>
+                                              </div>
+                                            </div>
+
+                                            <details className="group rounded-[18px] border border-white/10 bg-black/18 p-3" open>
+                                              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-left">
+                                                <span>
+                                                  <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
+                                                    <FileText size={13} />
+                                                    Exact payload values
+                                                  </span>
+                                                  <span className="mt-1 block text-[11px] leading-5 text-secondary">
+                                                    Required fields are the minimum needed for this referral. Optional fields start off and only share if you select them.
+                                                  </span>
+                                                </span>
+                                                <span className="rounded-full border border-white/10 bg-white/[0.05] px-2 py-1 text-[10px] font-semibold text-secondary">
+                                                  {selectedFields.length}/{activeReferralPanel.preview.displayedFields.length} selected
+                                                </span>
+                                              </summary>
+                                              <ul className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                                                {activeReferralPanel.preview.displayedFields.map((field) => {
+                                                  const checked = activeReferralPanel.selectedFieldIds.includes(field.path)
+                                                  return (
+                                                    <li
+                                                      key={field.path}
+                                                      data-testid="referral-disclosure-field"
+                                                      data-required={field.required ? "true" : "false"}
+                                                      className={cn(
+                                                        "rounded-[16px] border p-3 transition",
+                                                        checked ? "border-cyan-200/22 bg-cyan-200/[0.07]" : "border-white/10 bg-white/[0.035]"
+                                                      )}
+                                                    >
+                                                      <label className="flex cursor-pointer items-start gap-2">
+                                                        <input
+                                                          type="checkbox"
+                                                          className="mt-1"
+                                                          checked={checked}
+                                                          data-testid={field.required ? "referral-required-field-toggle" : "referral-optional-field-toggle"}
+                                                          onChange={(event) => setReferralPanel((current) => {
+                                                            if (!current) return current
+                                                            const next = new Set(current.selectedFieldIds)
+                                                            if (event.target.checked) next.add(field.path)
+                                                            else next.delete(field.path)
+                                                            return {
+                                                              ...current,
+                                                              selectedFieldIds: Array.from(next),
+                                                              error: undefined,
+                                                            }
+                                                          })}
+                                                        />
+                                                        <span className="min-w-0 flex-1">
+                                                          <span className="flex flex-wrap items-center gap-1.5 text-[12px] font-semibold text-primary">
+                                                            {field.label}
+                                                            <span className={cn(
+                                                              "rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em]",
+                                                              field.required ? "border-cyan-200/24 text-cyan-100" : "border-white/12 text-secondary"
+                                                            )}>
+                                                              {field.required ? "required" : "optional"}
+                                                            </span>
+                                                          </span>
+                                                          <span className="mt-1 block break-words text-[11px] leading-5 text-secondary">
+                                                            {formatDisclosureValue(field.value)}
+                                                          </span>
+                                                          <span className="mt-1 block break-all font-mono text-[10px] text-muted">{field.path}</span>
+                                                          {field.required && !checked ? (
+                                                            <span className="mt-2 block rounded-lg border border-amber-300/20 bg-amber-300/[0.08] px-2 py-1.5 text-[10.5px] leading-5 text-amber-100">
+                                                              {field.requiredReason || "This field is required to make the referral meaningful."}
+                                                            </span>
+                                                          ) : null}
+                                                        </span>
+                                                      </label>
+                                                    </li>
+                                                  )
+                                                })}
+                                              </ul>
+                                            </details>
+
+                                            <div className="rounded-[18px] border border-white/10 bg-black/18 p-3 text-[11px] leading-5 text-secondary">
+                                              <p className="flex items-start gap-2">
+                                                <ClipboardCheck size={14} className="mt-0.5 shrink-0 text-cyan-100" />
+                                                Share creates one consent for this provider and this recommendation only. OpenRx does not place an order.
+                                              </p>
+                                              <p className="mt-2 flex items-start gap-2">
+                                                <ShieldCheck size={14} className="mt-0.5 shrink-0 text-cyan-100" />
+                                                You can revoke future disclosures. Already-sent data cannot be recalled from the provider.
+                                              </p>
+                                            </div>
+
+                                            {missingRequiredFields.length ? (
+                                              <div
+                                                role="alert"
+                                                data-testid="referral-required-field-warning"
+                                                className="rounded-[16px] border border-amber-300/24 bg-amber-300/[0.08] p-3 text-[11px] leading-5 text-amber-100"
+                                              >
+                                                Share is paused because required fields were removed. Re-select them or decline without sharing.
+                                              </div>
+                                            ) : null}
+
+                                            <div className="grid gap-2 sm:grid-cols-2">
+                                              <button
+                                                type="button"
+                                                data-testid="referral-decline-share"
+                                                onClick={() => setReferralPanel(null)}
+                                                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border border-white/14 bg-white/[0.045] px-4 py-2 text-xs font-semibold text-primary transition hover:bg-white/[0.08]"
+                                              >
+                                                <X size={13} />
+                                                Decline / do not share
+                                              </button>
+                                              <button
+                                                type="button"
+                                                data-testid="referral-create-request"
+                                                disabled={
+                                                  !activeReferralPanel.selectedProviderId ||
+                                                  missingRequiredFields.length > 0 ||
+                                                  Boolean(activeReferralPanel.preview.created)
+                                                }
+                                                onClick={() => void submitReferralConsent()}
+                                                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border border-cyan-200/18 bg-cyan-200 px-4 py-2 text-xs font-semibold text-black transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                              >
+                                                <Check size={13} />
+                                                Share selected fields
+                                                <ArrowRight size={12} />
+                                              </button>
+                                            </div>
                                           </div>
                                         ) : null}
 
                                         {activeReferralPanel.preview.created ? (
-                                          <p className="rounded-xl border border-teal/20 bg-teal/10 p-3 text-xs leading-5 text-teal">
-                                            Referral {activeReferralPanel.preview.created.referral.id} is {activeReferralPanel.preview.created.referral.status}. Consent hash was captured before disclosure.
-                                          </p>
+                                          <div className="rounded-[20px] border border-emerald-300/20 bg-emerald-300/[0.08] p-4 text-xs leading-5 text-emerald-100">
+                                            <p className="flex items-center gap-2 font-semibold text-emerald-50">
+                                              <Check size={14} />
+                                              Consent receipt issued
+                                            </p>
+                                            <p className="mt-2">
+                                              Referral {activeReferralPanel.preview.created.referral.id} is {activeReferralPanel.preview.created.referral.status}. Payload hash {activeReferralPanel.preview.created.consent.disclosurePayloadHash || activeReferralPanel.preview.created.consent.scopeHash}.
+                                            </p>
+                                            {activeReferralPanel.preview.created.consent.receipt ? (
+                                              <p className="mt-2">
+                                                Shared {activeReferralPanel.preview.created.consent.receipt.fields.length} field(s) with {activeReferralPanel.preview.created.consent.receipt.providerName} for {activeReferralPanel.preview.created.consent.receipt.sourceRec.screeningName}.
+                                              </p>
+                                            ) : null}
+                                          </div>
                                         ) : null}
                                       </div>
                                     ) : null}

@@ -4,6 +4,8 @@ import type { ScreeningIntake, ScreeningRecommendation } from "@/lib/screening/t
 export interface DisclosureTemplateField {
   path: string
   label: string
+  required?: boolean
+  requiredReason?: string
 }
 
 export interface DisclosureTemplate {
@@ -15,6 +17,7 @@ export interface DisclosureTemplate {
 
 export interface ResolvedDisclosureField extends DisclosureTemplateField {
   value: unknown
+  required: boolean
 }
 
 export interface ResolvedDisclosureScope {
@@ -23,16 +26,45 @@ export interface ResolvedDisclosureScope {
   templateVersion: string
   fields: ResolvedDisclosureField[]
   scopeHash: string
+  disclosurePayloadHash: string
 }
 
 export interface ConsentScopeSnapshot {
   id: string
   patientId: string
   providerId: string
+  recommendationId: string
   scopeHash: string
+  disclosurePayloadHash: string
+  selectedFieldIds: string[]
   scope: ResolvedDisclosureScope
   grantedAt: string
+  expiresAt: string
+  revokedAt?: string
+  legalBasis: ConsentLegalBasis
+  consentTextVersion: string
+  receipt?: ConsentReceipt
 }
+
+export type ConsentLegalBasis = "patient_directed" | "baa_governed" | "undetermined"
+
+export interface ConsentReceipt {
+  consentId: string
+  patientId: string
+  providerName: string
+  fields: Array<{ path: string; label: string; value: unknown; required: boolean }>
+  grantedAt: string
+  sourceRec: {
+    recommendationId: string
+    screeningName: string
+    sourceSystem: string
+    sourceVersion?: string
+    evidenceGrade?: string
+  }
+}
+
+export const CONSENT_TEXT_VERSION = "openrx-referral-consent-2026-06-19"
+export const DEFAULT_CONSENT_EXPIRY_DAYS = 30
 
 export const REFERRAL_DISCLOSURE_TEMPLATES: DisclosureTemplate[] = [
   {
@@ -40,13 +72,13 @@ export const REFERRAL_DISCLOSURE_TEMPLATES: DisclosureTemplate[] = [
     version: "2026-06-09",
     recommendationIds: ["colon-screening", "uspstf-colorectal-45-49", "uspstf-average-risk-colorectal", "colorectal-cancer-screening"],
     fields: [
-      { path: "recommendation.id", label: "Recommendation ID" },
-      { path: "recommendation.screeningName", label: "Recommendation" },
-      { path: "recommendation.status", label: "Due status" },
-      { path: "recommendation.sourceId", label: "Guideline source" },
-      { path: "recommendation.sourceVersion", label: "Guideline version" },
-      { path: "recommendation.evidenceGrade", label: "Guideline grade" },
-      { path: "intake.demographics.age", label: "Age used by the rule" },
+      { path: "recommendation.id", label: "Recommendation ID", required: true, requiredReason: "Binds this disclosure to one recommendation only." },
+      { path: "recommendation.screeningName", label: "Recommendation", required: true, requiredReason: "The receiving provider needs to know the requested care-navigation task." },
+      { path: "recommendation.status", label: "Due status", required: true, requiredReason: "The referral reason depends on whether the screening is due or needs review." },
+      { path: "recommendation.sourceId", label: "Guideline source", required: true, requiredReason: "Every OpenRx recommendation must remain source-traceable." },
+      { path: "recommendation.sourceVersion", label: "Guideline version", required: true, requiredReason: "The provider should see which version produced the recommendation." },
+      { path: "recommendation.evidenceGrade", label: "Guideline grade", required: true, requiredReason: "The provider should see the recommendation strength shown to the patient." },
+      { path: "intake.demographics.age", label: "Age used by the rule", required: true, requiredReason: "Age is the core eligibility input for this screening recommendation." },
       { path: "intake.demographics.sexAtBirth", label: "Sex at birth, when relevant" },
       { path: "intake.personalHistory.colonPolyps", label: "Colon polyp history" },
       { path: "intake.personalHistory.advancedAdenoma", label: "Advanced adenoma history" },
@@ -66,13 +98,14 @@ export const REFERRAL_DISCLOSURE_TEMPLATES: DisclosureTemplate[] = [
       "hereditary-prostate-screening-review",
     ],
     fields: [
-      { path: "recommendation.id", label: "Recommendation ID" },
-      { path: "recommendation.screeningName", label: "Recommendation" },
-      { path: "recommendation.sourceId", label: "Guideline source" },
-      { path: "recommendation.sourceVersion", label: "Guideline version" },
-      { path: "intake.demographics.age", label: "Age used by the rule" },
+      { path: "recommendation.id", label: "Recommendation ID", required: true, requiredReason: "Binds this disclosure to one recommendation only." },
+      { path: "recommendation.screeningName", label: "Recommendation", required: true, requiredReason: "The receiving counselor needs the requested care-navigation task." },
+      { path: "recommendation.sourceId", label: "Guideline source", required: true, requiredReason: "Every OpenRx recommendation must remain source-traceable." },
+      { path: "recommendation.sourceVersion", label: "Guideline version", required: true, requiredReason: "The provider should see which version produced the recommendation." },
+      { path: "recommendation.evidenceGrade", label: "Guideline grade", required: true, requiredReason: "The provider should see the recommendation strength shown to the patient." },
+      { path: "intake.demographics.age", label: "Age used by the rule", required: true, requiredReason: "Age is part of the rule context shown for this referral." },
       { path: "intake.demographics.sexAtBirth", label: "Sex at birth, when relevant" },
-      { path: "intake.familyHistory.allCancerSignals", label: "Family cancer-history signals used by the rule" },
+      { path: "intake.familyHistory.allCancerSignals", label: "Family cancer-history signals used by the rule", required: true, requiredReason: "The counseling referral is based on the family-history signal." },
       { path: "intake.genetics.knownPathogenicVariants", label: "Known pathogenic variants reported by patient" },
     ],
   },
@@ -91,6 +124,31 @@ function stableJson(value: unknown): string {
 
 function hashValue(value: unknown): string {
   return crypto.createHash("sha256").update(stableJson(value)).digest("hex")
+}
+
+function canonicalDisclosurePayload(scope: Omit<ResolvedDisclosureScope, "scopeHash" | "disclosurePayloadHash">): Omit<ResolvedDisclosureScope, "scopeHash" | "disclosurePayloadHash"> {
+  return {
+    recommendationId: scope.recommendationId,
+    templateId: scope.templateId,
+    templateVersion: scope.templateVersion,
+    fields: scope.fields.map((field) => ({
+      path: field.path,
+      label: field.label,
+      value: field.value,
+      required: field.required,
+      ...(field.requiredReason ? { requiredReason: field.requiredReason } : {}),
+    })),
+  }
+}
+
+function withScopeHash(scope: Omit<ResolvedDisclosureScope, "scopeHash" | "disclosurePayloadHash">): ResolvedDisclosureScope {
+  const canonical = canonicalDisclosurePayload(scope)
+  const disclosurePayloadHash = hashValue(canonical)
+  return {
+    ...canonical,
+    scopeHash: disclosurePayloadHash,
+    disclosurePayloadHash,
+  }
 }
 
 function colorectalFamilyHistory(intake: ScreeningIntake): ScreeningIntake["familyHistory"] {
@@ -157,18 +215,46 @@ export function resolveReferralDisclosureScope(params: {
   const template = getDisclosureTemplateForRecommendation(params.recommendationId)
   const fields = template.fields.map((field) => ({
     ...field,
+    required: field.required === true,
     value: valueForPath(field.path, params.recommendation, params.intake),
   }))
-  const scopeWithoutHash = {
+  return withScopeHash({
     recommendationId: params.recommendationId,
     templateId: template.id,
     templateVersion: template.version,
     fields,
+  })
+}
+
+export function requiredDisclosureFieldIds(scope: ResolvedDisclosureScope): string[] {
+  return scope.fields.filter((field) => field.required).map((field) => field.path)
+}
+
+export function narrowDisclosureScope(params: {
+  scope: ResolvedDisclosureScope
+  selectedFieldIds: string[]
+  requireRequiredFields?: boolean
+}): ResolvedDisclosureScope {
+  const selected = new Set(params.selectedFieldIds)
+  const allowed = new Set(params.scope.fields.map((field) => field.path))
+  const invalid = params.selectedFieldIds.filter((fieldId) => !allowed.has(fieldId))
+  if (invalid.length) {
+    throw new Error(`Disclosure selection includes fields outside the server whitelist: ${invalid.join(", ")}`)
   }
-  return {
-    ...scopeWithoutHash,
-    scopeHash: hashValue(scopeWithoutHash),
+
+  const missingRequired = params.scope.fields
+    .filter((field) => field.required && !selected.has(field.path))
+    .map((field) => field.path)
+  if (missingRequired.length && params.requireRequiredFields !== false) {
+    throw new Error(`Disclosure selection is missing required fields: ${missingRequired.join(", ")}`)
   }
+
+  return withScopeHash({
+    recommendationId: params.scope.recommendationId,
+    templateId: params.scope.templateId,
+    templateVersion: params.scope.templateVersion,
+    fields: params.scope.fields.filter((field) => selected.has(field.path)),
+  })
 }
 
 export function createConsentScopeSnapshot(params: {
@@ -177,14 +263,27 @@ export function createConsentScopeSnapshot(params: {
   providerId: string
   scope: ResolvedDisclosureScope
   grantedAt: string
+  expiresAt?: string
+  legalBasis?: ConsentLegalBasis
+  consentTextVersion?: string
+  receipt?: ConsentReceipt
 }): ConsentScopeSnapshot {
+  const grantedAtMs = new Date(params.grantedAt).getTime()
+  const expiresAt = params.expiresAt || new Date(grantedAtMs + DEFAULT_CONSENT_EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString()
   return {
     id: params.id,
     patientId: params.patientId,
     providerId: params.providerId,
+    recommendationId: params.scope.recommendationId,
     scopeHash: params.scope.scopeHash,
+    disclosurePayloadHash: params.scope.disclosurePayloadHash,
+    selectedFieldIds: params.scope.fields.map((field) => field.path),
     scope: params.scope,
     grantedAt: params.grantedAt,
+    expiresAt,
+    legalBasis: params.legalBasis || "undetermined",
+    consentTextVersion: params.consentTextVersion || CONSENT_TEXT_VERSION,
+    ...(params.receipt ? { receipt: params.receipt } : {}),
   }
 }
 
@@ -207,9 +306,42 @@ export function buildDisclosureAuditMetadata(params: {
     disclosureTemplateVersion: params.scope.templateVersion,
     consentRecordId: params.consent.id,
     baaVersion: params.baaVersion,
+    disclosurePayloadHash: params.scope.disclosurePayloadHash,
+    consentTextVersion: params.consent.consentTextVersion,
+    legalBasis: params.consent.legalBasis,
     disclosedFields: params.scope.fields.map((field) => ({
       path: field.path,
       label: field.label,
+      required: field.required,
     })),
+  }
+}
+
+export function buildConsentReceipt(params: {
+  consentId: string
+  patientId: string
+  providerName: string
+  recommendation: ScreeningRecommendation
+  scope: ResolvedDisclosureScope
+  grantedAt: string
+}): ConsentReceipt {
+  return {
+    consentId: params.consentId,
+    patientId: params.patientId,
+    providerName: params.providerName,
+    fields: params.scope.fields.map((field) => ({
+      path: field.path,
+      label: field.label,
+      value: field.value,
+      required: field.required,
+    })),
+    grantedAt: params.grantedAt,
+    sourceRec: {
+      recommendationId: params.recommendation.id,
+      screeningName: params.recommendation.screeningName,
+      sourceSystem: params.recommendation.sourceSystem,
+      sourceVersion: params.recommendation.sourceVersion,
+      evidenceGrade: params.recommendation.evidenceGrade,
+    },
   }
 }

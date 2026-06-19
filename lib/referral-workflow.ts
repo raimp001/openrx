@@ -6,8 +6,10 @@ import {
   type ProviderComplianceRecord,
 } from "@/lib/provider-verification"
 import {
+  buildConsentReceipt,
   buildDisclosureAuditMetadata,
   consentScopeMatchesDisclosure,
+  narrowDisclosureScope,
   resolveReferralDisclosureScope,
   type ConsentScopeSnapshot,
   type ResolvedDisclosureScope,
@@ -46,6 +48,7 @@ export interface ConsentedReferralRequestDraft {
   consentTimestamp: string
   transmittedFields: Array<{ path: string; label: string; value: unknown }>
   auditMetadata: Record<string, unknown>
+  receipt: NonNullable<ConsentScopeSnapshot["receipt"]>
 }
 
 function includesRequestedService(provider: ReferralProviderCandidate, requiredServices: string[]): boolean {
@@ -101,6 +104,10 @@ function fieldListSnapshot(scope: ResolvedDisclosureScope): Array<{ path: string
   return scope.fields.map((field) => ({ path: field.path, label: field.label }))
 }
 
+function fieldValueSnapshot(scope: ResolvedDisclosureScope): Array<{ path: string; label: string; value: unknown; required: boolean }> {
+  return scope.fields.map((field) => ({ path: field.path, label: field.label, value: field.value, required: field.required }))
+}
+
 export function createConsentedReferralRequestDraft(params: {
   id: string
   patientId: string
@@ -108,14 +115,20 @@ export function createConsentedReferralRequestDraft(params: {
   recommendation: ScreeningRecommendation
   intake: ScreeningIntake
   consent?: ConsentScopeSnapshot
-  displayedFields: Array<{ path: string; label: string }>
+  selectedFieldIds?: string[]
+  displayedFields?: Array<{ path: string; label: string; value?: unknown; required?: boolean }>
   now?: Date
 }): ConsentedReferralRequestDraft {
   assertProviderCanReceivePhiReferral(params.provider)
-  const scope = resolveReferralDisclosureScope({
+  const fullScope = resolveReferralDisclosureScope({
     recommendationId: params.recommendation.id,
     recommendation: params.recommendation,
     intake: params.intake,
+  })
+  const selectedFieldIds = params.selectedFieldIds || params.displayedFields?.map((field) => field.path) || fullScope.fields.map((field) => field.path)
+  const scope = narrowDisclosureScope({
+    scope: fullScope,
+    selectedFieldIds,
   })
 
   if (!params.consent) {
@@ -128,10 +141,21 @@ export function createConsentedReferralRequestDraft(params: {
     throw new Error("Consent scope hash does not match the transmitted disclosure scope.")
   }
 
-  const displayed = JSON.stringify(params.displayedFields)
-  const transmitted = JSON.stringify(fieldListSnapshot(scope))
-  if (displayed !== transmitted) {
-    throw new Error("Displayed consent field list must be byte-equal to the transmitted field list.")
+  if (params.displayedFields) {
+    const displayedList = params.displayedFields.map((field) => ({ path: field.path, label: field.label }))
+    const transmittedList = fieldListSnapshot(scope)
+    if (JSON.stringify(displayedList) !== JSON.stringify(transmittedList)) {
+      throw new Error("Displayed consent field list must be byte-equal to the transmitted field list.")
+    }
+    const displayedValues = params.displayedFields.map((field) => ({
+      path: field.path,
+      label: field.label,
+      value: field.value,
+      required: field.required === true,
+    }))
+    if (params.displayedFields.some((field) => Object.prototype.hasOwnProperty.call(field, "value")) && JSON.stringify(displayedValues) !== JSON.stringify(fieldValueSnapshot(scope))) {
+      throw new Error("Displayed consent payload must be byte-equal to the transmitted payload.")
+    }
   }
 
   const baaVersion = params.provider.baa?.version
@@ -144,6 +168,14 @@ export function createConsentedReferralRequestDraft(params: {
     scope,
     consent: params.consent,
     baaVersion,
+  })
+  const receipt = params.consent.receipt || buildConsentReceipt({
+    consentId: params.consent.id,
+    patientId: params.patientId,
+    providerName: params.provider.name,
+    recommendation: params.recommendation,
+    scope,
+    grantedAt: params.consent.grantedAt,
   })
 
   return {
@@ -162,5 +194,6 @@ export function createConsentedReferralRequestDraft(params: {
     consentTimestamp: params.consent.grantedAt,
     transmittedFields: scope.fields,
     auditMetadata,
+    receipt,
   }
 }

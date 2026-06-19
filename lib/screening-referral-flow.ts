@@ -31,6 +31,9 @@ export interface ScreeningReferralEvidence {
 export interface ScreeningReferralFieldPreview {
   path: string
   label: string
+  value: unknown
+  required: boolean
+  requiredReason?: string
 }
 
 export interface ScreeningReferralProviderSummary {
@@ -58,6 +61,10 @@ export interface ScreeningReferralPlan {
   recommendation?: ScreeningRecommendation
   evidence?: ScreeningReferralEvidence
   disclosureScope?: ResolvedDisclosureScope
+  disclosurePayloadHash?: string
+  disclosureTemplateVersion?: string
+  consentTextVersion?: string
+  legalBasis?: "undetermined"
   displayedFields: ScreeningReferralFieldPreview[]
   requiredServices: string[]
   referralTargets: ScreeningReferralProviderSummary[]
@@ -410,7 +417,17 @@ export function buildScreeningReferralPlan(params: {
     recommendation,
     evidence,
     disclosureScope,
-    displayedFields: disclosureScope.fields.map((field) => ({ path: field.path, label: field.label })),
+    disclosurePayloadHash: disclosureScope.disclosurePayloadHash,
+    disclosureTemplateVersion: disclosureScope.templateVersion,
+    consentTextVersion: "openrx-referral-consent-2026-06-19",
+    legalBasis: "undetermined",
+    displayedFields: disclosureScope.fields.map((field) => ({
+      path: field.path,
+      label: field.label,
+      value: field.value,
+      required: field.required,
+      ...(field.requiredReason ? { requiredReason: field.requiredReason } : {}),
+    })),
     requiredServices,
     referralTargets: shortlist.referralTargets.map(summarizeProvider),
     seededContactOnly: shortlist.seededContactOnly.map(summarizeProvider),

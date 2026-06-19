@@ -18,6 +18,7 @@ import {
   FlaskConical,
   Heart,
   Loader2,
+  Menu,
   ExternalLink,
   AlertTriangle,
   CheckCircle2,
@@ -369,7 +370,7 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
         <p
           className={cn(
             "mb-2.5 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase",
-            boxed ? "tracking-[0.12em] text-current" : "tracking-[0.16em] text-zinc-500"
+            boxed ? "tracking-[0.12em] text-current" : "tracking-[0.16em] text-zinc-300"
           )}
         >
           {Icon ? <Icon size={12} /> : null}
@@ -383,7 +384,7 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
           // as part of the clinical sentence.
           if (/\bRule: |openrx-screening-engine-\d|openrx-hotfix-prevention-rules-\d/.test(block.text)) {
             return (
-              <p key={`b-${i}`} className={cn("font-mono text-[10.5px] tracking-wide text-zinc-500", block.kind === "bullet" && "pl-5")}>
+              <p key={`b-${i}`} className={cn("font-mono text-[10.5px] tracking-wide text-zinc-400", block.kind === "bullet" && "pl-5")}>
                 {block.text}
               </p>
             )
@@ -992,6 +993,10 @@ export default function ChatPage() {
     void sendMessage(prompt, targetAgentId)
   }, [sendMessage])
 
+  const openChatHistory = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("openrx:chat-history-open"))
+  }, [])
+
   // One clean field — input and send button in a single container, with the
   // disclaimer as quiet text underneath rather than boxed inside.
   const renderComposer = (placement: "hero" | "thread") => (
@@ -1080,6 +1085,17 @@ export default function ChatPage() {
     >
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_10%,rgba(103,232,249,0.10),transparent_32%),radial-gradient(circle_at_78%_68%,rgba(20,184,166,0.075),transparent_28%),linear-gradient(180deg,#030303_0%,#050505_58%,#070707_100%)]" />
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.7)_1px,transparent_1px)] [background-size:44px_44px]" />
+      {showEmptyState ? (
+        <button
+          type="button"
+          onClick={openChatHistory}
+          className="absolute left-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0b0b0b]/82 text-zinc-200 shadow-[0_12px_30px_rgba(0,0,0,0.26)] backdrop-blur-xl transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white lg:hidden"
+          aria-label="Open chat history"
+          data-testid="chat-history-mobile-trigger"
+        >
+          <Menu size={18} />
+        </button>
+      ) : null}
       {showEmptyState ? (
         <main
           data-testid="chat-empty-state"
@@ -1206,12 +1222,23 @@ export default function ChatPage() {
         <>
       <SmartCareActions items={latestActionItems} onPrompt={handleActionPrompt} variant="rail" />
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-white/10 pb-3 pt-4">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">Ask OpenRx</p>
-          <h1 className="text-[18px] font-semibold tracking-tight text-white">
-            Clinical answers and care links
-          </h1>
+      <header className="flex items-center justify-between gap-3 border-b border-white/10 pb-3 pt-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <button
+            type="button"
+            onClick={openChatHistory}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-zinc-200 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white lg:hidden"
+            aria-label="Open chat history"
+            data-testid="chat-history-mobile-trigger"
+          >
+            <Menu size={18} />
+          </button>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">Ask OpenRx</p>
+            <h1 className="truncate text-[18px] font-semibold tracking-tight text-white">
+              Answers + care links
+            </h1>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <span
@@ -1303,57 +1330,63 @@ export default function ChatPage() {
           const hasScreeningInputs = Boolean(screeningInputSummary && !screeningInputSummary.startsWith("Limited context"))
           const isClarifyingScreeningIntake = isClarifyingScreeningMessage(msg)
           return (
-            <article key={msg.id} data-testid="chat-message-agent" className="animate-fade-in space-y-3">
-              <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-300">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-200/15 bg-cyan-200/[0.06] text-cyan-300/80">
-                  <Icon size={10} />
-                </span>
-                {meta?.label || "OpenRx"}
-                {isStreamingThis ? (
-                  <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-zinc-300">
-                    streaming…
-                  </span>
-                ) : null}
-              </div>
-              {showEmptyStreamingIndicator ? (
-                <div className="flex items-center gap-1 text-[14px] text-zinc-400" data-testid="chat-loading">
-                  Thinking
-                  <span className="ml-1 inline-flex items-center gap-1">
-                    <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "0ms" }} />
-                    <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "120ms" }} />
-                    <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "240ms" }} />
-                  </span>
-                </div>
-              ) : (
-                <>
-                  <div className="relative">
-                    <ChatAnswer content={msg.content} />
-                    {isStreamingThis ? <StreamingCursor /> : null}
+            <article key={msg.id} data-testid="chat-message-agent" className="animate-fade-in">
+              <div className="rounded-[24px] border border-white/16 bg-[#101414]/96 p-4 shadow-[0_18px_70px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-sm">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-white/8 pb-3">
+                  <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-300">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-cyan-200/15 bg-cyan-200/[0.07] text-cyan-300/80">
+                      <Icon size={11} />
+                    </span>
+                    {meta?.label || "OpenRx"}
+                    {isStreamingThis ? (
+                      <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-zinc-300">
+                        streaming…
+                      </span>
+                    ) : null}
                   </div>
-                  {safetyHold?.messageId === msg.id ? (
-                    <RedFlagAlert
-                      finding={safetyHold.finding}
-                      acknowledged={safetyHold.acknowledged}
-                      onAcknowledge={() => setSafetyHold((current) => current ? { ...current, acknowledged: true } : current)}
-                    />
-                  ) : null}
-                  {carePlanDraft && !isStreamingThis && !isClarifyingScreeningIntake ? <CarePlanPreview draft={carePlanDraft} compact /> : null}
                   {!isStreamingThis && msg.content.trim() ? (
-                    <TrustDrawer
-                      sources={trustSources}
-                      inputsUsed={carePlanDraft ? [carePlanDraft.patientContextSummary] : hasScreeningInputs ? [screeningInputSummary!] : []}
-                      inputsNotUsed={carePlanDraft || hasScreeningInputs ? ["Insurance and payer network", "Full medical record"] : ["No saved patient profile required"]}
-                      phiSentToModel={msg.agentId !== "screening" && msg.agentId !== "scheduling" && msg.agentId !== "triage"}
-                      emergencyWarning={safetyHold?.messageId === msg.id ? safetyHold.finding.emergencyMessage : undefined}
-                      clinicianQuestions={carePlanDraft ? ["What screening interval applies to my history?", "Who can coordinate the next step?"] : []}
-                    />
+                    <div className="flex items-center gap-2">
+                      <CopyButton text={msg.content} />
+                      {!isClarifyingScreeningIntake ? <SupportOpenRx /> : null}
+                    </div>
                   ) : null}
-                  <div className="flex flex-wrap items-center gap-2">
-                    {!isStreamingThis && msg.content.trim() ? <CopyButton text={msg.content} /> : null}
-                    {!isStreamingThis && msg.content.trim() && !isClarifyingScreeningIntake ? <SupportOpenRx /> : null}
+                </div>
+                {showEmptyStreamingIndicator ? (
+                  <div className="flex items-center gap-1 py-2 text-[14px] text-zinc-400" data-testid="chat-loading">
+                    Thinking
+                    <span className="ml-1 inline-flex items-center gap-1">
+                      <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "0ms" }} />
+                      <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "120ms" }} />
+                      <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "240ms" }} />
+                    </span>
                   </div>
-                </>
-              )}
+                ) : (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <ChatAnswer content={msg.content} />
+                      {isStreamingThis ? <StreamingCursor /> : null}
+                    </div>
+                    {safetyHold?.messageId === msg.id ? (
+                      <RedFlagAlert
+                        finding={safetyHold.finding}
+                        acknowledged={safetyHold.acknowledged}
+                        onAcknowledge={() => setSafetyHold((current) => current ? { ...current, acknowledged: true } : current)}
+                      />
+                    ) : null}
+                    {carePlanDraft && !isStreamingThis && !isClarifyingScreeningIntake ? <CarePlanPreview draft={carePlanDraft} compact /> : null}
+                    {!isStreamingThis && msg.content.trim() ? (
+                      <TrustDrawer
+                        sources={trustSources}
+                        inputsUsed={carePlanDraft ? [carePlanDraft.patientContextSummary] : hasScreeningInputs ? [screeningInputSummary!] : []}
+                        inputsNotUsed={carePlanDraft || hasScreeningInputs ? ["Insurance and payer network", "Full medical record"] : ["No saved patient profile required"]}
+                        phiSentToModel={msg.agentId !== "screening" && msg.agentId !== "scheduling" && msg.agentId !== "triage"}
+                        emergencyWarning={safetyHold?.messageId === msg.id ? safetyHold.finding.emergencyMessage : undefined}
+                        clinicianQuestions={carePlanDraft ? ["What screening interval applies to my history?", "Who can coordinate the next step?"] : []}
+                      />
+                    ) : null}
+                  </div>
+                )}
+              </div>
             </article>
           )
         })}

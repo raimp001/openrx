@@ -8,7 +8,6 @@ import {
   Download,
   Folder,
   FolderPlus,
-  Menu,
   MoreHorizontal,
   Pencil,
   Pin,
@@ -188,15 +187,18 @@ export default function ChatHistorySidebar() {
 
   useEffect(() => {
     const refresh = () => void loadConversations()
+    const openHistory = () => setMobileOpen(true)
     const newChat = () => {
       router.push("/chat")
       setMobileOpen(false)
     }
     window.addEventListener("openrx:chat-history-refresh", refresh)
     window.addEventListener("openrx:new-chat", newChat)
+    window.addEventListener("openrx:chat-history-open", openHistory)
     return () => {
       window.removeEventListener("openrx:chat-history-refresh", refresh)
       window.removeEventListener("openrx:new-chat", newChat)
+      window.removeEventListener("openrx:chat-history-open", openHistory)
     }
   }, [loadConversations, router])
 
@@ -606,16 +608,6 @@ export default function ChatHistorySidebar() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 rounded-xl border border-white/10 bg-[#0b0b0b]/92 p-2.5 text-zinc-200 shadow-card transition hover:text-white lg:hidden"
-        aria-label="Open chat history"
-        data-testid="chat-history-mobile-toggle"
-      >
-        <Menu size={18} />
-      </button>
-
       {mobileOpen ? (
         <div
           className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"

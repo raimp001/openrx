@@ -50,7 +50,7 @@ export function ChatActionPlan({ items, title = "Next step", layout = "inline", 
           {allPromptActions ? "stays here" : "sources + actions"}
         </span>
       </header>
-      <ul className={cn(isDock ? "flex gap-2 overflow-x-auto pb-0.5" : "grid gap-2", layout === "inline" && "sm:grid-cols-2")}>
+      <ul className={cn(isDock ? "grid grid-cols-2 gap-2 pb-0.5" : "grid gap-2", layout === "inline" && "sm:grid-cols-2")}>
         {items.map((item) => {
           const Icon = KIND_ICON[item.kind]
           const href = item.href || "#"
@@ -63,8 +63,8 @@ export function ChatActionPlan({ items, title = "Next step", layout = "inline", 
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-200/16 bg-cyan-200/[0.10] text-cyan-100 transition group-hover:border-cyan-200/32 group-hover:bg-cyan-200/[0.16]">
                 <Icon size={14} />
               </span>
-              <span className={cn("min-w-0 flex-1", isDock && "w-36")}>
-                <span className="block truncate text-[13px] font-semibold text-zinc-50">{item.label}</span>
+              <span className="min-w-0 flex-1">
+                <span className={cn("block text-[13px] font-semibold text-zinc-50", isDock ? "line-clamp-2 leading-4" : "truncate")}>{item.label}</span>
                 {!isDock ? (
                   <span className="mt-0.5 block text-[11px] font-medium leading-5 text-zinc-300">
                     {item.description}
@@ -81,10 +81,11 @@ export function ChatActionPlan({ items, title = "Next step", layout = "inline", 
             item.actionType === "chat_prompt"
               ? "border-cyan-200/20 bg-cyan-200/[0.08] hover:border-cyan-200/40 hover:bg-cyan-200/[0.14]"
               : "border-white/12 bg-white/[0.055] hover:border-cyan-200/28 hover:bg-white/[0.095]",
-            isDock ? "min-w-[210px]" : "w-full"
+            isDock && "min-h-[64px]",
+            "w-full"
           )
           return (
-            <li key={item.id} className={cn(isDock ? "shrink-0" : "min-w-0")}>
+            <li key={item.id} className="min-w-0">
               {item.actionType === "chat_prompt" && item.prompt && onPrompt ? (
                 <button
                   type="button"

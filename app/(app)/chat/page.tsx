@@ -72,35 +72,10 @@ const SERVICE_LINKS: Array<{ label: string; description: string; prompt: string;
   },
 ]
 
-const TRUST_MARKERS = [
-  "Guideline-linked answers",
-  "Sources shown inline",
-  "Action links, not dead-end advice",
-  "Clinician judgment stays central",
-]
-
-const CARE_PATH_PREVIEW: Array<{ label: string; description: string; icon: typeof ShieldCheck }> = [
-  {
-    label: "Answer",
-    description: "Plain-language response with the clinical safety boundary visible.",
-    icon: Bot,
-  },
-  {
-    label: "Evidence",
-    description: "Guideline source, grade, and citation links stay attached.",
-    icon: ShieldCheck,
-  },
-  {
-    label: "Action",
-    description: "Open providers, labs, imaging, trials, pharmacy, or a call script.",
-    icon: Stethoscope,
-  },
-]
-
 const EXAMPLE_QUESTIONS = [
   "45 male. What cancer screening is due?",
-  "Find a GI or colonoscopy center near 97123.",
-  "Help me message my PCP about mammogram options.",
+  "Find care near 97123.",
+  "Draft a message to my PCP.",
 ]
 
 interface ChatMessage {
@@ -1099,21 +1074,21 @@ export default function ChatPage() {
       {showEmptyState ? (
         <main
           data-testid="chat-empty-state"
-          className="grid min-h-screen flex-1 items-center gap-8 px-2 py-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-6"
+          className="flex min-h-screen flex-1 items-center justify-center px-2 py-16 sm:py-10"
         >
-          <section className="mx-auto w-full max-w-3xl lg:mx-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/35 px-3 py-1.5 text-[12px] font-medium text-zinc-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <section className="mx-auto w-full max-w-3xl text-center">
+            <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-[11px] font-medium text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              {isConnected ? "Personalized workspace" : "Clinical answers + phone-number handoffs"}
-            </div>
-            <h1 className="mt-7 max-w-3xl font-serif text-[clamp(2.8rem,7.4vw,5.7rem)] font-medium leading-[0.94] tracking-[-0.018em] text-white text-balance">
-              Ask a clinical question.
+              {isConnected ? "Personalized" : "OpenRx"}
+            </p>
+            <h1 className="mx-auto mt-6 max-w-2xl font-serif text-[clamp(2.3rem,8vw,4.6rem)] font-medium leading-[0.98] text-white text-balance">
+              What do you need help with?
             </h1>
-            <p className="mt-5 max-w-2xl text-balance text-[16px] leading-8 text-zinc-300 sm:text-[18px]">
-              OpenRx turns a plain-language question into a sourced answer, then gives you the next useful link: screening plan, provider, lab, pharmacy, clinical trial, or clinician message.
+            <p className="mx-auto mt-4 max-w-xl text-balance text-[14px] leading-6 text-zinc-400 sm:text-[15px]">
+              Ask once. Get a sourced answer and the next useful action.
             </p>
 
-            <div className="mt-9">{renderComposer("hero")}</div>
+            <div className="mx-auto mt-8 max-w-2xl">{renderComposer("hero")}</div>
 
             {errorBanner ? (
               <div
@@ -1126,22 +1101,9 @@ export default function ChatPage() {
               </div>
             ) : null}
 
-            <div className="mt-5 grid gap-2 sm:grid-cols-3" aria-label="Example questions">
-              {EXAMPLE_QUESTIONS.map((question) => (
-                <button
-                  key={question}
-                  type="button"
-                  onClick={() => setInput(question)}
-                  className="min-h-[68px] rounded-[16px] border border-white/10 bg-white/[0.035] px-3 py-3 text-left text-[13px] font-medium leading-5 text-zinc-200 transition hover:border-cyan-200/28 hover:bg-cyan-200/[0.07] hover:text-cyan-50"
-                >
-                  {question}
-                </button>
-              ))}
-            </div>
-
             <nav
               aria-label="Care service links"
-              className="mt-5 grid w-full gap-2 sm:grid-cols-3"
+              className="mx-auto mt-4 flex max-w-2xl flex-wrap justify-center gap-2"
             >
               {SERVICE_LINKS.map((item) => {
                 const Icon = item.icon
@@ -1153,70 +1115,28 @@ export default function ChatPage() {
                     onClick={() => {
                       void sendMessage(item.prompt, item.agentId)
                     }}
-                    className="group flex min-h-[78px] items-start gap-3 rounded-[18px] border border-white/12 bg-white/[0.045] px-3.5 py-3 text-left transition hover:border-cyan-200/35 hover:bg-cyan-200/[0.075]"
+                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3.5 py-2 text-[12px] font-semibold text-zinc-100 transition hover:border-cyan-200/32 hover:bg-cyan-200/[0.08]"
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyan-200/16 bg-cyan-200/[0.08] text-cyan-100">
-                      <Icon size={15} />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[13px] font-semibold text-zinc-50">{item.label}</span>
-                      <span className="mt-0.5 block text-[11px] leading-5 text-zinc-400 group-hover:text-zinc-300">{item.description}</span>
-                    </span>
+                    <Icon size={14} className="text-cyan-100" />
+                    {item.label}
                   </button>
                 )
               })}
             </nav>
 
-            <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-zinc-400">
-              {TRUST_MARKERS.map((marker) => (
-                <span key={marker} className="inline-flex items-center gap-1.5">
-                  <span className="h-1 w-1 rounded-full bg-cyan-200/70" />
-                  {marker}
-                </span>
+            <div className="mx-auto mt-5 flex max-w-2xl flex-wrap justify-center gap-2" aria-label="Example questions">
+              {EXAMPLE_QUESTIONS.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  onClick={() => setInput(question)}
+                  className="rounded-full border border-white/10 bg-black/24 px-3 py-2 text-[12px] font-medium text-zinc-300 transition hover:border-cyan-200/28 hover:bg-cyan-200/[0.07] hover:text-cyan-50"
+                >
+                  {question}
+                </button>
               ))}
             </div>
           </section>
-
-          <aside className="mx-auto w-full max-w-[380px] lg:mx-0" aria-label="OpenRx answer workflow">
-            <div className="overflow-hidden rounded-[28px] border border-white/12 bg-[#0b0d0d]/78 shadow-[0_30px_90px_rgba(0,0,0,0.46)] backdrop-blur-2xl">
-              <div className="border-b border-white/10 bg-white/[0.035] px-5 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">What happens next</p>
-                <p className="mt-2 text-[17px] font-semibold tracking-tight text-white">Answer, evidence, action.</p>
-              </div>
-              <div className="grid gap-3 p-4">
-                {CARE_PATH_PREVIEW.map((step, index) => {
-                  const Icon = step.icon
-                  return (
-                    <div key={step.label} className="relative rounded-[18px] border border-white/10 bg-white/[0.04] p-3.5">
-                      {index < CARE_PATH_PREVIEW.length - 1 ? (
-                        <span aria-hidden className="absolute left-[29px] top-[56px] h-6 w-px bg-white/12" />
-                      ) : null}
-                      <div className="flex gap-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-black">
-                          <Icon size={14} />
-                        </span>
-                        <span>
-                          <span className="block text-[13px] font-semibold text-zinc-50">{step.label}</span>
-                          <span className="mt-1 block text-[12px] leading-5 text-zinc-300">{step.description}</span>
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="border-t border-white/10 p-4">
-                <div className="rounded-[18px] border border-cyan-200/18 bg-cyan-200/[0.07] p-3.5">
-                  <p className="text-[12px] font-semibold text-cyan-50">Example output</p>
-                  <p className="mt-2 text-[13px] leading-6 text-zinc-200">Colorectal screening may be due. Source: USPSTF 2021, Grade B.</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-cyan-200/18 bg-black/24 px-2.5 py-1 text-[11px] font-semibold text-cyan-100">Find care</span>
-                    <span className="rounded-full border border-cyan-200/18 bg-black/24 px-2.5 py-1 text-[11px] font-semibold text-cyan-100">Open source</span>
-                    <span className="rounded-full border border-cyan-200/18 bg-black/24 px-2.5 py-1 text-[11px] font-semibold text-cyan-100">Call script</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </aside>
         </main>
       ) : (
         <>

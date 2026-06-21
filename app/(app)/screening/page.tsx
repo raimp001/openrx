@@ -19,7 +19,6 @@ import {
   Wallet,
   X,
 } from "lucide-react"
-import { AppPageHeader } from "@/components/layout/app-page"
 import { BaseUsdcTransaction } from "@/components/payments/base-usdc-transaction"
 import { CarePlanPreview } from "@/components/care-plan-preview"
 import { RedFlagAlert } from "@/components/red-flag-alert"
@@ -28,7 +27,6 @@ import {
   ChoiceChip,
   ClinicalField,
   ClinicalInput,
-  ClinicalSection,
   ClinicalTextarea,
   FieldsetCard,
 } from "@/components/ui/clinical-forms"
@@ -1111,21 +1109,28 @@ export default function ScreeningPage() {
   }
 
   return (
-    <div ref={scrollRef} className="animate-slide-up space-y-4 sm:space-y-6">
-      <AppPageHeader
-        eyebrow="Screening details"
-        title="Check what's due."
-        description="One sentence is enough. Add family history, mutations, prior findings, symptoms, or smoking when relevant."
-        className="p-4 sm:p-6"
-        meta={
-          <div className="hidden flex-wrap gap-2 sm:flex">
+    <div ref={scrollRef} data-openrx-screening-workspace className="animate-slide-up space-y-4 sm:space-y-6">
+      <section className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#050707] px-4 py-8 shadow-[0_24px_90px_rgba(0,0,0,0.36)] sm:px-6 sm:py-10 lg:px-10">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(103,232,249,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),transparent_38%)]" />
+        <div className="relative mx-auto max-w-3xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-[12px] font-medium text-secondary">
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />
+            OpenRx screening
+          </span>
+          <h1 className="mx-auto mt-5 max-w-2xl text-balance font-serif text-[clamp(2.45rem,8vw,5.25rem)] font-semibold leading-[0.96] text-primary">
+            What screening is due?
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-7 text-secondary">
+            Ask once. Get a sourced plan and the next useful action.
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
             <span className="metric-chip">
               <Activity size={11} className="text-accent" />
-              Free guideline preview
+              Deterministic rules
             </span>
             <span className="metric-chip">
               <ShieldCheck size={11} className="text-teal" />
-              Advanced review optional
+              Source + grade on every recommendation
             </span>
             {recipientAddress ? (
               <span className="metric-chip">
@@ -1134,16 +1139,8 @@ export default function ScreeningPage() {
               </span>
             ) : null}
           </div>
-        }
-        actions={
-          <Link
-            href="/chat?prompt=What%20screening%20is%20due%20for%20me%3F%20Ask%20one%20follow-up%20only%20if%20needed%2C%20then%20give%20recommendations%20in%20chat.&topic=screening"
-            className="control-button-primary hidden sm:inline-flex"
-          >
-            Ask instead
-          </Link>
-        }
-      />
+        </div>
+      </section>
 
       {error && (
         <div
@@ -1277,14 +1274,25 @@ export default function ScreeningPage() {
         </FieldsetCard>
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <ClinicalSection
-            kicker="Screening intake"
-            title="Start with one sentence"
-            className="p-4 sm:p-6"
-          >
-            <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div>
+          <section className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#090d0d]/95 p-4 shadow-[0_18px_64px_rgba(0,0,0,0.28)] sm:p-5">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">Ask OpenRx</p>
+                <h2 className="mt-2 text-[1.45rem] font-semibold leading-tight text-primary sm:text-[1.7rem]">
+                  One sentence is enough.
+                </h2>
+              </div>
+              <Link
+                href="/chat?prompt=What%20screening%20is%20due%20for%20me%3F%20Ask%20one%20follow-up%20only%20if%20needed%2C%20then%20give%20recommendations%20in%20chat.&topic=screening"
+                className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.055] px-3 text-xs font-semibold text-secondary transition hover:border-cyan-200/30 hover:text-primary"
+              >
+                Ask in chat
+              </Link>
+            </div>
+            <div className="mt-5 space-y-4">
               <ClinicalField
                 label="Plain-English history"
                 htmlFor="screening-narrative"
@@ -1297,24 +1305,36 @@ export default function ScreeningPage() {
                   onInput={(event) => setNarrative(event.currentTarget.value)}
                   onChange={(event) => setNarrative(event.target.value)}
                   rows={4}
-                  placeholder="I am 58, father had prostate cancer at 52, BRCA2 mutation carrier, former smoker."
-                  className="resize-y"
+                  placeholder="Example: 45 male, no symptoms, what cancer screening is due?"
+                  className="min-h-[132px] resize-y rounded-[24px] border-white/12 bg-[#050707] px-5 py-4 text-base leading-7 placeholder:text-zinc-400"
                 />
               </ClinicalField>
 
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                <ClinicalField
+                  label="ZIP for nearby care"
+                  htmlFor="screening-location-zip"
+                  optional
+                >
+                  <ClinicalInput
+                    id="screening-location-zip"
+                    data-testid="screening-location-zip"
+                    value={locationZip}
+                    onChange={(event) => setLocationZip(event.target.value)}
+                    inputMode="numeric"
+                    placeholder="97123"
+                    className="rounded-full"
+                  />
+                </ClinicalField>
                 <button
                   data-testid="screening-submit-preview"
                   onClick={() => void runScreening("preview")}
                   disabled={running || !canRunPreview}
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-cyan-200 px-4 py-3 text-sm font-bold text-black transition hover:bg-cyan-100 disabled:opacity-60 sm:w-auto"
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-cyan-200 px-5 py-3 text-sm font-bold text-black transition hover:bg-cyan-100 disabled:opacity-60 sm:w-auto"
                 >
                   {running ? <Loader2 size={14} className="animate-spin" /> : <Activity size={14} />}
-                  Get My Free Recommendations
+                  Get sourced plan
                 </button>
-                <p className="text-[11px] leading-5 text-muted">
-                  Add ZIP below only if you want nearby providers, labs, or imaging centers.
-                </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -1330,26 +1350,11 @@ export default function ScreeningPage() {
                 ))}
               </div>
 
-              <ClinicalField
-                label="ZIP for nearby next steps"
-                htmlFor="screening-location-zip"
-                hint="Optional, but it lets OpenRx show providers, labs, or imaging centers for the plan."
-              >
-                <ClinicalInput
-                  id="screening-location-zip"
-                  data-testid="screening-location-zip"
-                  value={locationZip}
-                  onChange={(event) => setLocationZip(event.target.value)}
-                  inputMode="numeric"
-                  placeholder="97123"
-                />
-              </ClinicalField>
-
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={() => void parseNarrativeIntakeIfPresent()}
-                  className="text-[11px] font-semibold text-teal hover:text-teal-dark transition"
+                  className="text-[12px] font-semibold text-cyan-100 transition hover:text-cyan-50"
                 >
                   Preview what we understood
                 </button>
@@ -1490,14 +1495,14 @@ export default function ScreeningPage() {
                 )}
               </FieldsetCard>
             </div>
-          </ClinicalSection>
+          </section>
 
           {(assessment?.accessLevel === "preview" || paymentIntent || paymentReady) && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
                 onClick={() => void runScreening("deep")}
                 disabled={running || creatingIntent}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-semibold text-primary transition hover:border-teal/30 disabled:opacity-60"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-4 py-2 text-sm font-semibold text-secondary transition hover:border-cyan-200/30 hover:text-primary disabled:opacity-60"
               >
                 {running ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
                 Generate Advanced Review
@@ -1513,10 +1518,10 @@ export default function ScreeningPage() {
           )}
         </div>
 
-        <div className="reveal reveal-delay-1 overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_60%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(47,107,255,0.14)] lg:sticky lg:top-28">
+        <aside className="reveal reveal-delay-1 overflow-hidden rounded-[28px] border border-white/10 bg-[#090d0d]/95 p-5 text-white shadow-[0_18px_64px_rgba(0,0,0,0.28)] xl:sticky xl:top-28">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-white">Your next steps</h2>
-            {assessment ? <span className="rounded-full border border-white/12 bg-white/8 px-2 py-1 text-[10px] font-bold uppercase text-white/70">preview ready</span> : null}
+            <h2 className="text-sm font-semibold text-white">Answer rail</h2>
+            {assessment ? <span className="rounded-full border border-cyan-200/18 bg-cyan-200/[0.08] px-2 py-1 text-[10px] font-bold uppercase text-cyan-100">ready</span> : null}
           </div>
           {!assessment ? (
             running ? (
@@ -1526,18 +1531,18 @@ export default function ScreeningPage() {
                 <div className="orx-skeleton h-16 rounded-[16px] bg-white/12" />
               </div>
             ) : (
-              <div className="space-y-3 text-xs leading-6 text-white/66">
-                <p>Run the free preview to see likely next steps.</p>
-                <p>No wallet is required. Only the details in your sentence are used.</p>
+              <div className="space-y-3 text-xs leading-6 text-white/78">
+                <p>Ask a screening question and OpenRx will return a sourced plan.</p>
+                <p>Actions appear here when a provider, lab, imaging center, or clinician message is useful.</p>
               </div>
             )
           ) : (
             <>
-              <p className="text-sm leading-6 text-white/72">OpenRx found {structuredRecommendations.length || assessment.recommendedScreenings.length} possible care item{structuredRecommendations.length === 1 ? "" : "s"} from the information supplied.</p>
+              <p className="text-sm leading-6 text-white/82">OpenRx found {structuredRecommendations.length || assessment.recommendedScreenings.length} care item{structuredRecommendations.length === 1 ? "" : "s"} from the information supplied.</p>
               {briefRecommendationItems.length > 0 && (
                 <div className="mt-4 rounded-[20px] border border-white/12 bg-white/8 p-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
-                    First recommendations
+                    Recommendations
                   </p>
                   <div className="mt-3 space-y-3">
                     {briefRecommendationItems.map((item) => (
@@ -1556,7 +1561,7 @@ export default function ScreeningPage() {
               )}
               <div className="mt-4 rounded-[20px] border border-white/12 bg-white/8 p-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
-                  Useful next step
+                  Next action
                 </p>
                 <p className="mt-2 text-sm leading-6 text-white/68">
                   {actionableCareConnections.length > 0
@@ -1568,7 +1573,7 @@ export default function ScreeningPage() {
               </div>
             </>
           )}
-        </div>
+        </aside>
       </div>
 
       {running && !assessment ? <ScreeningPlanSkeleton /> : null}

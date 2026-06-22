@@ -170,7 +170,7 @@ export default function PAAuditPage() {
         <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="px-6 py-6 sm:px-7">
             <div className="section-title text-white/55">Audit posture</div>
-            <h2 className="mt-3 text-[clamp(1.7rem,3vw,2.7rem)] font-semibold tracking-[-0.05em]">
+            <h2 className="orx-section-heading mt-3 text-[clamp(1.7rem,3vw,2.7rem)]">
               The audit trail should answer the hard question first: what needs review now?
             </h2>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-white/72">

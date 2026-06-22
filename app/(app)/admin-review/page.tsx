@@ -59,7 +59,7 @@ export default function AdminReviewPage() {
       <section className="overflow-hidden rounded-[30px] border border-[rgba(82,108,139,0.12)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] text-white shadow-[0_24px_70px_rgba(8,24,46,0.18)]">
         <div className="border-b border-white/10 px-6 py-5">
           <div className="section-title text-white/55">Operating brief</div>
-          <h2 className="mt-3 text-[clamp(1.6rem,3vw,2.4rem)] font-semibold tracking-[-0.05em]">
+          <h2 className="orx-section-heading mt-3 text-[clamp(1.6rem,3vw,2.4rem)]">
             Review happens in inboxes first, not inside the care shell.
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-white/72">

@@ -149,7 +149,7 @@ export function CareAskPanel({
             {!minimal && title ? (
               <h2
                 className={cn(
-                  "max-w-3xl font-semibold leading-[1.1] tracking-[-0.018em]",
+                  "orx-section-heading max-w-3xl",
                   compact
                     ? "text-[clamp(1.4rem,2.2vw,1.85rem)]"
                     : "text-[clamp(1.6rem,2.6vw,2.1rem)]",

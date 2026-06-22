@@ -445,7 +445,7 @@ export default function ProvidersPage() {
             <div className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Matched network</p>
-              <h2 className="mt-4 text-[2.1rem] font-semibold leading-[0.96] tracking-[-0.055em] text-white">{matches.length} care option{matches.length === 1 ? "" : "s"} ready</h2>
+                <h2 className="orx-section-heading mt-4 text-[2.1rem] text-white">{matches.length} care option{matches.length === 1 ? "" : "s"} ready</h2>
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
                   {parsed?.serviceTypes?.length
                     ? `OpenRx resolved ${parsed.serviceTypes.join(", ")} and limited the result set to the most usable local options.`

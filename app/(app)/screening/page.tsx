@@ -1117,7 +1117,7 @@ export default function ScreeningPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />
             OpenRx screening
           </span>
-          <h1 className="mx-auto mt-5 max-w-2xl text-balance font-serif text-[clamp(2.45rem,8vw,5.25rem)] font-semibold leading-[0.96] text-primary">
+          <h1 className="orx-display-heading mx-auto mt-5 max-w-2xl text-[clamp(2.45rem,8vw,5.25rem)] text-primary">
             What screening is due?
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-[15px] leading-7 text-secondary">
@@ -1583,7 +1583,7 @@ export default function ScreeningPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="shell-kicker">Plan at a glance</p>
-              <h2 className="mt-3 text-[1.7rem] font-semibold tracking-[-0.035em] text-primary">
+              <h2 className="orx-section-heading mt-3 text-[1.7rem] text-primary">
                 {showingDeepResults ? "Advanced screening plan ready." : "Free screening plan ready."}
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-secondary">

@@ -124,7 +124,7 @@ export default function PlatformReadiness() {
             <div>
               <div className="section-title text-white/55">Platform readiness</div>
               <div className="mt-4 flex items-end gap-3">
-                <div className="text-5xl font-semibold tracking-[-0.06em]">{payload.readinessScore}%</div>
+                <div className="text-5xl font-semibold tracking-normal">{payload.readinessScore}%</div>
                 <div className="pb-2 text-sm font-medium text-white/60">{scoreLabel(payload.readinessScore)}</div>
               </div>
             </div>
@@ -238,7 +238,7 @@ function ReadinessMiniStat({
         <Icon size={13} />
         <span className="text-[10px] font-semibold uppercase tracking-[0.16em]">{label}</span>
       </div>
-      <p className="mt-3 text-lg font-semibold tracking-[-0.03em] text-white">{value}</p>
+      <p className="mt-3 text-lg font-semibold tracking-normal text-white">{value}</p>
     </div>
   )
 }

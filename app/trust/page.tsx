@@ -58,7 +58,7 @@ export default function TrustPage() {
         </Link>
         <section className="mt-8 max-w-3xl">
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-cyan-200">Trust and evidence</p>
-          <h1 className="mt-5 text-[clamp(2.4rem,5vw,4.25rem)] font-semibold tracking-[-0.06em] text-white">
+          <h1 className="orx-display-heading mt-5 text-[clamp(2.4rem,5vw,4.25rem)] text-white">
             Clear boundaries before clinical workflow.
           </h1>
           <p className="mt-5 text-base leading-7 text-zinc-400">

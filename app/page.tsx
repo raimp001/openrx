@@ -82,13 +82,13 @@ function SourcedPreview() {
           <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />
           Live care plan preview
         </span>
-        <span className="rounded-full border border-cyan-200/18 bg-cyan-200/[0.08] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-cyan-100">
+        <span className="rounded-full border border-cyan-200/18 bg-cyan-200/[0.08] px-2.5 py-1 text-[10px] font-bold uppercase tracking-normal text-cyan-100">
           sourced
         </span>
       </div>
 
       <div className="mt-5 rounded-[24px] border border-white/10 bg-[#050707] p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+        <p className="text-[11px] font-semibold uppercase tracking-normal text-zinc-400">
           Plain-English input
         </p>
         <p className="mt-3 text-base leading-7 text-zinc-100">
@@ -99,7 +99,7 @@ function SourcedPreview() {
       <div className="mt-3 rounded-[24px] border border-cyan-200/14 bg-cyan-200/[0.055] p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">
+            <p className="text-[11px] font-semibold uppercase tracking-normal text-cyan-100">
               Recommendation
             </p>
             <h2 className="mt-2 text-xl font-semibold leading-tight text-white">
@@ -199,7 +199,7 @@ export default function HomePage() {
                 <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />
                 OpenRx
               </span>
-              <h1 className="mt-6 max-w-4xl text-balance font-serif text-[clamp(3.1rem,12vw,7.5rem)] font-semibold leading-[0.9] tracking-[-0.035em] text-white">
+              <h1 className="orx-display-heading mt-6 max-w-4xl text-[clamp(3.1rem,12vw,7.5rem)] text-white">
                 Ask once. Get the next useful action.
               </h1>
               <p className="mt-6 max-w-2xl text-[17px] leading-8 text-zinc-300 sm:text-xl">

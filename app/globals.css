@@ -9,8 +9,9 @@
 }
 
 :root {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: Georgia, "Times New Roman", Times, serif;
+  --font-display: var(--font-serif);
   --color-bg-rgb: 5 5 5;
   --color-surface-rgb: 16 16 16;
   --color-surface-muted-rgb: 24 24 27;
@@ -76,6 +77,7 @@ body:has([data-openrx-chat-workspace]) .pointer-events-none.fixed.inset-0 {
 
 body {
   position: relative;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   background:
     radial-gradient(circle at 18% -10%, rgb(var(--color-accent-rgb) / 0.12), transparent 26%),
@@ -178,7 +180,7 @@ a {
 @layer base {
   h1, h2, h3, h4 {
     font-family: var(--font-sans), system-ui, sans-serif;
-    letter-spacing: -0.018em;
+    letter-spacing: 0;
     line-height: 1.15;
     color: var(--paper-ink);
   }
@@ -197,6 +199,29 @@ a {
 }
 
 @layer utilities {
+  .orx-display-heading {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 0.96;
+    text-wrap: balance;
+  }
+
+  .orx-page-title {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 650;
+    letter-spacing: 0;
+    line-height: 1.06;
+    text-wrap: balance;
+  }
+
+  .orx-section-heading {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 650;
+    letter-spacing: 0;
+    line-height: 1.16;
+  }
+
   .surface-card {
     @apply rounded-[16px] border;
     border-color: var(--paper-border);

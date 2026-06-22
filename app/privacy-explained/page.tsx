@@ -96,7 +96,7 @@ export default function PrivacyExplainedPage() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(47,107,255,0.12),transparent_24%),radial-gradient(circle_at_88%_16%,rgba(47,107,255,0.09),transparent_20%)]" />
           <div className="relative max-w-4xl">
             <span className="eyebrow-pill">Privacy explained</span>
-            <h1 className="mt-5 max-w-4xl text-[clamp(3rem,6vw,5.4rem)] font-serif text-primary">
+            <h1 className="orx-display-heading mt-5 max-w-4xl text-[clamp(3rem,6vw,5.4rem)] text-primary">
               How OpenRx handles data, in plain English.
             </h1>
             <p className="mt-5 max-w-3xl text-[15px] leading-8 text-secondary">
@@ -130,7 +130,7 @@ export default function PrivacyExplainedPage() {
 
           <div className="rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] px-6 py-6 text-white shadow-[0_26px_70px_rgba(8,24,46,0.16)]">
             <div className="section-title text-white/55">Trust posture</div>
-            <h2 className="mt-3 text-[clamp(1.8rem,3vw,2.8rem)] font-semibold tracking-[-0.05em]">
+            <h2 className="orx-section-heading mt-3 text-[clamp(1.8rem,3vw,2.8rem)]">
               We built OpenRx to reduce healthcare friction, not to monetize patient exposure.
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-white/72">

@@ -205,7 +205,7 @@ export function DenialToAppealDemo() {
         <section className="grid gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
           <div className="lg:sticky lg:top-10">
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-cyan-200">Prior authorization sandbox</p>
-            <h1 className="mt-5 text-[clamp(2.35rem,4.5vw,3.7rem)] font-semibold leading-[1.06] tracking-[-0.055em] text-white">
+            <h1 className="orx-display-heading mt-5 text-[clamp(2.35rem,4.5vw,3.7rem)] text-white">
               From clinical answer to submission-ready appeal, in one chat.
             </h1>
             <p className="mt-5 max-w-md text-base leading-7 text-zinc-400">

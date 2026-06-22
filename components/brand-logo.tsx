@@ -86,7 +86,7 @@ export function BrandWordmark({
 
   return (
     <div className={cn("min-w-0", className)}>
-      <Title className={cn("truncate text-[15px] font-semibold tracking-[-0.02em]", titleColor, titleClassName)}>
+      <Title className={cn("truncate text-[15px] font-semibold tracking-normal", titleColor, titleClassName)}>
         OpenRx
       </Title>
       {subtitle ? (

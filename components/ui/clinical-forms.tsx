@@ -23,7 +23,7 @@ export function ClinicalSection({
       <div className="grid gap-5 lg:grid-cols-[1.22fr_0.78fr] lg:items-start">
         <div>
           {kicker ? <p className="shell-kicker">{kicker}</p> : null}
-          <h2 className="mt-2 text-[1.65rem] font-semibold leading-tight tracking-[-0.035em] text-primary sm:text-[1.9rem]">{title}</h2>
+          <h2 className="orx-section-heading mt-2 text-[1.65rem] text-primary sm:text-[1.9rem]">{title}</h2>
           {description ? <p className="mt-3 max-w-2xl text-sm leading-7 text-secondary">{description}</p> : null}
         </div>
         {aside ? <div className="surface-muted p-4 sm:p-5">{aside}</div> : null}

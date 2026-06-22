@@ -1081,7 +1081,7 @@ export default function ChatPage() {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               {isConnected ? "Personalized" : "OpenRx"}
             </p>
-            <h1 className="mx-auto mt-6 max-w-2xl font-serif text-[clamp(2.3rem,8vw,4.6rem)] font-medium leading-[0.98] text-white text-balance">
+            <h1 className="orx-display-heading mx-auto mt-6 max-w-2xl text-[clamp(2.3rem,8vw,4.6rem)] text-white">
               What do you need help with?
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-balance text-[14px] leading-6 text-zinc-400 sm:text-[15px]">

@@ -52,7 +52,7 @@ export function AppPageHeader({
             {leading ? <div className="shrink-0 pt-1">{leading}</div> : null}
             <div className={cn("min-w-0 pl-0", align === "center" && "text-center")}>
               {eyebrow ? <span className="eyebrow-pill mb-3">{eyebrow}</span> : null}
-              <h1 className={cn("max-w-3xl text-balance font-semibold tracking-[-0.055em]", titleClass)}>{title}</h1>
+              <h1 className={cn("orx-page-title max-w-3xl", titleClass)}>{title}</h1>
               {description ? (
                 <div className="mt-3 max-w-2xl text-[14px] leading-7 text-secondary sm:text-[15px]">{description}</div>
               ) : null}

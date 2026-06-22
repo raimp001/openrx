@@ -201,14 +201,14 @@ export default function Topbar() {
   }
 
   return (
-    <header className="sticky top-0 z-30 px-4 pt-3 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-[1240px] items-center gap-3 rounded-full border border-white/10 bg-[#101010]/82 px-3 py-2 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
-        <div className="min-w-0 shrink-0 pl-1 lg:min-w-[132px]">
+    <header className="sticky top-0 z-30 pl-[4.75rem] pr-3 pt-3 sm:px-6 lg:px-8">
+      <div className="ml-auto flex w-fit max-w-[1240px] items-center gap-1.5 rounded-full border border-white/10 bg-[#101010]/82 px-2 py-1.5 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:mx-auto sm:w-full sm:gap-3 sm:px-3 sm:py-2">
+        <div className="hidden min-w-0 shrink-0 pl-1 sm:block lg:min-w-[132px]">
           <p className="truncate text-sm font-semibold text-primary">{pageInfo.label}</p>
         </div>
 
         {showSearch ? (
-          <div ref={searchRef} className="relative flex-1">
+          <div ref={searchRef} className="relative hidden flex-1 sm:block">
             <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input
               ref={inputRef}
@@ -225,7 +225,7 @@ export default function Topbar() {
             aria-expanded={isOpen && !!results}
             aria-activedescendant={activeIndex >= 0 ? `search-result-${activeIndex}` : undefined}
               placeholder="Search your care plan"
-              className="w-full rounded-full border border-white/10 bg-white/[0.06] py-2.5 pl-10 pr-14 text-sm text-primary placeholder:text-muted transition focus:border-accent/35 focus:ring-1 focus:ring-accent/20"
+              className="w-full rounded-full border border-white/10 bg-white/[0.06] py-2.5 pl-10 pr-10 text-sm text-primary placeholder:text-muted transition focus:border-accent/35 focus:ring-1 focus:ring-accent/20 sm:pr-14"
             />
             {query ? (
               <button
@@ -369,7 +369,8 @@ export default function Topbar() {
           {isConnected ? (
             <Link
               href="/profile"
-              className="flex h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] pl-1.5 pr-3 transition hover:bg-white/[0.1]"
+              className="flex h-10 w-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.06] transition hover:bg-white/[0.1] sm:w-auto sm:justify-start sm:pl-1.5 sm:pr-3"
+              aria-label="Profile"
             >
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-[10px] font-semibold text-black">
                 {displayName ? displayName.charAt(0).toUpperCase() : "?"}
@@ -385,8 +386,13 @@ export default function Topbar() {
               Setup
             </span>
           ) : (
-            <Link href="/onboarding" className="h-10 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2.5 text-[13px] font-semibold text-primary transition hover:bg-white/[0.1]">
-              Setup
+            <Link
+              href="/onboarding"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-primary transition hover:bg-white/[0.1] sm:w-auto sm:px-4 sm:py-2.5 sm:text-[13px] sm:font-semibold"
+              aria-label="Setup"
+            >
+              <UserCircle size={16} className="sm:hidden" />
+              <span className="hidden sm:inline">Setup</span>
             </Link>
           )}
         </div>

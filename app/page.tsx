@@ -16,7 +16,8 @@ import {
 
 import { BrandMark } from "@/components/brand-logo"
 
-export const dynamic = "force-static"
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export const metadata: Metadata = {
   alternates: {

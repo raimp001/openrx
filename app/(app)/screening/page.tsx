@@ -45,7 +45,6 @@ import { summarizeScreeningIntake } from "@/lib/screening-intake"
 import type { PaymentRecord } from "@/lib/payments-ledger"
 import { toBaseBuilderTxUrl } from "@/lib/basebuilder/config"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
-import { useScrollReveal } from "@/lib/hooks/use-scroll-reveal"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
 import { carePlanFromScreeningRecommendations } from "@/lib/care-plan"
@@ -443,7 +442,6 @@ function recommendationSectionId(rec: StructuredScreeningRecommendation): Recomm
 export default function ScreeningPage() {
   const { snapshot } = useLiveSnapshot()
   const { walletAddress, profile, getWalletAuthHeaders } = useWalletIdentity()
-  const scrollRef = useScrollReveal()
   const seededHandoffRef = useRef(false)
   const [assessment, setAssessment] = useState<ScreeningResponse | null>(null)
   const [localCareConnections, setLocalCareConnections] = useState<LocalCareConnection[]>([])
@@ -1109,21 +1107,21 @@ export default function ScreeningPage() {
   }
 
   return (
-    <div ref={scrollRef} data-openrx-screening-workspace className="animate-slide-up space-y-4 sm:space-y-6">
-      <section className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#050707] px-4 py-8 shadow-[0_24px_90px_rgba(0,0,0,0.36)] sm:px-6 sm:py-10 lg:px-10">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(103,232,249,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),transparent_38%)]" />
+    <div data-openrx-screening-workspace className="animate-slide-up space-y-6 sm:space-y-8">
+      <section className="relative overflow-hidden px-2 pb-1 pt-5 sm:pt-7">
+        <div className="pointer-events-none absolute inset-x-[-8%] top-[-60%] h-[340px] bg-[radial-gradient(circle_at_50%_0%,rgba(103,232,249,0.14),transparent_48%)]" />
         <div className="relative mx-auto max-w-3xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-[12px] font-medium text-secondary">
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />
             OpenRx screening
           </span>
-          <h1 className="orx-display-heading mx-auto mt-5 max-w-2xl text-[clamp(2.45rem,8vw,5.25rem)] text-primary">
+          <h1 className="orx-display-heading mx-auto mt-3 max-w-2xl text-[clamp(2.25rem,6.6vw,4.35rem)] text-primary">
             What screening is due?
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-7 text-secondary">
+          <p className="mx-auto mt-3 max-w-xl text-[15px] leading-7 text-secondary">
             Ask once. Get a sourced plan and the next useful action.
           </p>
-          <div className="mt-5 flex flex-wrap justify-center gap-2">
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
             <span className="metric-chip">
               <Activity size={11} className="text-accent" />
               Deterministic rules
@@ -1274,10 +1272,9 @@ export default function ScreeningPage() {
         </FieldsetCard>
       )}
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_330px] xl:items-start">
         <div>
-          <section className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#090d0d]/95 p-4 shadow-[0_18px_64px_rgba(0,0,0,0.28)] sm:p-5">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
+          <section className="relative border-t border-white/10 pt-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">Ask OpenRx</p>
@@ -1306,7 +1303,7 @@ export default function ScreeningPage() {
                   onChange={(event) => setNarrative(event.target.value)}
                   rows={4}
                   placeholder="Example: 45 male, no symptoms, what cancer screening is due?"
-                  className="min-h-[132px] resize-y rounded-[24px] border-white/12 bg-[#050707] px-5 py-4 text-base leading-7 placeholder:text-zinc-400"
+                  className="min-h-[132px] resize-y rounded-[24px] border-white/12 bg-[#050707]/92 px-5 py-4 text-base leading-7 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                 />
               </ClinicalField>
 
@@ -1362,9 +1359,9 @@ export default function ScreeningPage() {
               </div>
 
               {intakePreview ? (
-                <div data-testid="screening-intake-preview" className="rounded-[18px] border border-cyan-200/14 bg-cyan-200/[0.045] p-4">
+                <div data-testid="screening-intake-preview" className="border-t border-white/10 pt-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">What OpenRx understood</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {typeof intakePreview.age === "number" ? <ChoiceChip>Age {intakePreview.age}</ChoiceChip> : null}
                     {intakePreview.sexAtBirth ? <ChoiceChip>Sex for screening: {intakePreview.sexAtBirth}</ChoiceChip> : null}
                     {typeof intakePreview.smokingPackYears === "number" ? <ChoiceChip>{intakePreview.smokingPackYears} pack-years</ChoiceChip> : null}
@@ -1386,14 +1383,15 @@ export default function ScreeningPage() {
                 </div>
               ) : null}
 
-              <FieldsetCard
-                legend="Optional structured details"
-                description="Use these only if you want to refine the narrative or if the intake parser missed something."
-              >
+              <div className="border-t border-white/10 pt-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">Optional details</p>
+                <p className="mt-1 max-w-2xl text-[12px] leading-5 text-zinc-500">
+                  Add these only if the parser missed something important.
+                </p>
                 <button
                   type="button"
                   onClick={() => setShowManualFields((value) => !value)}
-                  className="text-xs font-semibold text-primary hover:text-teal transition"
+                  className="mt-2 text-xs font-semibold text-primary transition hover:text-teal"
                 >
                   {showManualFields ? "Hide optional details" : "Add optional details"}
                 </button>
@@ -1493,7 +1491,7 @@ export default function ScreeningPage() {
                     </ClinicalField>
                   </div>
                 )}
-              </FieldsetCard>
+              </div>
             </div>
           </section>
 
@@ -1518,9 +1516,9 @@ export default function ScreeningPage() {
           )}
         </div>
 
-        <aside className="reveal reveal-delay-1 overflow-hidden rounded-[28px] border border-white/10 bg-[#090d0d]/95 p-5 text-white shadow-[0_18px_64px_rgba(0,0,0,0.28)] xl:sticky xl:top-28">
+        <aside className="border-t border-white/10 pt-5 text-white xl:sticky xl:top-28 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-1">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-white">Answer rail</h2>
+            <h2 className="text-sm font-semibold text-white">Answer</h2>
             {assessment ? <span className="rounded-full border border-cyan-200/18 bg-cyan-200/[0.08] px-2 py-1 text-[10px] font-bold uppercase text-cyan-100">ready</span> : null}
           </div>
           {!assessment ? (
@@ -1540,13 +1538,13 @@ export default function ScreeningPage() {
             <>
               <p className="text-sm leading-6 text-white/82">OpenRx found {structuredRecommendations.length || assessment.recommendedScreenings.length} care item{structuredRecommendations.length === 1 ? "" : "s"} from the information supplied.</p>
               {briefRecommendationItems.length > 0 && (
-                <div className="mt-4 rounded-[20px] border border-white/12 bg-white/8 p-3">
+                <div className="mt-4 border-t border-white/10 pt-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
                     Recommendations
                   </p>
                   <div className="mt-3 space-y-3">
                     {briefRecommendationItems.map((item) => (
-                      <div key={item.id} className="rounded-[16px] bg-white/8 p-3">
+                      <div key={item.id} className="rounded-[16px] bg-white/[0.055] p-3">
                         <div className="flex items-start justify-between gap-3">
                           <p className="text-sm font-semibold leading-5 text-white">{item.label}</p>
                           <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-white/64">
@@ -1559,7 +1557,7 @@ export default function ScreeningPage() {
                   </div>
                 </div>
               )}
-              <div className="mt-4 rounded-[20px] border border-white/12 bg-white/8 p-3">
+              <div className="mt-4 border-t border-white/10 pt-4">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
                   Next action
                 </p>
@@ -1579,7 +1577,7 @@ export default function ScreeningPage() {
       {running && !assessment ? <ScreeningPlanSkeleton /> : null}
 
       {assessment && (
-        <section className="reveal reveal-delay-1 surface-card p-5 sm:p-6">
+        <section className="border-y border-white/10 py-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="shell-kicker">Plan at a glance</p>
@@ -1618,7 +1616,7 @@ export default function ScreeningPage() {
 
       {assessment && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="reveal reveal-delay-1 surface-card p-5">
+          <div className="surface-card p-5">
             <div className="flex items-center gap-2 mb-3">
               <ShieldCheck size={14} className="text-teal" />
               <h2 className="text-sm font-bold text-primary">Recommended Screenings</h2>
@@ -2075,7 +2073,7 @@ export default function ScreeningPage() {
             </div>
           </div>
 
-          <div className="reveal reveal-delay-2 surface-card p-5">
+          <div className="surface-card p-5">
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle size={14} className="text-yellow-700" />
               <h2 className="text-sm font-bold text-primary">Immediate Next Actions</h2>
@@ -2092,7 +2090,7 @@ export default function ScreeningPage() {
       )}
 
       {assessment && (
-        <div className="reveal reveal-delay-2 surface-card p-5">
+        <div className="surface-card p-5">
           <div className="flex items-center gap-2 mb-3">
             <Activity size={14} className="text-teal" />
             <h2 className="text-sm font-bold text-primary">Recommended Timeline</h2>
@@ -2123,7 +2121,7 @@ export default function ScreeningPage() {
       )}
 
       {assessment && evidenceCitations.length > 0 && (
-        <div className="reveal reveal-delay-2 surface-card p-5 space-y-3">
+        <div className="surface-card p-5 space-y-3">
           <div className="flex items-center gap-2">
             <Search size={14} className="text-teal" />
             <h2 className="text-sm font-bold text-primary">Evidence Sources</h2>
@@ -2161,7 +2159,7 @@ export default function ScreeningPage() {
       )}
 
       {assessment && localCareConnections.length > 0 && (
-        <div className="reveal reveal-delay-3 surface-card p-5 space-y-4">
+        <div className="surface-card p-5 space-y-4">
           <div className="flex items-center gap-2">
             <Search size={14} className="text-teal" />
             <h2 className="text-sm font-bold text-primary">
@@ -2237,7 +2235,7 @@ export default function ScreeningPage() {
       )}
 
       {assessment && localCareConnections.length === 0 && !locationZip.trim() && !intakePreview?.location && !snapshot.patient?.address ? (
-        <div className="reveal reveal-delay-3 surface-card p-5">
+        <div className="surface-card p-5">
           <div className="flex items-center gap-2">
             <MapPin size={14} className="text-teal" />
             <h2 className="text-sm font-bold text-primary">Add Location For Nearby Care</h2>

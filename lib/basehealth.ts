@@ -4,7 +4,11 @@ import {
   screeningIntakeFromLegacy,
   type LegacyScreeningInput,
 } from "@/lib/screening/recommend"
-import type { ScreeningRecommendation as StructuredScreeningRecommendation } from "@/lib/screening/types"
+import type {
+  ScreeningClarification,
+  ScreeningRecommendation as StructuredScreeningRecommendation,
+  ScreeningReportedHistory,
+} from "@/lib/screening/types"
 
 interface BasePatientProfile {
   id: string
@@ -26,6 +30,7 @@ export interface ScreeningInput {
   familyHistory?: string[]
   symptoms?: string[]
   conditions?: string[]
+  reportedHistory?: ScreeningReportedHistory
   vitals?: Array<{
     systolic?: number
     diastolic?: number
@@ -66,6 +71,7 @@ export interface ScreeningAssessment {
   nextActions: string[]
   structuredRecommendations?: StructuredScreeningRecommendation[]
   screeningIntakeCompleteness?: "minimal" | "partial" | "actionable"
+  clarificationQuestions?: ScreeningClarification[]
   safetyMessages?: string[]
 }
 
@@ -362,6 +368,7 @@ function buildScreeningEngineInput(input: ScreeningInput, patient: BasePatientPr
       ...(input.conditions || []),
       ...patient.medical_history.map((item) => item.condition),
     ],
+    reportedHistory: input.reportedHistory,
   }
 }
 
@@ -741,6 +748,7 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
     nextActions: mergedNextActions,
     structuredRecommendations: screeningEngine.recommendations,
     screeningIntakeCompleteness: screeningEngine.intakeCompleteness,
+    clarificationQuestions: screeningEngine.clarificationQuestions,
     safetyMessages: screeningEngine.safetyMessages,
   }
 }

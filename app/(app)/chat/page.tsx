@@ -451,6 +451,7 @@ function carePlanFromChatPrompt(prompt: string, agentId?: string, answer = ""): 
     conditions: parsed.extracted.conditions,
     smoker: parsed.extracted.smoker,
     symptoms: parsed.extracted.symptoms,
+    reportedHistory: parsed.extracted.reportedHistory,
   }))
   if (!result.recommendations.length) return null
   return carePlanFromScreeningRecommendations(result.recommendations, summarizeScreeningIntake(parsed.extracted), "chat")

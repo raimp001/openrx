@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Check,
+  CircleHelp,
   ClipboardCheck,
   CreditCard,
   ExternalLink,
@@ -201,6 +202,7 @@ function formatGrade(value?: string): string | null {
   if (!value) return null
   const trimmed = value.trim()
   if (!trimmed) return null
+  if (/^not graded$/i.test(trimmed)) return "Not graded"
   return /^grade\b/i.test(trimmed) ? trimmed : `Grade ${trimmed}`
 }
 
@@ -768,6 +770,7 @@ export default function ScreeningPage() {
         symptoms: data.extracted.symptoms || [],
         knownMutationOrSyndrome: data.extracted.knownMutationOrSyndrome || [],
         priorAbnormalFindings: data.extracted.priorAbnormalFindings || [],
+        reportedHistory: data.extracted.reportedHistory || {},
         redFlags: data.extracted.redFlags || [],
       }
       const inheritedRiskDetected = [...extracted.familyHistory, ...extracted.conditions]
@@ -848,6 +851,7 @@ export default function ScreeningPage() {
           symptoms: resolvedSymptoms,
           familyHistory: resolvedFamilyHistory,
           conditions: resolvedConditions,
+          reportedHistory: extracted?.reportedHistory,
         }),
       })
 
@@ -1537,6 +1541,11 @@ export default function ScreeningPage() {
           ) : (
             <>
               <p className="text-sm leading-6 text-white/82">OpenRx found {structuredRecommendations.length || assessment.recommendedScreenings.length} care item{structuredRecommendations.length === 1 ? "" : "s"} from the information supplied.</p>
+              {assessment.clarificationQuestions?.length ? (
+                <p className="mt-2 text-xs leading-5 text-amber-100">
+                  {assessment.clarificationQuestions.length} answer{assessment.clarificationQuestions.length === 1 ? "" : "s"} could change the timing or pathway.
+                </p>
+              ) : null}
               {briefRecommendationItems.length > 0 && (
                 <div className="mt-4 border-t border-white/10 pt-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
@@ -1599,6 +1608,56 @@ export default function ScreeningPage() {
           </div>
         </section>
       )}
+
+      {assessment?.clarificationQuestions?.length ? (
+        <section
+          data-testid="screening-clarification-questions"
+          aria-labelledby="screening-clarification-heading"
+          className="border-b border-amber-200/20 py-6"
+        >
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,0.34fr)_minmax(0,0.66fr)]">
+            <div>
+              <div className="flex items-center gap-2 text-amber-100">
+                <CircleHelp size={18} aria-hidden="true" />
+                <p className="text-xs font-bold uppercase tracking-[0.14em]">Refine this plan</p>
+              </div>
+              <h2 id="screening-clarification-heading" className="orx-section-heading mt-3 text-[1.55rem] text-primary">
+                A few answers could change what is due.
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-secondary">
+                The recommendations below use what is known now. Answer these before treating the timing as final.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById("screening-narrative")?.focus()
+                  document.getElementById("screening-narrative")?.scrollIntoView({ behavior: "smooth", block: "center" })
+                }}
+                className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-amber-100/25 px-4 py-2 text-xs font-bold text-amber-50 transition hover:border-amber-100/50 hover:bg-amber-100/10"
+              >
+                Add details
+                <ArrowRight size={13} aria-hidden="true" />
+              </button>
+            </div>
+            <ol className="divide-y divide-white/10 border-y border-white/10">
+              {assessment.clarificationQuestions.map((item, index) => (
+                <li key={item.id} className="grid gap-2 py-4 sm:grid-cols-[2rem_minmax(0,1fr)]">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100/12 text-xs font-bold text-amber-100">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold leading-6 text-primary">{item.question}</p>
+                    <p className="mt-1 text-xs leading-5 text-secondary">{item.whyItMatters}</p>
+                    <span className="mt-2 inline-flex text-[10px] font-bold uppercase tracking-[0.1em] text-amber-100/80">
+                      {item.priority === "required" ? "Needed to resolve this pathway" : "May change timing"}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      ) : null}
 
       {carePlanDraft ? <CarePlanPreview draft={carePlanDraft} /> : null}
 

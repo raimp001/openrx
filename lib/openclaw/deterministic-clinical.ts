@@ -96,6 +96,7 @@ export function deterministicClinicalResponse(message: string): string | null {
     familyHistory: parsed.extracted.familyHistory,
     symptoms: parsed.extracted.symptoms,
     conditions: parsed.extracted.conditions,
+    reportedHistory: parsed.extracted.reportedHistory,
   }))
 
   const sourceBackedRecommendations = engineResult.recommendations.filter((rec) =>
@@ -120,9 +121,16 @@ export function deterministicClinicalResponse(message: string): string | null {
     "These guideline-backed screenings apply to the profile provided.",
     "",
     ...formatGroups(sourceBackedRecommendations),
-    "Question to refine this",
-    "This plan assumes the details provided are accurate. Family history, symptoms, smoking exposure, prior test dates, or genetic results can change the pathway.",
-    "",
+    ...(engineResult.clarificationQuestions.length > 0
+      ? [
+          "Questions that could change this plan",
+          ...engineResult.clarificationQuestions.flatMap((item, index) => [
+            `${index + 1}. ${item.question}`,
+            `Why this matters: ${item.whyItMatters}`,
+          ]),
+          "",
+        ]
+      : []),
     "What to do now",
     "- Send your ZIP code and I will list primary care or screening clinics near you, with phone numbers you can call.",
     "",

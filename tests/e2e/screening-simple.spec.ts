@@ -7,6 +7,7 @@ import { CLEAN_MODEL_BUSY_MESSAGE } from "@/lib/openclaw/model-boundary"
 
 type MockScreeningApisOptions = {
   localCareConnections?: unknown[]
+  clarificationQuestions?: unknown[]
   onAssessRequest?: (body: Record<string, unknown>) => void
 }
 
@@ -79,6 +80,7 @@ async function mockScreeningApis(page: Page, options: MockScreeningApisOptions =
           },
         ],
         nextActions: ["Review this plan with your clinician within 30 days."],
+        clarificationQuestions: options.clarificationQuestions || [],
         localCareConnections: options.localCareConnections || [],
         evidenceCitations: [
           {
@@ -141,6 +143,36 @@ test("simple screening intake returns free recommendations", async ({ page }) =>
   await page.getByRole("button", { name: "Generate Advanced Review" }).click()
   await expect(page.getByText("Complete payment before advanced review")).toBeVisible()
   await expect(page.getByText("Connect payment access to unlock advanced review.")).toBeVisible()
+})
+
+test("screening results show the exact clinical details needed to resolve uncertainty", async ({ page }) => {
+  let assessBody: Record<string, unknown> | undefined
+  await mockScreeningApis(page, {
+    onAssessRequest: (body) => {
+      assessBody = body
+    },
+    clarificationQuestions: [
+      {
+        id: "clarify-colorectal-abnormal-result",
+        category: "prior_test_result",
+        question: "What did the prior colonoscopy show? Include the date, polyp pathology, and recommended repeat interval.",
+        whyItMatters: "Abnormal findings use surveillance pathways rather than average-risk intervals.",
+        relatedRecommendationIds: ["prior-abnormal-colorectal-result-review"],
+        priority: "required",
+      },
+    ],
+  })
+
+  await page.goto("/screening")
+  await page.getByTestId("screening-narrative-input").fill("I am 58 male and my colonoscopy found polyps.")
+  await page.getByTestId("screening-submit-preview").click()
+
+  const clarification = page.getByTestId("screening-clarification-questions")
+  await expect(clarification).toBeVisible()
+  await expect(clarification).toContainText("What did the prior colonoscopy show?")
+  await expect(clarification).toContainText("polyp pathology")
+  await expect(clarification).toContainText("Needed to resolve this pathway")
+  expect(assessBody?.reportedHistory).toEqual(expect.any(Object))
 })
 
 test("screening preview shows a content-shaped skeleton while recommendations load", async ({ page }) => {

@@ -53,6 +53,28 @@ export type GuidelineSource = {
   notes?: string
 }
 
+export type ScreeningReportedHistory = {
+  personalCancer?: "yes" | "no"
+  familyCancer?: "yes" | "no"
+  colorectalScreening?: "yes" | "no"
+  lungScreeningCt?: "yes" | "no"
+  smoking?: "yes" | "no"
+}
+
+export type ScreeningClarification = {
+  id: string
+  category:
+    | "cancer_history"
+    | "colorectal_history"
+    | "lung_history"
+    | "cervical_history"
+    | "prior_test_result"
+  question: string
+  whyItMatters: string
+  relatedRecommendationIds: string[]
+  priority: "required" | "important"
+}
+
 export type ScreeningIntake = {
   patientId?: string
   demographics: {
@@ -112,6 +134,7 @@ export type ScreeningIntake = {
     severePain?: boolean
     otherRedFlags?: string[]
   }
+  reportedHistory?: ScreeningReportedHistory
 }
 
 export type ScreeningRecommendation = {
@@ -141,6 +164,7 @@ export type ScreeningEngineResult = {
   engineVersion: string
   intakeCompleteness: "minimal" | "partial" | "actionable"
   recommendations: ScreeningRecommendation[]
+  clarificationQuestions: ScreeningClarification[]
   safetyMessages: string[]
   sourceIds: string[]
 }

@@ -1,8 +1,10 @@
 import type {
   ScreeningEngineResult,
+  ScreeningClarification,
   ScreeningIntake,
   ScreeningNextStep,
   ScreeningRecommendation,
+  ScreeningReportedHistory,
   ScreeningRelationship,
   ScreeningSourceSystem,
   ScreeningStatus,
@@ -21,6 +23,7 @@ export type LegacyScreeningInput = {
   familyHistory?: string[]
   symptoms?: string[]
   conditions?: string[]
+  reportedHistory?: ScreeningReportedHistory
 }
 
 const FIRST_DEGREE_RELATIONSHIPS = new Set<ScreeningRelationship>(["mother", "father", "sibling", "child"])
@@ -84,7 +87,7 @@ function hasEarlyFamilyCancer(intake: ScreeningIntake, cancerTerms: string[], ag
 function latestNormalScreeningYears(intake: ScreeningIntake, screeningTerms: string[]): number | undefined {
   const matches = intake.priorScreening
     .filter((item) => includesAny(normalized(item.screeningType), screeningTerms))
-    .filter((item) => item.result !== "abnormal")
+    .filter((item) => item.result === "normal")
     .map((item) => yearsSince(item.date))
     .filter((value): value is number => typeof value === "number")
     .sort((a, b) => a - b)
@@ -122,6 +125,7 @@ function parseCancerType(value: string): string {
   if (text.includes("lung")) return "lung cancer"
   if (text.includes("cervical")) return "cervical cancer"
   if (text.includes("endometrial") || text.includes("uterine")) return "endometrial cancer"
+  if (includesAny(text, ["cancer", "carcinoma", "melanoma"])) return "cancer"
   return value.trim() || "cancer"
 }
 
@@ -249,13 +253,19 @@ export function screeningIntakeFromLegacy(input: LegacyScreeningInput = {}): Scr
       quitYearsAgo,
     },
     priorScreening: conditions
-      .filter((entry) => includesAny(normalized(entry), ["colonoscopy", "fit", "mammogram", "pap", "hpv", "ldct", "psa"]))
+      .filter((entry) => includesAny(normalized(entry), ["colonoscopy", "fit", "stool", "cologuard", "ct colonography", "virtual colonoscopy", "mammogram", "pap", "hpv", "ldct", "low-dose ct", "lung ct", "chest ct", "ct chest", "psa"]))
       .map((entry) => ({
         screeningType: entry,
         date: entry.match(/\b(20\d{2}|19\d{2})\b/)?.[1],
-        result: normalized(entry).includes("abnormal") ? "abnormal" : normalized(entry).includes("normal") ? "normal" : "unknown",
+        result: includesAny(normalized(entry), ["abnormal", "positive", "polyp", "adenoma", "mass", "nodule"])
+          ? "abnormal"
+          : includesAny(normalized(entry), ["normal", "negative", "clear", "no polyp"])
+            ? "normal"
+            : "unknown",
+        details: entry.includes(":") ? entry.split(":").slice(1).join(":").trim() : undefined,
       })),
     symptoms: legacySymptoms(input.symptoms || []),
+    reportedHistory: input.reportedHistory,
   }
 }
 
@@ -317,6 +327,63 @@ function addPersonalCancerHistoryRecommendations(recommendations: ScreeningRecom
       patientFriendlyExplanation: `Because you reported a personal history of ${cancerType}, OpenRx should route you to a personalized follow-up plan rather than routine screening advice.`,
       clinicianSummary: `Personal history of ${cancerType}; exact surveillance rule not implemented in OpenRx. Confirm disease course, treatment, stage/pathology, and current survivorship plan.`,
       nextSteps: ["request_specialist_review", "request_care_navigation", "download_clinician_summary"],
+    }))
+  }
+}
+
+function addPriorAbnormalResultRecommendations(recommendations: ScreeningRecommendation[], intake: ScreeningIntake) {
+  const abnormalColorectal = intake.priorScreening.filter(
+    (item) =>
+      item.result === "abnormal" &&
+      includesAny(normalized(item.screeningType), [
+        "colonoscopy",
+        "fit",
+        "stool",
+        "cologuard",
+        "ct colonography",
+        "virtual colonoscopy",
+      ])
+  )
+  if (abnormalColorectal.length > 0) {
+    addUnique(recommendations, recommendation({
+      id: "prior-abnormal-colorectal-result-review",
+      cancerType: "colorectal cancer",
+      screeningName: "Prior abnormal colorectal result review",
+      status: "surveillance_or_follow_up",
+      riskCategory: "increased_risk",
+      rationale: "A prior positive colorectal test, polyp, or adenoma should not be assigned an average-risk screening interval without the procedure and pathology details.",
+      recommendedNextStep: "Bring the colonoscopy or test report and pathology to primary care or gastroenterology so the correct follow-up interval can be determined.",
+      suggestedTiming: "Before using an average-risk interval",
+      sourceId: "uspstf-crc-2021",
+      evidenceGrade: "Not graded",
+      requiresClinicianReview: true,
+      patientFriendlyExplanation: "The result you reported may need a surveillance plan rather than routine average-risk screening. OpenRx needs the report details and should not guess the interval.",
+      clinicianSummary: `Prior abnormal colorectal screening reported: ${abnormalColorectal.map((item) => `${item.screeningType}${item.date ? ` (${item.date})` : ""}`).join("; ")}. Obtain procedure/pathology details and recommended recall interval.`,
+      nextSteps: ["request_colonoscopy", "request_specialist_review", "download_clinician_summary"],
+    }))
+  }
+
+  const abnormalLungCt = intake.priorScreening.filter(
+    (item) =>
+      item.result === "abnormal" &&
+      includesAny(normalized(item.screeningType), ["ldct", "low-dose ct", "lung ct", "chest ct", "ct chest"])
+  )
+  if (abnormalLungCt.length > 0) {
+    addUnique(recommendations, recommendation({
+      id: "prior-abnormal-lung-ct-review",
+      cancerType: "lung cancer",
+      screeningName: "Prior abnormal chest CT follow-up",
+      status: "surveillance_or_follow_up",
+      riskCategory: "increased_risk",
+      rationale: "A prior abnormal chest CT or lung nodule should follow the documented diagnostic or nodule-management plan rather than a routine annual screening assumption.",
+      recommendedNextStep: "Bring the CT report and recommended follow-up plan to primary care, pulmonology, or the ordering clinician.",
+      suggestedTiming: "Use the report's follow-up recommendation",
+      sourceId: "uspstf-lung-2021",
+      evidenceGrade: "Not graded",
+      requiresClinicianReview: true,
+      patientFriendlyExplanation: "An abnormal CT needs report-specific follow-up. OpenRx should not replace that plan with a routine screening interval.",
+      clinicianSummary: `Prior abnormal chest CT reported: ${abnormalLungCt.map((item) => `${item.screeningType}${item.date ? ` (${item.date})` : ""}`).join("; ")}. Obtain Lung-RADS or diagnostic impression and recommended follow-up.`,
+      nextSteps: ["request_specialist_review", "request_imaging", "download_clinician_summary"],
     }))
   }
 }
@@ -436,9 +503,19 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
   const age = intake.demographics.age
   const sexAtBirth = intake.demographics.sexAtBirth || "unknown"
   const cervixPresent = intake.personalHistory.cervixPresent !== false && !intake.personalHistory.hysterectomy
-  const hasHighRiskCrc = intake.personalHistory.colonPolyps || intake.personalHistory.advancedAdenoma || intake.personalHistory.inflammatoryBowelDisease || hasCancerHistory(intake, "colorectal") || familyCancer(intake, ["colon", "colorectal", "rectal"]).length > 0
+  const hasAbnormalColorectalScreening = intake.priorScreening.some(
+    (item) =>
+      item.result === "abnormal" &&
+      includesAny(normalized(item.screeningType), ["colonoscopy", "fit", "stool", "cologuard", "ct colonography", "virtual colonoscopy"])
+  )
+  const hasHighRiskCrc = intake.personalHistory.colonPolyps || intake.personalHistory.advancedAdenoma || intake.personalHistory.inflammatoryBowelDisease || hasCancerHistory(intake, "colorectal") || familyCancer(intake, ["colon", "colorectal", "rectal"]).length > 0 || hasAbnormalColorectalScreening
   const hasHighRiskBreast = intake.personalHistory.priorChestRadiation || hasCancerHistory(intake, "breast") || (intake.genetics.knownPathogenicVariants || []).some((variant) => ["BRCA", "BRCA1", "BRCA2", "PALB2", "TP53", "PTEN", "CDH1"].includes(normalizeGene(variant.gene) || ""))
   const hasCervicalSurveillanceRisk = intake.personalHistory.immunosuppression || hasCancerHistory(intake, "cervical")
+  const hasAbnormalLungCt = intake.priorScreening.some(
+    (item) =>
+      item.result === "abnormal" &&
+      includesAny(normalized(item.screeningType), ["ldct", "low-dose ct", "lung ct", "chest ct", "ct chest"])
+  )
 
   if (age === undefined) return
 
@@ -446,26 +523,46 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
     const colonoscopyYears = latestNormalScreeningYears(intake, ["colonoscopy"])
     const fitYears = latestNormalScreeningYears(intake, ["fit", "stool"])
     const recentlyScreened = (colonoscopyYears !== undefined && colonoscopyYears < 10) || (fitYears !== undefined && fitYears < 1)
+    const priorStatusKnown =
+      intake.reportedHistory?.colorectalScreening !== undefined ||
+      intake.priorScreening.some((item) =>
+        includesAny(normalized(item.screeningType), ["colonoscopy", "fit", "stool", "cologuard", "ct colonography", "virtual colonoscopy"])
+      )
+    const screeningDue = intake.reportedHistory?.colorectalScreening === "no" || (priorStatusKnown && !recentlyScreened)
     if (age >= 45 && age <= 75) {
       addUnique(recommendations, recommendation({
         id: "uspstf-average-risk-colorectal",
         cancerType: "colorectal cancer",
         screeningName: "Colorectal cancer screening",
-        status: recentlyScreened ? "not_due" : "due",
+        status: recentlyScreened ? "not_due" : screeningDue ? "due" : "discuss",
         riskCategory: "average_risk",
         rationale: recentlyScreened
           ? "A recent normal colorectal screening entry was reported, so routine average-risk screening may not be due yet."
-          : "USPSTF recommends colorectal cancer screening for average-risk adults ages 45 to 75.",
-        recommendedNextStep: recentlyScreened ? "Confirm the exact test date and result with your clinician." : "Request care navigation for FIT, stool DNA, colonoscopy, or another appropriate screening option.",
-        suggestedTiming: recentlyScreened ? "Confirm interval" : "Start or update screening now",
+          : screeningDue
+            ? "USPSTF recommends colorectal cancer screening for average-risk adults ages 45 to 75, and the supplied history does not show a current qualifying test."
+            : "USPSTF recommends colorectal cancer screening for average-risk adults ages 45 to 75, but the prior-test history is missing, so current due status cannot be settled yet.",
+        recommendedNextStep: recentlyScreened
+          ? "Confirm the exact test date and result with your clinician."
+          : screeningDue
+            ? "Request care navigation for FIT, stool DNA, colonoscopy, or another appropriate screening option."
+            : "Add the last colorectal test type, date, and result. If none, say that you have never been screened.",
+        suggestedTiming: recentlyScreened ? "Confirm interval" : screeningDue ? "Start or update screening now" : "Clarify prior testing first",
         sourceId: "uspstf-crc-2021",
         evidenceGrade: age >= 50 ? "A" : "B",
         requiresClinicianReview: false,
         patientFriendlyExplanation: recentlyScreened
           ? "Based on the screening date you shared, this may not be due yet. Confirm the date and test type with your care team."
-          : "Based on age alone, this screening may be recommended for average-risk adults. Symptoms or family history would change the pathway.",
-        clinicianSummary: "Average-risk USPSTF colorectal screening logic applied; no high-risk CRC modifiers detected in supplied intake.",
-        nextSteps: recentlyScreened ? ["download_clinician_summary"] : ["request_colonoscopy", "request_care_navigation", "download_clinician_summary"],
+          : screeningDue
+            ? "Based on age and the prior-screening history supplied, colorectal screening appears due. Symptoms, family history, or prior abnormal results would change the pathway."
+            : "Your age falls within the screening range, but OpenRx still needs your prior colorectal test history before calling it due.",
+        clinicianSummary: screeningDue
+          ? "Average-risk USPSTF colorectal screening logic applied; supplied history indicates no current qualifying screen."
+          : "Age-based USPSTF colorectal screening applies, but due status remains unresolved because prior test type/date/result were not supplied.",
+        nextSteps: recentlyScreened
+          ? ["download_clinician_summary"]
+          : screeningDue
+            ? ["request_colonoscopy", "request_care_navigation", "download_clinician_summary"]
+            : ["request_care_navigation", "download_clinician_summary"],
       }))
     } else if (age >= 76 && age <= 85) {
       addUnique(recommendations, recommendation({
@@ -537,22 +634,48 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
     (intake.smoking.currentSmoker || (typeof intake.smoking.quitYearsAgo === "number" && intake.smoking.quitYearsAgo <= 15))
 
   if (age >= 50 && age <= 80) {
-    if (lungEligibleSmoking) {
+    if (lungEligibleSmoking && !hasAbnormalLungCt) {
+      const priorLdctYears = latestNormalScreeningYears(intake, ["ldct", "low-dose ct", "lung ct", "chest ct", "ct chest"])
+      const recentlyScreened = priorLdctYears !== undefined && priorLdctYears < 1
+      const priorStatusKnown =
+        intake.reportedHistory?.lungScreeningCt !== undefined ||
+        intake.priorScreening.some((item) =>
+          includesAny(normalized(item.screeningType), ["ldct", "low-dose ct", "lung ct", "chest ct", "ct chest"])
+        )
+      const screeningDue = intake.reportedHistory?.lungScreeningCt === "no" || (priorStatusKnown && !recentlyScreened)
       addUnique(recommendations, recommendation({
         id: "uspstf-lung-ldct",
         cancerType: "lung cancer",
         screeningName: "Low-dose CT lung cancer screening",
-        status: "due",
+        status: recentlyScreened ? "not_due" : screeningDue ? "due" : "discuss",
         riskCategory: "increased_risk",
-        rationale: "USPSTF recommends annual LDCT for adults ages 50 to 80 with at least 20 pack-years who currently smoke or quit within 15 years.",
-        recommendedNextStep: "Request LDCT navigation and smoking-cessation support if relevant.",
-        suggestedTiming: "Annual when eligible",
+        rationale: recentlyScreened
+          ? "USPSTF recommends annual LDCT for eligible adults, and a recent normal screening CT was reported."
+          : screeningDue
+            ? "USPSTF recommends annual LDCT for adults ages 50 to 80 with at least 20 pack-years who currently smoke or quit within 15 years, and no current screening CT was reported."
+            : "USPSTF annual LDCT eligibility is met from age and smoking exposure, but prior chest CT timing and results were not supplied.",
+        recommendedNextStep: recentlyScreened
+          ? "Confirm the CT date, result, and next annual screening date."
+          : screeningDue
+            ? "Request LDCT navigation and smoking-cessation support if relevant."
+            : "Add the date and result of any prior screening or diagnostic chest CT before scheduling another scan.",
+        suggestedTiming: recentlyScreened ? "Confirm next annual date" : screeningDue ? "Annual when eligible" : "Clarify prior CT first",
         sourceId: "uspstf-lung-2021",
         evidenceGrade: "B",
         requiresClinicianReview: false,
-        patientFriendlyExplanation: "Based on age and smoking history, LDCT screening may be appropriate if you are healthy enough for evaluation and treatment if needed.",
-        clinicianSummary: "USPSTF lung screening criteria met from supplied age/pack-year/current-or-recent smoking history.",
-        nextSteps: ["request_ldct", "request_imaging", "request_care_navigation", "download_clinician_summary"],
+        patientFriendlyExplanation: recentlyScreened
+          ? "The CT date you shared suggests annual lung screening may already be current. Confirm the report and next date."
+          : screeningDue
+            ? "Based on age, smoking history, and the prior CT history supplied, annual LDCT screening appears due."
+            : "Age and smoking history fit the USPSTF eligibility range, but OpenRx needs prior chest CT details before calling another scan due.",
+        clinicianSummary: screeningDue
+          ? "USPSTF lung screening eligibility met; supplied history indicates no current screening LDCT."
+          : "USPSTF lung eligibility met, but due status is unresolved pending prior chest CT date, indication, and result.",
+        nextSteps: recentlyScreened
+          ? ["download_clinician_summary"]
+          : screeningDue
+            ? ["request_ldct", "request_imaging", "request_care_navigation", "download_clinician_summary"]
+            : ["request_care_navigation", "download_clinician_summary"],
       }))
     } else if (
       intake.smoking.currentSmoker ||
@@ -621,6 +744,204 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
   }
 }
 
+function relatedIds(recommendations: ScreeningRecommendation[], predicate: (rec: ScreeningRecommendation) => boolean): string[] {
+  return recommendations.filter(predicate).map((rec) => rec.id)
+}
+
+function buildClarificationQuestions(
+  intake: ScreeningIntake,
+  recommendations: ScreeningRecommendation[]
+): ScreeningClarification[] {
+  const questions: ScreeningClarification[] = []
+  const reported = intake.reportedHistory || {}
+  const cancerRecommendationIds = relatedIds(
+    recommendations,
+    (rec) => rec.cancerType !== "general prevention"
+  )
+  const personalCancers = intake.personalHistory.cancers || []
+  const vaguePersonalCancer = personalCancers.some((entry) =>
+    normalized(entry.type) === "cancer" ||
+    (!entry.diagnosisAge && !entry.year)
+  )
+  const incompleteFamilyCancer = intake.familyHistory.some(
+    (entry) => !entry.cancerType || normalized(entry.cancerType) === "cancer" || !entry.diagnosisAge
+  )
+
+  if (
+    vaguePersonalCancer ||
+    incompleteFamilyCancer ||
+    reported.personalCancer === undefined ||
+    reported.familyCancer === undefined
+  ) {
+    let question =
+      "Have you or any close blood relative had cancer? Include who, the cancer type, and the age or year of diagnosis."
+    let priority: ScreeningClarification["priority"] = "important"
+    if (vaguePersonalCancer) {
+      question =
+        "For your own cancer history, what cancer was diagnosed, at what age or year, what treatment was given, and what follow-up plan are you on now?"
+      priority = "required"
+    } else if (incompleteFamilyCancer) {
+      question =
+        "For each relative with cancer, what was the exact relationship, cancer type, and age at diagnosis?"
+      priority = "required"
+    } else if (reported.personalCancer !== undefined && reported.familyCancer === undefined) {
+      question =
+        "Has any close blood relative had cancer? Include the relationship, cancer type, and age at diagnosis."
+    } else if (reported.personalCancer === undefined && reported.familyCancer !== undefined) {
+      question =
+        "Have you ever been diagnosed with cancer? If yes, include the type, diagnosis age or year, treatment, and current follow-up plan."
+    }
+    questions.push({
+      id: "clarify-cancer-history",
+      category: "cancer_history",
+      question,
+      whyItMatters:
+        "Personal cancer and detailed family history can replace average-risk screening with surveillance, earlier testing, or genetic-counseling review.",
+      relatedRecommendationIds: cancerRecommendationIds,
+      priority,
+    })
+  }
+
+  const colorectalRecommendationIds = relatedIds(
+    recommendations,
+    (rec) => /colorectal|colonoscop|colon\b/i.test(`${rec.cancerType} ${rec.screeningName}`)
+  )
+  const colorectalTests = intake.priorScreening.filter((item) =>
+    includesAny(normalized(item.screeningType), [
+      "colonoscopy",
+      "fit",
+      "stool",
+      "cologuard",
+      "ct colonography",
+      "virtual colonoscopy",
+      "sigmoidoscopy",
+    ])
+  )
+  const abnormalColorectalTest = colorectalTests.find((item) => item.result === "abnormal")
+  const incompleteColorectalTest = colorectalTests.find(
+    (item) => !item.date || item.result === "unknown"
+  )
+
+  if (colorectalRecommendationIds.length > 0) {
+    if (abnormalColorectalTest) {
+      questions.push({
+        id: "clarify-colorectal-abnormal-result",
+        category: "prior_test_result",
+        question:
+          "What did the prior colonoscopy or colorectal test show? Include the date, number/size/type of polyps or adenomas, pathology if available, and the recommended repeat interval.",
+        whyItMatters:
+          "Abnormal findings use surveillance pathways that can be much shorter than average-risk screening intervals.",
+        relatedRecommendationIds: colorectalRecommendationIds,
+        priority: "required",
+      })
+    } else if (reported.colorectalScreening === "yes" && incompleteColorectalTest) {
+      questions.push({
+        id: "clarify-colorectal-test-details",
+        category: "colorectal_history",
+        question:
+          "When was your last colorectal test, which test was it, and was it normal, positive, or did it find polyps? Include the recommended repeat date if known.",
+        whyItMatters:
+          "The test type, date, and result determine whether screening is due now or already current.",
+        relatedRecommendationIds: colorectalRecommendationIds,
+        priority: "required",
+      })
+    } else if (reported.colorectalScreening === undefined) {
+      questions.push({
+        id: "clarify-colorectal-screening-history",
+        category: "colorectal_history",
+        question:
+          "Have you had colonoscopy, FIT/stool testing, stool DNA, flexible sigmoidoscopy, or CT colonography before? Include the test, date, and result.",
+        whyItMatters:
+          "A prior normal test may mean you are not due yet; a positive test or polyps may require a different surveillance interval.",
+        relatedRecommendationIds: colorectalRecommendationIds,
+        priority: "important",
+      })
+    }
+  }
+
+  const lungRecommendationIds = relatedIds(
+    recommendations,
+    (rec) => /lung|ldct|low-dose ct/i.test(`${rec.cancerType} ${rec.screeningName}`)
+  )
+  const lungTests = intake.priorScreening.filter((item) =>
+    includesAny(normalized(item.screeningType), ["ldct", "low-dose ct", "lung ct", "chest ct", "ct chest"])
+  )
+  const incompleteLungTest = lungTests.find((item) => !item.date || item.result === "unknown")
+  const abnormalLungTest = lungTests.find((item) => item.result === "abnormal")
+  const needsSmokingDetails = recommendations.some(
+    (rec) => rec.id === "lung-smoking-history-needed" || rec.id === "lung-smoking-history-clarify"
+  )
+
+  if (abnormalLungTest) {
+    questions.push({
+      id: "clarify-abnormal-lung-ct",
+      category: "prior_test_result",
+      question:
+        "What did the prior chest CT show? Include the date, whether it was screening or diagnostic, the Lung-RADS or radiology impression, nodule size if reported, and the recommended follow-up.",
+      whyItMatters:
+        "An abnormal CT or lung nodule requires report-specific diagnostic follow-up rather than a routine annual screening assumption.",
+      relatedRecommendationIds: lungRecommendationIds,
+      priority: "required",
+    })
+  } else if (needsSmokingDetails) {
+    questions.push({
+      id: "clarify-smoking-exposure",
+      category: "lung_history",
+      question:
+        "Have you ever smoked? If yes, give total pack-years, whether you smoke now, and how many years ago you quit.",
+      whyItMatters:
+        "USPSTF lung screening eligibility depends on age, at least 20 pack-years, and current smoking or quitting within 15 years.",
+      relatedRecommendationIds: lungRecommendationIds,
+      priority: "required",
+    })
+  } else if (
+    recommendations.some((rec) => rec.id === "uspstf-lung-ldct") &&
+    reported.lungScreeningCt === undefined
+  ) {
+    questions.push({
+      id: "clarify-prior-lung-screening",
+      category: "lung_history",
+      question:
+        "Have you had a screening low-dose chest CT before? Include the date, result, any lung nodule follow-up, and whether it was screening or a diagnostic CT.",
+      whyItMatters:
+        "A prior LDCT date and result determine the next annual screen or whether a diagnostic follow-up pathway applies.",
+      relatedRecommendationIds: lungRecommendationIds,
+      priority: "important",
+    })
+  } else if (incompleteLungTest) {
+    questions.push({
+      id: "clarify-lung-ct-result",
+      category: "prior_test_result",
+      question:
+        "What was the date and result of the prior low-dose or lung CT, and was any nodule follow-up recommended?",
+      whyItMatters:
+        "A screening LDCT and a diagnostic CT are not interchangeable, and an abnormal result needs clinician-directed follow-up.",
+      relatedRecommendationIds: lungRecommendationIds,
+      priority: "required",
+    })
+  }
+
+  if (
+    recommendations.some((rec) => rec.id === "uspstf-average-risk-cervical") &&
+    !intake.priorScreening.some((item) => includesAny(normalized(item.screeningType), ["pap", "hpv", "cervical"]))
+  ) {
+    questions.push({
+      id: "clarify-cervical-screening-history",
+      category: "cervical_history",
+      question:
+        "Do you currently have a cervix, and when was your last Pap and/or HPV test? Include the result and any prior abnormal cervical finding.",
+      whyItMatters:
+        "Cervix status, test type, date, and prior abnormal results determine the correct cervical screening or surveillance interval.",
+      relatedRecommendationIds: ["uspstf-average-risk-cervical"],
+      priority: "important",
+    })
+  }
+
+  return questions
+    .sort((left, right) => Number(right.priority === "required") - Number(left.priority === "required"))
+    .slice(0, 3)
+}
+
 export function recommendScreenings(intake: ScreeningIntake): ScreeningEngineResult {
   const recommendations: ScreeningRecommendation[] = []
   const age = intake.demographics.age
@@ -646,6 +967,7 @@ export function recommendScreenings(intake: ScreeningIntake): ScreeningEngineRes
       engineVersion: SCREENING_ENGINE_VERSION,
       intakeCompleteness: "actionable",
       recommendations: recommendations.sort(compareRecommendations),
+      clarificationQuestions: [],
       safetyMessages: [
         "Symptoms reported in this intake should be evaluated as a clinical concern, not handled through routine screening guidance.",
         "Call 911 or seek emergency care now for severe, sudden, or worsening symptoms.",
@@ -654,13 +976,17 @@ export function recommendScreenings(intake: ScreeningIntake): ScreeningEngineRes
     }
   }
   addPersonalCancerHistoryRecommendations(recommendations, intake)
+  addPriorAbnormalResultRecommendations(recommendations, intake)
   addHereditaryRiskRecommendations(recommendations, intake)
   addFamilyHistoryOverrides(recommendations, intake)
   addAverageRiskCancerScreening(recommendations, intake)
 
   const sourceIds = Array.from(new Set(recommendations.map((item) => item.sourceId).filter((item): item is string => Boolean(item))))
+  const clarificationQuestions = buildClarificationQuestions(intake, recommendations)
   const intakeCompleteness: ScreeningEngineResult["intakeCompleteness"] =
-    hasActionableDemographics && (inputHasPriorHistory(intake) || highRiskSignals || redFlags.length > 0)
+    hasActionableDemographics &&
+    clarificationQuestions.length === 0 &&
+    (inputHasPriorHistory(intake) || highRiskSignals || redFlags.length > 0)
       ? "actionable"
       : hasActionableDemographics || highRiskSignals || redFlags.length > 0
       ? "partial"
@@ -671,6 +997,7 @@ export function recommendScreenings(intake: ScreeningIntake): ScreeningEngineRes
     engineVersion: SCREENING_ENGINE_VERSION,
     intakeCompleteness,
     recommendations: recommendations.sort(compareRecommendations),
+    clarificationQuestions,
     safetyMessages: [
       "OpenRx provides guideline-based education and care navigation support; it does not replace clinician judgment.",
       "Symptoms, personal cancer history, hereditary risk, or prior abnormal results should be reviewed with a clinician before routine screening intervals are used.",
@@ -680,7 +1007,14 @@ export function recommendScreenings(intake: ScreeningIntake): ScreeningEngineRes
 }
 
 function inputHasPriorHistory(intake: ScreeningIntake): boolean {
-  return intake.priorScreening.length > 0 || Boolean(intake.personalHistory.cancers?.length)
+  return (
+    intake.priorScreening.length > 0 ||
+    Boolean(intake.personalHistory.cancers?.length) ||
+    Boolean(
+      intake.reportedHistory &&
+      Object.values(intake.reportedHistory).some((value) => value === "yes" || value === "no")
+    )
+  )
 }
 
 function statusRank(status: ScreeningStatus): number {

@@ -30,7 +30,10 @@ function intake(overrides: Partial<ScreeningIntake> = {}): ScreeningIntake {
 }
 
 test("average-risk colorectal screening is due for adults 45-75", () => {
-  const result = recommendScreenings(intake({ demographics: { age: 52, sexAtBirth: "male" } }))
+  const result = recommendScreenings(intake({
+    demographics: { age: 52, sexAtBirth: "male" },
+    reportedHistory: { colorectalScreening: "no", personalCancer: "no", familyCancer: "no" },
+  }))
   const crc = result.recommendations.find((rec) => rec.id === "uspstf-average-risk-colorectal")
 
   expect(crc?.status).toBe("due")
@@ -38,6 +41,16 @@ test("average-risk colorectal screening is due for adults 45-75", () => {
   expect(crc?.sourceSystem).toBe("USPSTF")
   expect(crc?.sourceUrl).toBe("https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening")
   expect(crc?.nextSteps).toContain("request_colonoscopy")
+})
+
+test("unknown prior colorectal history returns a sourced recommendation plus a specific clarification", () => {
+  const result = recommendScreenings(intake({ demographics: { age: 52, sexAtBirth: "male" } }))
+  const crc = result.recommendations.find((rec) => rec.id === "uspstf-average-risk-colorectal")
+
+  expect(crc?.status).toBe("discuss")
+  expect(crc?.sourceUrl).toContain("colorectal-cancer-screening")
+  expect(result.clarificationQuestions.find((item) => item.id === "clarify-colorectal-screening-history")?.question)
+    .toContain("CT colonography")
 })
 
 test("recent normal colorectal screening changes due status to not_due", () => {
@@ -139,7 +152,8 @@ test("generic BRCA carrier prompt returns baseline screening and inherited-risk 
   expect(parsed.extracted.genes).toContain("BRCA")
   expect(result.recommendations.some((rec) => rec.id === "hereditary-cancer-genetic-counseling")).toBe(true)
   expect(result.recommendations.some((rec) => rec.id === "hereditary-prostate-screening-review")).toBe(true)
-  expect(result.recommendations.some((rec) => rec.id === "uspstf-average-risk-colorectal" && rec.status === "due")).toBe(true)
+  expect(result.recommendations.some((rec) => rec.id === "uspstf-average-risk-colorectal" && rec.status === "discuss")).toBe(true)
+  expect(result.clarificationQuestions.some((item) => item.id === "clarify-colorectal-screening-history")).toBe(true)
   expect(result.recommendations.some((rec) => rec.id === "uspstf-prostate-shared-decision" && rec.status === "discuss")).toBe(true)
   expect(result.recommendations.some((rec) => rec.id === "lung-smoking-history-needed" && rec.status === "discuss")).toBe(true)
 })
@@ -157,10 +171,70 @@ test("screening parser handles compact demographic and prior screening shorthand
   expect(parsed.extracted.age).toBe(58)
   expect(parsed.extracted.gender).toBe("male")
   expect(parsed.extracted.conditions).toContain("normal colonoscopy 2023")
+  expect(parsed.extracted.reportedHistory.colorectalScreening).toBe("yes")
   expect(parsed.extracted.conditions).toContain("30 pack-years")
   expect(result.recommendations.some((rec) => rec.id === "uspstf-average-risk-colorectal" && rec.status === "not_due")).toBe(true)
-  expect(result.recommendations.some((rec) => rec.id === "uspstf-lung-ldct" && rec.status === "due")).toBe(true)
+  expect(result.recommendations.some((rec) => rec.id === "uspstf-lung-ldct" && rec.status === "discuss")).toBe(true)
+  expect(result.clarificationQuestions.some((item) => item.id === "clarify-prior-lung-screening")).toBe(true)
   expect(result.recommendations.some((rec) => rec.id === "hereditary-prostate-screening-review")).toBe(true)
+})
+
+test("vague personal cancer and abnormal colonoscopy history remain unresolved until details are supplied", () => {
+  const parsed = parseScreeningIntakeNarrative("55 male with hx cancer and colonoscopy showed polyps")
+  const result = recommendScreenings(screeningIntakeFromLegacy({
+    age: parsed.extracted.age,
+    gender: parsed.extracted.gender,
+    familyHistory: parsed.extracted.familyHistory,
+    conditions: parsed.extracted.conditions,
+    reportedHistory: parsed.extracted.reportedHistory,
+  }))
+
+  expect(parsed.extracted.reportedHistory.personalCancer).toBe("yes")
+  expect(result.recommendations.some((rec) => rec.id === "personal-history-cancer")).toBe(true)
+  expect(result.recommendations.some((rec) => rec.id === "prior-abnormal-colorectal-result-review")).toBe(true)
+  expect(result.recommendations.some((rec) => rec.id === "uspstf-average-risk-colorectal")).toBe(false)
+  expect(result.clarificationQuestions.some((item) => item.id === "clarify-cancer-history")).toBe(true)
+  expect(result.clarificationQuestions.some((item) => item.id === "clarify-colorectal-abnormal-result")).toBe(true)
+})
+
+test("explicitly denied personal cancer history is never parsed as a positive history", () => {
+  const parsed = parseScreeningIntakeNarrative(
+    "45 male. No personal history of cancer, no family history of cancer, and I have never had colorectal screening."
+  )
+  const result = recommendScreenings(screeningIntakeFromLegacy({
+    age: parsed.extracted.age,
+    gender: parsed.extracted.gender,
+    familyHistory: parsed.extracted.familyHistory,
+    conditions: parsed.extracted.conditions,
+    reportedHistory: parsed.extracted.reportedHistory,
+  }))
+
+  expect(parsed.extracted.reportedHistory.personalCancer).toBe("no")
+  expect(parsed.extracted.reportedHistory.familyCancer).toBe("no")
+  expect(result.recommendations.some((rec) => rec.id.startsWith("personal-history-"))).toBe(false)
+  expect(result.recommendations.find((rec) => rec.id === "uspstf-average-risk-colorectal")?.status).toBe("due")
+  expect(result.clarificationQuestions).toEqual([])
+})
+
+test("never-had screening language does not create phantom prior test records", () => {
+  const parsed = parseScreeningIntakeNarrative(
+    "60 male, current smoker with 30 pack-years. No personal or family history of cancer. Never had colorectal screening and never had a low-dose CT."
+  )
+  const result = recommendScreenings(screeningIntakeFromLegacy({
+    age: parsed.extracted.age,
+    gender: parsed.extracted.gender,
+    smoker: parsed.extracted.smoker,
+    conditions: parsed.extracted.conditions,
+    familyHistory: parsed.extracted.familyHistory,
+    reportedHistory: parsed.extracted.reportedHistory,
+  }))
+
+  expect(parsed.extracted.reportedHistory.colorectalScreening).toBe("no")
+  expect(parsed.extracted.reportedHistory.lungScreeningCt).toBe("no")
+  expect(parsed.extracted.conditions.some((item) => /colonoscopy|low-dose ct/i.test(item))).toBe(false)
+  expect(result.recommendations.find((rec) => rec.id === "uspstf-average-risk-colorectal")?.status).toBe("due")
+  expect(result.recommendations.find((rec) => rec.id === "uspstf-lung-ldct")?.status).toBe("due")
+  expect(result.clarificationQuestions).toEqual([])
 })
 
 test("screening chat answers common age-sex prompts directly with source links", () => {

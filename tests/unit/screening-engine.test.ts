@@ -39,6 +39,15 @@ describe("colorectal screening age boundaries (USPSTF 2021)", () => {
     expect(find({ age: 45, gender: "male" }, "uspstf-average-risk-colorectal")?.evidenceGrade).toBe("B")
     expect(find({ age: 50, gender: "male" }, "uspstf-average-risk-colorectal")?.evidenceGrade).toBe("A")
   })
+
+  it("does not call colorectal screening due until prior screening history is known", () => {
+    expect(find({ age: 45, gender: "male" }, "uspstf-average-risk-colorectal")?.status).toBe("discuss")
+    expect(find({
+      age: 45,
+      gender: "male",
+      reportedHistory: { colorectalScreening: "no", personalCancer: "no", familyCancer: "no" },
+    }, "uspstf-average-risk-colorectal")?.status).toBe("due")
+  })
 })
 
 describe("breast screening age boundaries (USPSTF 2024)", () => {
@@ -88,13 +97,25 @@ describe("lung LDCT eligibility boundaries (USPSTF 2021)", () => {
   })
 
   it("age 50 with 20 pack-years current smoking → LDCT due", () => {
-    const rec = find({ age: 50, gender: "male", smoker: true, conditions: ["20 pack-years"] }, "uspstf-lung-ldct")
+    const rec = find({
+      age: 50,
+      gender: "male",
+      smoker: true,
+      conditions: ["20 pack-years"],
+      reportedHistory: { lungScreeningCt: "no" },
+    }, "uspstf-lung-ldct")
     expect(rec?.status).toBe("due")
     expect(rec?.evidenceGrade).toBe("B")
   })
 
   it("age 80 eligible, age 81 not", () => {
-    expect(find({ age: 80, gender: "male", smoker: true, conditions: ["20 pack-years"] }, "uspstf-lung-ldct")).toBeDefined()
+    expect(find({
+      age: 80,
+      gender: "male",
+      smoker: true,
+      conditions: ["20 pack-years"],
+      reportedHistory: { lungScreeningCt: "no" },
+    }, "uspstf-lung-ldct")).toBeDefined()
     expect(find({ age: 81, gender: "male", smoker: true, conditions: ["20 pack-years"] }, "uspstf-lung-ldct")).toBeUndefined()
   })
 
@@ -106,7 +127,13 @@ describe("lung LDCT eligibility boundaries (USPSTF 2021)", () => {
 
   it("quit 15 years ago still eligible; quit 16 years ago is not", () => {
     expect(
-      find({ age: 60, gender: "male", smoker: false, conditions: ["20 pack-years", "quit smoking 15 years ago"] }, "uspstf-lung-ldct")
+      find({
+        age: 60,
+        gender: "male",
+        smoker: false,
+        conditions: ["20 pack-years", "quit smoking 15 years ago"],
+        reportedHistory: { lungScreeningCt: "no" },
+      }, "uspstf-lung-ldct")
     ).toBeDefined()
     const recs = ids({ age: 60, gender: "male", smoker: false, conditions: ["20 pack-years", "quit smoking 16 years ago"] })
     expect(recs).not.toContain("uspstf-lung-ldct")
@@ -119,6 +146,38 @@ describe("lung LDCT eligibility boundaries (USPSTF 2021)", () => {
 
   it("age 50-80 with unknown smoking history asks to clarify exposure", () => {
     expect(ids({ age: 55, gender: "male" })).toContain("lung-smoking-history-needed")
+  })
+
+  it("qualifying smoking history does not call LDCT due until prior chest CT history is known", () => {
+    const result = recommendScreenings(screeningIntakeFromLegacy({
+      age: 60,
+      gender: "male",
+      smoker: true,
+      conditions: ["30 pack-years"],
+    }))
+    expect(result.recommendations.find((rec) => rec.id === "uspstf-lung-ldct")?.status).toBe("discuss")
+    expect(result.clarificationQuestions.some((item) => item.id === "clarify-prior-lung-screening")).toBe(true)
+  })
+
+  it("recent normal LDCT is current and an abnormal chest CT routes to report-specific follow-up", () => {
+    expect(find({
+      age: 60,
+      gender: "male",
+      smoker: true,
+      conditions: ["30 pack-years", "normal low-dose ct 2026"],
+      reportedHistory: { lungScreeningCt: "yes" },
+    }, "uspstf-lung-ldct")?.status).toBe("not_due")
+
+    const abnormal = recommendScreenings(screeningIntakeFromLegacy({
+      age: 60,
+      gender: "male",
+      smoker: true,
+      conditions: ["30 pack-years", "abnormal chest ct 2025: lung nodule"],
+      reportedHistory: { lungScreeningCt: "yes" },
+    }))
+    expect(abnormal.recommendations.map((rec) => rec.id)).toContain("prior-abnormal-lung-ct-review")
+    expect(abnormal.recommendations.map((rec) => rec.id)).not.toContain("uspstf-lung-ldct")
+    expect(abnormal.clarificationQuestions.some((item) => item.id === "clarify-abnormal-lung-ct")).toBe(true)
   })
 })
 
@@ -159,6 +218,18 @@ describe("hereditary and family-history risk routing", () => {
     const recs = ids({ age: 45, gender: "male", familyHistory: ["father had colon cancer at age 48"] })
     expect(recs).toContain("crc-family-history-review")
     expect(recs).not.toContain("uspstf-average-risk-colorectal")
+  })
+
+  it("abnormal prior colonoscopy routes to surveillance review and asks for pathology details", () => {
+    const result = recommendScreenings(screeningIntakeFromLegacy({
+      age: 55,
+      gender: "male",
+      conditions: ["abnormal colonoscopy: polyps found"],
+      reportedHistory: { colorectalScreening: "yes", personalCancer: "no", familyCancer: "no" },
+    }))
+    expect(result.recommendations.map((rec) => rec.id)).toContain("prior-abnormal-colorectal-result-review")
+    expect(result.recommendations.map((rec) => rec.id)).not.toContain("uspstf-average-risk-colorectal")
+    expect(result.clarificationQuestions.some((item) => item.id === "clarify-colorectal-abnormal-result")).toBe(true)
   })
 })
 

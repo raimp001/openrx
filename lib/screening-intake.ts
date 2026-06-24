@@ -1,3 +1,5 @@
+import type { ScreeningReportedHistory } from "./screening/types"
+
 export interface ScreeningIntakeResult {
   ready: boolean
   clarificationQuestion?: string
@@ -16,6 +18,7 @@ export interface ScreeningIntakeResult {
     genes: string[]
     knownMutationOrSyndrome: string[]
     priorAbnormalFindings: string[]
+    reportedHistory: ScreeningReportedHistory
     location?: string
   }
 }
@@ -77,6 +80,10 @@ const SCREENING_HISTORY_KEYWORDS = [
   "hpv",
   "ldct",
   "low-dose ct",
+  "chest ct",
+  "ct chest",
+  "ct colonography",
+  "virtual colonoscopy",
   "psa",
 ]
 
@@ -228,20 +235,48 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     ...smokingContext,
   ])
 
+  const noPersonalOrFamilyCancerSignal =
+    /\b(?:no|without|denies?)\s+personal\s+(?:or|and)\s+family\s+(?:history|hx)\s+of\s+(?:any\s+)?cancer\b/.test(lowered)
+  const noPersonalCancerSignal =
+    noPersonalOrFamilyCancerSignal ||
+    /\b(?:no|without|denies?)\s+(?:personal\s+)?(?:history|hx)\s+of\s+(?:any\s+)?cancer\b|\bnever (?:had|diagnosed with) cancer\b/.test(lowered)
+
   // "family history of breast cancer" must never read as a personal history.
   const personalCancerMatch = lowered.match(
     /\b(?:personal history of|(?<!family\s)history of|survivor of|treated for|diagnosed with|i had|i have had)\s+([^.!?\n]{0,42}?(?:cancer|carcinoma|melanoma))\b/
   )
-  if (personalCancerMatch?.[1]) {
-    conditions.push(`personal history of ${personalCancerMatch[1].trim()}`)
+  const compactPersonalCancerMatch = lowered.match(
+    /\bhx(?:\s+of)?\s+(cancer)\b(?![^.!?\n]{0,25}\b(?:in|of)\s+(?:my\s+)?(?:mother|father|mom|dad|brother|sister|sibling|parent|uncle|aunt|grandmother|grandfather))/
+  )
+  const personalCancerValue = noPersonalCancerSignal
+    ? undefined
+    : personalCancerMatch?.[1] || compactPersonalCancerMatch?.[1]
+  if (personalCancerValue) {
+    conditions.push(`personal history of ${personalCancerValue.trim()}`)
   }
 
   SCREENING_HISTORY_KEYWORDS.forEach((keyword) => {
     const found = keyword.length <= 3 ? hasWord(lowered, keyword) : lowered.includes(keyword)
     if (!found) return
-    const nearbyYear = lowered.match(new RegExp(`(?:${keyword}|last)[^.!?\\n]{0,80}\\b(20\\d{2}|19\\d{2})\\b`))?.[1]
-    const result = lowered.includes("abnormal") ? "abnormal" : lowered.includes("normal") ? "normal" : ""
-    conditions.push(`${result ? `${result} ` : ""}${keyword}${nearbyYear ? ` ${nearbyYear}` : ""}`.trim())
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const localContext =
+      lowered.match(new RegExp(`[^.!?\\n]{0,70}\\b${escapedKeyword}\\b[^.!?\\n]{0,100}`))?.[0] || keyword
+    if (
+      /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,45}$/.test(
+        localContext.slice(0, Math.max(0, localContext.indexOf(keyword)))
+      )
+    ) {
+      return
+    }
+    const nearbyYear = localContext.match(/\b(20\d{2}|19\d{2})\b/)?.[1]
+    const result = /\b(abnormal|positive|polyps?|adenomas?|mass|nodules?)\b/.test(localContext)
+      ? "abnormal"
+      : /\b(normal|negative|clear|no polyps?)\b/.test(localContext)
+        ? "normal"
+        : ""
+    conditions.push(
+      `${result ? `${result} ` : ""}${keyword}${nearbyYear ? ` ${nearbyYear}` : ""}${result === "abnormal" && localContext !== keyword ? `: ${localContext.trim()}` : ""}`.trim()
+    )
   })
 
   if (lowered.includes("germline")) {
@@ -280,8 +315,29 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     ])
   ))
   const priorAbnormalFindings = unique(
-    conditions.filter((condition) => /\babnormal\b|\bpolyp\b|\badenoma\b|\bcin[23]\b/i.test(condition))
+    conditions.filter((condition) => /\babnormal\b|\bpolyps?\b|\badenomas?\b|\bcin[23]\b/i.test(condition))
   )
+  const noPersonalCancer = noPersonalCancerSignal
+  const noFamilyCancer =
+    noPersonalOrFamilyCancerSignal ||
+    /\b(?:no|without|denies?)\s+family\s+(?:history|hx)\s+of\s+(?:any\s+)?cancer\b/.test(lowered)
+  const noColorectalScreening =
+    /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,35}\b(colonoscopy|fit|stool test|cologuard|colorectal screening|ct colonography|virtual colonoscopy)\b/.test(lowered)
+  const hasColorectalScreening =
+    !noColorectalScreening &&
+    /\b(colonoscopy|fit|stool test|cologuard|colorectal screening|ct colonography|virtual colonoscopy)\b/.test(lowered)
+  const noLungScreeningCt =
+    /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,35}\b(ldct|low-dose ct|lung ct|chest ct|ct chest)\b/.test(lowered)
+  const hasLungScreeningCt =
+    !noLungScreeningCt && /\b(ldct|low-dose ct|lung ct|chest ct|ct chest)\b/.test(lowered)
+  const neverSmoked = /\b(?:never smoked|never smoker|non[- ]smoker|do not smoke|don't smoke)\b/.test(lowered)
+  const reportedHistory: ScreeningReportedHistory = {
+    personalCancer: noPersonalCancer ? "no" : personalCancerValue ? "yes" : undefined,
+    familyCancer: noFamilyCancer ? "no" : familyHistory.length > 0 ? "yes" : undefined,
+    colorectalScreening: noColorectalScreening ? "no" : hasColorectalScreening ? "yes" : undefined,
+    lungScreeningCt: noLungScreeningCt ? "no" : hasLungScreeningCt ? "yes" : undefined,
+    smoking: neverSmoked ? "no" : smoker !== undefined || packYearMatch ? "yes" : undefined,
+  }
   const locationMatch = narrative.match(/\b\d{5}(?:-\d{4})?\b|\b(?:near|in)\s+([A-Z][A-Za-z .'-]+,\s*[A-Z]{2})\b/)
   const location = locationMatch?.[0]?.replace(/^(near|in)\s+/i, "").trim()
 
@@ -300,6 +356,7 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     genes,
     knownMutationOrSyndrome: genes,
     priorAbnormalFindings,
+    reportedHistory,
     location,
   }
 

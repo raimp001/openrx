@@ -801,9 +801,13 @@ export default function ChatPage() {
             }),
             signal: controller.signal,
           })
-          const data = await fallbackRes.json()
+          const data = await fallbackRes.json() as { response?: string; agentId?: string; conversationId?: string }
           const text = data.response || CLEAN_MODEL_BUSY_MESSAGE
-          setMessages((prev) => prev.map((m) => (m.id === agentMsgId ? { ...m, content: text } : m)))
+          const resolvedAgent = data.agentId && agentMeta[data.agentId] ? data.agentId : selectedAgent
+          setMessages((prev) => prev.map((m) => (
+            m.id === agentMsgId ? { ...m, content: text, agentId: resolvedAgent } : m
+          )))
+          if (resolvedAgent !== activeAgent) setActiveAgent(resolvedAgent as AgentId)
           trackWorkflowEvent("answer_generated", { surface: "chat", has_sources: text.includes("http") })
           if (data.conversationId && data.conversationId !== conversationId) {
             renderedConversationIdRef.current = data.conversationId
@@ -835,15 +839,24 @@ export default function ChatPage() {
           } else if (event === "done") {
             try {
               const parsed = JSON.parse(data) as {
+                agentId?: string
                 conversationId?: string
                 conversationTitle?: string
                 finalText?: string
               }
+              const resolvedAgent = parsed.agentId && agentMeta[parsed.agentId]
+                ? parsed.agentId
+                : selectedAgent
               if (parsed.finalText) {
                 setMessages((prev) =>
-                  prev.map((m) => (m.id === agentMsgId ? { ...m, content: parsed.finalText! } : m))
+                  prev.map((m) => (
+                    m.id === agentMsgId
+                      ? { ...m, content: parsed.finalText!, agentId: resolvedAgent }
+                      : m
+                  ))
                 )
               }
+              if (resolvedAgent !== activeAgent) setActiveAgent(resolvedAgent as AgentId)
               trackWorkflowEvent("answer_generated", { surface: "chat", has_sources: Boolean(parsed.finalText?.includes("http")) })
               if (parsed.conversationId && parsed.conversationId !== conversationId) {
                 renderedConversationIdRef.current = parsed.conversationId

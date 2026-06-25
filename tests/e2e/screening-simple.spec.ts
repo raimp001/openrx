@@ -635,6 +635,32 @@ test("chat answers cancer screening questions inline with guideline links", asyn
   await expect(page.getByRole("button", { name: "Open screening plan" })).toHaveCount(0)
 })
 
+test("chat relabels a deterministically rerouted screening answer with the resolved agent", async ({ page }) => {
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+  await page.route(/\/api\/openclaw\/chat\/stream$/, async (route) => {
+    const text = "Answer\n\nColorectal screening timing depends on prior test history.\n\nSafety note\n\nConfirm with a clinician."
+    await route.fulfill({
+      status: 200,
+      contentType: "text/event-stream",
+      body: `event: delta\ndata: ${JSON.stringify({ text })}\n\nevent: done\ndata: ${JSON.stringify({ finalText: text, agentId: "screening" })}\n\n`,
+    })
+  })
+
+  await page.goto("/chat")
+  await page.getByTestId("chat-input").fill("45 male, no symptoms. What cancer screening is due?")
+  await page.getByTestId("chat-send-button").click()
+
+  const answer = page.getByTestId("chat-message-agent")
+  await expect(answer.getByText("Screening", { exact: true })).toBeVisible()
+  await expect(answer.getByText("Symptom triage", { exact: true })).toHaveCount(0)
+})
+
 test("screening answer finds clinic numbers in the same chat after a ZIP follow-up", async ({ page }) => {
   const routedRequests: Array<{ message?: string; agentId?: string }> = []
   await page.route(/\/api\/openclaw\/status$/, async (route) => {

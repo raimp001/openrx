@@ -1,60 +1,78 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Bot, Heart, LayoutDashboard, Menu, MessageSquare, PhoneCall, Stethoscope, UserCircle, X } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
-import { BrandMark, BrandWordmark } from "@/components/brand-logo"
-import ChatHistorySidebar from "@/components/chat/chat-history-sidebar"
-import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
-import { cn } from "@/lib/utils"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Bot,
+  HeartPulse,
+  LayoutDashboard,
+  Menu,
+  Stethoscope,
+  UserPlus,
+  Wallet,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BrandMark, BrandWordmark } from "@/components/brand-logo";
+import ChatHistorySidebar from "@/components/chat/chat-history-sidebar";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/chat", label: "Ask", icon: Bot, primary: true },
-  { href: "/dashboard", label: "My care", icon: LayoutDashboard, primary: true },
-  { href: "/screening", label: "Screenings", icon: Heart },
-  { href: "/providers", label: "Find care", icon: Stethoscope },
-  { href: "/outreach", label: "Outreach", icon: PhoneCall },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
-  { href: "/onboarding", label: "Setup", icon: UserCircle },
-]
+  {
+    href: "/screening",
+    label: "Check screening",
+    icon: HeartPulse,
+    primary: true,
+  },
+  { href: "/providers", label: "Find care", icon: Stethoscope, primary: true },
+  { href: "/dashboard", label: "Track next step", icon: LayoutDashboard },
+  { href: "/wallet", label: "Tip / save", icon: Wallet },
+  { href: "/join-network", label: "Join network", icon: UserPlus },
+];
 
 export default function Sidebar() {
-  const pathname = usePathname()
-  const isChatRoute = pathname === "/chat" || pathname?.startsWith("/chat/")
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const { snapshot } = useLiveSnapshot()
-  const unreadCount = snapshot.messages.filter((message) => !message.read).length
+  const pathname = usePathname();
+  const isChatRoute = pathname === "/chat" || pathname?.startsWith("/chat/");
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const visibleItems = useMemo(() => navItems, [])
+  const visibleItems = useMemo(() => navItems, []);
 
   useEffect(() => {
-    if (isChatRoute) return
-    document.documentElement.style.setProperty("--openrx-sidebar-width", "76px")
-  }, [isChatRoute])
+    if (isChatRoute) return;
+    document.documentElement.style.setProperty(
+      "--openrx-sidebar-width",
+      "76px",
+    );
+  }, [isChatRoute]);
 
   useEffect(() => {
-    setMobileOpen(false)
-  }, [pathname])
+    setMobileOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMobileOpen(false)
-    }
-    document.addEventListener("keydown", handleEscape)
-    return () => document.removeEventListener("keydown", handleEscape)
-  }, [])
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, []);
 
   if (isChatRoute) {
-    return <ChatHistorySidebar />
+    return <ChatHistorySidebar />;
   }
 
-  const isActive = (href: string) => pathname === href || pathname?.startsWith(`${href}/`)
+  const isActive = (href: string) =>
+    pathname === href || pathname?.startsWith(`${href}/`);
 
   const sidebarContent = (
     <>
       <div className="flex items-center justify-between px-4 py-4 lg:justify-center lg:px-2">
-        <Link href="/" className="flex items-center gap-3" aria-label="OpenRx home">
+        <Link
+          href="/"
+          className="flex items-center gap-3"
+          aria-label="OpenRx home"
+        >
           <BrandMark size="sm" />
           <BrandWordmark
             className="min-w-0 lg:hidden"
@@ -73,19 +91,22 @@ export default function Sidebar() {
 
       <div className="px-3 pb-3 lg:px-2">
         <Link
-          href="/chat"
+          href="/screening"
           className="flex items-center justify-center gap-2 rounded-2xl bg-cyan-200 px-4 py-3 text-sm font-semibold text-black transition hover:bg-cyan-100 lg:h-12 lg:px-0"
-          title="Ask OpenRx"
+          title="Check screening"
         >
-          <Bot size={15} />
-          <span className="lg:sr-only">Ask OpenRx</span>
+          <HeartPulse size={15} />
+          <span className="lg:sr-only">Check screening</span>
         </Link>
       </div>
 
-      <nav className="sidebar-scroll flex-1 overflow-y-auto px-2 pb-4" aria-label="Main navigation">
+      <nav
+        className="sidebar-scroll flex-1 overflow-y-auto px-2 pb-4"
+        aria-label="Main navigation"
+      >
         <div className="space-y-0.5">
           {visibleItems.map((item) => {
-            const active = isActive(item.href)
+            const active = isActive(item.href);
             return (
               <Link
                 key={item.href}
@@ -95,18 +116,23 @@ export default function Sidebar() {
                   "group flex items-center gap-3 rounded-[16px] px-3 py-2.5 text-[13px] font-medium transition lg:h-11 lg:justify-center lg:px-0",
                   active
                     ? "bg-cyan-200/10 text-primary ring-1 ring-cyan-200/18"
-                    : "text-secondary hover:bg-white/8 hover:text-primary"
+                    : item.primary
+                      ? "text-primary hover:bg-white/8"
+                      : "text-secondary hover:bg-white/8 hover:text-primary",
                 )}
               >
-                <item.icon size={15} className={active ? "text-primary" : "text-muted group-hover:text-primary"} strokeWidth={1.7} />
+                <item.icon
+                  size={15}
+                  className={
+                    active
+                      ? "text-primary"
+                      : "text-muted group-hover:text-primary"
+                  }
+                  strokeWidth={1.7}
+                />
                 <span className="flex-1 lg:sr-only">{item.label}</span>
-                {item.href === "/messages" && unreadCount > 0 ? (
-                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-white lg:absolute lg:right-1 lg:top-1">
-                    {unreadCount}
-                  </span>
-                ) : null}
               </Link>
-            )
+            );
           })}
         </div>
       </nav>
@@ -118,11 +144,13 @@ export default function Sidebar() {
           title="Privacy"
         >
           <span className="lg:sr-only">Privacy</span>
-          <span aria-hidden className="hidden lg:inline">?</span>
+          <span aria-hidden className="hidden lg:inline">
+            ?
+          </span>
         </Link>
       </div>
     </>
-  )
+  );
 
   return (
     <>
@@ -134,7 +162,12 @@ export default function Sidebar() {
         <Menu size={18} />
       </button>
 
-      {mobileOpen ? <div className="fixed inset-0 z-40 bg-black/24 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} /> : null}
+      {mobileOpen ? (
+        <div
+          className="fixed inset-0 z-40 bg-black/24 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      ) : null}
 
       {mobileOpen ? (
         <aside className="shell-rail fixed left-0 top-0 z-50 flex h-screen w-[244px] flex-col border-r lg:hidden">
@@ -146,5 +179,5 @@ export default function Sidebar() {
         {sidebarContent}
       </aside>
     </>
-  )
+  );
 }

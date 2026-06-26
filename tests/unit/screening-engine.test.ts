@@ -51,18 +51,18 @@ describe("colorectal screening age boundaries (USPSTF 2021)", () => {
 })
 
 describe("breast screening age boundaries (USPSTF 2024)", () => {
-  const cases: Array<{ age: number; due: boolean }> = [
-    { age: 39, due: false },
-    { age: 40, due: true },
-    { age: 74, due: true },
-    { age: 75, due: false },
+  const cases: Array<{ age: number; present: boolean }> = [
+    { age: 39, present: false },
+    { age: 40, present: true },
+    { age: 74, present: true },
+    { age: 75, present: false },
   ]
 
-  it.each(cases)("female age $age → due: $due", ({ age, due }) => {
+  it.each(cases)("female age $age → recommendation present: $present", ({ age, present }) => {
     const rec = find({ age, gender: "female" }, "uspstf-average-risk-breast")
-    if (due) {
+    if (present) {
       expect(rec).toBeDefined()
-      expect(rec?.status).toBe("due")
+      expect(rec?.status).toBe("discuss")
       expect(rec?.evidenceGrade).toBe("B")
       expect(rec?.sourceVersion).toBeTruthy()
     } else {
@@ -73,20 +73,90 @@ describe("breast screening age boundaries (USPSTF 2024)", () => {
   it("never recommends mammography for male sex at birth", () => {
     expect(find({ age: 50, gender: "male" }, "uspstf-average-risk-breast")).toBeUndefined()
   })
+
+  it("marks mammography due only with resolved prior history", () => {
+    expect(find({
+      age: 50,
+      gender: "female",
+      reportedHistory: { breastScreening: "no" },
+    }, "uspstf-average-risk-breast")?.status).toBe("due")
+    expect(find({
+      age: 50,
+      gender: "female",
+      conditions: ["normal mammogram 2025"],
+      reportedHistory: { breastScreening: "yes" },
+    }, "uspstf-average-risk-breast")?.status).toBe("not_due")
+  })
+
+  it("routes an abnormal mammogram to report-specific follow-up", () => {
+    const result = recommendScreenings(screeningIntakeFromLegacy({
+      age: 50,
+      gender: "female",
+      conditions: ["abnormal mammogram 2025: BI-RADS 4"],
+      reportedHistory: { breastScreening: "yes" },
+    }))
+    expect(result.recommendations.map((rec) => rec.id)).toContain("prior-abnormal-mammogram-review")
+    expect(result.recommendations.map((rec) => rec.id)).not.toContain("uspstf-average-risk-breast")
+    expect(result.clarificationQuestions.some((item) => item.id === "clarify-abnormal-mammogram")).toBe(true)
+  })
 })
 
 describe("cervical screening age boundaries (USPSTF 2018)", () => {
-  const cases: Array<{ age: number; due: boolean }> = [
-    { age: 20, due: false },
-    { age: 21, due: true },
-    { age: 65, due: true },
-    { age: 66, due: false },
+  const cases: Array<{ age: number; present: boolean }> = [
+    { age: 20, present: false },
+    { age: 21, present: true },
+    { age: 65, present: true },
+    { age: 66, present: false },
   ]
 
-  it.each(cases)("female age $age → due: $due", ({ age, due }) => {
+  it.each(cases)("female age $age → recommendation present: $present", ({ age, present }) => {
     const rec = find({ age, gender: "female" }, "uspstf-average-risk-cervical")
-    expect(Boolean(rec)).toBe(due)
-    if (due) expect(rec?.evidenceGrade).toBe("A")
+    expect(Boolean(rec)).toBe(present)
+    if (present) {
+      expect(rec?.status).toBe("discuss")
+      expect(rec?.evidenceGrade).toBe("A")
+    }
+  })
+
+  it("requires confirmed cervix and prior-test history before calling cervical screening due", () => {
+    expect(find({
+      age: 30,
+      gender: "female",
+      conditions: ["cervix present"],
+      reportedHistory: { cervixPresent: "yes", cervicalScreening: "no" },
+    }, "uspstf-average-risk-cervical")?.status).toBe("due")
+    expect(find({
+      age: 30,
+      gender: "female",
+      conditions: ["cervix present", "normal pap 2025"],
+      reportedHistory: { cervixPresent: "yes", cervicalScreening: "yes" },
+    }, "uspstf-average-risk-cervical")?.status).toBe("not_due")
+  })
+
+  it("does not assume a generic hysterectomy removed the cervix", () => {
+    const rec = find({ age: 45, gender: "female", conditions: ["hysterectomy"] }, "uspstf-average-risk-cervical")
+    expect(rec?.status).toBe("discuss")
+  })
+
+  it("routes cervix removal and abnormal cervical history to clinician review", () => {
+    const removed = run({
+      age: 45,
+      gender: "female",
+      conditions: ["total hysterectomy", "cervix absent"],
+      reportedHistory: { cervixPresent: "no" },
+    })
+    expect(removed.map((rec) => rec.id)).toContain("cervical-after-cervix-removal-review")
+    expect(removed.find((rec) => rec.id === "cervical-after-cervix-removal-review")?.evidenceGrade).toBe("D")
+
+    const abnormal = recommendScreenings(screeningIntakeFromLegacy({
+      age: 45,
+      gender: "female",
+      conditions: ["cervix present", "abnormal pap 2025: CIN2"],
+      reportedHistory: { cervixPresent: "yes", cervicalScreening: "yes" },
+    }))
+    expect(abnormal.recommendations.map((rec) => rec.id)).toContain("prior-abnormal-cervical-result-review")
+    expect(abnormal.recommendations.map((rec) => rec.id)).not.toContain("uspstf-average-risk-cervical")
+    expect(abnormal.clarificationQuestions.some((item) => item.id === "clarify-abnormal-cervical-result")).toBe(true)
   })
 })
 

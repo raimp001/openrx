@@ -1,11 +1,17 @@
 import { parseScreeningIntakeNarrative } from "@/lib/screening-intake"
+import { detectRedFlagText } from "@/lib/red-flag"
 import { getGuidelineSource } from "@/lib/screening/sources"
 import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
 import type { ScreeningRecommendation } from "@/lib/screening/types"
 
+const SCREENING_RULE_AGENTS = new Set(["screening", "wellness", "coordinator"])
+
 function shouldAnswerWithRules(message: string): boolean {
   const lower = message.toLowerCase().trim()
   if (!lower) return false
+  if (/\b(prior[- ]?auth(?:orization)?|denial|appeal|payer|coverage determination)\b/.test(lower)) {
+    return false
+  }
   const profileOnly = /^(?:i\s*am\s*)?(?:age\s*)?\d{1,3}\s*(?:yo|y\/o|years?\s*old|year[-\s]old)?\s*(?:male|female|man|woman|m|f)\.?$/.test(lower)
   const preventionIntent = /\b(screen|screening|preventive|prevention|risk|cancer|uspstf|checkup|due|genetic|colonoscopy|mammogram|pap|hpv)\b/.test(lower)
   const profileSignal = /\b(age|aged|\d{1,3}\s*(?:yo|y\/o|years?\s*old|year[-\s]old|male|female|man|woman|m|f)|brca1|brca2|lynch|pack[-\s]?years?)\b/.test(lower)
@@ -40,7 +46,11 @@ function formatRecommendation(rec: ScreeningRecommendation): string {
   const source = getGuidelineSource(rec.sourceId)
   const sourceUrl = rec.sourceUrl || source?.url
   const sourceVersion = rec.sourceVersion || source?.versionOrDate || "version pending"
-  const grade = rec.evidenceGrade ? `Grade ${rec.evidenceGrade}` : "Grade not assigned"
+  const grade = rec.evidenceGrade
+    ? /^(?:grade|not graded|conditional|consensus|guideline|outside)/i.test(rec.evidenceGrade)
+      ? rec.evidenceGrade
+      : `Grade ${rec.evidenceGrade}`
+    : "Not graded"
   const sourceText = sourceUrl
     ? `[${sourceDisplayName(rec)}](${sourceUrl})`
     : sourceDisplayName(rec)
@@ -72,10 +82,13 @@ function formatGroups(recommendations: ScreeningRecommendation[]): string[] {
   })
 }
 
-export function deterministicClinicalResponse(message: string): string | null {
+export function deterministicClinicalResponse(message: string, agentId?: string): string | null {
+  if (agentId && !SCREENING_RULE_AGENTS.has(agentId)) return null
   if (!shouldAnswerWithRules(message)) return null
+  if (detectRedFlagText(message)) return null
 
   const parsed = parseScreeningIntakeNarrative(message)
+  if (parsed.extracted.redFlags.length > 0) return null
   if (!parsed.ready) {
     return [
       "Answer",
@@ -83,6 +96,9 @@ export function deterministicClinicalResponse(message: string): string | null {
       "",
       "Question to refine this",
       parsed.clarificationQuestion || "Share age, sex used for screening intervals, symptoms, family history, known inherited mutations, smoking history, and prior screening dates if known.",
+      "",
+      "References",
+      "- [USPSTF: A and B preventive recommendations (accessed-2026-06-24)](https://www.uspreventiveservicestaskforce.org/uspstf/recommendation-topics/uspstf-a-and-b-recommendations)",
       "",
       "Safety note",
       "OpenRx is clinical decision support, not a diagnosis, medical order, or insurance approval.",
@@ -110,6 +126,10 @@ export function deterministicClinicalResponse(message: string): string | null {
       "",
       "What to do now",
       "- Talk with a clinician or high-risk screening clinic instead of relying on a guessed recommendation.",
+      "",
+      "References",
+      "- [USPSTF: A and B preventive recommendations (accessed-2026-06-24)](https://www.uspreventiveservicestaskforce.org/uspstf/recommendation-topics/uspstf-a-and-b-recommendations)",
+      "- [NCI: Cancer screening overview (accessed-2026-06-24)](https://www.cancer.gov/about-cancer/screening)",
       "",
       "Safety note",
       "OpenRx should route unclear or unencoded guideline paths to clinician review.",

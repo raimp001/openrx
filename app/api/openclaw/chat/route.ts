@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 })
     }
 
-    const deterministicResponse = deterministicClinicalResponse(message)
+    const deterministicResponse = deterministicClinicalResponse(message, agentId)
 
     const auth = await requireAuth(req, { allowPublic: true })
     if ("response" in auth) return auth.response

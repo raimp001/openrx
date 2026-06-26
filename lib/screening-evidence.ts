@@ -2,6 +2,8 @@ import OpenAI from "openai"
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
 import type { ScreeningAssessment } from "@/lib/basehealth"
 import { resolveOpenAIHealthcareConfig } from "@/lib/openai-healthcare"
+import { getGuidelineSource } from "@/lib/screening/sources"
+import type { ScreeningRecommendation as StructuredScreeningRecommendation } from "@/lib/screening/types"
 
 export interface ScreeningEvidenceCitation {
   id: string
@@ -131,6 +133,30 @@ export function buildUspstfGuidelineCitations(): ScreeningEvidenceCitation[] {
     type: "guideline",
     summary: entry.summary,
   }))
+}
+
+export function buildGuidelineCitationsForRecommendations(
+  recommendations: StructuredScreeningRecommendation[]
+): ScreeningEvidenceCitation[] {
+  const citations = new Map<string, ScreeningEvidenceCitation>()
+
+  recommendations.forEach((recommendation) => {
+    const source = getGuidelineSource(recommendation.sourceId)
+    const url = recommendation.sourceUrl || source?.url
+    if (!url || citations.has(url)) return
+
+    citations.set(url, {
+      id: recommendation.sourceId || `source-${citations.size + 1}`,
+      title: source?.topic || recommendation.screeningName,
+      source: source?.organization || recommendation.sourceSystem,
+      publishedAt: recommendation.sourceVersion || source?.versionOrDate,
+      url,
+      type: "guideline",
+      summary: recommendation.patientFriendlyExplanation,
+    })
+  })
+
+  return Array.from(citations.values())
 }
 
 function parseList(input: string[] | undefined, fallback: string[] = []): string[] {
@@ -496,7 +522,9 @@ export async function buildScreeningEvidence(params: {
     return true
   })
 
-  const guidelines = buildUspstfGuidelineCitations()
+  const guidelines = buildGuidelineCitationsForRecommendations(
+    params.assessment.structuredRecommendations || []
+  )
 
   return [...guidelines, ...openAIEvidence, ...uniquePapers].slice(0, 12)
 }

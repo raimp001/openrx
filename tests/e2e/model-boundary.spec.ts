@@ -30,6 +30,25 @@ test("legacy screening builder does not echo intake as a direct-answer template"
   expect(response).not.toContain("age 45 male")
 })
 
+test("screening rules yield emergency and prior-auth messages to their owning agents", async () => {
+  const stroke = await runAgent({
+    agentId: "triage",
+    message: "Sudden facial droop and slurred speech, should I book prevention screening?",
+  })
+  const priorAuth = await runAgent({
+    agentId: "prior-auth",
+    message: "Cite USPSTF semaglutide prior authorization section 4.2 for this denial.",
+  })
+
+  expect(stroke.agentId).toBe("triage")
+  expect(stroke.response).toContain("Call 911")
+  expect(stroke.response).toContain("CDC: Stroke signs and symptoms")
+  expect(priorAuth.agentId).toBe("prior-auth")
+  expect(priorAuth.response).toContain("does not claim")
+  expect(priorAuth.response).toContain("CMS")
+  expect(priorAuth.response).not.toContain("Question to refine this")
+})
+
 test("no-key fallback answer does not echo raw patient input", async () => {
   const anthropicKey = process.env.ANTHROPIC_API_KEY
   const openaiKey = process.env.OPENAI_API_KEY

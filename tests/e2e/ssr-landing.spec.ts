@@ -13,11 +13,13 @@ test.describe("server-rendered landing page", () => {
 
     // Brand, value proposition, and clinical-safety copy
     expect(html).toContain("OpenRx")
-    expect(html).toContain("Prior-auth infrastructure and cancer screening navigation in one auditable care layer.")
-    expect(html).toContain("Screening plans are deterministic")
+    expect(html).toContain("OpenRx turns guidelines into care.")
+    expect(html).toContain("Guideline-grounded cancer screening and prior-auth workflows")
+    expect(html).toContain("Recommendations come from version-stamped rules, not model guesses.")
 
     // Decision-support disclaimer
-    expect(html).toContain("It does not diagnose or place orders.")
+    expect(html).toContain("The example is educational, not personal medical advice.")
+    expect(html).toContain("does not claim HIPAA compliance or SOC 2 certification")
 
     // Working developer and patient entry points
     expect(html).toMatch(/href="\/demo"/)
@@ -51,9 +53,28 @@ test.describe("server-rendered landing page", () => {
 
   test("landing page renders and navigates to the demo in a browser", async ({ page }) => {
     await page.goto("/")
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("OpenRx")
-    await expect(page.getByText("Prior-auth infrastructure and cancer screening navigation")).toBeVisible()
-    await page.getByRole("link", { name: "View API/docs" }).click()
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("OpenRx turns guidelines into care.")
+    await expect(page.getByText("Guideline-grounded cancer screening and prior-auth workflows")).toBeVisible()
+    await expect(page.getByRole("link", { name: "I am a patient: check my screening" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "I am a clinician" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "Health systems and API" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "Read the current trust posture" })).toBeVisible()
+    await page.getByRole("link", { name: "View API and workflow demo" }).click()
     await expect(page).toHaveURL(/\/demo/, { timeout: 30_000 })
+  })
+
+  test("mobile landing keeps the primary path visible without horizontal overflow", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto("/")
+
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+    await expect(page.getByRole("link", { name: "I am a patient: check my screening" })).toBeVisible()
+    await expect(page.getByRole("navigation", { name: "Main" })).toBeHidden()
+
+    const widths = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      content: document.documentElement.scrollWidth,
+    }))
+    expect(widths.content).toBeLessThanOrEqual(widths.viewport)
   })
 })

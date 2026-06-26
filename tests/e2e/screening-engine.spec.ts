@@ -88,9 +88,29 @@ test("BRCA2 routes to hereditary genetics and high-risk review", () => {
 
   expect(hereditary?.status).toBe("high_risk")
   expect(hereditary?.riskCategory).toBe("hereditary_risk")
-  expect(hereditary?.sourceSystem).toBe("USPSTF")
-  expect(hereditary?.sourceUrl).toContain("brca-related-cancer-risk-assessment")
+  expect(hereditary?.sourceSystem).toBe("NCI")
+  expect(hereditary?.sourceUrl).toContain("cancer.gov/about-cancer/causes-prevention/genetics")
   expect(hereditary?.nextSteps).toContain("request_genetic_counseling")
+})
+
+test("IBD and prior polyp history produce source-linked surveillance pathways", () => {
+  const ibd = recommendScreenings(intake({
+    demographics: { age: 48, sexAtBirth: "female" },
+    personalHistory: { inflammatoryBowelDisease: true },
+  }))
+  const ibdRec = ibd.recommendations.find((rec) => rec.id === "ibd-colorectal-surveillance-review")
+  expect(ibdRec?.status).toBe("surveillance_or_follow_up")
+  expect(ibdRec?.sourceSystem).toBe("ACG")
+  expect(ibdRec?.sourceUrl).toContain("gi.org/")
+
+  const polyp = recommendScreenings(intake({
+    demographics: { age: 52, sexAtBirth: "male" },
+    personalHistory: { colonPolyps: true, advancedAdenoma: true },
+  }))
+  const polypRec = polyp.recommendations.find((rec) => rec.id === "post-polypectomy-surveillance-review")
+  expect(polypRec?.status).toBe("surveillance_or_follow_up")
+  expect(polypRec?.sourceSystem).toBe("USMSTF")
+  expect(polypRec?.sourceUrl).toContain("doi.org/")
 })
 
 test("personal history of prostate cancer is surveillance, not routine PSA screening", () => {
@@ -237,6 +257,37 @@ test("never-had screening language does not create phantom prior test records", 
   expect(result.clarificationQuestions).toEqual([])
 })
 
+test("parser keeps mammogram and Pap results separate and captures cervix status", () => {
+  const parsed = parseScreeningIntakeNarrative(
+    "50 female, normal mammogram 2025, abnormal Pap 2024 with CIN2, cervix present."
+  )
+  const mammogram = parsed.extracted.conditions.find((item) => item.includes("mammogram"))
+  const pap = parsed.extracted.conditions.find((item) => /\bpap\b/.test(item))
+
+  expect(mammogram).toContain("normal mammogram 2025")
+  expect(mammogram).not.toContain("abnormal")
+  expect(pap).toContain("abnormal pap 2024")
+  expect(parsed.extracted.reportedHistory.breastScreening).toBe("yes")
+  expect(parsed.extracted.reportedHistory.cervicalScreening).toBe("yes")
+  expect(parsed.extracted.reportedHistory.cervixPresent).toBe("yes")
+})
+
+test("age-sex-only female profile does not overstate breast or cervical screening as due", () => {
+  const parsed = parseScreeningIntakeNarrative("50 female, no symptoms. What cancer screening is due?")
+  const result = recommendScreenings(screeningIntakeFromLegacy({
+    age: parsed.extracted.age,
+    gender: parsed.extracted.gender,
+    conditions: parsed.extracted.conditions,
+    familyHistory: parsed.extracted.familyHistory,
+    reportedHistory: parsed.extracted.reportedHistory,
+  }))
+
+  expect(result.recommendations.find((rec) => rec.id === "uspstf-average-risk-breast")?.status).toBe("discuss")
+  expect(result.recommendations.find((rec) => rec.id === "uspstf-average-risk-cervical")?.status).toBe("discuss")
+  expect(result.clarificationQuestions).toHaveLength(3)
+  expect(result.clarificationQuestions.some((item) => item.id === "clarify-prior-screening-summary")).toBe(true)
+})
+
 test("screening chat answers common age-sex prompts directly with source links", () => {
   const parsed = parseScreeningIntakeNarrative("What cancer screening does a 50-year-old woman need?")
   const response = buildDeterministicScreeningResponse("What cancer screening does a 50-year-old woman need?")
@@ -293,9 +344,10 @@ test("compact family lymphoma follow-up is parsed and answered without repeating
 
   expect(parsed.extracted.age).toBe(38)
   expect(parsed.extracted.familyHistory).toContain("family history of lymphoma or hematologic cancer")
-  expect(response).toContain("source-backed routine screening rule")
+  expect(response).toContain("Family cancer history review")
   expect(response).toContain("lymphoma")
   expect(response).toContain("What sex was assigned at birth")
+  expect(response).toContain("NCI")
   expect(response).toContain("References")
   expect(response).not.toContain("Direct answer")
   expect(response).not.toContain("I need one missing detail before giving screening guidance safely")

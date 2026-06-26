@@ -8,10 +8,11 @@ import {
   type ScreeningRecommendation,
 } from "@/lib/basehealth"
 import {
+  buildGuidelineCitationsForRecommendations,
   buildScreeningEvidence,
-  buildUspstfGuidelineCitations,
   type ScreeningEvidenceCitation,
 } from "@/lib/screening-evidence"
+import type { ScreeningRecommendation as StructuredScreeningRecommendation } from "@/lib/screening/types"
 import {
   CARE_SEARCH_PROMPT_ID,
   CARE_SEARCH_PROMPT_IMAGE_PATH,
@@ -149,6 +150,77 @@ function withAction(actions: string[], candidate: string): string[] {
 function withFactor(factors: ScreeningFactor[], candidate: ScreeningFactor): ScreeningFactor[] {
   if (factors.some((factor) => factor.label === candidate.label)) return factors
   return [...factors, candidate]
+}
+
+function patientFacingPriority(
+  recommendation: StructuredScreeningRecommendation
+): ScreeningRecommendation["priority"] {
+  if (
+    recommendation.status === "urgent_clinician_review" ||
+    recommendation.status === "surveillance_or_follow_up" ||
+    recommendation.status === "needs_clinician_review" ||
+    recommendation.status === "high_risk"
+  ) {
+    return "high"
+  }
+  return recommendation.status === "due" ? "medium" : "low"
+}
+
+function patientFacingRecommendations(
+  recommendations: StructuredScreeningRecommendation[]
+): ScreeningRecommendation[] {
+  return recommendations
+    .filter((recommendation) =>
+      recommendation.status === "due" ||
+      recommendation.status === "urgent_clinician_review" ||
+      recommendation.status === "surveillance_or_follow_up" ||
+      recommendation.status === "needs_clinician_review" ||
+      recommendation.status === "high_risk"
+    )
+    .map((recommendation) => ({
+      id: recommendation.id,
+      name: recommendation.screeningName,
+      priority: patientFacingPriority(recommendation),
+      ownerAgent: recommendation.nextSteps.some((step) =>
+        /colonoscopy|mammogram|ldct|imaging|referral/.test(step)
+      )
+        ? "scheduling"
+        : "screening",
+      reason: recommendation.patientFriendlyExplanation,
+    }))
+}
+
+function patientFacingNextActions(
+  assessment: ScreeningAssessment,
+  patientAddress: string
+): string[] {
+  const structured = assessment.structuredRecommendations || []
+  const actions: string[] = []
+  const actionableRecommendations = structured.filter((recommendation) =>
+    recommendation.status === "due" ||
+    recommendation.status === "urgent_clinician_review" ||
+    recommendation.status === "surveillance_or_follow_up" ||
+    recommendation.status === "needs_clinician_review" ||
+    recommendation.status === "high_risk"
+  )
+
+  if (assessment.clarificationQuestions?.length) {
+    actions.push("Answer the questions above before treating any screening timing as final.")
+  }
+
+  actionableRecommendations
+    .slice(0, 3)
+    .forEach((recommendation) => actions.push(recommendation.recommendedNextStep))
+
+  if (actionableRecommendations.length > 0) {
+    actions.push(
+      patientAddress
+        ? "Use the nearby care matches below to contact a provider, lab, or imaging center. OpenRx does not place orders."
+        : "Add a ZIP code to find nearby providers, labs, or imaging centers for an actionable recommendation."
+    )
+  }
+
+  return Array.from(new Set(actions))
 }
 
 function hasAnySignal(terms: string[], targets: string[]): boolean {
@@ -489,30 +561,25 @@ async function buildAssessmentPayload(
     options.analysisLevel === "deep" ? applyGeneticsDeepDive(assessment, input) : assessment
 
   const patientAddress = input.locationZip?.trim() || livePatient?.address || process.env.OPENRX_DEFAULT_PATIENT_LOCATION || ""
+  const patientFacingAssessment: ScreeningAssessment = {
+    ...enrichedAssessment,
+    recommendedScreenings: patientFacingRecommendations(enrichedAssessment.structuredRecommendations || []),
+    nextActions: patientFacingNextActions(enrichedAssessment, patientAddress),
+  }
   const localCareConnections = patientAddress
-    ? await buildLocalCareConnections(enrichedAssessment, patientAddress)
+    ? await buildLocalCareConnections(patientFacingAssessment, patientAddress)
     : []
   const evidenceCitations =
     options.analysisLevel === "deep"
       ? await buildScreeningEvidence({
-          assessment: enrichedAssessment,
+          assessment: patientFacingAssessment,
           symptoms: input.symptoms,
           familyHistory: input.familyHistory,
           conditions: input.conditions,
         })
-      : buildUspstfGuidelineCitations()
-  const nextActions =
-    options.analysisLevel === "preview"
-      ? withAction(
-          enrichedAssessment.nextActions,
-          patientAddress
-            ? "Use the nearby care matches below to call a provider, lab, or imaging center; OpenRx does not place orders."
-            : "Add a ZIP code to surface nearby providers, labs, or imaging centers for the recommended next step."
-        )
-      : enrichedAssessment.nextActions
+      : buildGuidelineCitationsForRecommendations(patientFacingAssessment.structuredRecommendations || [])
   return {
-    ...enrichedAssessment,
-    nextActions,
+    ...patientFacingAssessment,
     localCareConnections,
     evidenceCitations,
     accessLevel: options.analysisLevel,

@@ -69,6 +69,18 @@ const CONDITION_KEYWORDS = [
   "stroke",
 ]
 
+const SCREENING_RISK_HISTORY_KEYWORDS = [
+  "inflammatory bowel disease",
+  "ulcerative colitis",
+  "crohn disease",
+  "crohn's disease",
+  "colon polyp",
+  "colon polyps",
+  "advanced adenoma",
+  "chest radiation",
+  "immunosuppression",
+]
+
 const SCREENING_HISTORY_KEYWORDS = [
   "colonoscopy",
   "fit",
@@ -142,6 +154,39 @@ function includesAny(text: string, terms: string[]): boolean {
 
 function hasWord(text: string, word: string): boolean {
   return new RegExp(`\\b${word}\\b`, "i").test(text)
+}
+
+function nearestMatch(
+  text: string,
+  keywordIndex: number,
+  pattern: RegExp
+): RegExpMatchArray | undefined {
+  return Array.from(text.matchAll(pattern))
+    .sort((left, right) => {
+      const leftDistance = Math.abs((left.index || 0) - keywordIndex)
+      const rightDistance = Math.abs((right.index || 0) - keywordIndex)
+      return leftDistance - rightDistance
+    })[0]
+}
+
+function screeningMentionContext(lowered: string, keyword: string) {
+  const keywordIndex = lowered.indexOf(keyword)
+  if (keywordIndex < 0) return null
+  const clauseStart = Math.max(
+    lowered.lastIndexOf(".", keywordIndex),
+    lowered.lastIndexOf("!", keywordIndex),
+    lowered.lastIndexOf("?", keywordIndex),
+    lowered.lastIndexOf("\n", keywordIndex),
+    lowered.lastIndexOf(",", keywordIndex),
+    lowered.lastIndexOf(";", keywordIndex)
+  ) + 1
+  const clauseEnds = [".", "!", "?", "\n", ",", ";"]
+    .map((separator) => lowered.indexOf(separator, keywordIndex + keyword.length))
+    .filter((index) => index >= 0)
+  const clauseEnd = clauseEnds.length > 0 ? Math.min(...clauseEnds) : lowered.length
+  const clause = lowered.slice(clauseStart, clauseEnd).trim()
+  const localKeywordIndex = Math.max(0, clause.indexOf(keyword))
+  return { clause, localKeywordIndex }
 }
 
 function extractFamilyHistory(lowered: string): string[] {
@@ -232,6 +277,7 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
 
   const conditions = unique([
     ...CONDITION_KEYWORDS.filter((keyword) => lowered.includes(keyword)),
+    ...SCREENING_RISK_HISTORY_KEYWORDS.filter((keyword) => lowered.includes(keyword)),
     ...smokingContext,
   ])
 
@@ -258,9 +304,9 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   SCREENING_HISTORY_KEYWORDS.forEach((keyword) => {
     const found = keyword.length <= 3 ? hasWord(lowered, keyword) : lowered.includes(keyword)
     if (!found) return
-    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    const localContext =
-      lowered.match(new RegExp(`[^.!?\\n]{0,70}\\b${escapedKeyword}\\b[^.!?\\n]{0,100}`))?.[0] || keyword
+    const mention = screeningMentionContext(lowered, keyword)
+    const localContext = mention?.clause || keyword
+    const localKeywordIndex = mention?.localKeywordIndex || 0
     if (
       /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,45}$/.test(
         localContext.slice(0, Math.max(0, localContext.indexOf(keyword)))
@@ -268,10 +314,15 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     ) {
       return
     }
-    const nearbyYear = localContext.match(/\b(20\d{2}|19\d{2})\b/)?.[1]
-    const result = /\b(abnormal|positive|polyps?|adenomas?|mass|nodules?)\b/.test(localContext)
+    const nearbyYear = nearestMatch(localContext, localKeywordIndex, /\b(20\d{2}|19\d{2})\b/g)?.[1]
+    const nearestResult = nearestMatch(
+      localContext,
+      localKeywordIndex,
+      /\b(abnormal|positive|polyps?|adenomas?|mass|nodules?|cin[123]|normal|negative|clear|no polyps?)\b/g
+    )?.[1]
+    const result = nearestResult && /^(abnormal|positive|polyps?|adenomas?|mass|nodules?|cin[123])$/.test(nearestResult)
       ? "abnormal"
-      : /\b(normal|negative|clear|no polyps?)\b/.test(localContext)
+      : nearestResult
         ? "normal"
         : ""
     conditions.push(
@@ -330,12 +381,30 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,35}\b(ldct|low-dose ct|lung ct|chest ct|ct chest)\b/.test(lowered)
   const hasLungScreeningCt =
     !noLungScreeningCt && /\b(ldct|low-dose ct|lung ct|chest ct|ct chest)\b/.test(lowered)
+  const noBreastScreening =
+    /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,35}\b(mammogram|mammography)\b/.test(lowered)
+  const hasBreastScreening =
+    !noBreastScreening && /\b(mammogram|mammography)\b/.test(lowered)
+  const noCervicalScreening =
+    /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,35}\b(pap|pap smear|hpv test|cervical screening)\b/.test(lowered)
+  const hasCervicalScreening =
+    !noCervicalScreening && /\b(pap|pap smear|hpv test|cervical screening)\b/.test(lowered)
+  const cervixAbsent =
+    /\b(?:no cervix|without a cervix|cervix (?:was )?removed|total hysterectomy|hysterectomy with cervix removed)\b/.test(lowered)
+  const cervixPresent =
+    !cervixAbsent && /\b(?:cervix present|with a cervix|have (?:a|my) cervix|still have (?:a|my) cervix|cervix intact|supracervical hysterectomy)\b/.test(lowered)
+  if (/\bhysterectomy\b/.test(lowered)) conditions.push("hysterectomy")
+  if (cervixAbsent) conditions.push("cervix absent")
+  if (cervixPresent) conditions.push("cervix present")
   const neverSmoked = /\b(?:never smoked|never smoker|non[- ]smoker|do not smoke|don't smoke)\b/.test(lowered)
   const reportedHistory: ScreeningReportedHistory = {
     personalCancer: noPersonalCancer ? "no" : personalCancerValue ? "yes" : undefined,
     familyCancer: noFamilyCancer ? "no" : familyHistory.length > 0 ? "yes" : undefined,
     colorectalScreening: noColorectalScreening ? "no" : hasColorectalScreening ? "yes" : undefined,
+    breastScreening: noBreastScreening ? "no" : hasBreastScreening ? "yes" : undefined,
+    cervicalScreening: noCervicalScreening ? "no" : hasCervicalScreening ? "yes" : undefined,
     lungScreeningCt: noLungScreeningCt ? "no" : hasLungScreeningCt ? "yes" : undefined,
+    cervixPresent: cervixAbsent ? "no" : cervixPresent ? "yes" : undefined,
     smoking: neverSmoked ? "no" : smoker !== undefined || packYearMatch ? "yes" : undefined,
   }
   const locationMatch = narrative.match(/\b\d{5}(?:-\d{4})?\b|\b(?:near|in)\s+([A-Z][A-Za-z .'-]+,\s*[A-Z]{2})\b/)

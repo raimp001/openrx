@@ -1,6 +1,14 @@
 import type { GuidelineSource } from "./types"
 
 export const guidelineSources: Record<string, GuidelineSource> = {
+  "uspstf-a-b-2025": {
+    id: "uspstf-a-b-2025",
+    organization: "USPSTF",
+    topic: "USPSTF A and B preventive recommendations",
+    versionOrDate: "accessed-2026-06-24",
+    url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation-topics/uspstf-a-and-b-recommendations",
+    notes: "Index of preventive services with USPSTF A or B recommendations.",
+  },
   "uspstf-crc-2021": {
     id: "uspstf-crc-2021",
     organization: "USPSTF",
@@ -48,6 +56,46 @@ export const guidelineSources: Record<string, GuidelineSource> = {
     versionOrDate: "2019-08-20",
     url: "https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/brca-related-cancer-risk-assessment-genetic-counseling-and-genetic-testing",
     notes: "Risk assessment and genetic counseling/testing when personal/family history suggests BRCA-related risk.",
+  },
+  "acg-crc-2021": {
+    id: "acg-crc-2021",
+    organization: "ACG",
+    topic: "Colorectal cancer screening, including family-history pathways",
+    versionOrDate: "2021",
+    url: "https://doi.org/10.14309/ajg.0000000000001122",
+    notes: "Family history can change screening start age, modality, and interval.",
+  },
+  "usmstf-polypectomy-2020": {
+    id: "usmstf-polypectomy-2020",
+    organization: "USMSTF",
+    topic: "Follow-up after colonoscopy and polypectomy",
+    versionOrDate: "2020",
+    url: "https://doi.org/10.1053/j.gastro.2020.01.014",
+    notes: "Post-polypectomy surveillance depends on number, size, histology, and exam quality.",
+  },
+  "acg-uc-2025": {
+    id: "acg-uc-2025",
+    organization: "ACG",
+    topic: "Ulcerative colitis management and colorectal cancer prevention",
+    versionOrDate: "2025",
+    url: "https://gi.org/journals-publications/ebgi/alkazzi_aug2025/",
+    notes: "IBD-related colorectal surveillance requires disease-specific clinician planning.",
+  },
+  "nci-cancer-genetics-2024": {
+    id: "nci-cancer-genetics-2024",
+    organization: "NCI",
+    topic: "Inherited cancer risk and genetic counseling",
+    versionOrDate: "2024-08-08",
+    url: "https://www.cancer.gov/about-cancer/causes-prevention/genetics",
+    notes: "Confirmed or suspected inherited cancer risk should be reviewed by clinicians trained in cancer genetics.",
+  },
+  "nci-screening-overview-2026": {
+    id: "nci-screening-overview-2026",
+    organization: "NCI",
+    topic: "Cancer screening and the diagnostic boundary",
+    versionOrDate: "accessed-2026-06-24",
+    url: "https://www.cancer.gov/about-cancer/screening",
+    notes: "Screening applies before symptoms; symptoms and prior cancer require diagnostic or surveillance pathways.",
   },
   "pending-high-risk-oncology": {
     id: "pending-high-risk-oncology",

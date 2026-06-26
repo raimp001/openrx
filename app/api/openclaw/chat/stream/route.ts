@@ -112,7 +112,10 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const deterministicResponse = deterministicClinicalResponse(screeningContext?.trim() || message)
+  const deterministicResponse = deterministicClinicalResponse(
+    screeningContext?.trim() || message,
+    agentId as string
+  )
 
   const auth = await requireAuth(req, { allowPublic: true })
   if ("response" in auth) return auth.response

@@ -31,7 +31,7 @@ const RULES: Array<{ category: RedFlagCategory; label: string; test: RegExp; mes
   {
     category: "severe_bleeding",
     label: "Severe bleeding",
-    test: /\b(heavy bleeding|severe bleeding|vomiting blood|throwing up blood|coughing blood|blood won't stop|bleeding won'?t stop)\b/i,
+    test: /\b(heavy(?:\s+\w+){0,2}\s+bleeding|severe(?:\s+\w+){0,2}\s+bleeding|vomiting blood|throwing up blood|coughing blood|blood won't stop|bleeding won'?t stop)\b/i,
     message: "Severe bleeding can be an emergency. Call 911 or go to the nearest emergency department now.",
   },
   {

@@ -18,6 +18,21 @@ describe("deterministic clinical screening response", () => {
     expect(deterministicClinicalResponse("asdf qwerty")).toBeNull()
   })
 
+  it("does not intercept emergency or prior-authorization workflows", () => {
+    expect(
+      deterministicClinicalResponse(
+        "Sudden facial droop and slurred speech, should I book prevention screening?",
+        "triage"
+      )
+    ).toBeNull()
+    expect(
+      deterministicClinicalResponse(
+        "Cite USPSTF semaglutide prior authorization section 4.2 for this denial.",
+        "prior-auth"
+      )
+    ).toBeNull()
+  })
+
   it("age-only colorectal screening prompts return an engine-backed recommendation", () => {
     const response = deterministicClinicalResponse("age 45, what screening is due?")
     expect(response).toContain("Colorectal cancer screening")

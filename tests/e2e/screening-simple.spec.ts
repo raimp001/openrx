@@ -114,6 +114,26 @@ async function mockChatStream(
   })
 }
 
+test("uncertain history never renders synthetic booking deadlines or unrelated legacy screenings", async ({ page }) => {
+  await page.goto("/screening")
+  await page.getByTestId("screening-narrative-input").fill(
+    "50 female, no personal or family cancer history. I do not know when my last mammogram, Pap test, or colon screening was."
+  )
+  await page.getByTestId("screening-submit-preview").click()
+
+  await expect(page.getByText("Free screening plan ready.")).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId("screening-clarification-questions")).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId("screening-timeline")).toContainText("Clarify prior")
+  await expect(page.getByText("Book this month", { exact: true })).toHaveCount(0)
+  await expect(page.getByText("Continue preventive cadence and re-screen monthly.", { exact: true })).toHaveCount(0)
+  await expect(page.getByText("Blood pressure screening", { exact: true })).toHaveCount(0)
+  await expect(page.getByText("Depression screening", { exact: true })).toHaveCount(0)
+  await expect(page.getByTestId("recommendation-save-request")).toHaveCount(0)
+  await expect(page.getByTestId("screening-care-summary")).toContainText(
+    "Answer the clarification questions before starting a referral"
+  )
+})
+
 test("simple screening intake returns free recommendations", async ({ page }) => {
   await mockScreeningApis(page)
 
@@ -288,7 +308,7 @@ test("free screening with ZIP shows nearby care matches in preview", async ({ pa
   await expect(page.getByText(/Advanced review is optional/)).toBeVisible()
   await expect(page.getByText("Nearby Care Matches For This Screening")).toBeVisible()
   await expect(page.getByText("OpenRx Gastroenterology")).toBeVisible()
-  await expect(page.getByText(/OpenRx does not place orders/)).toBeVisible()
+  await expect(page.getByTestId("screening-care-summary")).toContainText("OpenRx does not place orders")
 })
 
 test("screening handoff from chat auto-runs the free recommendations", async ({ page }) => {
@@ -775,7 +795,9 @@ test("chat renders structured screening sections and a citation rail", async ({ 
   // Structured section testids exposed by the redesigned answer renderer
   await expect(page.getByTestId("chat-section-answer")).toBeVisible()
   await expect(page.getByText("Direct answer")).toHaveCount(0)
-  await expect(page.getByTestId("chat-section-due-now")).toBeVisible()
+  await expect(page.getByTestId("chat-section-upcoming-or-depends")).toBeVisible()
+  await expect(page.getByTestId("chat-section-questions-that-could-change-this-plan")).toBeVisible()
+  await expect(page.getByTestId("chat-section-due-now")).toHaveCount(0)
   await expect(page.getByTestId("chat-section-references")).toHaveCount(0) // refs render as a rail
   await expect(page.getByTestId("chat-citations")).toBeVisible()
 

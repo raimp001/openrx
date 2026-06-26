@@ -202,7 +202,7 @@ function formatGrade(value?: string): string | null {
   if (!value) return null
   const trimmed = value.trim()
   if (!trimmed) return null
-  if (/^not graded$/i.test(trimmed)) return "Not graded"
+  if (/^(?:not graded|conditional|consensus|guideline|outside)/i.test(trimmed)) return trimmed
   return /^grade\b/i.test(trimmed) ? trimmed : `Grade ${trimmed}`
 }
 
@@ -558,7 +558,46 @@ export default function ScreeningPage() {
     }))
   }, [assessment, structuredRecommendations])
 
-  const urgentScreeningCount = assessment?.recommendedScreenings.filter((item) => item.priority === "high").length || 0
+  const urgentScreeningCount = structuredRecommendations.filter(
+    (recommendation) => recommendation.status === "urgent_clinician_review"
+  ).length
+  const patientNextActions = useMemo(() => {
+    if (!assessment) return []
+    if (structuredRecommendations.length === 0) return assessment.nextActions
+
+    const actions: string[] = []
+    const actionableRecommendations = structuredRecommendations.filter((recommendation) =>
+      recommendation.status === "due" ||
+      recommendation.status === "urgent_clinician_review" ||
+      recommendation.status === "surveillance_or_follow_up" ||
+      recommendation.status === "needs_clinician_review" ||
+      recommendation.status === "high_risk"
+    )
+    if (assessment.clarificationQuestions?.length) {
+      actions.push("Answer the questions above before treating any screening timing as final.")
+    }
+    actionableRecommendations
+      .slice(0, 3)
+      .forEach((recommendation) => actions.push(recommendation.recommendedNextStep))
+    if (actionableRecommendations.length > 0) {
+      actions.push(
+        locationZip.trim() || intakePreview?.location || snapshot.patient?.address
+          ? "Use the nearby care matches below to contact a provider, lab, or imaging center. OpenRx does not place orders."
+          : "Add a ZIP code to find nearby providers, labs, or imaging centers for an actionable recommendation."
+      )
+    }
+    return Array.from(new Set(actions))
+  }, [
+    assessment,
+    intakePreview?.location,
+    locationZip,
+    snapshot.patient?.address,
+    structuredRecommendations,
+  ])
+  const timelineRecommendations = useMemo(
+    () => structuredRecommendations.filter((recommendation) => recommendation.status !== "not_due").slice(0, 5),
+    [structuredRecommendations]
+  )
   const actionableCareConnections = useMemo(
     () => localCareConnections.filter((connection) => connection.matches.length > 0),
     [localCareConnections]
@@ -1570,9 +1609,11 @@ export default function ScreeningPage() {
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
                   Next action
                 </p>
-                <p className="mt-2 text-sm leading-6 text-white/68">
+                <p className="mt-2 text-sm leading-6 text-white/68" data-testid="screening-care-summary">
                   {actionableCareConnections.length > 0
-                    ? `${actionableCareConnections.length} nearby care option group${actionableCareConnections.length === 1 ? "" : "s"} are ready below. Call to confirm availability; OpenRx does not place orders.`
+                    ? `${actionableCareConnections.length} nearby care option group${actionableCareConnections.length === 1 ? " is" : "s are"} ready below. Call to confirm availability; OpenRx does not place orders.`
+                    : assessment?.clarificationQuestions?.length
+                      ? "Answer the clarification questions before starting a referral or booking a screening service."
                     : locationZip.trim() || intakePreview?.location || snapshot.patient?.address
                       ? "No local directory matches came back yet. Use the plan and source links while OpenRx refreshes nearby options."
                       : "Add a ZIP code before running the preview to show nearby providers, labs, or imaging centers for the plan."}
@@ -1600,8 +1641,8 @@ export default function ScreeningPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="chip">{assessment.recommendedScreenings.length} screenings</span>
-              <span className="chip">{assessment.nextActions.length} next actions</span>
+              <span className="chip">{structuredRecommendations.length} sourced items</span>
+              <span className="chip">{patientNextActions.length} next actions</span>
               <span className="chip">{urgentScreeningCount} urgent</span>
               {localCareConnections.length > 0 ? <span className="chip">{actionableCareConnections.length} local match groups</span> : null}
             </div>
@@ -1673,7 +1714,7 @@ export default function ScreeningPage() {
         />
       ) : null}
 
-      {assessment && (
+      {assessment && patientNextActions.length > 0 && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="surface-card p-5">
             <div className="flex items-center gap-2 mb-3">
@@ -1696,6 +1737,12 @@ export default function ScreeningPage() {
                       <div className="space-y-2">
                         {section.items.map((rec) => {
                           const primaryAction = rec.nextSteps.find((step) => step !== "download_clinician_summary") || rec.nextSteps[0]
+                          const canStartReferral =
+                            rec.status === "due" ||
+                            rec.status === "urgent_clinician_review" ||
+                            rec.status === "surveillance_or_follow_up" ||
+                            rec.status === "needs_clinician_review" ||
+                            rec.status === "high_risk"
                           const statusTone =
                             rec.status === "urgent_clinician_review" || rec.status === "high_risk" || rec.status === "surveillance_or_follow_up"
                               ? "bg-soft-red/10 text-soft-red"
@@ -1793,7 +1840,7 @@ export default function ScreeningPage() {
                                     Find who to call
                                     <ArrowRight size={12} />
                                   </button>
-                                  {primaryAction ? (
+                                  {primaryAction && canStartReferral ? (
                                     <button
                                       type="button"
                                       data-testid="recommendation-save-request"
@@ -1822,7 +1869,7 @@ export default function ScreeningPage() {
                                   ) : null}
                                 </div>
                                 <p className="mt-2 text-[11px] leading-5 text-muted">
-                                  {primaryAction ? `${nextStepLabel(primaryAction)} is the clinical task. ` : ""}
+                                  {primaryAction && canStartReferral ? `${nextStepLabel(primaryAction)} is the clinical task. ` : ""}
                                   {hasLocationContext
                                     ? "Provider search will use the location context you provided."
                                     : "Provider search will ask for a city or ZIP before returning local results."}
@@ -2138,7 +2185,7 @@ export default function ScreeningPage() {
               <h2 className="text-sm font-bold text-primary">Immediate Next Actions</h2>
             </div>
             <ul className="space-y-2">
-              {assessment.nextActions.map((action) => (
+              {patientNextActions.map((action) => (
                 <li key={action} className="rounded-[20px] border border-white/10 bg-white/[0.055] p-4 text-sm leading-6 text-secondary shadow-sm">
                   {action}
                 </li>
@@ -2148,26 +2195,32 @@ export default function ScreeningPage() {
         </div>
       )}
 
-      {assessment && (
-        <div className="surface-card p-5">
+      {assessment && timelineRecommendations.length > 0 && (
+        <div className="surface-card p-5" data-testid="screening-timeline">
           <div className="flex items-center gap-2 mb-3">
             <Activity size={14} className="text-teal" />
-            <h2 className="text-sm font-bold text-primary">Recommended Timeline</h2>
+            <h2 className="text-sm font-bold text-primary">Plan timing</h2>
           </div>
           <div className="space-y-2">
-            {assessment.recommendedScreenings.slice(0, 5).map((rec, index) => {
-              const windowLabel =
-                rec.priority === "high" ? "Book within 1-2 weeks" : rec.priority === "medium" ? "Book this month" : "Plan this quarter"
+            {timelineRecommendations.map((rec, index) => {
+              const windowLabel = rec.suggestedTiming || (
+                rec.status === "due"
+                  ? "Start now"
+                  : rec.requiresClinicianReview
+                    ? "Clinician-guided"
+                    : "Clarify first"
+              )
               return (
                 <div
                   key={`timeline-${rec.id}`}
+                  data-testid="screening-timeline-item"
                   className="flex items-start justify-between gap-3 rounded-xl border border-border/70 bg-white/[0.045] p-3"
                 >
                   <div>
                     <p className="text-xs font-semibold text-primary">
-                      {index + 1}. {rec.name}
+                      {index + 1}. {rec.screeningName}
                     </p>
-                    <p className="text-[11px] text-muted mt-0.5">{rec.reason}</p>
+                    <p className="text-[11px] text-muted mt-0.5">{rec.patientFriendlyExplanation}</p>
                   </div>
                   <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-teal/10 text-teal whitespace-nowrap">
                     {windowLabel}

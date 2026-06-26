@@ -219,11 +219,19 @@ export function screeningIntakeFromLegacy(input: LegacyScreeningInput = {}): Scr
       cancers: legacyCancerHistory(conditions),
       colonPolyps: conditions.some((entry) => includesAny(normalized(entry), ["colon polyp", "adenoma"])),
       advancedAdenoma: conditions.some((entry) => normalized(entry).includes("advanced adenoma")),
-      inflammatoryBowelDisease: conditions.some((entry) => includesAny(normalized(entry), ["ulcerative colitis", "crohn", "ibd"])),
+      inflammatoryBowelDisease: conditions.some((entry) =>
+        includesAny(normalized(entry), ["inflammatory bowel disease", "ulcerative colitis", "crohn", "ibd"])
+      ),
       priorChestRadiation: conditions.some((entry) => normalized(entry).includes("chest radiation")),
       immunosuppression: conditions.some((entry) => normalized(entry).includes("immunosuppression")),
       hysterectomy: conditions.some((entry) => normalized(entry).includes("hysterectomy")),
-      cervixPresent: conditions.some((entry) => normalized(entry).includes("cervix present")) || undefined,
+      cervixPresent: input.reportedHistory?.cervixPresent === "no" ||
+        conditions.some((entry) => includesAny(normalized(entry), ["cervix absent", "cervix removed", "no cervix"]))
+        ? false
+        : input.reportedHistory?.cervixPresent === "yes" ||
+          conditions.some((entry) => includesAny(normalized(entry), ["cervix present", "cervix intact", "have my cervix"]))
+          ? true
+          : undefined,
     },
     familyHistory: familyHistory.map((entry) => {
       const entryUpper = normalized(entry).toUpperCase()
@@ -279,7 +287,8 @@ function addUnknownIntakeRecommendation(recommendations: ScreeningRecommendation
     rationale: "The current answers do not include enough age, sex-at-birth, symptom, family-history, or prior-screening detail to produce guideline-based screening guidance safely.",
     recommendedNextStep: "Add age, sex used for screening intervals, prior screening dates, and any family or personal cancer history.",
     suggestedTiming: "Before relying on this plan",
-    sourceId: "pending-high-risk-oncology",
+    sourceId: "uspstf-a-b-2025",
+    evidenceGrade: "Not graded",
     requiresClinicianReview: false,
     patientFriendlyExplanation: "OpenRx needs a little more context before it can show screening guidance safely.",
     clinicianSummary: "Screening intake incomplete; no definitive screening status generated.",
@@ -300,7 +309,8 @@ function addRedFlagRecommendations(recommendations: ScreeningRecommendation[], i
         ? "Seek timely medical evaluation now, especially if symptoms are new, heavy, worsening, or accompanied by weakness, fainting, chest pain, or shortness of breath."
         : "Request clinician review so the correct diagnostic pathway can be chosen.",
       suggestedTiming: "Now or as soon as clinically appropriate",
-      sourceId: "pending-high-risk-oncology",
+      sourceId: "nci-screening-overview-2026",
+      evidenceGrade: "Not graded",
       requiresClinicianReview: true,
       patientFriendlyExplanation: "Because you reported a symptom, OpenRx should not treat this as routine screening. A clinician should help decide the right diagnostic next step.",
       clinicianSummary: `Reported red flag: ${finding.label}. Route to diagnostic evaluation rather than preventive screening interval logic.`,
@@ -322,7 +332,8 @@ function addPersonalCancerHistoryRecommendations(recommendations: ScreeningRecom
       rationale: `A personal history of ${cancerType} is not routine average-risk screening. It usually needs individualized surveillance or survivorship follow-up.`,
       recommendedNextStep: "Request specialist review or bring prior treatment and pathology records to your clinician so the follow-up interval can be personalized.",
       suggestedTiming: "Clinician-guided",
-      sourceId: "pending-high-risk-oncology",
+      sourceId: "nci-screening-overview-2026",
+      evidenceGrade: "Not graded",
       requiresClinicianReview: true,
       patientFriendlyExplanation: `Because you reported a personal history of ${cancerType}, OpenRx should route you to a personalized follow-up plan rather than routine screening advice.`,
       clinicianSummary: `Personal history of ${cancerType}; exact surveillance rule not implemented in OpenRx. Confirm disease course, treatment, stage/pathology, and current survivorship plan.`,
@@ -386,6 +397,54 @@ function addPriorAbnormalResultRecommendations(recommendations: ScreeningRecomme
       nextSteps: ["request_specialist_review", "request_imaging", "download_clinician_summary"],
     }))
   }
+
+  const abnormalMammogram = intake.priorScreening.filter(
+    (item) =>
+      item.result === "abnormal" &&
+      includesAny(normalized(item.screeningType), ["mammogram", "mammography"])
+  )
+  if (abnormalMammogram.length > 0) {
+    addUnique(recommendations, recommendation({
+      id: "prior-abnormal-mammogram-review",
+      cancerType: "breast cancer",
+      screeningName: "Prior abnormal mammogram follow-up",
+      status: "surveillance_or_follow_up",
+      riskCategory: "increased_risk",
+      rationale: "A prior abnormal mammogram needs the report-specific diagnostic follow-up plan rather than a routine biennial screening assumption.",
+      recommendedNextStep: "Bring the mammogram report and any recommended diagnostic imaging or biopsy plan to the ordering clinician or breast imaging center.",
+      suggestedTiming: "Use the report's follow-up recommendation",
+      sourceId: "uspstf-breast-2024",
+      evidenceGrade: "Not graded",
+      requiresClinicianReview: true,
+      patientFriendlyExplanation: "An abnormal mammogram should follow the radiology report. OpenRx should not replace that plan with a routine screening interval.",
+      clinicianSummary: `Prior abnormal mammogram reported: ${abnormalMammogram.map((item) => `${item.screeningType}${item.date ? ` (${item.date})` : ""}`).join("; ")}. Obtain BI-RADS assessment and recommended diagnostic follow-up.`,
+      nextSteps: ["request_imaging", "request_specialist_review", "download_clinician_summary"],
+    }))
+  }
+
+  const abnormalCervical = intake.priorScreening.filter(
+    (item) =>
+      item.result === "abnormal" &&
+      includesAny(normalized(item.screeningType), ["pap", "hpv", "cervical"])
+  )
+  if (abnormalCervical.length > 0) {
+    addUnique(recommendations, recommendation({
+      id: "prior-abnormal-cervical-result-review",
+      cancerType: "cervical cancer",
+      screeningName: "Prior abnormal Pap or HPV follow-up",
+      status: "surveillance_or_follow_up",
+      riskCategory: "increased_risk",
+      rationale: "A prior abnormal Pap, positive HPV test, or cervical precancer finding requires result-specific surveillance rather than a routine average-risk interval.",
+      recommendedNextStep: "Bring the cytology, HPV, colposcopy, and pathology results to gynecology or the clinician managing the follow-up plan.",
+      suggestedTiming: "Use the documented follow-up recommendation",
+      sourceId: "uspstf-cervical-2018",
+      evidenceGrade: "Not graded",
+      requiresClinicianReview: true,
+      patientFriendlyExplanation: "An abnormal cervical result needs a result-specific follow-up plan. OpenRx should not guess the interval.",
+      clinicianSummary: `Prior abnormal cervical screening reported: ${abnormalCervical.map((item) => `${item.screeningType}${item.date ? ` (${item.date})` : ""}`).join("; ")}. Obtain cytology/HPV genotype, colposcopy/pathology, and recall plan.`,
+      nextSteps: ["request_cervical_screening", "request_specialist_review", "download_clinician_summary"],
+    }))
+  }
 }
 
 function addHereditaryRiskRecommendations(recommendations: ScreeningRecommendation[], intake: ScreeningIntake) {
@@ -413,8 +472,8 @@ function addHereditaryRiskRecommendations(recommendations: ScreeningRecommendati
       : `Known pathogenic or likely pathogenic variants (${variantLabel}) can change screening start age, modality, and interval.`,
     recommendedNextStep: "Request genetic counseling or high-risk clinic review before relying on average-risk screening intervals.",
     suggestedTiming: "Before choosing a routine screening interval",
-    sourceId: "uspstf-brca-2019",
-    evidenceGrade: "B",
+    sourceId: "nci-cancer-genetics-2024",
+    evidenceGrade: "Not graded",
     requiresClinicianReview: true,
     patientFriendlyExplanation: "A known inherited-risk result may mean your screening plan should be different from average-risk guidelines. OpenRx can help organize genetic counseling or high-risk clinic review.",
     clinicianSummary: `Known hereditary cancer signal: ${variantLabel}. Exact NCCN interval logic is not encoded; route to genetics/high-risk specialist review.`,
@@ -435,7 +494,8 @@ function addFamilyHistoryOverrides(recommendations: ScreeningRecommendation[], i
       rationale: "Family history can change colorectal screening start age, modality, and interval, so average-risk USPSTF logic should not be applied blindly.",
       recommendedNextStep: "Request GI or primary-care review for colonoscopy planning and bring family diagnosis ages plus any prior colonoscopy/pathology records.",
       suggestedTiming: earlyOrFirstDegree ? "Before routine average-risk interval is used" : "At next preventive visit",
-      sourceId: "pending-high-risk-oncology",
+      sourceId: "acg-crc-2021",
+      evidenceGrade: "Conditional; very low-quality evidence",
       requiresClinicianReview: true,
       patientFriendlyExplanation: "Because you reported colorectal cancer in the family, the practical next step is usually colonoscopy/GI planning rather than a generic average-risk checklist. A clinician should confirm the exact timing.",
       clinicianSummary: `Family colorectal history entries: ${crcFamily.map((entry) => `${entry.relationship}:${entry.cancerType}${entry.diagnosisAge ? `@${entry.diagnosisAge}` : ""}`).join("; ")}. Exact ACG/USMSTF family-history interval not implemented.`,
@@ -485,8 +545,8 @@ function addFamilyHistoryOverrides(recommendations: ScreeningRecommendation[], i
         : "Family breast, ovarian, tubal, peritoneal cancer, or known familial mutation can warrant a validated familial risk assessment and possible genetic counseling.",
       recommendedNextStep: "Request genetic counseling or a clinician-led hereditary risk assessment.",
       suggestedTiming: mutationOnly ? "Before relying on average-risk intervals" : "Before deciding whether average-risk breast screening is enough",
-      sourceId: mutationOnly ? "pending-high-risk-oncology" : "uspstf-brca-2019",
-      evidenceGrade: mutationOnly ? undefined : "B",
+      sourceId: mutationOnly ? "nci-cancer-genetics-2024" : "uspstf-brca-2019",
+      evidenceGrade: mutationOnly ? "Not graded" : "B",
       requiresClinicianReview: true,
       patientFriendlyExplanation: mutationOnly
         ? "A reported inherited-risk result may change which screenings are appropriate and when they should start. A clinician or genetic counselor should review it."
@@ -497,12 +557,110 @@ function addFamilyHistoryOverrides(recommendations: ScreeningRecommendation[], i
       nextSteps: ["request_genetic_counseling", "request_specialist_review", "download_clinician_summary"],
     }))
   }
+
+  const mappedFamilyTerms = [
+    "colon",
+    "colorectal",
+    "rectal",
+    "breast",
+    "ovarian",
+    "tubal",
+    "peritoneal",
+    "prostate",
+  ]
+  const unmappedFamilyHistory = intake.familyHistory.filter(
+    (entry) => !includesAny(normalized(entry.cancerType), mappedFamilyTerms)
+  )
+  if (unmappedFamilyHistory.length > 0) {
+    addUnique(recommendations, recommendation({
+      id: "other-family-cancer-history-review",
+      cancerType: "familial cancer risk",
+      screeningName: "Family cancer history review",
+      status: "needs_clinician_review",
+      riskCategory: "unknown",
+      rationale: "Some family cancer patterns may warrant inherited-risk assessment, but OpenRx does not have a version-stamped screening interval for the reported pattern.",
+      recommendedNextStep: "Review the exact cancer type, relative, diagnosis age, and whether multiple related cancers occurred on one side of the family with a clinician or genetic counselor.",
+      suggestedTiming: "At the next preventive visit",
+      sourceId: "nci-cancer-genetics-2024",
+      evidenceGrade: "Not graded",
+      requiresClinicianReview: true,
+      patientFriendlyExplanation: "This family history does not automatically add a routine screening test in OpenRx. A clinician can decide whether the pattern suggests inherited risk or another follow-up.",
+      clinicianSummary: `Unmapped family cancer history: ${unmappedFamilyHistory.map((entry) => `${entry.relationship}:${entry.cancerType}${entry.diagnosisAge ? `@${entry.diagnosisAge}` : ""}`).join("; ")}. No deterministic interval encoded; review pedigree and genetics referral criteria.`,
+      nextSteps: ["request_genetic_counseling", "request_specialist_review", "download_clinician_summary"],
+    }))
+  }
+}
+
+function addHighRiskColorectalHistoryRecommendations(
+  recommendations: ScreeningRecommendation[],
+  intake: ScreeningIntake
+) {
+  if (intake.personalHistory.inflammatoryBowelDisease) {
+    addUnique(recommendations, recommendation({
+      id: "ibd-colorectal-surveillance-review",
+      cancerType: "colorectal cancer",
+      screeningName: "IBD colorectal surveillance review",
+      status: "surveillance_or_follow_up",
+      riskCategory: "increased_risk",
+      rationale: "Colonic inflammatory bowel disease uses disease-duration, extent, inflammation, and prior-dysplasia surveillance rather than average-risk colorectal screening intervals.",
+      recommendedNextStep: "Request gastroenterology review and bring the IBD diagnosis date, disease extent, prior colonoscopy/pathology, and any dysplasia history.",
+      suggestedTiming: "Gastroenterology-directed",
+      sourceId: "acg-uc-2025",
+      evidenceGrade: "Guideline-directed clinician review",
+      requiresClinicianReview: true,
+      patientFriendlyExplanation: "IBD involving the colon needs a surveillance plan from gastroenterology. OpenRx should not assign an average-risk interval.",
+      clinicianSummary: "Colonic IBD signal detected. Confirm disease duration/extent, inflammatory activity, PSC, family history, prior dysplasia, and colonoscopy quality before setting surveillance.",
+      nextSteps: ["request_colonoscopy", "request_specialist_review", "download_clinician_summary"],
+    }))
+  }
+
+  if (intake.personalHistory.advancedAdenoma || intake.personalHistory.colonPolyps) {
+    addUnique(recommendations, recommendation({
+      id: "post-polypectomy-surveillance-review",
+      cancerType: "colorectal cancer",
+      screeningName: "Post-polypectomy surveillance review",
+      status: "surveillance_or_follow_up",
+      riskCategory: "increased_risk",
+      rationale: "After colon polyps or an advanced adenoma, the next colonoscopy interval depends on the number, size, histology, completeness of removal, and quality of the prior exam.",
+      recommendedNextStep: "Bring the colonoscopy and pathology reports to gastroenterology or primary care so the USMSTF surveillance interval can be applied.",
+      suggestedTiming: "Use the pathology-based recall plan",
+      sourceId: "usmstf-polypectomy-2020",
+      evidenceGrade: "Consensus recommendation",
+      requiresClinicianReview: true,
+      patientFriendlyExplanation: "A history of polyps or advanced adenoma needs pathology-based surveillance, not a routine average-risk schedule.",
+      clinicianSummary: "Polyp/advanced adenoma history reported. Obtain number, size, histology, resection completeness, bowel preparation quality, and recommended recall interval.",
+      nextSteps: ["request_colonoscopy", "request_specialist_review", "download_clinician_summary"],
+    }))
+  }
+}
+
+function addHighRiskCervicalHistoryRecommendations(
+  recommendations: ScreeningRecommendation[],
+  intake: ScreeningIntake
+) {
+  if (!intake.personalHistory.immunosuppression || hasCancerHistory(intake, "cervical")) return
+  addUnique(recommendations, recommendation({
+    id: "cervical-immunosuppression-review",
+    cancerType: "cervical cancer",
+    screeningName: "Immunosuppression-specific cervical screening review",
+    status: "needs_clinician_review",
+    riskCategory: "increased_risk",
+    rationale: "USPSTF average-risk cervical screening intervals do not apply to people with a compromised immune system.",
+    recommendedNextStep: "Request gynecology or primary-care review using the immune condition, medications, cervix status, and prior Pap/HPV results.",
+    suggestedTiming: "Before using an average-risk interval",
+    sourceId: "uspstf-cervical-2018",
+    evidenceGrade: "Outside average-risk scope",
+    requiresClinicianReview: true,
+    patientFriendlyExplanation: "Immunosuppression can change cervical screening timing. OpenRx should not apply the routine average-risk schedule.",
+    clinicianSummary: "Immunosuppression reported. Confirm condition/therapy, cervix status, HIV/transplant context if relevant, and prior cytology/HPV history before setting interval.",
+    nextSteps: ["request_cervical_screening", "request_specialist_review", "download_clinician_summary"],
+  }))
 }
 
 function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[], intake: ScreeningIntake) {
   const age = intake.demographics.age
   const sexAtBirth = intake.demographics.sexAtBirth || "unknown"
-  const cervixPresent = intake.personalHistory.cervixPresent !== false && !intake.personalHistory.hysterectomy
+  const cervixPresent = intake.personalHistory.cervixPresent
   const hasAbnormalColorectalScreening = intake.priorScreening.some(
     (item) =>
       item.result === "abnormal" &&
@@ -510,7 +668,17 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
   )
   const hasHighRiskCrc = intake.personalHistory.colonPolyps || intake.personalHistory.advancedAdenoma || intake.personalHistory.inflammatoryBowelDisease || hasCancerHistory(intake, "colorectal") || familyCancer(intake, ["colon", "colorectal", "rectal"]).length > 0 || hasAbnormalColorectalScreening
   const hasHighRiskBreast = intake.personalHistory.priorChestRadiation || hasCancerHistory(intake, "breast") || (intake.genetics.knownPathogenicVariants || []).some((variant) => ["BRCA", "BRCA1", "BRCA2", "PALB2", "TP53", "PTEN", "CDH1"].includes(normalizeGene(variant.gene) || ""))
-  const hasCervicalSurveillanceRisk = intake.personalHistory.immunosuppression || hasCancerHistory(intake, "cervical")
+  const hasAbnormalMammogram = intake.priorScreening.some(
+    (item) =>
+      item.result === "abnormal" &&
+      includesAny(normalized(item.screeningType), ["mammogram", "mammography"])
+  )
+  const hasAbnormalCervicalScreening = intake.priorScreening.some(
+    (item) =>
+      item.result === "abnormal" &&
+      includesAny(normalized(item.screeningType), ["pap", "hpv", "cervical"])
+  )
+  const hasCervicalSurveillanceRisk = intake.personalHistory.immunosuppression || hasCancerHistory(intake, "cervical") || hasAbnormalCervicalScreening
   const hasAbnormalLungCt = intake.priorScreening.some(
     (item) =>
       item.result === "abnormal" &&
@@ -520,15 +688,16 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
   if (age === undefined) return
 
   if (!hasHighRiskCrc) {
+    const colorectalTests = intake.priorScreening.filter((item) =>
+      includesAny(normalized(item.screeningType), ["colonoscopy", "fit", "stool", "cologuard", "ct colonography", "virtual colonoscopy"])
+    )
     const colonoscopyYears = latestNormalScreeningYears(intake, ["colonoscopy"])
     const fitYears = latestNormalScreeningYears(intake, ["fit", "stool"])
     const recentlyScreened = (colonoscopyYears !== undefined && colonoscopyYears < 10) || (fitYears !== undefined && fitYears < 1)
-    const priorStatusKnown =
-      intake.reportedHistory?.colorectalScreening !== undefined ||
-      intake.priorScreening.some((item) =>
-        includesAny(normalized(item.screeningType), ["colonoscopy", "fit", "stool", "cologuard", "ct colonography", "virtual colonoscopy"])
-      )
-    const screeningDue = intake.reportedHistory?.colorectalScreening === "no" || (priorStatusKnown && !recentlyScreened)
+    const incompleteColorectalTest = colorectalTests.some((item) => !item.date || item.result === "unknown")
+    const screeningDue =
+      intake.reportedHistory?.colorectalScreening === "no" ||
+      (colorectalTests.length > 0 && !incompleteColorectalTest && !recentlyScreened)
     if (age >= 45 && age <= 75) {
       addUnique(recommendations, recommendation({
         id: "uspstf-average-risk-colorectal",
@@ -584,47 +753,135 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
     }
   }
 
-  if ((sexAtBirth === "female" || sexAtBirth === "intersex") && !hasHighRiskBreast && age >= 40 && age <= 74) {
+  if ((sexAtBirth === "female" || sexAtBirth === "intersex") && !hasHighRiskBreast && !hasAbnormalMammogram && age >= 40 && age <= 74) {
+    const mammogramTests = intake.priorScreening.filter((item) =>
+      includesAny(normalized(item.screeningType), ["mammogram", "mammography"])
+    )
     const mammogramYears = latestNormalScreeningYears(intake, ["mammogram", "mammography"])
     const recentlyScreened = mammogramYears !== undefined && mammogramYears < 2
+    const incompleteMammogram = mammogramTests.some((item) => !item.date || item.result === "unknown")
+    const screeningDue =
+      intake.reportedHistory?.breastScreening === "no" ||
+      (mammogramTests.length > 0 && !incompleteMammogram && !recentlyScreened)
     addUnique(recommendations, recommendation({
       id: "uspstf-average-risk-breast",
       cancerType: "breast cancer",
       screeningName: "Breast cancer screening mammogram",
-      status: recentlyScreened ? "not_due" : "due",
+      status: recentlyScreened ? "not_due" : screeningDue ? "due" : "discuss",
       riskCategory: "average_risk",
       rationale: recentlyScreened
         ? "A recent normal mammogram was reported, so biennial average-risk screening may not be due yet."
-        : "USPSTF recommends biennial mammography for average-risk people assigned female at birth ages 40 to 74.",
-      recommendedNextStep: recentlyScreened ? "Confirm the last mammogram date and recommended next interval." : "Request mammogram navigation or discuss with your clinician.",
-      suggestedTiming: recentlyScreened ? "Confirm interval" : "Every 2 years when average-risk",
+        : screeningDue
+          ? "USPSTF recommends biennial mammography for average-risk people assigned female at birth ages 40 to 74, and the supplied history does not show a current mammogram."
+          : "USPSTF recommends biennial mammography for average-risk people assigned female at birth ages 40 to 74, but the last mammogram date and result are unknown.",
+      recommendedNextStep: recentlyScreened
+        ? "Confirm the last mammogram date and recommended next interval."
+        : screeningDue
+          ? "Request mammogram navigation or discuss with your clinician."
+          : "Add the date and result of the last mammogram. If none, say that you have never had one.",
+      suggestedTiming: recentlyScreened ? "Confirm interval" : screeningDue ? "Every 2 years when average-risk" : "Clarify prior mammogram first",
       sourceId: "uspstf-breast-2024",
       evidenceGrade: "B",
       requiresClinicianReview: false,
       patientFriendlyExplanation: recentlyScreened
         ? "The mammogram date you shared suggests you may already be current. Confirm the interval with your care team."
-        : "Based on age and sex used for screening intervals, mammography may be recommended every other year for average-risk patients.",
-      clinicianSummary: "Average-risk USPSTF breast screening logic applied; no high-risk breast modifiers detected in supplied intake.",
-      nextSteps: recentlyScreened ? ["download_clinician_summary"] : ["request_mammogram", "request_imaging", "download_clinician_summary"],
+        : screeningDue
+          ? "Based on age and the prior mammogram history supplied, average-risk mammography appears due."
+          : "Your age falls within the mammography range, but OpenRx needs the prior test date and result before calling it due.",
+      clinicianSummary: screeningDue
+        ? "Average-risk USPSTF breast screening logic applied; supplied history indicates no current mammogram."
+        : "USPSTF breast screening eligibility applies, but due status remains unresolved because prior mammogram date/result were not supplied.",
+      nextSteps: recentlyScreened
+        ? ["download_clinician_summary"]
+        : screeningDue
+          ? ["request_mammogram", "request_imaging", "download_clinician_summary"]
+          : ["request_care_navigation", "download_clinician_summary"],
     }))
   }
 
-  if ((sexAtBirth === "female" || sexAtBirth === "intersex") && cervixPresent && !hasCervicalSurveillanceRisk && age >= 21 && age <= 65) {
+  if (
+    (sexAtBirth === "female" || sexAtBirth === "intersex") &&
+    cervixPresent !== false &&
+    !hasCervicalSurveillanceRisk &&
+    age >= 21 &&
+    age <= 65
+  ) {
+    const cervicalTests = intake.priorScreening.filter((item) =>
+      includesAny(normalized(item.screeningType), ["pap", "hpv", "cervical"])
+    )
+    const papYears = latestNormalScreeningYears(intake, ["pap", "cervical"])
+    const hpvYears = latestNormalScreeningYears(intake, ["hpv"])
+    const recentlyScreened =
+      (papYears !== undefined && papYears < 3) ||
+      (age >= 30 && hpvYears !== undefined && hpvYears < 5)
+    const incompleteCervicalTest = cervicalTests.some((item) => !item.date || item.result === "unknown")
+    const screeningDue =
+      cervixPresent === true &&
+      (
+        intake.reportedHistory?.cervicalScreening === "no" ||
+        (cervicalTests.length > 0 && !incompleteCervicalTest && !recentlyScreened)
+      )
     addUnique(recommendations, recommendation({
       id: "uspstf-average-risk-cervical",
       cancerType: "cervical cancer",
       screeningName: "Cervical cancer screening",
-      status: "due",
+      status: recentlyScreened ? "not_due" : screeningDue ? "due" : "discuss",
       riskCategory: "average_risk",
-      rationale: "USPSTF recommends cervical cancer screening for average-risk people with a cervix ages 21 to 65 using age-appropriate Pap/HPV strategies.",
-      recommendedNextStep: "Request cervical screening navigation or confirm your latest Pap/HPV date with your clinician.",
-      suggestedTiming: age < 30 ? "Pap every 3 years when average-risk" : "Pap/HPV interval depends on test type",
+      rationale: recentlyScreened
+        ? "A recent normal Pap or HPV screening entry was reported, so average-risk cervical screening may not be due yet."
+        : screeningDue
+          ? "USPSTF recommends cervical cancer screening for average-risk people with a cervix ages 21 to 65, and the supplied history does not show a current test."
+          : "Cervix status and prior Pap/HPV test type, date, and result are needed before current due status can be settled.",
+      recommendedNextStep: recentlyScreened
+        ? "Confirm the last Pap/HPV result and next interval."
+        : screeningDue
+          ? "Request cervical screening navigation or discuss the appropriate Pap/HPV strategy with a clinician."
+          : "Add whether you currently have a cervix and the type, date, and result of the last Pap or HPV test.",
+      suggestedTiming: recentlyScreened
+        ? "Confirm interval"
+        : screeningDue
+          ? age < 30 ? "Pap every 3 years when average-risk" : "Pap/HPV interval depends on test type"
+          : "Clarify cervix and prior testing first",
       sourceId: "uspstf-cervical-2018",
       evidenceGrade: "A",
       requiresClinicianReview: false,
-      patientFriendlyExplanation: "If you have a cervix and no special high-risk history, cervical screening may be recommended in this age range.",
-      clinicianSummary: "Average-risk USPSTF cervical screening logic applied; verify cervix status and prior Pap/HPV result before scheduling.",
-      nextSteps: ["request_cervical_screening", "request_referral", "download_clinician_summary"],
+      patientFriendlyExplanation: recentlyScreened
+        ? "The normal test date you shared suggests cervical screening may already be current. Confirm the interval with your care team."
+        : screeningDue
+          ? "Based on confirmed cervix status and the prior test history supplied, cervical screening appears due."
+          : "OpenRx needs confirmed cervix status and prior Pap/HPV details before calling cervical screening due.",
+      clinicianSummary: screeningDue
+        ? "Average-risk USPSTF cervical screening logic applied with cervix present and no current qualifying test supplied."
+        : "Cervical screening eligibility may apply, but due status remains unresolved pending cervix status and prior test type/date/result.",
+      nextSteps: recentlyScreened
+        ? ["download_clinician_summary"]
+        : screeningDue
+          ? ["request_cervical_screening", "request_referral", "download_clinician_summary"]
+          : ["request_care_navigation", "download_clinician_summary"],
+    }))
+  }
+
+  if (
+    (sexAtBirth === "female" || sexAtBirth === "intersex") &&
+    cervixPresent === false &&
+    !hasCervicalSurveillanceRisk &&
+    age >= 21
+  ) {
+    addUnique(recommendations, recommendation({
+      id: "cervical-after-cervix-removal-review",
+      cancerType: "cervical cancer",
+      screeningName: "Cervical screening after cervix removal review",
+      status: "discuss",
+      riskCategory: "unknown",
+      rationale: "USPSTF recommends against routine cervical screening after hysterectomy with cervix removal only when there is no history of high-grade precancer or cervical cancer.",
+      recommendedNextStep: "Confirm why the cervix was removed and whether there was any CIN2+, AIS, or cervical cancer history before stopping screening.",
+      suggestedTiming: "Confirm surgical and pathology history",
+      sourceId: "uspstf-cervical-2018",
+      evidenceGrade: "D",
+      requiresClinicianReview: true,
+      patientFriendlyExplanation: "Routine screening may not be needed after cervix removal, but the reason for surgery and any prior abnormal pathology must be confirmed first.",
+      clinicianSummary: "Cervix reported absent. Confirm total hysterectomy, indication, and no prior CIN2+, AIS, or cervical cancer before applying USPSTF Grade D recommendation against routine screening.",
+      nextSteps: ["request_specialist_review", "download_clinician_summary"],
     }))
   }
 
@@ -635,14 +892,15 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
 
   if (age >= 50 && age <= 80) {
     if (lungEligibleSmoking && !hasAbnormalLungCt) {
+      const lungTests = intake.priorScreening.filter((item) =>
+        includesAny(normalized(item.screeningType), ["ldct", "low-dose ct", "lung ct", "chest ct", "ct chest"])
+      )
       const priorLdctYears = latestNormalScreeningYears(intake, ["ldct", "low-dose ct", "lung ct", "chest ct", "ct chest"])
       const recentlyScreened = priorLdctYears !== undefined && priorLdctYears < 1
-      const priorStatusKnown =
-        intake.reportedHistory?.lungScreeningCt !== undefined ||
-        intake.priorScreening.some((item) =>
-          includesAny(normalized(item.screeningType), ["ldct", "low-dose ct", "lung ct", "chest ct", "ct chest"])
-        )
-      const screeningDue = intake.reportedHistory?.lungScreeningCt === "no" || (priorStatusKnown && !recentlyScreened)
+      const incompleteLungTest = lungTests.some((item) => !item.date || item.result === "unknown")
+      const screeningDue =
+        intake.reportedHistory?.lungScreeningCt === "no" ||
+        (lungTests.length > 0 && !incompleteLungTest && !recentlyScreened)
       addUnique(recommendations, recommendation({
         id: "uspstf-lung-ldct",
         cancerType: "lung cancer",
@@ -754,6 +1012,23 @@ function buildClarificationQuestions(
 ): ScreeningClarification[] {
   const questions: ScreeningClarification[] = []
   const reported = intake.reportedHistory || {}
+  const age = intake.demographics.age
+  const sexAtBirth = intake.demographics.sexAtBirth || "unknown"
+  if (age === undefined || sexAtBirth === "unknown") {
+    questions.push({
+      id: "clarify-screening-demographics",
+      category: "demographics",
+      question: age === undefined && sexAtBirth === "unknown"
+        ? "What is your age, and what sex was assigned at birth for screening purposes?"
+        : age === undefined
+          ? "What is your age?"
+          : "What sex was assigned at birth for screening purposes?",
+      whyItMatters:
+        "Age and the organs relevant to screening determine which guideline pathways can be evaluated.",
+      relatedRecommendationIds: recommendations.map((rec) => rec.id),
+      priority: "required",
+    })
+  }
   const cancerRecommendationIds = relatedIds(
     recommendations,
     (rec) => rec.cancerType !== "general prevention"
@@ -859,6 +1134,56 @@ function buildClarificationQuestions(
     }
   }
 
+  const breastRecommendationIds = relatedIds(
+    recommendations,
+    (rec) => /breast|mammogram|mammography/i.test(`${rec.cancerType} ${rec.screeningName}`)
+  )
+  const mammogramTests = intake.priorScreening.filter((item) =>
+    includesAny(normalized(item.screeningType), ["mammogram", "mammography"])
+  )
+  const abnormalMammogram = mammogramTests.find((item) => item.result === "abnormal")
+  const incompleteMammogram = mammogramTests.find((item) => !item.date || item.result === "unknown")
+
+  if (breastRecommendationIds.length > 0) {
+    if (abnormalMammogram) {
+      questions.push({
+        id: "clarify-abnormal-mammogram",
+        category: "prior_test_result",
+        question:
+          "What did the prior mammogram show? Include the date, BI-RADS assessment, any ultrasound/MRI/biopsy result, and the recommended follow-up.",
+        whyItMatters:
+          "An abnormal mammogram uses report-specific diagnostic follow-up rather than a routine biennial screening interval.",
+        relatedRecommendationIds: breastRecommendationIds,
+        priority: "required",
+      })
+    } else if (reported.breastScreening === "yes" && incompleteMammogram) {
+      questions.push({
+        id: "clarify-mammogram-details",
+        category: "breast_history",
+        question:
+          "When was your last mammogram, was it normal or abnormal, and was any additional imaging or biopsy recommended?",
+        whyItMatters:
+          "The date and result determine whether routine screening is current or a diagnostic follow-up pathway is needed.",
+        relatedRecommendationIds: breastRecommendationIds,
+        priority: "required",
+      })
+    } else if (
+      recommendations.some((rec) => rec.id === "uspstf-average-risk-breast") &&
+      reported.breastScreening === undefined
+    ) {
+      questions.push({
+        id: "clarify-mammogram-history",
+        category: "breast_history",
+        question:
+          "Have you had a mammogram before? Include the date, result, and whether additional imaging or biopsy was recommended.",
+        whyItMatters:
+          "A recent normal mammogram may mean screening is current; an abnormal result requires a different pathway.",
+        relatedRecommendationIds: breastRecommendationIds,
+        priority: "important",
+      })
+    }
+  }
+
   const lungRecommendationIds = relatedIds(
     recommendations,
     (rec) => /lung|ldct|low-dose ct/i.test(`${rec.cancerType} ${rec.screeningName}`)
@@ -921,25 +1246,106 @@ function buildClarificationQuestions(
     })
   }
 
-  if (
-    recommendations.some((rec) => rec.id === "uspstf-average-risk-cervical") &&
-    !intake.priorScreening.some((item) => includesAny(normalized(item.screeningType), ["pap", "hpv", "cervical"]))
-  ) {
-    questions.push({
-      id: "clarify-cervical-screening-history",
-      category: "cervical_history",
-      question:
-        "Do you currently have a cervix, and when was your last Pap and/or HPV test? Include the result and any prior abnormal cervical finding.",
-      whyItMatters:
-        "Cervix status, test type, date, and prior abnormal results determine the correct cervical screening or surveillance interval.",
-      relatedRecommendationIds: ["uspstf-average-risk-cervical"],
-      priority: "important",
-    })
+  const cervicalRecommendationIds = relatedIds(
+    recommendations,
+    (rec) => /cervical|pap|hpv|cervix/i.test(`${rec.cancerType} ${rec.screeningName}`)
+  )
+  const cervicalTests = intake.priorScreening.filter((item) =>
+    includesAny(normalized(item.screeningType), ["pap", "hpv", "cervical"])
+  )
+  const abnormalCervical = cervicalTests.find((item) => item.result === "abnormal")
+  const incompleteCervical = cervicalTests.find((item) => !item.date || item.result === "unknown")
+
+  if (cervicalRecommendationIds.length > 0) {
+    if (abnormalCervical) {
+      questions.push({
+        id: "clarify-abnormal-cervical-result",
+        category: "prior_test_result",
+        question:
+          "What did the abnormal Pap or HPV testing show? Include the date, cytology result, HPV genotype if known, colposcopy/pathology, and recommended follow-up.",
+        whyItMatters:
+          "Abnormal cervical findings use result-specific surveillance and should not be assigned a routine interval.",
+        relatedRecommendationIds: cervicalRecommendationIds,
+        priority: "required",
+      })
+    } else if (recommendations.some((rec) => rec.id === "cervical-after-cervix-removal-review")) {
+      questions.push({
+        id: "clarify-cervix-removal-history",
+        category: "cervical_history",
+        question:
+          "Was the entire cervix removed, why was surgery performed, and have you ever had CIN2+, AIS, cervical cancer, or an abnormal Pap/HPV result?",
+        whyItMatters:
+          "Routine screening stops after cervix removal only when the cervix is fully removed and there is no high-grade precancer or cervical cancer history.",
+        relatedRecommendationIds: cervicalRecommendationIds,
+        priority: "required",
+      })
+    } else if (reported.cervicalScreening === "yes" && incompleteCervical) {
+      questions.push({
+        id: "clarify-cervical-test-details",
+        category: "cervical_history",
+        question:
+          "What type of cervical test did you have, when was it done, and was the Pap/HPV result normal or abnormal?",
+        whyItMatters:
+          "Pap and HPV tests use different intervals, and an abnormal result requires a surveillance pathway.",
+        relatedRecommendationIds: cervicalRecommendationIds,
+        priority: "required",
+      })
+    } else if (
+      recommendations.some((rec) => rec.id === "uspstf-average-risk-cervical") &&
+      (reported.cervixPresent === undefined || reported.cervicalScreening === undefined)
+    ) {
+      questions.push({
+        id: "clarify-cervical-screening-history",
+        category: "cervical_history",
+        question:
+          "Do you currently have a cervix, and when was your last Pap and/or HPV test? Include the test type, date, result, and any prior abnormal finding.",
+        whyItMatters:
+          "Cervix status, test type, date, and prior abnormal results determine the correct cervical screening or surveillance interval.",
+        relatedRecommendationIds: cervicalRecommendationIds,
+        priority: "important",
+      })
+    }
   }
 
-  return questions
-    .sort((left, right) => Number(right.priority === "required") - Number(left.priority === "required"))
-    .slice(0, 3)
+  const sorted = questions.sort(
+    (left, right) => Number(right.priority === "required") - Number(left.priority === "required")
+  )
+  if (sorted.length <= 3) return sorted
+
+  const required = sorted.filter((item) => item.priority === "required")
+  if (required.length >= 3) return required.slice(0, 3)
+
+  const routineCategories = new Set<ScreeningClarification["category"]>([
+    "colorectal_history",
+    "breast_history",
+    "lung_history",
+    "cervical_history",
+  ])
+  const routine = sorted.filter(
+    (item) => item.priority === "important" && routineCategories.has(item.category)
+  )
+  const otherImportant = sorted.filter(
+    (item) => item.priority === "important" && !routineCategories.has(item.category)
+  )
+  const roomAfterRequired = 3 - required.length
+  const consolidatedRoutine: ScreeningClarification | null = routine.length > 1
+    ? {
+        id: "clarify-prior-screening-summary",
+        category: "prior_test_result",
+        question:
+          "Which screening tests have you already had that apply here? For each, include the test type, date, result, and any recommended follow-up. Also state whether you currently have a cervix if cervical screening is listed.",
+        whyItMatters:
+          "Prior test dates and results determine whether screening is due, current, or needs diagnostic or surveillance follow-up.",
+        relatedRecommendationIds: Array.from(new Set(routine.flatMap((item) => item.relatedRecommendationIds))),
+        priority: "important",
+      }
+    : routine[0] || null
+
+  return [
+    ...required,
+    ...otherImportant,
+    ...(consolidatedRoutine ? [consolidatedRoutine] : []),
+  ].slice(0, required.length + roomAfterRequired)
 }
 
 export function recommendScreenings(intake: ScreeningIntake): ScreeningEngineResult {
@@ -979,6 +1385,8 @@ export function recommendScreenings(intake: ScreeningIntake): ScreeningEngineRes
   addPriorAbnormalResultRecommendations(recommendations, intake)
   addHereditaryRiskRecommendations(recommendations, intake)
   addFamilyHistoryOverrides(recommendations, intake)
+  addHighRiskColorectalHistoryRecommendations(recommendations, intake)
+  addHighRiskCervicalHistoryRecommendations(recommendations, intake)
   addAverageRiskCancerScreening(recommendations, intake)
 
   const sourceIds = Array.from(new Set(recommendations.map((item) => item.sourceId).filter((item): item is string => Boolean(item))))

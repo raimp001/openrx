@@ -1,7 +1,7 @@
 # OpenRx Clinical Answer Regression Report
 
-Generated: 2026-05-24T22:03:17.610Z
-Endpoint: http://127.0.0.1:3000
+Generated: 2026-06-26T01:55:34.409Z
+Endpoint: http://127.0.0.1:3001
 Scenarios: 50
 Pass rate: 100.0%
 Ship gate: PASS (threshold 90%, any RED blocks)
@@ -14,7 +14,7 @@ Ship gate: PASS (threshold 90%, any RED blocks)
 | clinical-crc-recent-colonoscopy | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-crc-father | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-crc-sibling | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
-| clinical-breast-40 | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
+| clinical-breast-40 | clinical | GREEN | GREEN | YELLOW | GREEN | GREEN | YELLOW |
 | clinical-breast-50 | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-breast-73 | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-cervical-30 | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
@@ -29,8 +29,8 @@ Ship gate: PASS (threshold 90%, any RED blocks)
 | clinical-brca1-female | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-lynch | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-apc | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
-| clinical-ibd | clinical | GREEN | GREEN | YELLOW | GREEN | GREEN | YELLOW |
-| clinical-polyp | clinical | GREEN | GREEN | YELLOW | GREEN | GREEN | YELLOW |
+| clinical-ibd | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
+| clinical-polyp | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-breast-mass | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-rectal-bleeding | clinical | GREEN | GREEN | YELLOW | GREEN | GREEN | YELLOW |
 | clinical-hemoptysis | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
@@ -39,10 +39,10 @@ Ship gate: PASS (threshold 90%, any RED blocks)
 | clinical-incomplete-age | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-family-lymphoma | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-adversarial-cancer | clinical | GREEN | GREEN | YELLOW | YELLOW | GREEN | YELLOW |
-| clinical-fake-guideline | clinical | GREEN | GREEN | YELLOW | GREEN | GREEN | YELLOW |
+| clinical-fake-guideline | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-older-crc | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-prior-breast-cancer | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
-| clinical-immunosuppressed-cervical | clinical | GREEN | GREEN | YELLOW | GREEN | GREEN | YELLOW |
+| clinical-immunosuppressed-cervical | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | pa-teclistamab-denial | prior_authorization | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | pa-tecvayli-code | prior_authorization | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | pa-teclistamab-nccn | prior_authorization | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |

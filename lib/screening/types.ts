@@ -42,7 +42,7 @@ export type ScreeningRiskCategory =
   | "symptomatic"
   | "unknown"
 
-export type ScreeningSourceSystem = "USPSTF" | "NCCN" | "ACG" | "USMSTF" | "ACS" | "LOCAL" | "PENDING"
+export type ScreeningSourceSystem = "USPSTF" | "NCCN" | "ACG" | "USMSTF" | "ACS" | "NCI" | "LOCAL" | "PENDING"
 
 export type GuidelineSource = {
   id: string
@@ -57,15 +57,20 @@ export type ScreeningReportedHistory = {
   personalCancer?: "yes" | "no"
   familyCancer?: "yes" | "no"
   colorectalScreening?: "yes" | "no"
+  breastScreening?: "yes" | "no"
+  cervicalScreening?: "yes" | "no"
   lungScreeningCt?: "yes" | "no"
+  cervixPresent?: "yes" | "no"
   smoking?: "yes" | "no"
 }
 
 export type ScreeningClarification = {
   id: string
   category:
+    | "demographics"
     | "cancer_history"
     | "colorectal_history"
+    | "breast_history"
     | "lung_history"
     | "cervical_history"
     | "prior_test_result"

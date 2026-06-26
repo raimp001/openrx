@@ -146,6 +146,7 @@ const SECTION_LABELS: Record<string, { variant: "due" | "review" | "upcoming" | 
   "Current / not indicated": { variant: "current", icon: CheckCircle2 },
   "Care options": { variant: "care", icon: Stethoscope },
   "Question to refine this": { variant: "followup" },
+  "Questions that could change this plan": { variant: "followup", icon: Clock3 },
   "What to do now": { variant: "next" },
   "What to ask when calling": { variant: "next", icon: Phone },
   References: { variant: "refs" },

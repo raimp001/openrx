@@ -1070,7 +1070,7 @@ export default function ChatPage() {
       data-openrx-chat-workspace
       className={cn(
         "relative isolate mx-auto flex min-h-screen animate-fade-in flex-col overflow-hidden bg-[#030303] px-4 text-zinc-100 sm:px-6",
-        showEmptyState ? "max-w-7xl justify-center" : "max-w-3xl"
+        showEmptyState ? "max-w-5xl justify-start" : "max-w-3xl"
       )}
     >
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_10%,rgba(103,232,249,0.10),transparent_32%),radial-gradient(circle_at_78%_68%,rgba(20,184,166,0.075),transparent_28%),linear-gradient(180deg,#030303_0%,#050505_58%,#070707_100%)]" />
@@ -1089,21 +1089,21 @@ export default function ChatPage() {
       {showEmptyState ? (
         <main
           data-testid="chat-empty-state"
-          className="flex min-h-screen flex-1 items-center justify-center px-2 py-16 sm:py-10"
+          className="flex min-h-screen flex-1 items-start justify-center px-2 pb-14 pt-[18svh] sm:pt-[20svh] lg:pt-[18svh]"
         >
           <section className="mx-auto w-full max-w-3xl text-center">
             <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-[11px] font-medium text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               {isConnected ? "Personalized" : "OpenRx"}
             </p>
-            <h1 className="orx-display-heading mx-auto mt-6 max-w-2xl text-[clamp(2.3rem,8vw,4.6rem)] text-white">
-              What do you need help with?
+            <h1 className="orx-display-heading mx-auto mt-5 max-w-2xl text-[clamp(2.25rem,7vw,3.8rem)] text-white">
+              Ask OpenRx
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-balance text-[14px] leading-6 text-zinc-400 sm:text-[15px]">
-              Ask once. Get a sourced answer and the next useful action.
+              Get a sourced answer, then open the right next step.
             </p>
 
-            <div className="mx-auto mt-8 max-w-2xl">{renderComposer("hero")}</div>
+            <div className="mx-auto mt-6 max-w-2xl">{renderComposer("hero")}</div>
 
             {errorBanner ? (
               <div
@@ -1118,7 +1118,7 @@ export default function ChatPage() {
 
             <nav
               aria-label="Care service links"
-              className="mx-auto mt-4 flex max-w-2xl flex-wrap justify-center gap-2"
+              className="mx-auto mt-3 flex max-w-2xl flex-wrap justify-center gap-2"
             >
               {SERVICE_LINKS.map((item) => {
                 const Icon = item.icon
@@ -1139,7 +1139,7 @@ export default function ChatPage() {
               })}
             </nav>
 
-            <div className="mx-auto mt-5 flex max-w-2xl flex-wrap justify-center gap-2" aria-label="Example questions">
+            <div className="mx-auto mt-4 flex max-w-2xl flex-wrap justify-center gap-2" aria-label="Example questions">
               {EXAMPLE_QUESTIONS.map((question) => (
                 <button
                   key={question}

@@ -1,6 +1,6 @@
 # OpenRx Clinical Answer Regression Report
 
-Generated: 2026-06-26T01:55:34.409Z
+Generated: 2026-06-27T17:34:04.171Z
 Endpoint: http://127.0.0.1:3001
 Scenarios: 50
 Pass rate: 100.0%

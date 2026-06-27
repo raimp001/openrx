@@ -1151,20 +1151,20 @@ export default function ScreeningPage() {
 
   return (
     <div data-openrx-screening-workspace className="animate-slide-up space-y-6 sm:space-y-8">
-      <section className="relative overflow-hidden px-2 pb-1 pt-5 sm:pt-7">
-        <div className="pointer-events-none absolute inset-x-[-8%] top-[-60%] h-[340px] bg-[radial-gradient(circle_at_50%_0%,rgba(103,232,249,0.14),transparent_48%)]" />
-        <div className="relative mx-auto max-w-3xl text-center">
+      <section className="relative overflow-hidden px-2 pt-3">
+        <div className="pointer-events-none absolute inset-x-[-8%] top-[-160px] h-[260px] bg-[radial-gradient(circle_at_50%_0%,rgba(103,232,249,0.10),transparent_50%)]" />
+        <div className="relative mx-auto max-w-5xl pb-3 text-center sm:pb-4">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-[12px] font-medium text-secondary">
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />
             OpenRx screening
           </span>
-          <h1 className="orx-display-heading mx-auto mt-3 max-w-2xl text-[clamp(2.25rem,6.6vw,4.35rem)] text-primary">
+          <h1 className="orx-display-heading mx-auto mt-3 max-w-2xl text-[clamp(2.1rem,5vw,3.4rem)] text-primary">
             What screening is due?
           </h1>
-          <p className="mx-auto mt-3 max-w-xl text-[15px] leading-7 text-secondary">
-            Ask once. Get a sourced plan and the next useful action.
+          <p className="mx-auto mt-2 max-w-xl text-[14px] leading-6 text-secondary">
+            Ask once. Get a sourced plan, clarification questions, and care links.
           </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
             <span className="metric-chip">
               <Activity size={11} className="text-accent" />
               Deterministic rules
@@ -1315,24 +1315,24 @@ export default function ScreeningPage() {
         </FieldsetCard>
       )}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_330px] xl:items-start">
+      <div className="grid grid-cols-1 gap-5 border-y border-white/10 py-5 xl:grid-cols-[minmax(0,1fr)_330px] xl:items-start">
         <div>
-          <section className="relative border-t border-white/10 pt-5">
+          <section className="relative">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">Ask OpenRx</p>
-                <h2 className="mt-2 text-[1.45rem] font-semibold leading-tight text-primary sm:text-[1.7rem]">
-                  One sentence is enough.
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">Plain-English intake</p>
+                <h2 className="mt-2 text-[1.3rem] font-semibold leading-tight text-primary sm:text-[1.55rem]">
+                  Describe the basics.
                 </h2>
               </div>
               <Link
                 href="/chat?prompt=What%20screening%20is%20due%20for%20me%3F%20Ask%20one%20follow-up%20only%20if%20needed%2C%20then%20give%20recommendations%20in%20chat.&topic=screening"
-                className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.055] px-3 text-xs font-semibold text-secondary transition hover:border-cyan-200/30 hover:text-primary"
+                className="inline-flex min-h-10 items-center justify-center self-start rounded-full border border-white/10 bg-white/[0.055] px-3 text-xs font-semibold text-secondary transition hover:border-cyan-200/30 hover:text-primary"
               >
                 Ask in chat
               </Link>
             </div>
-            <div className="mt-5 space-y-4">
+            <div className="mt-4 space-y-4">
               <ClinicalField
                 label="Plain-English history"
                 htmlFor="screening-narrative"
@@ -1346,7 +1346,7 @@ export default function ScreeningPage() {
                   onChange={(event) => setNarrative(event.target.value)}
                   rows={4}
                   placeholder="Example: 45 male, no symptoms, what cancer screening is due?"
-                  className="min-h-[132px] resize-y rounded-[24px] border-white/12 bg-[#050707]/92 px-5 py-4 text-base leading-7 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                  className="min-h-[112px] resize-y rounded-[22px] border-white/12 bg-[#050707]/92 px-5 py-4 text-base leading-7 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                 />
               </ClinicalField>
 

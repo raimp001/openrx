@@ -11,7 +11,7 @@
 :root {
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: Georgia, "Times New Roman", Times, serif;
-  --font-display: var(--font-serif);
+  --font-display: var(--font-sans);
   --color-bg-rgb: 5 5 5;
   --color-surface-rgb: 16 16 16;
   --color-surface-muted-rgb: 24 24 27;
@@ -201,9 +201,9 @@ a {
 @layer utilities {
   .orx-display-heading {
     font-family: var(--font-display);
-    font-weight: 600;
+    font-weight: 720;
     letter-spacing: 0;
-    line-height: 0.96;
+    line-height: 0.98;
     text-wrap: balance;
   }
 

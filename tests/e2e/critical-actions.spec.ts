@@ -24,7 +24,7 @@ test("Ask page sends a patient question through the OpenClaw chat surface", asyn
   })
 
   await page.goto("/chat")
-  await expect(page.getByRole("heading", { name: "What do you need help with?" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Ask OpenRx" })).toBeVisible()
 
   await page.getByLabel("Message OpenRx").fill("I need a medication refill this week.")
   await page.getByRole("button", { name: "Send" }).click()
@@ -34,7 +34,7 @@ test("Ask page sends a patient question through the OpenClaw chat surface", asyn
   expect(receivedBody?.agentId).toBe("rx")
 
   await page.getByRole("button", { name: "Clear" }).click()
-  await expect(page.getByRole("heading", { name: "What do you need help with?" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Ask OpenRx" })).toBeVisible()
 })
 
 test("Ask page saves and restores a clinical chat from the history sidebar", async ({ page }) => {

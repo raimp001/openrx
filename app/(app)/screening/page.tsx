@@ -191,6 +191,13 @@ const NARRATIVE_STARTERS = [
   "I am 67 with diabetes, hypertension, and prior abnormal colon polyp.",
 ]
 
+const HIGH_VALUE_DETAIL_PROMPTS = [
+  "No personal cancer history; no close family cancer history.",
+  "Last colonoscopy/FIT: date, result, polyps/pathology, repeat interval.",
+  "Any prior mammogram, Pap/HPV, low-dose CT, or PSA: date and result.",
+  "Smoking history: pack-years, current/former, quit date.",
+]
+
 const SAFE_SCREENING_RETRY_MESSAGE =
   "We couldn’t finish that request. Try again in a moment, or shorten your summary to age, sex used for screening, family history, mutations, and prior tests."
 const SAFE_PAYMENT_RETRY_MESSAGE =
@@ -375,6 +382,11 @@ function appendLocationHint(query: string, locationHint: string) {
   const cleanLocation = locationHint.trim()
   if (!cleanQuery || !cleanLocation || LOCATION_SIGNAL.test(cleanQuery)) return cleanQuery
   return `${cleanQuery} near ${cleanLocation}`
+}
+
+function appendNarrativeDetail(current: string, detail: string) {
+  const trimmed = current.trim()
+  return trimmed ? `${trimmed}\n${detail}` : detail
 }
 
 type RecommendationSectionId = "urgent" | "due_now" | "needs_review" | "upcoming" | "not_enough" | "not_indicated"
@@ -1164,7 +1176,7 @@ export default function ScreeningPage() {
           <p className="mx-auto mt-2 max-w-xl text-[14px] leading-6 text-secondary">
             Ask once. Get a sourced plan, clarification questions, and care links.
           </p>
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <div className="mt-3 hidden flex-wrap justify-center gap-2 sm:flex">
             <span className="metric-chip">
               <Activity size={11} className="text-accent" />
               Deterministic rules
@@ -1383,11 +1395,29 @@ export default function ScreeningPage() {
                     key={starter}
                     type="button"
                     onClick={() => setNarrative(starter)}
-                    className="text-left"
+                    className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-left text-[12px] font-medium text-secondary transition hover:border-cyan-200/28 hover:bg-cyan-200/[0.07] hover:text-primary"
                   >
-                    <ChoiceChip>Use example {index + 1}</ChoiceChip>
+                    Example {index + 1}: {starter}
                   </button>
                 ))}
+              </div>
+
+              <div className="rounded-[20px] border border-white/10 bg-white/[0.035] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">
+                  Details that prevent wrong timing
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {HIGH_VALUE_DETAIL_PROMPTS.map((detail) => (
+                    <button
+                      key={detail}
+                      type="button"
+                      onClick={() => setNarrative((current) => appendNarrativeDetail(current, detail))}
+                      className="rounded-full border border-white/10 bg-black/20 px-3 py-2 text-left text-[12px] font-medium text-secondary transition hover:border-cyan-200/28 hover:bg-cyan-200/[0.07] hover:text-primary"
+                    >
+                      + {detail}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">

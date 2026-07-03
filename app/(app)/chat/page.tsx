@@ -376,7 +376,7 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
             )
           }
           return (
-            <p key={`b-${i}`} className={cn(section.variant === "answer" && "font-serif text-zinc-50")}>
+            <p key={`b-${i}`} className={cn(section.variant === "answer" && "font-semibold text-zinc-50")}>
               {renderInlineLinks(block.text, `b-${i}`)}
             </p>
           )

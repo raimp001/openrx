@@ -19,13 +19,11 @@ import {
   UserCheck,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { AppPageHeader } from "@/components/layout/app-page"
 import { TrustDrawer } from "@/components/trust-drawer"
 import {
   ChoiceChip,
   ClinicalField,
   ClinicalInput,
-  ClinicalSection,
 } from "@/components/ui/clinical-forms"
 import type { ParsedCareQuery, CareDirectoryMatch } from "@/lib/npi-care-search"
 import { carePlanFromProviderCandidate } from "@/lib/care-plan"
@@ -253,144 +251,119 @@ export default function ProvidersPage() {
 
   return (
     <div ref={scrollRef} className="animate-slide-up space-y-6">
-      <AppPageHeader
-        eyebrow="Care directory full view"
-        title="Search public care options when chat needs more room."
-        description="Chat should handle the first pass. Use this full view only when you want to inspect NPI-backed clinic, lab, imaging, caregiver, or specialist results in more detail."
-        meta={
-          <div className="flex flex-wrap gap-2">
-            <span className="metric-chip">
-              <BadgeCheck size={11} className="text-accent" />
-              Live CMS NPI data
-            </span>
-            <span className="metric-chip">
-              <Sparkles size={11} className="text-teal" />
-              Natural-language only
-            </span>
-            {profileLocation ? (
-              <span className="metric-chip">
-                <MapPin size={11} className="text-soft-blue" />
-                {profileLocation}
-              </span>
-            ) : null}
+      <section className="border-b border-white/10 pb-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <p className="shell-kicker">Care directory</p>
+            <h1 className="orx-page-title mt-3 text-[clamp(2rem,4.4vw,3.4rem)] text-primary">
+              Find care.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-secondary">
+              Search by specialty, service, ZIP, or screening need. Results are public directory candidates; call to confirm.
+            </p>
           </div>
-        }
-        actions={
           <Link
             href="/chat?prompt=Help%20me%20find%20care.%20Ask%20for%20my%20ZIP%20code%20first%20if%20it%20is%20missing%2C%20then%20return%20public%20clinic%20phone%20numbers.&topic=scheduling"
-            className="control-button-primary"
+            className="control-button-primary self-start lg:self-auto"
           >
             Ask in chat
           </Link>
-        }
-      />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="metric-chip">
+            <BadgeCheck size={11} className="text-accent" />
+            Live CMS NPI data
+          </span>
+          <span className="metric-chip">
+            <Sparkles size={11} className="text-teal" />
+            Natural-language search
+          </span>
+          {profileLocation ? (
+            <span className="metric-chip">
+              <MapPin size={11} className="text-soft-blue" />
+              {profileLocation}
+            </span>
+          ) : null}
+        </div>
+      </section>
 
-      <ClinicalSection
-        kicker="Search request"
-        title="Full directory search"
-        description="Use this when you want the longer result list. For the fastest experience, ask in chat and give a ZIP code."
-        aside={
-          <div className="space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">How matching works</p>
-            <StepRow
-              icon={Search}
-              title="You describe the need"
-              description="Specialty, city, ZIP, or a short sentence are all valid."
-            />
-            <StepRow
-              icon={BadgeCheck}
-              title="We parse and match"
-              description="OpenRx resolves service type and location, then pulls CMS NPI-backed directory candidates."
-            />
-            <StepRow
-              icon={Building2}
-              title="You get usable options"
-              description="Each result includes specialty, status, address, phone, and next actions."
-            />
-            <div className="rounded-[22px] border border-amber-300/20 bg-amber-300/[0.08] p-4">
-              <p className="text-xs font-semibold text-amber-100">Important safety boundary</p>
-              <p className="mt-1 text-sm leading-6 text-secondary">
-                NPI match is not proof of licensure, credentialing, payer enrollment, ordering authority, or availability. Call the office and verify before acting.
-              </p>
+      <section className="grid gap-5 border-b border-white/10 pb-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-4">
+          <ClinicalField
+            label="Care need or location"
+            hint="Try a specialty, service, ZIP, city, or short sentence."
+            htmlFor="provider-search"
+          >
+            <div className="relative">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+              <ClinicalInput
+                id="provider-search"
+                data-testid="provider-search-input"
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && searchDirectory()}
+                placeholder="Find caregiver + radiology center near Seattle WA 98101"
+                className="pl-12"
+              />
             </div>
-            <div className="rounded-[22px] border border-white/10 bg-white/[0.055] p-4">
-              <p className="text-xs font-semibold text-primary">Current search readiness</p>
-              <p className="mt-1 text-sm leading-6 text-muted">
-                {hasSearched
-                  ? ready
-                    ? "Enough context received. Results below are ready to act on."
-                    : clarificationQuestion || "We still need a location or specialty signal to search safely."
-                  : "Search begins once OpenRx has enough location context to avoid weak or misleading matches."}
-              </p>
-            </div>
-          </div>
-        }
-      >
-        <div className="grid gap-5 lg:grid-cols-[1.18fr_0.82fr]">
-          <div className="space-y-4">
-            <ClinicalField
-              label="Care need or location"
-              hint="Examples: “internal medicine near Hillsboro”, “97123”, or “caregiver and lab around Seattle WA 98101”."
-              htmlFor="provider-search"
+          </ClinicalField>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              data-testid="provider-search-button"
+              onClick={() => searchDirectory()}
+              disabled={isLoading}
+              className="control-button-primary"
             >
-              <div className="relative">
-                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-                <ClinicalInput
-                  id="provider-search"
-                  data-testid="provider-search-input"
-                  type="text"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  onKeyDown={(event) => event.key === "Enter" && searchDirectory()}
-                  placeholder="Find caregiver + radiology center near Seattle WA 98101"
-                  className="pl-12"
-                />
-              </div>
-            </ClinicalField>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                data-testid="provider-search-button"
-                onClick={() => searchDirectory()}
-                disabled={isLoading}
-                className="control-button-primary"
-              >
-                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                Search network
-              </button>
-              <button
-                onClick={useProfileLocation}
-                className="control-button-secondary"
-              >
-                <MapPin size={15} className="text-soft-blue" />
-                Use profile location
-              </button>
-            </div>
-
-            {autoLocationNote ? <p className="text-sm text-accent">{autoLocationNote}</p> : null}
-            {handoffNotice ? <p data-testid="provider-handoff-notice" className="text-sm text-accent">{handoffNotice}</p> : null}
-            {error ? <p data-testid="provider-search-error" className="text-sm text-soft-red">{error}</p> : null}
+              {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+              Search network
+            </button>
+            <button
+              onClick={useProfileLocation}
+              className="control-button-secondary"
+            >
+              <MapPin size={15} className="text-soft-blue" />
+              Use profile location
+            </button>
           </div>
 
-          <div className="overflow-hidden rounded-[24px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_60%,#173B83_100%)] p-4 text-white shadow-[0_16px_34px_rgba(47,107,255,0.14)] sm:p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">Quick examples</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {EXAMPLE_SEARCHES.map((example) => (
-                <button
-                  key={example}
-                  onClick={() => searchDirectory(example)}
-                  className="text-left"
-                >
-                  <ChoiceChip className="!border-white/12 !bg-white/10 !text-white">{example}</ChoiceChip>
-                </button>
-              ))}
-            </div>
-            <p className="mt-4 text-sm leading-6 text-white/70">
-              If your request is underspecified and you already have a profile location, OpenRx can complete the search using that address.
+          <div className="flex flex-wrap gap-2">
+            {EXAMPLE_SEARCHES.map((example) => (
+              <button
+                key={example}
+                onClick={() => searchDirectory(example)}
+                className="text-left"
+              >
+                <ChoiceChip>{example}</ChoiceChip>
+              </button>
+            ))}
+          </div>
+
+          {autoLocationNote ? <p className="text-sm text-accent">{autoLocationNote}</p> : null}
+          {handoffNotice ? <p data-testid="provider-handoff-notice" className="text-sm text-accent">{handoffNotice}</p> : null}
+          {error ? <p data-testid="provider-search-error" className="text-sm text-soft-red">{error}</p> : null}
+        </div>
+
+        <aside className="space-y-4 border-t border-white/10 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-1">
+          <div>
+            <p className="text-xs font-semibold text-amber-100">Verify before acting</p>
+            <p className="mt-1 text-sm leading-6 text-secondary">
+              NPI match is not proof of licensure, payer fit, ordering authority, or availability.
             </p>
           </div>
-        </div>
-      </ClinicalSection>
+          <div className="border-t border-white/10 pt-4">
+            <p className="text-xs font-semibold text-primary">Readiness</p>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              {hasSearched
+                ? ready
+                  ? "Enough context received. Results below are ready to act on."
+                  : clarificationQuestion || "We still need a location or specialty signal to search safely."
+                : "Search begins once OpenRx has enough location context to avoid weak or misleading matches."}
+            </p>
+          </div>
+        </aside>
+      </section>
 
       <TrustDrawer
         sources={[{ label: "CMS NPI Registry", url: "https://npiregistry.cms.hhs.gov/" }]}
@@ -622,31 +595,6 @@ export default function ProvidersPage() {
         </div>
       )}
 
-      {!hasSearched && (
-        <div className="reveal surface-card py-12 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] bg-[rgba(47,107,255,0.08)]">
-            <Search size={28} className="text-teal" />
-          </div>
-          <h3 className="text-lg font-semibold text-primary">
-            Natural Language Only
-          </h3>
-          <p className="text-sm text-muted mt-2 max-w-xl mx-auto">
-            Tell us what care you need and where. Search begins only after we have enough information.
-          </p>
-          <div className="flex flex-wrap gap-2 justify-center mt-6 max-w-3xl mx-auto">
-            {EXAMPLE_SEARCHES.map((example) => (
-              <button
-                key={example}
-                onClick={() => searchDirectory(example)}
-                className="chip transition hover:border-teal/30 hover:text-teal"
-              >
-                {example}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
     </div>
   )
 }
@@ -829,30 +777,6 @@ function VerificationLadder({ item }: { item: CareDirectoryMatch }) {
           <span className={step.ready ? "text-teal" : "text-amber-200"}>{step.value}</span>
         </span>
       ))}
-    </div>
-  )
-}
-
-function StepRow({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: typeof Search
-  title: string
-  description: string
-}) {
-  return (
-    <div className="rounded-[20px] border border-white/10 bg-white/[0.045] p-4">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-teal/10 text-teal">
-          <Icon size={15} />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-primary">{title}</p>
-          <p className="mt-1 text-sm leading-6 text-muted">{description}</p>
-        </div>
-      </div>
     </div>
   )
 }

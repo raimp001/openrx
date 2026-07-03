@@ -4,8 +4,7 @@ import { useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ExternalLink, FlaskConical, Loader2, MapPin, Search, ShieldCheck, Sparkles } from "lucide-react"
 import AIAction from "@/components/ai-action"
-import { AppPageHeader } from "@/components/layout/app-page"
-import { ChoiceChip, ClinicalField, ClinicalInput, ClinicalSection, FieldsetCard } from "@/components/ui/clinical-forms"
+import { ChoiceChip, ClinicalField, ClinicalInput, FieldsetCard } from "@/components/ui/clinical-forms"
 import type { TrialMatch } from "@/lib/basehealth"
 
 const SEARCH_EXAMPLES = [
@@ -81,123 +80,122 @@ export default function ClinicalTrialsPage() {
 
   return (
     <div className="animate-slide-up space-y-6">
-      <AppPageHeader
-        eyebrow="Clinical research"
-        title="Clinical trial matching"
-        description="Search for studies by condition and geography, then keep the eligibility caveats visible. This page is for credible triage, not marketing-style trial discovery."
-        meta={
-          <>
-            <span className="chip">CT.gov-backed search</span>
-            <span className="chip">City, state, or ZIP aware</span>
-            <span className="chip">Ranked by fit and location</span>
-          </>
-        }
-        actions={
+      <section className="border-b border-white/10 pb-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <p className="shell-kicker">Clinical research</p>
+            <h1 className="orx-page-title mt-3 text-[clamp(2rem,4.4vw,3.4rem)] text-primary">
+              Find clinical trials.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-secondary">
+              Search by condition and location. OpenRx surfaces candidates, not eligibility certainty.
+            </p>
+          </div>
           <AIAction
             agentId="trials"
             label="Trial strategy"
             prompt="Find clinical trial opportunities that match my conditions and explain what to ask before enrolling."
           />
-        }
-      />
-
-      <ClinicalSection
-        kicker="Match request"
-        title="Search studies by disease and geography"
-        description="Use a real condition name and a place the patient can actually travel to. The system will prefer local sites and explain why a study looks relevant."
-        aside={
-          <div className="space-y-4">
-            <div>
-              <div className="section-title">How ranking works</div>
-              <p className="mt-2 text-sm leading-6 text-secondary">
-                We weight condition fit first, then geography, then practical flags like remote eligibility. Final eligibility still belongs to the study site.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <ChoiceChip>
-                <ShieldCheck size={12} />
-                Trust first
-              </ChoiceChip>
-              <ChoiceChip>
-                <MapPin size={12} />
-                Location-sensitive
-              </ChoiceChip>
-            </div>
-          </div>
-        }
-      >
-        <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-          <ClinicalField
-            label="Condition"
-            hint="Use the disease or tumor type you want to search. Examples: prostate cancer, breast cancer, colon cancer."
-            htmlFor="trial-condition"
-          >
-            <ClinicalInput
-              id="trial-condition"
-              value={condition}
-              onChange={(event) => setCondition(event.target.value)}
-              placeholder="Prostate cancer"
-            />
-          </ClinicalField>
-
-          <ClinicalField
-            label="Location"
-            hint="Use a city, state, or ZIP code. The matcher now prefers true local sites instead of loosely related geographies."
-            htmlFor="trial-location"
-          >
-            <ClinicalInput
-              id="trial-location"
-              value={location}
-              onChange={(event) => setLocation(event.target.value)}
-              placeholder="Seattle, WA or 98101"
-            />
-          </ClinicalField>
-
-          <button
-            type="button"
-            onClick={() => void searchTrials()}
-            disabled={loading}
-            className="control-button-primary min-h-[52px] px-5"
-          >
-            {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-            Match trials
-          </button>
         </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="chip">ClinicalTrials.gov search</span>
+          <span className="chip">Location-aware</span>
+          <span className="chip">Eligibility caveats visible</span>
+        </div>
+      </section>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          {SEARCH_EXAMPLES.map((example) => (
-            <button
-              key={`${example.condition}-${example.location}`}
-              type="button"
-              onClick={() => {
-                setCondition(example.condition)
-                setLocation(example.location)
-                void searchTrials(example.condition, example.location)
-              }}
-              className="control-button-secondary px-4 py-2"
+      <section className="grid gap-5 border-b border-white/10 pb-5 lg:grid-cols-[minmax(0,1fr)_330px]">
+        <div className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+            <ClinicalField
+              label="Condition"
+              hint="Use the disease or tumor type."
+              htmlFor="trial-condition"
             >
-              {example.condition} · {example.location}
+              <ClinicalInput
+                id="trial-condition"
+                value={condition}
+                onChange={(event) => setCondition(event.target.value)}
+                placeholder="Prostate cancer"
+              />
+            </ClinicalField>
+
+            <ClinicalField
+              label="Location"
+              hint="Use a city, state, or ZIP."
+              htmlFor="trial-location"
+            >
+              <ClinicalInput
+                id="trial-location"
+                value={location}
+                onChange={(event) => setLocation(event.target.value)}
+                placeholder="Seattle, WA or 98101"
+              />
+            </ClinicalField>
+
+            <button
+              type="button"
+              onClick={() => void searchTrials()}
+              disabled={loading}
+              className="control-button-primary min-h-[52px] px-5"
+            >
+              {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+              Match trials
             </button>
-          ))}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {SEARCH_EXAMPLES.map((example) => (
+              <button
+                key={`${example.condition}-${example.location}`}
+                type="button"
+                onClick={() => {
+                  setCondition(example.condition)
+                  setLocation(example.location)
+                  void searchTrials(example.condition, example.location)
+                }}
+                className="control-button-secondary px-4 py-2"
+              >
+                {example.condition} · {example.location}
+              </button>
+            ))}
+          </div>
+
+          {handoffNotice ? (
+            <p data-testid="trials-handoff-notice" className="text-sm text-accent">
+              {handoffNotice}
+            </p>
+          ) : null}
+          {error ? <p className="text-sm text-soft-red">{error}</p> : null}
         </div>
 
-        {handoffNotice ? (
-          <p data-testid="trials-handoff-notice" className="mt-4 text-sm text-accent">
-            {handoffNotice}
+        <aside className="rounded-[22px] border border-white/10 bg-white/[0.035] p-4">
+          <div className="section-title">Ranking</div>
+          <p className="mt-2 text-sm leading-6 text-secondary">
+            Condition fit comes first, then geography. The study site decides final eligibility.
           </p>
-        ) : null}
-        {error ? <p className="mt-4 text-sm text-soft-red">{error}</p> : null}
-      </ClinicalSection>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <ChoiceChip>
+              <ShieldCheck size={12} />
+              Trust first
+            </ChoiceChip>
+            <ChoiceChip>
+              <MapPin size={12} />
+              Location-sensitive
+            </ChoiceChip>
+          </div>
+        </aside>
+      </section>
 
       <section className="surface-card p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="shell-kicker">Search readout</p>
-            <h2 className="mt-3 font-serif text-[1.75rem] text-primary">{searchSummary}</h2>
+            <h2 className="orx-section-heading mt-3 text-[1.5rem] text-primary sm:text-[1.75rem]">{searchSummary}</h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-secondary">
               {hasSearched
-                ? "Use the reasons below to decide whether the patient should call the site, ask for an oncology referral, or widen the search to a nearby metro area."
-                : "Once you run a search, the study list will appear here with fit reasons and the questions worth asking before enrollment."}
+                ? "Use the reasons below to decide whether to call the site, ask for an oncology referral, or widen the search."
+                : "Search results will appear here with fit reasons and practical questions to ask before enrollment."}
             </p>
           </div>
           {(condition || location) && hasSearched ? (

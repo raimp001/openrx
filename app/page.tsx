@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Image from "next/image"
 import Link from "next/link"
 import {
   ArrowRight,
@@ -243,44 +244,72 @@ export default function HomePage() {
       </header>
 
       <main id="main-content" tabIndex={-1}>
-        <section className="relative px-4 pb-9 pt-11 sm:px-6 sm:pb-11 sm:pt-14 lg:px-8">
-          <div className="mx-auto max-w-5xl text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.055] px-3 py-1 text-[12px] font-medium text-zinc-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />
-              Screening, care navigation, and prior authorization
-            </span>
-            <h1 className="orx-display-heading mx-auto mt-5 max-w-5xl text-[clamp(3rem,7vw,5.7rem)] text-white">
-              OpenRx turns guidelines into care.
-            </h1>
-            <p className="mx-auto mt-6 max-w-3xl text-[17px] leading-8 text-zinc-300 sm:text-xl">
-              Guideline-grounded cancer screening and prior-auth workflows for patients, clinicians, and health
-              systems. Recommendations come from version-stamped rules, not model guesses.
-            </p>
+        <section className="relative isolate overflow-hidden border-b border-white/10 px-4 sm:px-6 lg:px-8">
+          <Image
+            src="/images/openrx-care-navigation-hero.png"
+            alt=""
+            aria-hidden="true"
+            fill
+            priority
+            sizes="100vw"
+            className="absolute inset-0 -z-20 h-full w-full object-cover object-[54%_center] opacity-85"
+          />
+          <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(5,5,5,0.96)_0%,rgba(5,5,5,0.78)_34%,rgba(5,5,5,0.38)_68%,rgba(5,5,5,0.88)_100%)]" />
+          <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(5,5,5,0.20)_0%,rgba(5,5,5,0.48)_54%,#050505_100%)]" />
 
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                href="/screening"
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-cyan-200 px-6 text-sm font-bold text-black transition hover:bg-cyan-100 sm:w-auto"
-              >
-                I am a patient: check my screening
-                <HeartPulse size={16} />
-              </Link>
-              <Link
-                href="/chat"
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/14 bg-white/[0.055] px-5 text-sm font-semibold text-white transition hover:border-cyan-200/35 hover:bg-white/[0.08] sm:w-auto"
-              >
-                I am a clinician
-                <ArrowRight size={15} />
-              </Link>
-              <Link
-                href="/demo"
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 px-4 text-sm font-semibold text-zinc-300 transition hover:text-white sm:w-auto"
-              >
-                Health systems and API
-                <ArrowRight size={15} />
-              </Link>
+          <div className="mx-auto flex min-h-[clamp(560px,78svh,760px)] w-full max-w-7xl flex-col justify-end pb-10 pt-20 sm:pb-12 lg:pb-14">
+            <div className="max-w-4xl">
+              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/20 bg-black/35 px-3 py-1 text-[12px] font-medium text-cyan-50 backdrop-blur-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />
+                Screening, navigation, prior auth
+              </span>
+              <h1 className="orx-display-heading mt-5 max-w-4xl text-[clamp(3rem,8vw,6rem)] text-white">
+                OpenRx turns guidelines into care.
+              </h1>
+              <p className="mt-6 max-w-2xl text-[17px] leading-8 text-zinc-200 sm:text-xl">
+                Ask a question. Get source-stamped recommendations. Open the right next step for a clinician,
+                lab, imaging center, trial, or prior authorization.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Link
+                  href="/screening"
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-cyan-200 px-6 text-sm font-bold text-black shadow-[0_14px_40px_rgba(103,232,249,0.18)] transition hover:bg-cyan-100 sm:w-auto"
+                >
+                  Check my screening
+                  <HeartPulse size={16} />
+                </Link>
+                <Link
+                  href="/chat"
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/16 bg-black/30 px-5 text-sm font-semibold text-white backdrop-blur-md transition hover:border-cyan-200/35 hover:bg-white/[0.08] sm:w-auto"
+                >
+                  Clinician workspace
+                  <ArrowRight size={15} />
+                </Link>
+                <Link
+                  href="/demo"
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 px-4 text-sm font-semibold text-zinc-200 transition hover:text-white sm:w-auto"
+                >
+                  API demo
+                  <ArrowRight size={15} />
+                </Link>
+              </div>
             </div>
 
+            <div className="mt-10 hidden max-w-4xl gap-2 sm:grid sm:grid-cols-3">
+              {[
+                "Version-stamped rules",
+                "Minimum-necessary handoffs",
+                "Care actions, not guesses",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="rounded-full border border-white/12 bg-black/28 px-4 py-3 text-xs font-semibold text-zinc-200 backdrop-blur-md"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

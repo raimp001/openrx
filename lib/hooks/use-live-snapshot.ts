@@ -14,7 +14,12 @@ interface UseLiveSnapshotResult {
 
 export function useLiveSnapshot(): UseLiveSnapshotResult {
   const { walletAddress, getWalletAuthHeaders } = useWalletIdentity()
-  const demoWalletAddress = process.env.NEXT_PUBLIC_DEVELOPER_WALLET || undefined
+  const demoSnapshotEnabled =
+    process.env.NODE_ENV !== "production" ||
+    process.env.NEXT_PUBLIC_OPENRX_ENABLE_DEMO_SNAPSHOT === "true"
+  const demoWalletAddress = demoSnapshotEnabled
+    ? process.env.NEXT_PUBLIC_DEVELOPER_WALLET || undefined
+    : undefined
   const activeWalletAddress = walletAddress || demoWalletAddress
   const [snapshot, setSnapshot] = useState<LiveSnapshot>(() => createEmptyLiveSnapshot(activeWalletAddress || null))
   const [loading, setLoading] = useState(Boolean(activeWalletAddress))

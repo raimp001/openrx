@@ -95,6 +95,11 @@ export async function requestWalletProofMatches(
 }
 
 export function isDemoWalletAddress(walletAddress?: string | null): boolean {
+  const demoSnapshotEnabled =
+    process.env.NODE_ENV !== "production" ||
+    process.env.NEXT_PUBLIC_OPENRX_ENABLE_DEMO_SNAPSHOT === "true"
+  if (!demoSnapshotEnabled) return false
+
   const wallet = normalizeWalletAddress(walletAddress)
   const demoWallets = [
     process.env.NEXT_PUBLIC_DEVELOPER_WALLET,

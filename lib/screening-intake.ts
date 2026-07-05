@@ -282,10 +282,11 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   ])
 
   const noPersonalOrFamilyCancerSignal =
-    /\b(?:no|without|denies?)\s+personal\s+(?:or|and)\s+family\s+(?:history|hx)\s+of\s+(?:any\s+)?cancer\b/.test(lowered)
+    /\b(?:no|without|denies?)\s+personal\s+(?:or|and)\s+family\s+(?:history|hx)\s+of\s+(?:any\s+)?cancer\b/.test(lowered) ||
+    /\b(?:no|without|denies?)\s+personal\s+(?:or|and)\s+family\s+cancer\s+(?:history|hx)\b/.test(lowered)
   const noPersonalCancerSignal =
     noPersonalOrFamilyCancerSignal ||
-    /\b(?:no|without|denies?)\s+(?:personal\s+)?(?:history|hx)\s+of\s+(?:any\s+)?cancer\b|\bnever (?:had|diagnosed with) cancer\b/.test(lowered)
+    /\b(?:no|without|denies?)\s+(?:personal\s+)?(?:history|hx)\s+of\s+(?:any\s+)?cancer\b|\b(?:no|without|denies?)\s+personal\s+cancer\s+(?:history|hx)\b|\bnever (?:had|diagnosed with) cancer\b/.test(lowered)
 
   // "family history of breast cancer" must never read as a personal history.
   const personalCancerMatch = lowered.match(
@@ -371,7 +372,9 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   const noPersonalCancer = noPersonalCancerSignal
   const noFamilyCancer =
     noPersonalOrFamilyCancerSignal ||
-    /\b(?:no|without|denies?)\s+family\s+(?:history|hx)\s+of\s+(?:any\s+)?cancer\b/.test(lowered)
+    /\b(?:no|without|denies?)\s+family\s+(?:history|hx)\s+of\s+(?:any\s+)?cancer\b|\b(?:no|without|denies?)\s+family\s+cancer\s+(?:history|hx)\b/.test(lowered)
+  const noSymptoms =
+    /\b(?:no|without|denies?)\s+(?:symptoms|red flags?)\b|\basymptomatic\b/.test(lowered)
   const noColorectalScreening =
     /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,35}\b(colonoscopy|fit|stool test|cologuard|colorectal screening|ct colonography|virtual colonoscopy)\b/.test(lowered)
   const hasColorectalScreening =
@@ -400,6 +403,7 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   const reportedHistory: ScreeningReportedHistory = {
     personalCancer: noPersonalCancer ? "no" : personalCancerValue ? "yes" : undefined,
     familyCancer: noFamilyCancer ? "no" : familyHistory.length > 0 ? "yes" : undefined,
+    symptoms: noSymptoms ? "no" : symptoms.length > 0 ? "yes" : undefined,
     colorectalScreening: noColorectalScreening ? "no" : hasColorectalScreening ? "yes" : undefined,
     breastScreening: noBreastScreening ? "no" : hasBreastScreening ? "yes" : undefined,
     cervicalScreening: noCervicalScreening ? "no" : hasCervicalScreening ? "yes" : undefined,
@@ -454,6 +458,10 @@ export function summarizeScreeningIntake(extracted: ScreeningIntakeResult["extra
   if (typeof extracted.age === "number") details.push(`Age ${extracted.age}`)
   if (extracted.sexAtBirth) details.push(`sex for screening: ${extracted.sexAtBirth}`)
   if (extracted.familyHistory.length) details.push(extracted.familyHistory.slice(0, 2).join("; "))
+  if (extracted.reportedHistory.familyCancer === "no") details.push("no family cancer history reported")
+  if (extracted.reportedHistory.personalCancer === "no") details.push("no personal cancer history reported")
+  if (extracted.reportedHistory.symptoms === "no") details.push("no symptoms reported")
+  if (extracted.reportedHistory.colorectalScreening === "no") details.push("no prior colorectal screening reported")
   if (typeof extracted.smokingPackYears === "number") details.push(`${extracted.smokingPackYears} pack-years`)
   if (extracted.knownMutationOrSyndrome.length) details.push(`${extracted.knownMutationOrSyndrome.join(", ")} reported`)
   if (extracted.priorAbnormalFindings.length) details.push("prior abnormal finding reported")

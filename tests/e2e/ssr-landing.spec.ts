@@ -55,11 +55,13 @@ test.describe("server-rendered landing page", () => {
     await page.goto("/")
     await expect(page.getByRole("heading", { level: 1 })).toContainText("OpenRx turns guidelines into care.")
     await expect(page.getByText("Guideline-grounded cancer screening and prior-auth workflows")).toBeVisible()
-    await expect(page.getByRole("link", { name: "I am a patient: check my screening" })).toBeVisible()
-    await expect(page.getByRole("link", { name: "I am a clinician" })).toBeVisible()
-    await expect(page.getByRole("link", { name: "Health systems and API" })).toBeVisible()
-    await expect(page.getByRole("link", { name: "Read the current trust posture" })).toBeVisible()
-    await page.getByRole("link", { name: "View API and workflow demo" }).click()
+    await expect(page.getByRole("textbox", { name: "Ask OpenRx" })).toBeVisible()
+    const connectedCare = page.getByRole("navigation", { name: "Connected care actions" })
+    await expect(connectedCare).toBeVisible()
+    await expect(connectedCare.getByRole("link", { name: /Screening/ })).toBeVisible()
+    await expect(connectedCare.getByRole("link", { name: /Find care/ })).toBeVisible()
+    await expect(page.getByRole("link", { name: /Trust/ })).toBeVisible()
+    await page.getByRole("link", { name: "API" }).click()
     await expect(page).toHaveURL(/\/demo/, { timeout: 30_000 })
   })
 
@@ -68,7 +70,8 @@ test.describe("server-rendered landing page", () => {
     await page.goto("/")
 
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
-    await expect(page.getByRole("link", { name: "I am a patient: check my screening" })).toBeVisible()
+    await expect(page.getByRole("textbox", { name: "Ask OpenRx" })).toBeVisible()
+    await expect(page.getByRole("navigation", { name: "Connected care actions" })).toBeVisible()
     await expect(page.getByRole("navigation", { name: "Main" })).toBeHidden()
 
     const widths = await page.evaluate(() => ({

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
 import { createScreeningNextStepRequest } from "@/lib/screening/next-step-store"
-import { parseScreeningIntakeNarrative } from "@/lib/screening-intake"
+import { parseScreeningIntakeNarrative, summarizeScreeningIntake } from "@/lib/screening-intake"
 import { buildDeterministicScreeningResponse, runAgent } from "@/lib/ai-engine"
 import { assessHealthScreening } from "@/lib/basehealth"
 import {
@@ -286,6 +286,21 @@ test("age-sex-only female profile does not overstate breast or cervical screenin
   expect(result.recommendations.find((rec) => rec.id === "uspstf-average-risk-cervical")?.status).toBe("discuss")
   expect(result.clarificationQuestions).toHaveLength(3)
   expect(result.clarificationQuestions.some((item) => item.id === "clarify-prior-screening-summary")).toBe(true)
+})
+
+test("parser surfaces high-value negative history from plain English", () => {
+  const parsed = parseScreeningIntakeNarrative(
+    "age 45 male, no symptoms, no personal cancer history, no family history of cancer, never had colonoscopy"
+  )
+  const summary = summarizeScreeningIntake(parsed.extracted)
+
+  expect(parsed.extracted.reportedHistory.symptoms).toBe("no")
+  expect(parsed.extracted.reportedHistory.personalCancer).toBe("no")
+  expect(parsed.extracted.reportedHistory.familyCancer).toBe("no")
+  expect(parsed.extracted.reportedHistory.colorectalScreening).toBe("no")
+  expect(summary).toContain("no symptoms reported")
+  expect(summary).toContain("no family cancer history reported")
+  expect(summary).toContain("no prior colorectal screening reported")
 })
 
 test("screening chat answers common age-sex prompts directly with source links", () => {

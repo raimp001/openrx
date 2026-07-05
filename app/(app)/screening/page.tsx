@@ -1161,19 +1161,14 @@ export default function ScreeningPage() {
   }
 
   return (
-    <div data-openrx-screening-workspace className="animate-slide-up space-y-6 sm:space-y-8">
-      <section className="relative overflow-hidden px-2 pt-3">
-        <div className="pointer-events-none absolute inset-x-[-8%] top-[-160px] h-[260px] bg-[radial-gradient(circle_at_50%_0%,rgba(103,232,249,0.10),transparent_50%)]" />
-        <div className="relative mx-auto max-w-5xl pb-3 text-center sm:pb-4">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-[12px] font-medium text-secondary">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />
-            OpenRx screening
-          </span>
-          <h1 className="orx-display-heading mx-auto mt-3 max-w-2xl text-[clamp(2.1rem,5vw,3.4rem)] text-primary">
+    <div data-openrx-screening-workspace className="animate-slide-up space-y-5 sm:space-y-6">
+      <section className="px-0 pt-2">
+        <div className="mx-auto max-w-5xl border-b border-white/10 pb-5 text-left">
+          <h1 className="orx-display-heading max-w-2xl text-[clamp(2rem,4.2vw,3rem)] text-primary">
             What screening is due?
           </h1>
-          <p className="mx-auto mt-2 max-w-xl text-[14px] leading-6 text-secondary">
-            Ask once. Get a sourced plan, clarification questions, and care links.
+          <p className="mt-2 max-w-2xl text-[14px] leading-6 text-secondary">
+            Ask once. Get a sourced plan and the next useful care links.
           </p>
         </div>
       </section>
@@ -1310,14 +1305,14 @@ export default function ScreeningPage() {
         </FieldsetCard>
       )}
 
-      <div className="grid grid-cols-1 gap-5 border-y border-white/10 py-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
         <div>
           <section className="relative">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">Plain-English intake</p>
-                <h2 className="mt-2 text-[1.3rem] font-semibold leading-tight text-primary sm:text-[1.55rem]">
-                  Describe the basics.
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">Ask in plain language</p>
+                <h2 className="mt-2 text-[1.2rem] font-semibold leading-tight text-primary sm:text-[1.35rem]">
+                  Start with age, sex used for screening, and what you are worried about.
                 </h2>
               </div>
               <Link
@@ -1372,24 +1367,29 @@ export default function ScreeningPage() {
                 </button>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {NARRATIVE_STARTERS.map((starter, index) => (
-                  <button
-                    key={starter}
-                    type="button"
-                    onClick={() => setNarrative(starter)}
-                    className="rounded-full border border-white/[0.08] bg-transparent px-3 py-2 text-left text-[12px] font-medium text-zinc-300 transition hover:border-cyan-200/28 hover:bg-white/[0.04] hover:text-primary"
-                  >
-                    Example {index + 1}: {starter}
-                  </button>
-                ))}
-              </div>
+              <details className="group rounded-[16px] border border-white/[0.08] bg-transparent">
+                <summary className="cursor-pointer list-none px-3 py-3 text-[12px] font-semibold text-zinc-300 transition hover:text-white">
+                  Use an example
+                </summary>
+                <div className="flex flex-wrap gap-2 border-t border-white/[0.06] px-3 pb-3 pt-2">
+                  {NARRATIVE_STARTERS.map((starter, index) => (
+                    <button
+                      key={starter}
+                      type="button"
+                      onClick={() => setNarrative(starter)}
+                      className="rounded-full border border-white/[0.08] bg-transparent px-3 py-2 text-left text-[12px] font-medium text-zinc-300 transition hover:border-cyan-200/28 hover:bg-white/[0.04] hover:text-primary"
+                    >
+                      Example {index + 1}: {starter}
+                    </button>
+                  ))}
+                </div>
+              </details>
 
-              <div className="rounded-[16px] border border-white/[0.08] bg-transparent p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">
-                  Details that prevent wrong timing
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
+              <details className="group rounded-[16px] border border-white/[0.08] bg-transparent">
+                <summary className="cursor-pointer list-none px-3 py-3 text-[12px] font-semibold text-zinc-300 transition hover:text-white">
+                  Add details that prevent wrong timing
+                </summary>
+                <div className="flex flex-wrap gap-2 border-t border-white/[0.06] px-3 pb-3 pt-2">
                   {HIGH_VALUE_DETAIL_PROMPTS.map((detail) => (
                     <button
                       key={detail}
@@ -1401,7 +1401,7 @@ export default function ScreeningPage() {
                     </button>
                   ))}
                 </div>
-              </div>
+              </details>
 
               <div className="flex flex-wrap items-center gap-3">
                 <button
@@ -1422,6 +1422,12 @@ export default function ScreeningPage() {
                     {intakePreview.sexAtBirth ? <ChoiceChip>Sex for screening: {intakePreview.sexAtBirth}</ChoiceChip> : null}
                     {typeof intakePreview.smokingPackYears === "number" ? <ChoiceChip>{intakePreview.smokingPackYears} pack-years</ChoiceChip> : null}
                     {intakePreview.location ? <ChoiceChip>Location: {intakePreview.location}</ChoiceChip> : null}
+                    {intakePreview.reportedHistory?.symptoms === "no" ? <ChoiceChip>No symptoms reported</ChoiceChip> : null}
+                    {intakePreview.reportedHistory?.personalCancer === "no" ? <ChoiceChip>No personal cancer history</ChoiceChip> : null}
+                    {intakePreview.reportedHistory?.familyCancer === "no" ? <ChoiceChip>No family cancer history</ChoiceChip> : null}
+                    {intakePreview.reportedHistory?.colorectalScreening === "no" ? <ChoiceChip>No prior colorectal screening</ChoiceChip> : null}
+                    {intakePreview.reportedHistory?.colorectalScreening === "yes" ? <ChoiceChip>Prior colorectal screening reported</ChoiceChip> : null}
+                    {intakePreview.reportedHistory?.smoking === "no" ? <ChoiceChip>Never smoker reported</ChoiceChip> : null}
                     {intakePreview.knownMutationOrSyndrome.map((value) => <ChoiceChip key={value}>{value} reported</ChoiceChip>)}
                   </div>
                   {intakePreview.familyHistory.length ? (
@@ -1439,17 +1445,13 @@ export default function ScreeningPage() {
                 </div>
               ) : null}
 
-              <div className="border-t border-white/10 pt-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">Optional details</p>
-                <p className="mt-1 max-w-2xl text-[12px] leading-5 text-zinc-500">
-                  Add these only if the parser missed something important.
-                </p>
+              <div className="border-t border-white/10 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowManualFields((value) => !value)}
-                  className="mt-2 text-xs font-semibold text-primary transition hover:text-teal"
+                  className="text-xs font-semibold text-primary transition hover:text-teal"
                 >
-                  {showManualFields ? "Hide optional details" : "Add optional details"}
+                  {showManualFields ? "Hide fields" : "More fields"}
                 </button>
                 {showManualFields && (
                   <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1471,7 +1473,7 @@ export default function ScreeningPage() {
                         id="screening-gender"
                         value={gender}
                         onChange={(event) => setGender(event.target.value)}
-                        className="w-full rounded-[18px] border border-[rgba(82,108,139,0.14)] bg-[rgba(255,255,255,0.92)] px-4 py-3.5 text-sm text-primary shadow-sm transition focus:border-teal/35 focus:outline-none focus:ring-1 focus:ring-teal/15"
+                        className="w-full rounded-[18px] border border-white/10 bg-[#0d0f10] px-4 py-3.5 text-sm text-primary shadow-sm transition focus:border-cyan-200/40 focus:outline-none focus:ring-2 focus:ring-cyan-200/10"
                       >
                         <option value="">Not specified</option>
                         <option value="female">Female</option>
@@ -1572,7 +1574,7 @@ export default function ScreeningPage() {
           )}
         </div>
 
-        <aside className="border-t border-white/10 pt-5 text-white xl:sticky xl:top-28 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-1">
+        <aside className="text-white xl:sticky xl:top-28">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-white">Answer</h2>
             {assessment ? <span className="rounded-full border border-cyan-200/18 bg-cyan-200/[0.08] px-2 py-1 text-[10px] font-bold uppercase text-cyan-100">ready</span> : null}
@@ -1585,9 +1587,8 @@ export default function ScreeningPage() {
                 <div className="orx-skeleton h-16 rounded-[16px] bg-white/12" />
               </div>
             ) : (
-              <div className="space-y-3 text-xs leading-6 text-white/78">
-                <p>Ask a screening question and OpenRx will return a sourced plan.</p>
-                <p>Actions appear here when a provider, lab, imaging center, or clinician message is useful.</p>
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.035] p-4 text-xs leading-6 text-white/72">
+                <p>Sourced plan and care links appear here.</p>
               </div>
             )
           ) : (

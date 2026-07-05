@@ -56,6 +56,7 @@ export type GuidelineSource = {
 export type ScreeningReportedHistory = {
   personalCancer?: "yes" | "no"
   familyCancer?: "yes" | "no"
+  symptoms?: "yes" | "no"
   colorectalScreening?: "yes" | "no"
   breastScreening?: "yes" | "no"
   cervicalScreening?: "yes" | "no"

@@ -154,6 +154,7 @@ export default function HomePage() {
                 className="mt-8 flex max-w-3xl items-center gap-2 rounded-[28px] border border-white/14 bg-[#0d0d0d]/92 p-2 shadow-[0_24px_90px_rgba(0,0,0,0.42)] backdrop-blur-xl focus-within:border-cyan-200/40"
               >
                 <input type="hidden" name="topic" value="screening" />
+                <input type="hidden" name="autorun" value="1" />
                 <label htmlFor="home-prompt" className="sr-only">
                   Ask OpenRx
                 </label>

@@ -31,6 +31,8 @@ function shortenAddress(address: string): string {
 export default function Topbar() {
   const pathname = usePathname()
   const isChatRoute = pathname === "/chat" || pathname?.startsWith("/chat/")
+  const focusedWorkflowPrefixes = ["/screening", "/providers", "/clinical-trials", "/pharmacy", "/prior-auth", "/join-network"]
+  const isFocusedWorkflow = focusedWorkflowPrefixes.some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`))
   const { snapshot, getPhysician } = useLiveSnapshot()
   const { isConnected, profile, walletAddress } = useWalletIdentity()
   const displayName = isConnected
@@ -202,12 +204,19 @@ export default function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 pl-[4.75rem] pr-3 pt-3 sm:px-6 lg:px-8">
-      <div className="ml-auto flex w-fit max-w-[1240px] items-center gap-1.5 rounded-full border border-white/10 bg-[#101010]/82 px-2 py-1.5 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:mx-auto sm:w-full sm:gap-3 sm:px-3 sm:py-2">
+      <div
+        className={cn(
+          "ml-auto flex items-center gap-1.5 rounded-full border border-white/10 bg-[#101010]/82 px-2 py-1.5 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-2xl",
+          isFocusedWorkflow ? "w-fit sm:mr-0" : "w-fit max-w-[1240px] sm:mx-auto sm:w-full sm:gap-3 sm:px-3 sm:py-2"
+        )}
+      >
+        {!isFocusedWorkflow ? (
         <div className="hidden min-w-0 shrink-0 pl-1 sm:block lg:min-w-[132px]">
           <p className="truncate text-sm font-semibold text-primary">{pageInfo.label}</p>
         </div>
+        ) : null}
 
-        {showSearch ? (
+        {!isFocusedWorkflow && showSearch ? (
           <div ref={searchRef} className="relative hidden flex-1 sm:block">
             <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input
@@ -331,7 +340,7 @@ export default function Topbar() {
               </div>
             ) : null}
           </div>
-        ) : (
+        ) : !isFocusedWorkflow ? (
           <Link
             href="/chat"
             className="hidden flex-1 items-center justify-between gap-4 rounded-full border border-white/10 bg-white/[0.055] px-4 py-2.5 text-sm text-secondary transition hover:bg-white/[0.09] hover:text-primary lg:flex"
@@ -342,7 +351,7 @@ export default function Topbar() {
             </span>
             <ArrowRightCircle size={15} className="text-muted" />
           </Link>
-        )}
+        ) : null}
 
         <div className="ml-auto flex items-center gap-1.5">
           <Link

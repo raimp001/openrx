@@ -632,6 +632,13 @@ test("chat prompt autorun answers after landing submit without a second send", a
   expect(postedMessage).toBe("Explain this bill")
 })
 
+test("screening keeps app chrome compact around the primary task", async ({ page }) => {
+  await page.goto("/screening")
+
+  await expect(page.getByRole("heading", { name: "What screening is due?" })).toBeVisible()
+  await expect(page.getByText("Ask what to do next")).toHaveCount(0)
+})
+
 test("chat answers cancer screening questions inline with guideline links", async ({ page }) => {
   await page.route(/\/api\/openclaw\/status$/, async (route) => {
     await route.fulfill({

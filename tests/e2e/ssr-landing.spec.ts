@@ -24,6 +24,8 @@ test.describe("server-rendered landing page", () => {
     // Working developer and patient entry points
     expect(html).toMatch(/href="\/demo"/)
     expect(html).toMatch(/href="\/screening"/)
+    expect(html).toContain('name="autorun"')
+    expect(html).toContain('value="1"')
 
     // Source-stamped specimen is server-rendered
     expect(html).toContain("USPSTF 2021, Grade B")
@@ -79,5 +81,33 @@ test.describe("server-rendered landing page", () => {
       content: document.documentElement.scrollWidth,
     }))
     expect(widths.content).toBeLessThanOrEqual(widths.viewport)
+  })
+
+  test("landing question submits into chat autorun", async ({ page }) => {
+    await page.route(/\/api\/openclaw\/status$/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ connected: true }),
+      })
+    })
+    await page.route(/\/api\/openclaw\/chat\/stream$/, async (route) => {
+      const text = "Answer\n\nColorectal cancer screening may be due.\n\nSafety note\n\nConfirm with a clinician."
+      await route.fulfill({
+        status: 200,
+        contentType: "text/event-stream",
+        body: `event: delta\ndata: ${JSON.stringify({ text })}\n\nevent: done\ndata: ${JSON.stringify({ finalText: text, agentId: "screening" })}\n\n`,
+      })
+    })
+    await page.goto("/")
+
+    await page.getByRole("textbox", { name: "Ask OpenRx" }).fill("age 45 male")
+    await page.getByRole("button", { name: "Submit question" }).click()
+
+    await expect(page).toHaveURL(/\/chat\?/, { timeout: 30_000 })
+    const url = new URL(page.url())
+    expect(url.searchParams.get("prompt")).toBe("age 45 male")
+    expect(url.searchParams.get("topic")).toBe("screening")
+    expect(url.searchParams.get("autorun")).toBe("1")
   })
 })

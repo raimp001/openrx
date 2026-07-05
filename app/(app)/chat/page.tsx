@@ -1069,12 +1069,11 @@ export default function ChatPage() {
     <div
       data-openrx-chat-workspace
       className={cn(
-        "relative isolate mx-auto flex min-h-screen animate-fade-in flex-col overflow-hidden bg-[#030303] px-4 text-zinc-100 sm:px-6",
+        "relative isolate mx-auto flex min-h-screen animate-fade-in flex-col overflow-hidden bg-[#050505] px-4 text-zinc-100 sm:px-6",
         showEmptyState ? "max-w-5xl justify-start" : "max-w-3xl"
       )}
     >
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_10%,rgba(103,232,249,0.10),transparent_32%),radial-gradient(circle_at_78%_68%,rgba(20,184,166,0.075),transparent_28%),linear-gradient(180deg,#030303_0%,#050505_58%,#070707_100%)]" />
-      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.7)_1px,transparent_1px)] [background-size:44px_44px]" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[#050505]" />
       {showEmptyState ? (
         <button
           type="button"
@@ -1266,8 +1265,8 @@ export default function ChatPage() {
           const isClarifyingScreeningIntake = isClarifyingScreeningMessage(msg)
           return (
             <article key={msg.id} data-testid="chat-message-agent" className="animate-fade-in">
-              <div className="rounded-[24px] border border-white/16 bg-[#101414]/96 p-4 shadow-[0_18px_70px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-sm">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-white/8 pb-3">
+              <div className="rounded-[18px] border border-white/10 bg-[#0d0d0d] p-4 shadow-none">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
                   <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-300">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full border border-cyan-200/15 bg-cyan-200/[0.07] text-cyan-300/80">
                       <Icon size={11} />

@@ -17,7 +17,6 @@ import {
   Phone,
   Search,
   ShieldCheck,
-  Wallet,
   X,
 } from "lucide-react"
 import { BaseUsdcTransaction } from "@/components/payments/base-usdc-transaction"
@@ -1176,22 +1175,6 @@ export default function ScreeningPage() {
           <p className="mx-auto mt-2 max-w-xl text-[14px] leading-6 text-secondary">
             Ask once. Get a sourced plan, clarification questions, and care links.
           </p>
-          <div className="mt-3 hidden flex-wrap justify-center gap-2 sm:flex">
-            <span className="metric-chip">
-              <Activity size={11} className="text-accent" />
-              Deterministic rules
-            </span>
-            <span className="metric-chip">
-              <ShieldCheck size={11} className="text-teal" />
-              Source + grade on every recommendation
-            </span>
-            {recipientAddress ? (
-              <span className="metric-chip">
-                <Wallet size={11} className="text-soft-blue" />
-                Secure payment ready
-              </span>
-            ) : null}
-          </div>
         </div>
       </section>
 
@@ -1327,7 +1310,7 @@ export default function ScreeningPage() {
         </FieldsetCard>
       )}
 
-      <div className="grid grid-cols-1 gap-5 border-y border-white/10 py-5 xl:grid-cols-[minmax(0,1fr)_330px] xl:items-start">
+      <div className="grid grid-cols-1 gap-5 border-y border-white/10 py-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
         <div>
           <section className="relative">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1395,14 +1378,14 @@ export default function ScreeningPage() {
                     key={starter}
                     type="button"
                     onClick={() => setNarrative(starter)}
-                    className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-left text-[12px] font-medium text-secondary transition hover:border-cyan-200/28 hover:bg-cyan-200/[0.07] hover:text-primary"
+                    className="rounded-full border border-white/[0.08] bg-transparent px-3 py-2 text-left text-[12px] font-medium text-zinc-300 transition hover:border-cyan-200/28 hover:bg-white/[0.04] hover:text-primary"
                   >
                     Example {index + 1}: {starter}
                   </button>
                 ))}
               </div>
 
-              <div className="rounded-[20px] border border-white/10 bg-white/[0.035] p-3">
+              <div className="rounded-[16px] border border-white/[0.08] bg-transparent p-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">
                   Details that prevent wrong timing
                 </p>
@@ -1412,7 +1395,7 @@ export default function ScreeningPage() {
                       key={detail}
                       type="button"
                       onClick={() => setNarrative((current) => appendNarrativeDetail(current, detail))}
-                      className="rounded-full border border-white/10 bg-black/20 px-3 py-2 text-left text-[12px] font-medium text-secondary transition hover:border-cyan-200/28 hover:bg-cyan-200/[0.07] hover:text-primary"
+                      className="rounded-full border border-white/[0.08] bg-transparent px-3 py-2 text-left text-[12px] font-medium text-zinc-300 transition hover:border-cyan-200/28 hover:bg-white/[0.04] hover:text-primary"
                     >
                       + {detail}
                     </button>

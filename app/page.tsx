@@ -271,27 +271,35 @@ export default function HomePage() {
                 lab, imaging center, trial, or prior authorization.
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Link
-                  href="/screening"
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-cyan-200 px-6 text-sm font-bold text-black shadow-[0_14px_40px_rgba(103,232,249,0.18)] transition hover:bg-cyan-100 sm:w-auto"
+              <form
+                action="/chat"
+                method="get"
+                className="mt-8 flex max-w-3xl items-center gap-2 rounded-[28px] border border-white/14 bg-[#0d0d0d]/88 p-2 shadow-[0_24px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl focus-within:border-cyan-200/40"
+              >
+                <input type="hidden" name="topic" value="screening" />
+                <input
+                  name="prompt"
+                  aria-label="Ask OpenRx"
+                  placeholder="Ask what screening is due, what it means, or who to call next..."
+                  className="min-h-11 min-w-0 flex-1 bg-transparent px-3 text-[15px] text-white outline-none placeholder:text-zinc-400 sm:px-4"
+                />
+                <button
+                  type="submit"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-black transition hover:bg-cyan-100"
+                  aria-label="Submit question"
                 >
+                  <ArrowRight size={17} />
+                </button>
+              </form>
+
+              <div className="mt-4 flex flex-wrap gap-4 text-sm font-semibold text-zinc-300">
+                <Link href="/screening" className="inline-flex items-center gap-1.5 transition hover:text-white">
                   Check my screening
-                  <HeartPulse size={16} />
+                  <HeartPulse size={14} />
                 </Link>
-                <Link
-                  href="/chat"
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/16 bg-black/30 px-5 text-sm font-semibold text-white backdrop-blur-md transition hover:border-cyan-200/35 hover:bg-white/[0.08] sm:w-auto"
-                >
-                  Clinician workspace
-                  <ArrowRight size={15} />
-                </Link>
-                <Link
-                  href="/demo"
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 px-4 text-sm font-semibold text-zinc-200 transition hover:text-white sm:w-auto"
-                >
+                <Link href="/demo" className="inline-flex items-center gap-1.5 transition hover:text-white">
                   API demo
-                  <ArrowRight size={15} />
+                  <ArrowRight size={14} />
                 </Link>
               </div>
             </div>

@@ -577,9 +577,9 @@ function SmartCareActions({
       aria-label="Care actions"
       className="fixed right-5 top-24 z-20 hidden w-[330px] 2xl:right-[calc((100vw-1440px)/2+24px)] 2xl:block"
     >
-      <div className="rounded-[24px] border border-white/12 bg-black/50 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+      <div className="space-y-2">
         <ChatActionPlan items={items} title="Care actions" layout="rail" testIdPrefix="chat-rail-action" onPrompt={onPrompt} />
-        <p className="px-3 pb-2 pt-3 text-[11px] leading-5 text-zinc-300">
+        <p className="px-1 text-[11px] leading-5 text-zinc-400">
           These actions search public directories or prepare the next message. They do not place orders or confirm provider availability.
         </p>
       </div>
@@ -723,10 +723,27 @@ export default function ChatPage() {
     seededPromptRef.current = true
   }, [])
 
-  // Auto-scroll
+  const showEmptyState =
+    messages.length <= 1 &&
+    messages.every((message) => message.id === "welcome") &&
+    !isLoading &&
+    !isLoadingConversation
+  const latestMessage = messages[messages.length - 1] || null
+
+  // Keep the newest clinical answer readable from the top. The previous
+  // bottom-anchor behavior landed users halfway down long sourced answers.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isLoading])
+    if (showEmptyState || !latestMessage) return
+    if (latestMessage.role === "user") {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
+      return
+    }
+
+    if (latestMessage.role === "agent" && (!isLoading || !latestMessage.content.trim())) {
+      const node = document.querySelector(`[data-chat-message-id="${latestMessage.id}"]`)
+      node?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [isLoading, latestMessage, showEmptyState])
 
   // Auto-grow textarea (Claude-style — grows with content, capped at max).
   useEffect(() => {
@@ -1018,11 +1035,6 @@ export default function ChatPage() {
     }, 80)
   }, [sendMessage])
 
-  const showEmptyState =
-    messages.length <= 1 &&
-    messages.every((message) => message.id === "welcome") &&
-    !isLoading &&
-    !isLoadingConversation
   const visibleMessages = useMemo(
     () => showEmptyState ? [] : messages.filter((message) => message.id !== "welcome"),
     [messages, showEmptyState]
@@ -1298,7 +1310,7 @@ export default function ChatPage() {
           }
           if (msg.role === "user") {
             return (
-              <div key={msg.id} className="flex justify-end">
+              <div key={msg.id} data-chat-message-id={msg.id} className="flex justify-end">
                 <div
                   data-testid="chat-message-user"
                   className="max-w-[85%] whitespace-pre-wrap rounded-[20px] border border-cyan-200/12 bg-cyan-200/[0.085] px-4 py-3 text-[15px] leading-7 text-cyan-50"
@@ -1327,7 +1339,7 @@ export default function ChatPage() {
           const hasScreeningInputs = Boolean(screeningInputSummary && !screeningInputSummary.startsWith("Limited context"))
           const isClarifyingScreeningIntake = isClarifyingScreeningMessage(msg)
           return (
-            <article key={msg.id} data-testid="chat-message-agent" className="animate-fade-in">
+            <article key={msg.id} data-chat-message-id={msg.id} data-testid="chat-message-agent" className="animate-fade-in scroll-mt-4">
               <div className="px-1 sm:px-0">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-300">

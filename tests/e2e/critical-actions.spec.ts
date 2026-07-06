@@ -37,6 +37,34 @@ test("Ask page sends a patient question through the OpenClaw chat surface", asyn
   await expect(page.getByRole("heading", { name: "Ask OpenRx" })).toBeVisible()
 })
 
+test("Ask page starts focused when there is no saved chat history", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.removeItem("openrx.chat.sidebar.collapsed")
+  })
+  await page.route(/\/api\/openclaw\/status$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ connected: true }),
+    })
+  })
+  await page.route(/\/api\/chat\/conversations$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ conversations: [] }),
+    })
+  })
+
+  await page.goto("/chat")
+
+  const history = page.locator('aside[aria-label="Chat history"]:visible').first()
+  await expect(history).toBeVisible()
+  await expect(history.getByLabel("Expand chat history")).toBeVisible()
+  await expect(history.getByText("Saved care threads")).toHaveCount(0)
+  await expect(page.getByRole("heading", { name: "Ask OpenRx" })).toBeVisible()
+})
+
 test("Ask page saves and restores a clinical chat from the history sidebar", async ({ page }) => {
   await page.route(/\/api\/openclaw\/status$/, async (route) => {
     await route.fulfill({

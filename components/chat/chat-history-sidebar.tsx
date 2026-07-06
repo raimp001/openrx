@@ -121,7 +121,8 @@ export default function ChatHistorySidebar() {
   const [conversations, setConversations] = useState<ChatConversationSummary[]>([])
   const [query, setQuery] = useState("")
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
+  const [hasCollapsePreference, setHasCollapsePreference] = useState(false)
   const [customFolders, setCustomFolders] = useState<string[]>([])
   const [folderAssignments, setFolderAssignments] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -134,6 +135,12 @@ export default function ChatHistorySidebar() {
   const authHeaders = useCallback(async () => {
     return walletAddress ? await getWalletAuthHeaders() : {}
   }, [getWalletAuthHeaders, walletAddress])
+
+  const setCollapsedPreference = useCallback((nextCollapsed: boolean) => {
+    setCollapsed(nextCollapsed)
+    setHasCollapsePreference(true)
+    safeLocalStorageSet(COLLAPSED_KEY, nextCollapsed ? "true" : "false")
+  }, [])
 
   const loadConversations = useCallback(async () => {
     setError("")
@@ -156,18 +163,31 @@ export default function ChatHistorySidebar() {
   }, [authHeaders])
 
   useEffect(() => {
-    setCollapsed(safeLocalStorageGet(COLLAPSED_KEY) === "true")
+    const storedCollapsed = safeLocalStorageGet(COLLAPSED_KEY)
+    if (storedCollapsed === "true" || storedCollapsed === "false") {
+      setCollapsed(storedCollapsed === "true")
+      setHasCollapsePreference(true)
+    } else {
+      setCollapsed(true)
+      setHasCollapsePreference(false)
+    }
     setCustomFolders(parseStoredFolders(safeLocalStorageGet(CUSTOM_FOLDERS_KEY)))
     setFolderAssignments(parseFolderAssignments(safeLocalStorageGet(FOLDER_ASSIGNMENTS_KEY)))
   }, [])
 
   useEffect(() => {
     document.documentElement.style.setProperty("--openrx-sidebar-width", collapsed ? "76px" : "284px")
-    safeLocalStorageSet(COLLAPSED_KEY, collapsed ? "true" : "false")
     return () => {
       if (pathname !== "/chat") document.documentElement.style.setProperty("--openrx-sidebar-width", "76px")
     }
   }, [collapsed, pathname])
+
+  useEffect(() => {
+    if (hasCollapsePreference || loading) return
+    if (activeConversationId || conversations.length > 0 || customFolders.length > 0) {
+      setCollapsed(false)
+    }
+  }, [activeConversationId, conversations.length, customFolders.length, hasCollapsePreference, loading])
 
   const saveCustomFolders = useCallback((folders: string[]) => {
     const unique = Array.from(new Set(folders.map((folder) => folder.trim()).filter(Boolean))).slice(0, 24)
@@ -217,7 +237,7 @@ export default function ChatHistorySidebar() {
         event.preventDefault()
         if (historyDisabled) return
         setMobileOpen(true)
-        setCollapsed(false)
+        setCollapsedPreference(false)
         window.setTimeout(() => searchRef.current?.focus(), 30)
         return
       }
@@ -242,7 +262,7 @@ export default function ChatHistorySidebar() {
 
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
-  }, [historyDisabled, pathname, startNewChat])
+  }, [historyDisabled, pathname, setCollapsedPreference, startNewChat])
 
   const filteredConversations = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -424,7 +444,7 @@ export default function ChatHistorySidebar() {
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setCollapsed(true)}
+              onClick={() => setCollapsedPreference(true)}
               className="hidden rounded-lg p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white lg:inline-flex"
               aria-label="Collapse chat history"
               data-testid="chat-history-toggle"
@@ -558,7 +578,7 @@ export default function ChatHistorySidebar() {
       </button>
       <button
         type="button"
-        onClick={() => setCollapsed(false)}
+        onClick={() => setCollapsedPreference(false)}
         className="mt-2 flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-white/10 hover:text-white"
         aria-label="Expand chat history"
         data-testid="chat-history-toggle"
@@ -569,7 +589,7 @@ export default function ChatHistorySidebar() {
         <button
           type="button"
           onClick={() => {
-            setCollapsed(false)
+            setCollapsedPreference(false)
             window.setTimeout(() => searchRef.current?.focus(), 30)
           }}
           className="mt-2 flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-white/10 hover:text-white"

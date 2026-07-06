@@ -661,6 +661,13 @@ test("chat answers cancer screening questions inline with guideline links", asyn
   await expect(page.getByRole("link", { name: /USPSTF.*Breast cancer screening/i }).first()).toBeVisible()
   await expect(page.getByText(/https:\/\/www\.usp/)).toHaveCount(0)
   await expect(page.getByTestId("chat-citations")).toHaveCount(0)
+  await page.waitForFunction(() => {
+    const answers = document.querySelectorAll('[data-testid="chat-message-agent"]')
+    const latestAnswer = answers[answers.length - 1]
+    if (!latestAnswer) return false
+    const top = latestAnswer.getBoundingClientRect().top
+    return top >= 0 && top < 96
+  })
   await expect(page.getByRole("button", { name: "Open screening plan" })).toHaveCount(0)
 })
 

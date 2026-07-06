@@ -38,6 +38,25 @@ const evidencePolicy = [
   },
 ]
 
+const navigationControls = [
+  {
+    title: "Model boundary",
+    text: "Models parse and explain. Screening recommendations come from deterministic, version-stamped rules with source, grade, link, and rule id.",
+  },
+  {
+    title: "PHI-minimized logs",
+    text: "Operational logs keep request ids, error codes, versions, hashes, and state transitions. Raw patient text is scrubbed or excluded.",
+  },
+  {
+    title: "Referral disclosure",
+    text: "Provider handoffs use deterministic scope templates, patient consent snapshots, BAA gates, and audit rows tied to the recommendation.",
+  },
+  {
+    title: "Interop path",
+    text: "OpenRx is designed as a navigation layer over FHIR, SMART launch, provider directories, pharmacies, labs, imaging, and prior-auth workflows.",
+  },
+]
+
 export default function TrustPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-100">
@@ -101,6 +120,35 @@ export default function TrustPage() {
                 <p className="mt-3 text-sm leading-6 text-zinc-400">{item.text}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-[24px] border border-cyan-200/12 bg-cyan-200/[0.025] p-6 sm:p-8">
+          <h2 className="text-xl font-medium text-white">Patient-navigation safety controls</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
+            The screening and referral surface is built around an explicit operating contract: deterministic clinical rules, PHI-minimized logs, consented handoffs, and clinician review when the engine is uncertain.
+          </p>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {navigationControls.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/[0.08] bg-[#09090b] p-5">
+                <h3 className="text-sm font-medium text-zinc-100">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.text}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 flex flex-wrap gap-4 text-sm font-medium">
+            <a href="https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html" className="text-cyan-100 hover:text-white">
+              HHS Security Rule
+            </a>
+            <a href="https://www.hhs.gov/hipaa/for-professionals/special-topics/de-identification/index.html" className="text-cyan-100 hover:text-white">
+              HHS de-identification
+            </a>
+            <a href="https://www.fda.gov/regulatory-information/search-fda-guidance-documents/clinical-decision-support-software" className="text-cyan-100 hover:text-white">
+              FDA CDS guidance
+            </a>
+            <a href="https://hl7.org/fhir/R4/" className="text-cyan-100 hover:text-white">
+              HL7 FHIR R4
+            </a>
           </div>
         </section>
 

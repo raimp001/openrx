@@ -1,4 +1,6 @@
+import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db"
+import { buildPhiSafeLogMetadata } from "@/lib/phi-deidentification"
 
 export async function logPhiAccess(params: {
   userId: string
@@ -8,13 +10,14 @@ export async function logPhiAccess(params: {
   metadata?: Record<string, unknown>
 }) {
   try {
+    const metadata = buildPhiSafeLogMetadata(params.metadata ?? {}) as Prisma.InputJsonValue
     await prisma.auditLog.create({
       data: {
         userId: params.userId,
         action: params.action,
         resource: params.resourceType,
         resourceId: params.resourceId,
-        metadata: (params.metadata ?? {}) as Record<string, string>,
+        metadata,
       },
     })
   } catch {

@@ -555,21 +555,11 @@ function StreamingCursor() {
 function SmartCareActions({
   items,
   onPrompt,
-  variant,
 }: {
   items: ActionPlanItem[]
   onPrompt: (prompt: string, targetAgentId?: ActionPlanItem["targetAgentId"]) => void
-  variant: "rail" | "dock"
 }) {
   if (!items.length) return null
-
-  if (variant === "dock") {
-    return (
-      <div className="sticky bottom-[86px] z-20 mx-auto mb-2 w-full 2xl:hidden">
-        <ChatActionPlan items={items} title="Care actions" layout="dock" onPrompt={onPrompt} />
-      </div>
-    )
-  }
 
   return (
     <aside
@@ -1039,8 +1029,8 @@ export default function ChatPage() {
     () => showEmptyState ? [] : messages.filter((message) => message.id !== "welcome"),
     [messages, showEmptyState]
   )
-  const latestActionItems = useMemo(() => {
-    if (isLoading) return []
+  const latestAction = useMemo(() => {
+    if (isLoading) return null
     const latest = [...visibleMessages]
       .reverse()
       .find((message) =>
@@ -1051,8 +1041,9 @@ export default function ChatPage() {
         !isClarifyingScreeningMessage(message) &&
         !isCleanModelBusyMessage(message)
       )
-    return latest?.actionPlan || []
+    return latest ? { id: latest.id, items: latest.actionPlan || [] } : null
   }, [isLoading, streamingId, visibleMessages])
+  const latestActionItems = latestAction?.items || []
 
   const handleActionPrompt = useCallback((prompt: string, targetAgentId?: ActionPlanItem["targetAgentId"]) => {
     void sendMessage(prompt, targetAgentId)
@@ -1229,7 +1220,7 @@ export default function ChatPage() {
         </main>
       ) : (
         <>
-      <SmartCareActions items={latestActionItems} onPrompt={handleActionPrompt} variant="rail" />
+      <SmartCareActions items={latestActionItems} onPrompt={handleActionPrompt} />
       {/* Header */}
       <header className="flex items-center justify-between gap-3 border-b border-white/10 pb-3 pt-4">
         <div className="flex min-w-0 items-center gap-2.5">
@@ -1338,6 +1329,7 @@ export default function ChatPage() {
             : null
           const hasScreeningInputs = Boolean(screeningInputSummary && !screeningInputSummary.startsWith("Limited context"))
           const isClarifyingScreeningIntake = isClarifyingScreeningMessage(msg)
+          const inlineActionItems = latestAction?.id === msg.id ? latestAction.items : []
           return (
             <article key={msg.id} data-chat-message-id={msg.id} data-testid="chat-message-agent" className="animate-fade-in scroll-mt-4">
               <div className="px-1 sm:px-0">
@@ -1375,6 +1367,11 @@ export default function ChatPage() {
                       <ChatAnswer content={msg.content} />
                       {isStreamingThis ? <StreamingCursor /> : null}
                     </div>
+                    {inlineActionItems.length ? (
+                      <div className="pt-1 2xl:hidden">
+                        <ChatActionPlan items={inlineActionItems} title="Care actions" layout="dock" onPrompt={handleActionPrompt} />
+                      </div>
+                    ) : null}
                     {safetyHold?.messageId === msg.id ? (
                       <RedFlagAlert
                         finding={safetyHold.finding}
@@ -1414,9 +1411,6 @@ export default function ChatPage() {
           {errorBanner}
         </div>
       ) : null}
-
-      <SmartCareActions items={latestActionItems} onPrompt={handleActionPrompt} variant="dock" />
-
       {/* Composer */}
       {renderComposer("thread")}
         </>

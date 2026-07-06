@@ -3,6 +3,9 @@ import Link from "next/link"
 import { ArrowLeft, ArrowRight, CheckCircle2, LockKeyhole, ShieldCheck } from "lucide-react"
 import { BrandMark, BrandWordmark } from "@/components/brand-logo"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export const metadata: Metadata = {
   title: "Trust and evidence posture | OpenRx",
   description:

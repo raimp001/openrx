@@ -50,21 +50,21 @@ type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
 const SERVICE_LINKS: Array<{ label: string; description: string; prompt: string; agentId: AgentId; icon: typeof Stethoscope }> = [
   {
-    label: "Check my screening",
+    label: "Screening",
     description: "Get sourced next steps",
     prompt: "What screening may be due for me?",
     agentId: "screening",
     icon: ShieldCheck,
   },
   {
-    label: "Find care near me",
+    label: "Find care",
     description: "Get clinic phone numbers",
     prompt: "Find primary care near me.",
     agentId: "scheduling",
     icon: Stethoscope,
   },
   {
-    label: "Draft a clinician message",
+    label: "Clinician note",
     description: "Prepare one clear request",
     prompt: "Help me draft a short message to my clinician.",
     agentId: "coordinator",
@@ -275,6 +275,66 @@ function renderInlineLinks(text: string, keyPrefix: string) {
   })
 }
 
+function parseSourceAuditLine(text: string) {
+  if (!/^\s*Source:\s*/i.test(text)) return null
+  const markdownLink = text.match(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/)
+  const bareUrl = text.match(/(https?:\/\/[^\s)]+)/)
+  const grade = text.match(/(?:^|·)\s*(Grade\s+[A-DI]|USPSTF\s+Grade\s+[A-DI])\s*(?:·|$)/i)?.[1]
+  const rule = text.match(/Rule:\s*([^·]+)/i)?.[1]?.trim()
+  const sourceVersion = text.match(/source version\s+([^·]+)/i)?.[1]?.trim()
+  const label = markdownLink?.[1]
+    || text
+      .replace(/^Source:\s*/i, "")
+      .replace(/·.*$/, "")
+      .replace(/\(?https?:\/\/[^\s)]+\)?/g, "")
+      .trim()
+    || "Guideline source"
+
+  return {
+    label,
+    url: markdownLink?.[2] || bareUrl?.[1] || "",
+    grade: grade || "",
+    rule: rule || "",
+    sourceVersion: sourceVersion || "",
+  }
+}
+
+function SourceAuditChip({ text }: { text: string }) {
+  const source = parseSourceAuditLine(text)
+  if (!source) return null
+  return (
+    <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] leading-5">
+      {source.url ? (
+        <a
+          href={source.url}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => trackWorkflowEvent("source_opened", { surface: "chat_inline_source" })}
+          className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-cyan-200/20 bg-cyan-200/[0.08] px-2.5 py-1 font-medium text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-200/[0.14]"
+        >
+          <span className="truncate">{source.label}</span>
+          <ExternalLink size={10} className="shrink-0" />
+        </a>
+      ) : (
+        <span className="inline-flex max-w-full rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 font-medium text-zinc-200">
+          <span className="truncate">{source.label}</span>
+        </span>
+      )}
+      {source.grade ? (
+        <span className="rounded-full border border-white/10 bg-white/[0.045] px-2 py-1 font-medium text-zinc-300">
+          {source.grade}
+        </span>
+      ) : null}
+      {source.sourceVersion ? (
+        <span className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 font-medium text-zinc-400">
+          Version {source.sourceVersion}
+        </span>
+      ) : null}
+      {source.rule ? <span className="sr-only">Rule {source.rule}</span> : null}
+    </div>
+  )
+}
+
 function SectionBlock({ section, idx }: { section: ParsedSection; idx: number }) {
   const tone = sectionTone[section.variant] || sectionTone.info
   const Icon = section.icon
@@ -356,6 +416,8 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
       <div className={cn("space-y-2", section.variant === "answer" ? "text-[17px] leading-8" : "text-[15px] leading-7", "text-zinc-100")}>
         {blocks.map((block, i) => {
           if (block.kind === "blank") return <div key={`b-${i}`} className="h-1.5" />
+          const sourceAudit = parseSourceAuditLine(block.text)
+          if (sourceAudit) return <SourceAuditChip key={`b-${i}`} text={block.text} />
           // Audit stamps (rule ids, engine versions) read as fine print, never
           // as part of the clinical sentence.
           if (/\bRule: |openrx-screening-engine-\d|openrx-hotfix-prevention-rules-\d/.test(block.text)) {
@@ -411,13 +473,14 @@ function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
 
 function ChatAnswer({ content }: { content: string }) {
   const parsed = useMemo(() => parseAnswer(content), [content])
+  const hasInlineSourceAudit = /^\s*Source:\s*/im.test(content)
   usePrefetchLinks(parsed.citations.map((citation) => citation.url), "chat-guideline-citations")
   return (
     <div className="space-y-3">
       {parsed.sections.map((section, i) => (
         <SectionBlock key={`s-${i}`} section={section} idx={i} />
       ))}
-      <CitationRail citations={parsed.citations} />
+      <CitationRail citations={hasInlineSourceAudit ? [] : parsed.citations} />
     </div>
   )
 }
@@ -1021,7 +1084,7 @@ export default function ChatPage() {
               stopGeneration()
             }
           }}
-          placeholder="Ask what is due, what it means, or who to call next..."
+          placeholder="Ask what is due or who to call next..."
           disabled={isLoadingConversation}
           rows={1}
           className={cn(
@@ -1059,8 +1122,8 @@ export default function ChatPage() {
       </form>
       <p className={cn("mt-2 px-3 text-center text-[11px] text-zinc-300", placement === "hero" && "hidden sm:block")}>
         {isLoading
-          ? "Press Esc to stop. Streaming the answer…"
-          : "Guideline-linked answers, sources, and explicit links. Not a substitute for clinician judgment."}
+          ? "Press Esc to stop."
+          : "Educational guidance. A clinician confirms decisions."}
       </p>
     </div>
   )
@@ -1099,7 +1162,7 @@ export default function ChatPage() {
               Ask OpenRx
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-balance text-[14px] leading-6 text-zinc-400 sm:text-[15px]">
-              Get a sourced answer, then open the right next step.
+              Ask once. Get a sourced answer and the next care link.
             </p>
 
             <div className="mx-auto mt-6 max-w-2xl">{renderComposer("hero")}</div>
@@ -1138,7 +1201,7 @@ export default function ChatPage() {
               })}
             </nav>
 
-            <div className="mx-auto mt-4 flex max-w-2xl flex-wrap justify-center gap-2" aria-label="Example questions">
+            <div className="mx-auto mt-4 hidden max-w-2xl flex-wrap justify-center gap-2 sm:flex" aria-label="Example questions">
               {EXAMPLE_QUESTIONS.map((question) => (
                 <button
                   key={question}
@@ -1170,7 +1233,7 @@ export default function ChatPage() {
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">Ask OpenRx</p>
             <h1 className="truncate text-[18px] font-semibold tracking-tight text-white">
-              Answers + care links
+              Care answer
             </h1>
           </div>
         </div>
@@ -1185,7 +1248,7 @@ export default function ChatPage() {
           <span
             data-testid="chat-personalization-badge"
             className={cn(
-              "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex",
+              "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium md:inline-flex",
               isConnected
                 ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
                 : "border-white/12 bg-white/[0.05] text-zinc-300"
@@ -1238,7 +1301,7 @@ export default function ChatPage() {
               <div key={msg.id} className="flex justify-end">
                 <div
                   data-testid="chat-message-user"
-                  className="max-w-[85%] whitespace-pre-wrap rounded-[16px] border border-cyan-200/14 bg-cyan-200/[0.10] px-4 py-3 text-[15px] leading-7 text-cyan-50"
+                  className="max-w-[85%] whitespace-pre-wrap rounded-[20px] border border-cyan-200/12 bg-cyan-200/[0.085] px-4 py-3 text-[15px] leading-7 text-cyan-50"
                 >
                   {msg.content}
                 </div>
@@ -1265,10 +1328,10 @@ export default function ChatPage() {
           const isClarifyingScreeningIntake = isClarifyingScreeningMessage(msg)
           return (
             <article key={msg.id} data-testid="chat-message-agent" className="animate-fade-in">
-              <div className="rounded-[18px] border border-white/10 bg-[#0d0d0d] p-4 shadow-none">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
+              <div className="px-1 sm:px-0">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-300">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-cyan-200/15 bg-cyan-200/[0.07] text-cyan-300/80">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-cyan-200/12 bg-cyan-200/[0.055] text-cyan-300/80">
                       <Icon size={11} />
                     </span>
                     {meta?.label || "OpenRx"}

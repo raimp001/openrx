@@ -659,6 +659,8 @@ test("chat answers cancer screening questions inline with guideline links", asyn
   await expect(page.getByText("Colorectal cancer screening").first()).toBeVisible()
   await expect(page.getByText("Cervical cancer screening").first()).toBeVisible()
   await expect(page.getByRole("link", { name: /USPSTF.*Breast cancer screening/i }).first()).toBeVisible()
+  await expect(page.getByText(/https:\/\/www\.usp/)).toHaveCount(0)
+  await expect(page.getByTestId("chat-citations")).toHaveCount(0)
   await expect(page.getByRole("button", { name: "Open screening plan" })).toHaveCount(0)
 })
 

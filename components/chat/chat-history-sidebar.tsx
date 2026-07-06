@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Download,
   Folder,
-  FolderPlus,
   MoreHorizontal,
   Pencil,
   Pin,
@@ -163,7 +162,7 @@ export default function ChatHistorySidebar() {
   }, [])
 
   useEffect(() => {
-    document.documentElement.style.setProperty("--openrx-sidebar-width", collapsed ? "76px" : "308px")
+    document.documentElement.style.setProperty("--openrx-sidebar-width", collapsed ? "76px" : "284px")
     safeLocalStorageSet(COLLAPSED_KEY, collapsed ? "true" : "false")
     return () => {
       if (pathname !== "/chat") document.documentElement.style.setProperty("--openrx-sidebar-width", "76px")
@@ -297,14 +296,6 @@ export default function ChatHistorySidebar() {
     await patchConversation(conversation.id, { title })
   }, [patchConversation])
 
-  const createFolder = useCallback(() => {
-    if (historyDisabled) return
-    const folder = window.prompt("Create folder", "Screening follow-up")
-    const cleaned = folder?.trim()
-    if (!cleaned) return
-    saveCustomFolders([...customFolders, cleaned])
-  }, [customFolders, historyDisabled, saveCustomFolders])
-
   const moveConversation = useCallback(async (conversation: ChatConversationSummary) => {
     const folder = window.prompt("Move to folder", folderAssignments[conversation.id] || conversation.folder || inferIssueFolder(conversation))
     if (!folder?.trim()) return
@@ -358,7 +349,7 @@ export default function ChatHistorySidebar() {
 
   const accountLabel = isConnected
     ? profile?.fullName || (walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "Wallet")
-    : "Anonymous mode"
+    : "Private session"
 
   const renderConversationRow = (conversation: ChatConversationSummary) => {
     const active = conversation.id === activeConversationId
@@ -424,8 +415,8 @@ export default function ChatHistorySidebar() {
 
   const fullSidebar = (
     <div className="flex h-full flex-col bg-[#030303] text-zinc-100" data-testid="chat-history-sidebar">
-      <div className="border-b border-white/[0.07] px-3 py-3">
-        <div className="mb-4 flex items-center justify-between gap-2">
+      <div className="border-b border-white/[0.06] px-3 py-3">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="OpenRx home">
             <BrandMark size="sm" tone="dark" />
             <BrandWordmark tone="dark" subtitle={false} titleClassName="text-[15px] font-semibold text-white" />
@@ -454,24 +445,14 @@ export default function ChatHistorySidebar() {
         <button
           type="button"
           onClick={startNewChat}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-200/18 bg-cyan-200/[0.09] px-4 py-2.5 text-sm font-semibold text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:border-cyan-200/32 hover:bg-cyan-200/[0.14]"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-200/[0.085] px-4 py-2.5 text-sm font-semibold text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-cyan-200/32 hover:bg-cyan-200/[0.14]"
           data-testid="chat-history-new"
         >
           <Plus size={16} />
           New chat
         </button>
 
-        <button
-          type="button"
-          onClick={createFolder}
-          disabled={historyDisabled}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/18 hover:bg-white/[0.065] hover:text-white disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-white/10 disabled:hover:bg-white/[0.035] disabled:hover:text-zinc-300"
-          data-testid="chat-folder-new"
-        >
-          <FolderPlus size={15} />
-          New folder
-        </button>
-
+        {conversations.length > 0 || customFolders.length > 0 || query ? (
         <div className="relative mt-3">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
@@ -485,6 +466,7 @@ export default function ChatHistorySidebar() {
             aria-label="Search chats"
           />
         </div>
+        ) : null}
       </div>
 
       <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto px-2.5 py-3">
@@ -503,15 +485,15 @@ export default function ChatHistorySidebar() {
             {error}
           </div>
         ) : historyDisabled ? (
-          <div className="rounded-xl border border-cyan-200/15 bg-cyan-200/[0.055] px-3 py-4 text-sm leading-6 text-cyan-50">
-            Private by default — your questions are not saved after this session ends.
+          <div className="px-2 py-2 text-[12px] leading-5 text-zinc-400">
+            Private by default. This session is not saved.
           </div>
         ) : conversations.length === 0 && customFolders.length === 0 ? (
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-4 text-sm leading-6 text-zinc-400">
-            No saved chats yet. Ask one question and OpenRx will keep the handoff here.
+          <div className="px-2 py-2 text-[12px] leading-5 text-zinc-500">
+            Saved care threads will appear here.
           </div>
         ) : filteredConversations.length === 0 && query ? (
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-4 text-sm leading-6 text-zinc-400">
+          <div className="px-2 py-2 text-[12px] leading-5 text-zinc-400">
             No matching chats.
           </div>
         ) : (
@@ -543,17 +525,17 @@ export default function ChatHistorySidebar() {
         )}
       </div>
 
-      <div className="border-t border-white/[0.07] px-3 py-3">
+      <div className="border-t border-white/[0.06] px-3 py-3">
         <Link
           href="/profile"
-          className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm transition hover:bg-white/[0.08]"
+          className="flex items-center gap-2.5 rounded-xl px-2 py-2 text-sm transition hover:bg-white/[0.07]"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-zinc-200 shadow-sm">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.07] text-zinc-300 shadow-sm">
             <Settings size={15} />
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[13px] font-semibold text-zinc-100">{accountLabel}</span>
-            <span className="block text-[11px] text-zinc-400">Settings and privacy</span>
+            <span className="block text-[11px] text-zinc-500">Privacy</span>
           </span>
         </Link>
       </div>
@@ -618,7 +600,7 @@ export default function ChatHistorySidebar() {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[320px] flex-col border-r border-white/[0.07] bg-[#030303] transition-transform duration-200 lg:hidden",
+          "fixed left-0 top-0 z-50 flex h-screen w-[min(88vw,300px)] flex-col border-r border-white/[0.07] bg-[#030303] transition-transform duration-200 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
         aria-label="Chat history"
@@ -629,7 +611,7 @@ export default function ChatHistorySidebar() {
       <aside
         className={cn(
           "fixed left-0 top-0 z-40 hidden h-screen flex-col border-r border-white/[0.07] bg-[#030303] transition-[width] duration-200 lg:flex",
-          collapsed ? "w-[76px]" : "w-[308px]"
+          collapsed ? "w-[76px]" : "w-[284px]"
         )}
         aria-label="Chat history"
       >

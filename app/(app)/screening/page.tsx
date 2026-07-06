@@ -1594,6 +1594,22 @@ export default function ScreeningPage() {
           ) : (
             <>
               <p className="text-sm leading-6 text-white/82">OpenRx found {structuredRecommendations.length || assessment.recommendedScreenings.length} care item{structuredRecommendations.length === 1 ? "" : "s"} from the information supplied.</p>
+              {assessment.clinicalSafety ? (
+                <p className={cn(
+                  "mt-2 text-xs leading-5",
+                  assessment.clinicalSafety.status === "passed"
+                    ? "text-cyan-100"
+                    : assessment.clinicalSafety.status === "needs_review"
+                      ? "text-amber-100"
+                      : "text-rose-100"
+                )}>
+                  Safety gate: {assessment.clinicalSafety.status === "passed"
+                    ? "sources complete"
+                    : assessment.clinicalSafety.status === "needs_review"
+                      ? "clinician review needed"
+                      : "blocked pending source completion"}
+                </p>
+              ) : null}
               {assessment.clarificationQuestions?.length ? (
                 <p className="mt-2 text-xs leading-5 text-amber-100">
                   {assessment.clarificationQuestions.length} answer{assessment.clarificationQuestions.length === 1 ? "" : "s"} could change the timing or pathway.
@@ -1656,6 +1672,7 @@ export default function ScreeningPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <span className="chip">{structuredRecommendations.length} sourced items</span>
+              {assessment.clinicalSafety ? <span className="chip">safety {assessment.clinicalSafety.status.replace("_", " ")}</span> : null}
               <span className="chip">{patientNextActions.length} next actions</span>
               <span className="chip">{urgentScreeningCount} urgent</span>
               {localCareConnections.length > 0 ? <span className="chip">{actionableCareConnections.length} local match groups</span> : null}

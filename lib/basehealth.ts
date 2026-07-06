@@ -1,4 +1,6 @@
 import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
+import type { ClinicalSafetyReport } from "@/lib/clinical-safety-gate"
+import { validateScreeningEngineResult } from "@/lib/clinical-safety-gate"
 import {
   recommendScreenings,
   screeningIntakeFromLegacy,
@@ -73,6 +75,7 @@ export interface ScreeningAssessment {
   screeningIntakeCompleteness?: "minimal" | "partial" | "actionable"
   clarificationQuestions?: ScreeningClarification[]
   safetyMessages?: string[]
+  clinicalSafety?: ClinicalSafetyReport
 }
 
 export interface SecondOpinionInput {
@@ -723,6 +726,7 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
     "Track adherence and blood pressure readings to improve trend confidence.",
   ]
   const screeningEngine = recommendScreenings(screeningIntakeFromLegacy(buildScreeningEngineInput(input, patient, age)))
+  const clinicalSafety = validateScreeningEngineResult(screeningEngine)
   const engineRecommendations = screeningEngine.recommendations
     .filter((rec) => rec.status !== "not_due")
     .map(toLegacyScreeningRecommendation)
@@ -750,6 +754,7 @@ export function assessHealthScreening(input: ScreeningInput = {}): ScreeningAsse
     screeningIntakeCompleteness: screeningEngine.intakeCompleteness,
     clarificationQuestions: screeningEngine.clarificationQuestions,
     safetyMessages: screeningEngine.safetyMessages,
+    clinicalSafety,
   }
 }
 

@@ -351,6 +351,16 @@ function recommendationHasAnyStep(rec: StructuredScreeningRecommendation, steps:
   return steps.some((step) => rec.nextSteps.includes(step))
 }
 
+function recommendationActionRank(rec: StructuredScreeningRecommendation): number {
+  if (rec.status === "urgent_clinician_review") return 0
+  if (rec.status === "due") return 1
+  if (rec.status === "high_risk" || rec.status === "needs_clinician_review") return 2
+  if (rec.status === "surveillance_or_follow_up") return 3
+  if (rec.status === "discuss") return 4
+  if (rec.status === "unknown") return 5
+  return 6
+}
+
 function careSearchQueryForRecommendation(rec: StructuredScreeningRecommendation): string {
   const signal = `${rec.screeningName} ${rec.cancerType} ${rec.recommendedNextStep}`.toLowerCase()
 
@@ -613,6 +623,63 @@ export default function ScreeningPage() {
     () => localCareConnections.filter((connection) => connection.matches.length > 0),
     [localCareConnections]
   )
+  const primaryRecommendation = useMemo(() => {
+    if (structuredRecommendations.length === 0) return null
+    return [...structuredRecommendations]
+      .filter((recommendation) => recommendation.status !== "not_due")
+      .sort((left, right) => recommendationActionRank(left) - recommendationActionRank(right))[0] || null
+  }, [structuredRecommendations])
+  const careBrief = useMemo(() => {
+    if (!assessment) return null
+
+    const dueCount = structuredRecommendations.filter((rec) => rec.status === "due").length
+    const reviewCount = structuredRecommendations.filter((rec) =>
+      rec.requiresClinicianReview ||
+      rec.status === "high_risk" ||
+      rec.status === "needs_clinician_review" ||
+      rec.status === "surveillance_or_follow_up" ||
+      rec.status === "urgent_clinician_review"
+    ).length
+    const missingCount = assessment.clarificationQuestions?.length || 0
+    const primarySource = primaryRecommendation
+      ? getGuidelineSource(primaryRecommendation.sourceId)
+      : undefined
+    const sourceUrl = primaryRecommendation
+      ? sourceUrlForRecommendation(primaryRecommendation, primarySource)
+      : undefined
+
+    const answer = dueCount > 0
+      ? `${dueCount} screening item${dueCount === 1 ? "" : "s"} look${dueCount === 1 ? "s" : ""} due from what you shared.`
+      : reviewCount > 0
+        ? "This needs clinician review before timing is treated as final."
+        : missingCount > 0
+          ? "A few details could change the plan."
+          : "No urgent screening action surfaced from the details provided."
+
+    const safetyLabel = assessment.clinicalSafety?.status === "passed"
+      ? "Sources complete"
+      : assessment.clinicalSafety?.status === "needs_review"
+        ? "Clinician review"
+        : assessment.clinicalSafety?.status === "blocked"
+          ? "Source blocked"
+          : "Safety checked"
+
+    return {
+      answer,
+      primary: primaryRecommendation,
+      sourceUrl,
+      sourceLabel: primaryRecommendation
+        ? [
+            primaryRecommendation.sourceSystem,
+            formatGrade(primaryRecommendation.evidenceGrade),
+            visibleSourceVersion(primaryRecommendation, primarySource),
+          ].filter(Boolean).join(" · ")
+        : "",
+      missingDetails: (assessment.clarificationQuestions || []).slice(0, 3),
+      safetyLabel,
+      safetyStatus: assessment.clinicalSafety?.status || "passed",
+    }
+  }, [assessment, primaryRecommendation, structuredRecommendations])
 
   useEffect(() => {
     if (!walletAddress) return
@@ -1655,6 +1722,106 @@ export default function ScreeningPage() {
       </div>
 
       {running && !assessment ? <ScreeningPlanSkeleton /> : null}
+
+      {assessment && careBrief ? (
+        <section
+          aria-labelledby="screening-care-brief-heading"
+          className="border-y border-white/10 py-6"
+          data-testid="screening-care-brief"
+        >
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.45fr)]">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]",
+                    careBrief.safetyStatus === "passed"
+                      ? "border-cyan-200/20 bg-cyan-200/[0.08] text-cyan-100"
+                      : careBrief.safetyStatus === "needs_review"
+                        ? "border-amber-100/25 bg-amber-100/[0.08] text-amber-100"
+                        : "border-rose-100/25 bg-rose-100/[0.08] text-rose-100"
+                  )}
+                >
+                  {careBrief.safetyLabel}
+                </span>
+                {careBrief.sourceLabel ? (
+                  <span className="text-xs leading-5 text-white/56">{careBrief.sourceLabel}</span>
+                ) : null}
+              </div>
+              <h2 id="screening-care-brief-heading" className="orx-section-heading mt-4 max-w-3xl text-[1.9rem] text-primary">
+                {careBrief.answer}
+              </h2>
+              {careBrief.primary ? (
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-secondary">
+                  Top item: <span className="font-semibold text-primary">{careBrief.primary.screeningName}</span>. {careBrief.primary.patientFriendlyExplanation}
+                </p>
+              ) : (
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-secondary">
+                  Add age, sex used for screening, symptoms, family history, genetic variants, and prior test dates to sharpen the plan.
+                </p>
+              )}
+              {careBrief.missingDetails.length > 0 ? (
+                <div className="mt-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-100/80">Details that could change timing</p>
+                  <ul className="mt-2 space-y-1.5">
+                    {careBrief.missingDetails.map((item) => (
+                      <li key={item.id} className="text-sm leading-6 text-white/76">
+                        {item.question}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+            <div className="flex flex-col justify-center gap-2">
+              {careBrief.primary ? (() => {
+                const primary = careBrief.primary
+                return (
+                  <button
+                    type="button"
+                    onClick={() => openProviderSearchFromRecommendation(primary)}
+                    className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full bg-cyan-200 px-4 py-2 text-sm font-semibold text-black transition hover:bg-cyan-100"
+                  >
+                    Find care nearby
+                    <ArrowRight size={15} aria-hidden="true" />
+                  </button>
+                )
+              })() : null}
+              {careBrief.sourceUrl ? (
+                <a
+                  href={careBrief.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-white/12 px-4 py-2 text-sm font-semibold text-primary transition hover:border-cyan-200/35 hover:bg-white/[0.045]"
+                >
+                  Open source
+                  <ExternalLink size={15} aria-hidden="true" />
+                </a>
+              ) : null}
+              {careBrief.primary ? (() => {
+                const primary = careBrief.primary
+                return (
+                  <button
+                    type="button"
+                    onClick={() => draftClinicianMessage(primary)}
+                    className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-white/12 px-4 py-2 text-sm font-semibold text-primary transition hover:border-cyan-200/35 hover:bg-white/[0.045]"
+                  >
+                    Draft clinician note
+                    <FileText size={15} aria-hidden="true" />
+                  </button>
+                )
+              })() : null}
+              <Link
+                href="/clinical-trials"
+                className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-white/12 px-4 py-2 text-sm font-semibold text-primary transition hover:border-cyan-200/35 hover:bg-white/[0.045]"
+              >
+                Explore trials
+                <Search size={15} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {assessment && (
         <section className="border-y border-white/10 py-5">

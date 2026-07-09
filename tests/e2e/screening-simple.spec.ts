@@ -80,6 +80,15 @@ async function mockScreeningApis(page: Page, options: MockScreeningApisOptions =
           },
         ],
         nextActions: ["Review this plan with your clinician within 30 days."],
+        clinicalSafety: {
+          status: "passed",
+          checkedAt: "2026-02-26T12:00:00.000Z",
+          confidenceThreshold: 0.85,
+          recommendationCount: 1,
+          sourceCompleteCount: 1,
+          clinicianReviewCount: 0,
+          issues: [],
+        },
         clarificationQuestions: options.clarificationQuestions || [],
         localCareConnections: options.localCareConnections || [],
         evidenceCitations: [
@@ -145,6 +154,12 @@ test("simple screening intake returns free recommendations", async ({ page }) =>
 
   await page.getByTestId("screening-submit-preview").click()
 
+  const careBrief = page.getByTestId("screening-care-brief")
+  await expect(careBrief).toBeVisible()
+  await expect(careBrief).toContainText("1 screening item looks due")
+  await expect(careBrief).toContainText("Sources complete")
+  await expect(careBrief.getByRole("button", { name: "Find care nearby" })).toBeVisible()
+  await expect(careBrief.getByRole("link", { name: "Open source" })).toBeVisible()
   await expect(page.getByText("Recommended Screenings")).toBeVisible()
   await expect(page.getByTestId("screening-section-due_now")).toBeVisible()
   await expect(page.getByTestId("screening-recommendation-card")).toHaveCount(1)

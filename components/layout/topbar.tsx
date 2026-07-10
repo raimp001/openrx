@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   Bell,
   Calendar,
@@ -30,6 +30,7 @@ function shortenAddress(address: string): string {
 
 export default function Topbar() {
   const pathname = usePathname()
+  const router = useRouter()
   const isChatRoute = pathname === "/chat" || pathname?.startsWith("/chat/")
   const focusedWorkflowPrefixes = ["/screening", "/providers", "/clinical-trials", "/pharmacy", "/prior-auth", "/join-network"]
   const isFocusedWorkflow = focusedWorkflowPrefixes.some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`))
@@ -40,6 +41,7 @@ export default function Topbar() {
     : ""
   const [query, setQuery] = useState("")
   const [isOpen, setIsOpen] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -89,6 +91,7 @@ export default function Topbar() {
     const handler = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setIsOpen(false)
+        setMobileSearchOpen(false)
       }
     }
     document.addEventListener("mousedown", handler)
@@ -109,6 +112,7 @@ export default function Topbar() {
       if (event.key === "Escape") {
         inputRef.current?.blur()
         setIsOpen(false)
+        setMobileSearchOpen(false)
         setQuery("")
       }
     }
@@ -168,6 +172,7 @@ export default function Topbar() {
 
   const closeSearch = useCallback(() => {
     setIsOpen(false)
+    setMobileSearchOpen(false)
     setQuery("")
     setActiveIndex(-1)
   }, [])
@@ -186,12 +191,12 @@ export default function Topbar() {
         event.preventDefault()
         const item = flatResults[activeIndex]
         if (item) {
-          window.location.href = item.href
+          router.push(item.href)
           closeSearch()
         }
       }
     },
-    [activeIndex, closeSearch, flatResults, isOpen]
+    [activeIndex, closeSearch, flatResults, isOpen, router]
   )
 
   useEffect(() => {
@@ -203,7 +208,7 @@ export default function Topbar() {
   }
 
   return (
-    <header className="sticky top-0 z-30 pl-[4.75rem] pr-3 pt-3 sm:px-6 lg:px-8">
+    <header className="relative sticky top-0 z-30 pl-[4.75rem] pr-3 pt-3 sm:px-6 lg:px-8">
       <div
         className={cn(
           "ml-auto flex items-center gap-1.5 rounded-full border border-white/10 bg-[#101010]/82 px-2 py-1.5 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-2xl",
@@ -217,7 +222,15 @@ export default function Topbar() {
         ) : null}
 
         {!isFocusedWorkflow && showSearch ? (
-          <div ref={searchRef} className="relative hidden flex-1 sm:block">
+          <div
+            ref={searchRef}
+            className={cn(
+              "flex-1",
+              mobileSearchOpen
+                ? "absolute inset-x-3 top-2 z-50 rounded-full bg-[#101010]/97 p-1 shadow-[0_18px_54px_rgba(0,0,0,0.4)] sm:static sm:z-auto sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none"
+                : "relative hidden sm:block"
+            )}
+          >
             <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input
               ref={inputRef}
@@ -354,6 +367,19 @@ export default function Topbar() {
         ) : null}
 
         <div className="ml-auto flex items-center gap-1.5">
+          {!isFocusedWorkflow && showSearch ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileSearchOpen(true)
+                window.setTimeout(() => inputRef.current?.focus(), 40)
+              }}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-secondary transition hover:bg-white/[0.1] hover:text-primary sm:hidden"
+              aria-label="Search your care plan"
+            >
+              <Search size={16} strokeWidth={1.6} />
+            </button>
+          ) : null}
           <Link
             href="/chat"
             className="hidden h-10 items-center gap-2 rounded-full bg-cyan-200 px-4 text-[13px] font-semibold text-black shadow-[0_12px_28px_rgba(103,232,249,0.14)] transition hover:bg-cyan-100 md:inline-flex"

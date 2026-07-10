@@ -197,7 +197,7 @@ export default function HomePage() {
               })}
             </nav>
 
-            <div className="mt-8 flex max-w-3xl flex-col gap-3 border-t border-white/10 pt-5 text-xs leading-6 text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-8 flex max-w-3xl flex-col gap-3 border-t border-white/10 pt-5 text-xs leading-6 text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
               <p>
                 USPSTF 2021, Grade B example source. The example is educational, not personal medical advice.
               </p>
@@ -217,7 +217,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <p className="mt-4 max-w-3xl text-xs leading-6 text-zinc-600">
+            <p className="mt-4 max-w-3xl text-xs leading-6 text-zinc-400">
               OpenRx does not claim HIPAA compliance or SOC 2 certification today. Public screening is stateless by
               default; PHI persistence and model access remain gated deployment decisions.
             </p>

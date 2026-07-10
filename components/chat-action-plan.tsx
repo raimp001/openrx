@@ -25,9 +25,12 @@ interface ChatActionPlanProps {
   layout?: "inline" | "rail" | "dock"
   testIdPrefix?: string
   onPrompt?: (prompt: string, targetAgentId?: ActionPlanItem["targetAgentId"]) => void
+  // Disable prompt actions while an answer is streaming so a click never
+  // silently no-ops against the in-flight guard in the chat page.
+  disabled?: boolean
 }
 
-export function ChatActionPlan({ items, title = "Next step", layout = "inline", testIdPrefix = "chat-action", onPrompt }: ChatActionPlanProps) {
+export function ChatActionPlan({ items, title = "Next step", layout = "inline", testIdPrefix = "chat-action", onPrompt, disabled = false }: ChatActionPlanProps) {
   if (!items.length) return null
   const allPromptActions = items.every((item) => item.actionType === "chat_prompt")
   const isRail = layout === "rail"
@@ -93,7 +96,8 @@ export function ChatActionPlan({ items, title = "Next step", layout = "inline", 
                   onClick={() => onPrompt(item.prompt!, item.targetAgentId)}
                   title={item.description}
                   data-testid={`${testIdPrefix}-plan-item`}
-                  className={itemClassName}
+                  disabled={disabled}
+                  className={cn(itemClassName, "disabled:cursor-not-allowed disabled:opacity-50")}
                 >
                   {content}
                 </button>

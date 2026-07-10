@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Bot, Heart, LayoutDashboard, Menu, MessageSquare, PhoneCall, Stethoscope, UserCircle, X } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { Bot, Heart, LayoutDashboard, Menu, MessageSquare, PhoneCall, ShieldCheck, Stethoscope, UserCircle, X } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { BrandMark, BrandWordmark } from "@/components/brand-logo"
 import ChatHistorySidebar from "@/components/chat/chat-history-sidebar"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
@@ -23,6 +23,8 @@ export default function Sidebar() {
   const pathname = usePathname()
   const isChatRoute = pathname === "/chat" || pathname?.startsWith("/chat/")
   const [mobileOpen, setMobileOpen] = useState(false)
+  const drawerRef = useRef<HTMLElement>(null)
+  const openButtonRef = useRef<HTMLButtonElement>(null)
   const { snapshot } = useLiveSnapshot()
   const unreadCount = snapshot.messages.filter((message) => !message.read).length
 
@@ -45,6 +47,20 @@ export default function Sidebar() {
     return () => document.removeEventListener("keydown", handleEscape)
   }, [])
 
+  // Move focus into the drawer when it opens and back to the trigger when it
+  // closes, so keyboard and screen-reader users are not left behind the overlay.
+  const wasOpenRef = useRef(false)
+  useEffect(() => {
+    if (mobileOpen) {
+      wasOpenRef.current = true
+      const focusable = drawerRef.current?.querySelector<HTMLElement>("a, button")
+      focusable?.focus()
+    } else if (wasOpenRef.current) {
+      wasOpenRef.current = false
+      openButtonRef.current?.focus({ preventScroll: true })
+    }
+  }, [mobileOpen])
+
   if (isChatRoute) {
     return <ChatHistorySidebar />
   }
@@ -65,9 +81,9 @@ export default function Sidebar() {
         <button
           onClick={() => setMobileOpen(false)}
           aria-label="Close navigation"
-          className="rounded-full p-2 text-muted transition hover:bg-white/10 hover:text-primary lg:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-muted transition hover:bg-white/10 hover:text-primary lg:hidden"
         >
-          <X size={15} />
+          <X size={16} />
         </button>
       </div>
 
@@ -114,11 +130,11 @@ export default function Sidebar() {
       <div className="px-3 py-3 lg:px-2">
         <Link
           href="/privacy-explained"
-          className="block rounded-[14px] px-3 py-2 text-[12px] font-medium text-muted transition hover:bg-white/8 hover:text-primary lg:px-0 lg:text-center"
+          className="flex items-center gap-3 rounded-[14px] px-3 py-2 text-[12px] font-medium text-muted transition hover:bg-white/8 hover:text-primary lg:justify-center lg:px-0"
           title="Privacy"
         >
+          <ShieldCheck size={15} strokeWidth={1.7} aria-hidden />
           <span className="lg:sr-only">Privacy</span>
-          <span aria-hidden className="hidden lg:inline">?</span>
         </Link>
       </div>
     </>
@@ -127,9 +143,11 @@ export default function Sidebar() {
   return (
     <>
       <button
+        ref={openButtonRef}
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 rounded-full border border-white/12 bg-[#101010]/92 p-2.5 text-secondary shadow-card transition hover:border-white/20 hover:text-primary lg:hidden"
+        className="fixed left-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-[#101010]/92 text-secondary shadow-card transition hover:border-white/20 hover:text-primary lg:hidden"
         aria-label="Open navigation"
+        aria-expanded={mobileOpen}
       >
         <Menu size={18} />
       </button>
@@ -137,7 +155,13 @@ export default function Sidebar() {
       {mobileOpen ? <div className="fixed inset-0 z-40 bg-black/24 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} /> : null}
 
       {mobileOpen ? (
-        <aside className="shell-rail fixed left-0 top-0 z-50 flex h-screen w-[244px] flex-col border-r lg:hidden">
+        <aside
+          ref={drawerRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation"
+          className="shell-rail fixed left-0 top-0 z-50 flex h-screen w-[244px] flex-col border-r lg:hidden"
+        >
           {sidebarContent}
         </aside>
       ) : null}

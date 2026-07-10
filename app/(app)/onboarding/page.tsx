@@ -7,7 +7,7 @@ import { CarePlanPreview } from "@/components/care-plan-preview"
 import {
   Bot, User, Heart, Pill, Stethoscope,
   CheckCircle2,
-  Activity, ArrowRight, ArrowLeft,
+  Activity, ArrowRight, ArrowLeft, Loader2,
 } from "lucide-react"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { createCarePlan, type CarePlan } from "@/lib/care-plan"
@@ -372,14 +372,14 @@ export default function OnboardingPage() {
           addAgent("Noted. What pharmacy do you use?")
           advanceStep("pharmacy-search")
         } else {
-          addAgent("Let me find dentists near you. What city or ZIP?")
-          advanceStep("dentist-search")
+          addAgent("Got it — you can find a dentist anytime from the Find care page. \n\nWhat pharmacy do you use? (Name and city)")
+          advanceStep("pharmacy-search")
         }
         break
 
       case "dentist-search":
         addUser(val)
-          addAgent("Noted. What pharmacy do you use?")
+        addAgent("Noted. What pharmacy do you use?")
         advanceStep("pharmacy-search")
         break
 
@@ -613,9 +613,9 @@ export default function OnboardingPage() {
                     ) : null}
                     <div className={cn(
                       "max-w-[88%] rounded-[20px] px-4 py-3",
-                      msg.role === "user" ? "bg-white text-primary" :
-                      msg.role === "system" ? "w-full max-w-full bg-white/34 text-center text-xs text-muted" :
-                      "bg-teal/6 text-primary"
+                      msg.role === "user" ? "border border-cyan-200/15 bg-cyan-200/[0.09] text-cyan-50" :
+                      msg.role === "system" ? "w-full max-w-full bg-white/[0.05] text-center text-xs text-secondary" :
+                      "border border-white/10 bg-white/[0.05] text-primary"
                     )}>
                       {msg.role === "agent" && agentInfo ? (
                         <span className={cn("mb-1 block text-[10px] font-bold uppercase tracking-[0.14em]", agentInfo.color)}>
@@ -634,7 +634,7 @@ export default function OnboardingPage() {
                         <button
                           key={opt.value}
                           onClick={() => handleOption(opt.value)}
-                          className="rounded-full border border-[rgba(82,108,139,0.12)] bg-white/72 px-3.5 py-2 text-xs font-semibold text-secondary transition hover:bg-white hover:text-primary"
+                          className="rounded-full border border-white/12 bg-white/[0.06] px-3.5 py-2 text-xs font-semibold text-secondary transition hover:border-cyan-200/32 hover:bg-cyan-200/[0.08] hover:text-primary"
                         >
                           {opt.label}
                         </button>
@@ -664,7 +664,7 @@ export default function OnboardingPage() {
           </div>
 
           {step !== "complete" ? (
-            <div className="border-t border-[rgba(82,108,139,0.12)] bg-white/48 px-3 py-3 sm:px-4">
+            <div className="border-t border-white/10 bg-white/[0.03] px-3 py-3 sm:px-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <input
                   ref={inputRef}
@@ -675,7 +675,7 @@ export default function OnboardingPage() {
                   placeholder={isSearching ? "Searching..." : "Type your answer"}
                   disabled={isTyping || isSearching}
                   aria-label="Onboarding chat input"
-                  className="min-h-11 flex-1 rounded-full border border-[rgba(82,108,139,0.14)] bg-white px-4 py-2.5 text-sm text-primary placeholder:text-muted focus:border-teal/25 focus:outline-none focus:ring-1 focus:ring-teal/10 disabled:opacity-50"
+                  className="min-h-11 flex-1 rounded-full border border-white/12 bg-[#0f1112] px-4 py-2.5 text-sm text-primary placeholder:text-muted focus:border-teal/40 focus:outline-none focus:ring-1 focus:ring-teal/20 disabled:opacity-50"
                 />
                 <button
                   onClick={() => handleSubmit()}
@@ -683,8 +683,8 @@ export default function OnboardingPage() {
                   aria-label="Send message"
                   className="control-button-primary min-h-11 px-5"
                 >
-                  Continue
-                  <ArrowRight size={15} />
+                  {isSearching ? "Searching" : "Continue"}
+                  {isSearching ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
                 </button>
               </div>
             </div>

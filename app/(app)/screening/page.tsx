@@ -500,6 +500,13 @@ export default function ScreeningPage() {
   const [error, setError] = useState("")
   const [handoffNotice, setHandoffNotice] = useState("")
   const [autoRunRequested, setAutoRunRequested] = useState(false)
+  const errorBannerRef = useRef<HTMLDivElement>(null)
+
+  // The banner lives at the top of a long page; failed actions deep in the
+  // page would otherwise show an error the user never sees.
+  useEffect(() => {
+    if (error) errorBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [error])
 
   const accessLevel: ScreeningAnalysisLevel = assessment?.accessLevel === "deep" ? "deep" : "preview"
   const showingDeepResults = accessLevel === "deep"
@@ -1242,8 +1249,10 @@ export default function ScreeningPage() {
 
       {error && (
         <div
+          ref={errorBannerRef}
+          role="alert"
           data-testid="screening-error"
-          className="rounded-xl border border-soft-red/20 bg-soft-red/5 p-3 text-xs text-soft-red"
+          className="rounded-xl border border-red-400/25 bg-red-950/30 p-3 text-[13px] leading-6 text-red-100"
         >
           {error}
         </div>

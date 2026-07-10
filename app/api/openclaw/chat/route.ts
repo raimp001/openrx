@@ -77,7 +77,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 })
     }
 
-    const deterministicResponse = deterministicClinicalResponse(message, agentId)
+    // Use the same input as the stream route: the client falls back from the
+    // stream to this route on transient failures, and the answer must not
+    // change based on which transport happened to succeed.
+    const deterministicResponse = deterministicClinicalResponse(screeningContext?.trim() || message, agentId)
 
     const auth = await requireAuth(req, { allowPublic: true })
     if ("response" in auth) return auth.response

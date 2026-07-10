@@ -238,7 +238,9 @@ export async function POST(req: NextRequest) {
       // Save chat history only after the Phase 2 PHI gate is explicitly enabled.
       let savedConversationId = conversationId || ""
       let savedTitle = ""
-      if (persistChatHistory) {
+      // A model-failure placeholder is not a clinical exchange; persisting it
+      // would pollute restored conversations with error turns.
+      if (persistChatHistory && finalText !== CLEAN_MODEL_BUSY_MESSAGE) {
         try {
           if (historyOwner && !("response" in historyOwner)) {
             const conversation = await appendChatExchange({

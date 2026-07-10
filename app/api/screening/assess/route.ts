@@ -626,9 +626,10 @@ export async function GET(request: NextRequest) {
     const effectiveWalletAddress = canUseWalletScopedData(auth.session, walletAddress) || walletProofMatches
       ? walletAddress
       : undefined
-    const effectivePatientId = effectiveWalletAddress || auth.session.authSource !== "default"
-      ? patientId
-      : undefined
+    // A caller-supplied patientId is only honored for authenticated
+    // staff/service sessions. Wallet callers act as themselves via
+    // effectiveWalletAddress — never as an arbitrary patientId they name.
+    const effectivePatientId = auth.session.authSource !== "default" ? patientId : undefined
 
     if (analysisLevel === "deep") {
       const access = await verifyScreeningAccess({ walletAddress: effectiveWalletAddress, paymentId })
@@ -674,9 +675,8 @@ export async function POST(request: NextRequest) {
     const effectiveWalletAddress = canUseWalletScopedData(auth.session, body.walletAddress) || walletProofMatches
       ? body.walletAddress
       : undefined
-    const effectivePatientId = effectiveWalletAddress || auth.session.authSource !== "default"
-      ? body.patientId
-      : undefined
+    // Same guard as GET: staff/service sessions only.
+    const effectivePatientId = auth.session.authSource !== "default" ? body.patientId : undefined
 
     if (analysisLevel === "deep") {
       const access = await verifyScreeningAccess({

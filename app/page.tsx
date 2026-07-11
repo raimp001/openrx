@@ -3,15 +3,10 @@ import Image from "next/image"
 import Link from "next/link"
 import {
   ArrowRight,
-  Building2,
-  FlaskConical,
-  HeartPulse,
-  Pill,
   Search,
-  ShieldCheck,
-  Stethoscope,
 } from "lucide-react"
 
+import { AnswerActionGrid, type AnswerActionItem } from "@/components/answer-action-grid"
 import { BrandMark } from "@/components/brand-logo"
 
 export const dynamic = "force-dynamic"
@@ -43,42 +38,49 @@ const softwareApplicationJsonLd = {
   },
 }
 
-const connectedActions = [
+const connectedActions: AnswerActionItem[] = [
   {
+    id: "screening",
     label: "Screening",
     href: "/screening",
     description: "Get a sourced plan",
-    icon: HeartPulse,
+    icon: "screening",
+    tone: "primary",
   },
   {
+    id: "find-care",
     label: "Find care",
     href: "/providers",
     description: "Doctors, labs, imaging",
-    icon: Stethoscope,
+    icon: "care",
   },
   {
+    id: "trials",
     label: "Trials",
     href: "/clinical-trials",
     description: "Surface candidates",
-    icon: FlaskConical,
+    icon: "trials",
   },
   {
+    id: "pharmacy",
     label: "Pharmacy",
     href: "/pharmacy",
     description: "Medication access",
-    icon: Pill,
+    icon: "pharmacy",
   },
   {
+    id: "prior-auth",
     label: "Prior auth",
     href: "/prior-auth",
     description: "Prepare the packet",
-    icon: ShieldCheck,
+    icon: "shield",
   },
   {
+    id: "join-network",
     label: "Join network",
     href: "/join-network",
     description: "Providers participate",
-    icon: Building2,
+    icon: "network",
   },
 ]
 
@@ -175,26 +177,8 @@ export default function HomePage() {
               </form>
             </div>
 
-            <nav aria-label="Connected care actions" className="mt-8 grid max-w-3xl gap-1.5 sm:grid-cols-2">
-              {connectedActions.map((item) => {
-                const Icon = item.icon
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="group flex min-h-12 items-center justify-between gap-3 rounded-full border border-white/[0.08] bg-black/25 px-3 py-2.5 transition hover:border-cyan-200/25 hover:bg-white/[0.045]"
-                  >
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <Icon size={16} className="shrink-0 text-zinc-300 transition group-hover:text-cyan-100" />
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold leading-5 text-white">{item.label}</span>
-                        <span className="block truncate text-[11px] leading-4 text-zinc-500">{item.description}</span>
-                      </span>
-                    </span>
-                    <ArrowRight size={13} className="shrink-0 text-zinc-600 transition group-hover:text-cyan-100" />
-                  </Link>
-                )
-              })}
+            <nav aria-label="Connected care actions" className="mt-8 max-w-3xl">
+              <AnswerActionGrid items={connectedActions} columns="two" label="Connected care actions" />
             </nav>
 
             <div className="mt-8 flex max-w-3xl flex-col gap-3 border-t border-white/10 pt-5 text-xs leading-6 text-zinc-400 sm:flex-row sm:items-center sm:justify-between">

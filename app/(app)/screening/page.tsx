@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react"
 import { BaseUsdcTransaction } from "@/components/payments/base-usdc-transaction"
+import { AnswerActionGrid, type AnswerActionItem } from "@/components/answer-action-grid"
 import { CarePlanPreview } from "@/components/care-plan-preview"
 import { RedFlagAlert } from "@/components/red-flag-alert"
 import { TrustDrawer } from "@/components/trust-drawer"
@@ -1724,6 +1725,50 @@ export default function ScreeningPage() {
                       ? "No local directory matches came back yet. Use the plan and source links while OpenRx refreshes nearby options."
                       : "Add a ZIP code before running the preview to show nearby providers, labs, or imaging centers for the plan."}
                 </p>
+                <div className="mt-3">
+                  {(() => {
+                    const primary = careBrief?.primary || null
+                    const needsDetails = Boolean(assessment.clarificationQuestions?.length)
+                    const actions: AnswerActionItem[] = [
+                      needsDetails ? {
+                        id: "answer-details",
+                        label: "Add details",
+                        description: "Clarify timing before booking",
+                        icon: "note",
+                        tone: "primary",
+                        onClick: () => {
+                          const target = document.getElementById("screening-clarification-heading") || document.getElementById("screening-narrative")
+                          target?.scrollIntoView({ behavior: "smooth", block: "center" })
+                          document.getElementById("screening-narrative")?.focus()
+                        },
+                      } : primary ? {
+                        id: "answer-find-care",
+                        label: "Find care nearby",
+                        description: "Open matching care options",
+                        icon: "care",
+                        tone: "primary",
+                        onClick: () => openProviderSearchFromRecommendation(primary),
+                      } : {
+                        id: "answer-source",
+                        label: "Open source",
+                        description: "Review guideline basis",
+                        href: careBrief?.sourceUrl || "/trust",
+                        external: Boolean(careBrief?.sourceUrl),
+                        icon: "source",
+                        tone: "primary",
+                      },
+                      ...(careBrief?.sourceUrl ? [{
+                        id: "answer-source-secondary",
+                        label: "Open source",
+                        description: careBrief.sourceLabel || "Guideline link",
+                        href: careBrief.sourceUrl,
+                        external: true,
+                        icon: "source" as const,
+                      }] : []),
+                    ]
+                    return <AnswerActionGrid items={actions} columns="single" label="Answer next action" />
+                  })()}
+                </div>
               </div>
             </>
           )}
@@ -1782,51 +1827,46 @@ export default function ScreeningPage() {
                 </div>
               ) : null}
             </div>
-            <div className="flex flex-col justify-center gap-2">
-              {careBrief.primary ? (() => {
+            <div className="flex flex-col justify-center">
+              {(() => {
                 const primary = careBrief.primary
+                const actions: AnswerActionItem[] = [
+                  ...(primary ? [{
+                    id: "find-care-nearby",
+                    label: "Find care nearby",
+                    description: "Search providers, labs, or imaging",
+                    icon: "care" as const,
+                    tone: "primary" as const,
+                    testId: "screening-find-care-action",
+                    onClick: () => openProviderSearchFromRecommendation(primary),
+                  }] : []),
+                  ...(careBrief.sourceUrl ? [{
+                    id: "open-source",
+                    label: "Open source",
+                    description: careBrief.sourceLabel || "Guideline link",
+                    href: careBrief.sourceUrl,
+                    external: true,
+                    icon: "source" as const,
+                  }] : []),
+                  ...(primary ? [{
+                    id: "draft-clinician-note",
+                    label: "Draft clinician note",
+                    description: "Prepare a concise message",
+                    icon: "note" as const,
+                    onClick: () => draftClinicianMessage(primary),
+                  }] : []),
+                  {
+                    id: "explore-trials",
+                    label: "Explore trials",
+                    description: "Surface candidates, not eligibility",
+                    href: "/clinical-trials",
+                    icon: "trials" as const,
+                  },
+                ]
                 return (
-                  <button
-                    type="button"
-                    onClick={() => openProviderSearchFromRecommendation(primary)}
-                    className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full bg-cyan-200 px-4 py-2 text-sm font-semibold text-black transition hover:bg-cyan-100"
-                  >
-                    Find care nearby
-                    <ArrowRight size={15} aria-hidden="true" />
-                  </button>
+                  <AnswerActionGrid items={actions} columns="single" label="Screening care actions" />
                 )
-              })() : null}
-              {careBrief.sourceUrl ? (
-                <a
-                  href={careBrief.sourceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-white/12 px-4 py-2 text-sm font-semibold text-primary transition hover:border-cyan-200/35 hover:bg-white/[0.045]"
-                >
-                  Open source
-                  <ExternalLink size={15} aria-hidden="true" />
-                </a>
-              ) : null}
-              {careBrief.primary ? (() => {
-                const primary = careBrief.primary
-                return (
-                  <button
-                    type="button"
-                    onClick={() => draftClinicianMessage(primary)}
-                    className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-white/12 px-4 py-2 text-sm font-semibold text-primary transition hover:border-cyan-200/35 hover:bg-white/[0.045]"
-                  >
-                    Draft clinician note
-                    <FileText size={15} aria-hidden="true" />
-                  </button>
-                )
-              })() : null}
-              <Link
-                href="/clinical-trials"
-                className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-white/12 px-4 py-2 text-sm font-semibold text-primary transition hover:border-cyan-200/35 hover:bg-white/[0.045]"
-              >
-                Explore trials
-                <Search size={15} aria-hidden="true" />
-              </Link>
+              })()}
             </div>
           </div>
         </section>

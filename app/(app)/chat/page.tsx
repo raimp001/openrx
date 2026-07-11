@@ -35,6 +35,7 @@ import {
   buildActionPlan,
   type ActionPlanItem,
 } from "@/lib/care-handoff"
+import { AnswerActionGrid, type AnswerActionItem } from "@/components/answer-action-grid"
 import { ChatActionPlan } from "@/components/chat-action-plan"
 import { CarePlanPreview } from "@/components/care-plan-preview"
 import { RedFlagAlert } from "@/components/red-flag-alert"
@@ -50,27 +51,37 @@ import { usePrefetchLinks } from "@/lib/hooks/use-prefetch-links"
 
 type AgentId = typeof OPENCLAW_CONFIG.agents[number]["id"]
 
-const SERVICE_LINKS: Array<{ label: string; description: string; prompt: string; agentId: AgentId; icon: typeof Stethoscope }> = [
+const SERVICE_LINKS: Array<{
+  id: string
+  label: string
+  description: string
+  prompt: string
+  agentId: AgentId
+  icon: AnswerActionItem["icon"]
+}> = [
   {
+    id: "screening",
     label: "Screening",
     description: "Get sourced next steps",
     prompt: "What screening may be due for me?",
     agentId: "screening",
-    icon: ShieldCheck,
+    icon: "screening",
   },
   {
+    id: "find-care",
     label: "Find care",
     description: "Get clinic phone numbers",
     prompt: "Find primary care near me.",
     agentId: "scheduling",
-    icon: Stethoscope,
+    icon: "care",
   },
   {
+    id: "clinician-note",
     label: "Clinician note",
     description: "Prepare one clear request",
     prompt: "Help me draft a short message to my clinician.",
     agentId: "coordinator",
-    icon: Calendar,
+    icon: "note",
   },
 ]
 
@@ -1213,25 +1224,22 @@ export default function ChatPage() {
 
             <nav
               aria-label="Care service links"
-              className="mx-auto mt-3 flex max-w-2xl flex-wrap justify-center gap-2"
+              className="mx-auto mt-3 max-w-2xl"
             >
-              {SERVICE_LINKS.map((item) => {
-                const Icon = item.icon
-                return (
-                  <button
-                    key={item.label}
-                    type="button"
-                    title={item.description}
-                    onClick={() => {
-                      void sendMessage(item.prompt, item.agentId)
-                    }}
-                    className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3.5 py-2 text-[12px] font-semibold text-zinc-100 transition hover:border-cyan-200/32 hover:bg-cyan-200/[0.08]"
-                  >
-                    <Icon size={14} className="text-cyan-100" />
-                    {item.label}
-                  </button>
-                )
-              })}
+              <AnswerActionGrid
+                columns="three"
+                label="Care service links"
+                items={SERVICE_LINKS.map((item, index) => ({
+                  id: item.id,
+                  label: item.label,
+                  description: item.description,
+                  icon: item.icon,
+                  tone: index === 0 ? "primary" : "secondary",
+                  onClick: () => {
+                    void sendMessage(item.prompt, item.agentId)
+                  },
+                }))}
+              />
             </nav>
 
             <div className="mx-auto mt-4 hidden max-w-2xl flex-wrap justify-center gap-2 sm:flex" aria-label="Example questions">

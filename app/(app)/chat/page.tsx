@@ -429,6 +429,15 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
               </p>
             )
           }
+          // Rationale lines read as supporting detail under their question,
+          // not as more questions — the densest section stays scannable.
+          if (/^Why this matters:/i.test(block.text)) {
+            return (
+              <p key={`b-${i}`} className={cn("text-[13px] leading-6 text-zinc-400", block.kind === "bullet" && "pl-5")}>
+                {renderInlineLinks(block.text, `b-${i}`)}
+              </p>
+            )
+          }
           if (block.kind === "bullet") {
             return (
               <p

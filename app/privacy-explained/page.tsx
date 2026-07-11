@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import {
   AlertTriangle,
@@ -11,6 +12,15 @@ import {
   XCircle,
 } from "lucide-react"
 import { BrandMark, BrandWordmark } from "@/components/brand-logo"
+
+export const metadata: Metadata = {
+  title: "Privacy explained | OpenRx",
+  description:
+    "Plain-language OpenRx privacy boundaries for demo data, wallet identity, workflow analytics, AI routing, and patient control.",
+  alternates: {
+    canonical: "/privacy-explained",
+  },
+}
 
 const shortVersion = [
   "In demo mode, the app uses sample patient data and does not need a personal account.",
@@ -73,80 +83,78 @@ const rights = [
 
 export default function PrivacyExplainedPage() {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_16%_0%,rgba(47,107,255,0.08),transparent_26%),radial-gradient(circle_at_86%_12%,rgba(47,107,255,0.08),transparent_22%),linear-gradient(180deg,#f7faff_0%,#edf4ff_46%,#ffffff_100%)]">
-      <header className="sticky top-0 z-50 border-b border-[rgba(82,108,139,0.12)] bg-[rgba(247,250,255,0.82)] backdrop-blur-xl">
-        <div className="mx-auto flex h-18 max-w-6xl items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-3">
-            <BrandMark size="sm" />
-            <BrandWordmark subtitle />
+    <div className="min-h-screen bg-[#050505] text-zinc-100">
+      <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#050505]/92 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
+          <Link href="/" className="flex items-center gap-3" aria-label="OpenRx home">
+            <BrandMark size="sm" tone="dark" />
+            <BrandWordmark tone="dark" subtitle />
           </Link>
           <div className="flex items-center gap-3 text-sm">
-            <Link href="/" className="chip hover:border-teal/30 hover:text-primary">
+            <Link href="/" className="hidden rounded-full border border-white/12 px-4 py-2 font-medium text-zinc-300 transition hover:border-white/25 hover:text-white sm:inline-flex">
               Home
             </Link>
-            <Link href="/dashboard" className="control-button-primary px-4 py-2">
-              Open Dashboard
+            <Link href="/chat" className="inline-flex min-h-10 items-center justify-center rounded-full bg-cyan-200 px-4 font-semibold text-black transition hover:bg-cyan-100">
+              Ask OpenRx
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-10 sm:py-14">
-        <section className="surface-hero relative overflow-hidden px-6 py-8 sm:px-8 sm:py-10">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(47,107,255,0.12),transparent_24%),radial-gradient(circle_at_88%_16%,rgba(47,107,255,0.09),transparent_20%)]" />
-          <div className="relative max-w-4xl">
-            <span className="eyebrow-pill">Privacy explained</span>
-            <h1 className="orx-display-heading mt-5 max-w-4xl text-[clamp(3rem,6vw,5.4rem)] text-primary">
-              How OpenRx handles data, in plain English.
+      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+        <section className="border-b border-white/10 pb-10">
+          <div className="max-w-4xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">Privacy explained</p>
+            <h1 className="orx-display-heading mt-5 max-w-4xl text-[clamp(2.7rem,6vw,5.3rem)] text-white">
+              Plain data boundaries before care navigation.
             </h1>
-            <p className="mt-5 max-w-3xl text-[15px] leading-8 text-secondary">
-              This page exists so you can understand the product without reading a legal maze. OpenRx is designed to
-              help people coordinate care, screening, medication access, and provider matching without turning every
-              click into a hidden data transaction.
+            <p className="mt-5 max-w-3xl text-[15px] leading-8 text-zinc-300">
+              OpenRx should be understandable before it asks for trust. This page explains what can stay local, what
+              changes when identity is connected, and what the assistant is not allowed to do.
             </p>
-            <div className="mt-6 flex flex-wrap gap-2.5">
-              <span className="chip">demo-first workflows</span>
-              <span className="chip">wallet optional</span>
-              <span className="chip">minimal-context AI routing</span>
-            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <span className="rounded-full border border-white/12 px-3 py-1.5 text-[12px] font-medium text-zinc-300">demo-first workflows</span>
+            <span className="rounded-full border border-white/12 px-3 py-1.5 text-[12px] font-medium text-zinc-300">wallet optional</span>
+            <span className="rounded-full border border-white/12 px-3 py-1.5 text-[12px] font-medium text-zinc-300">minimum context AI routing</span>
           </div>
         </section>
 
-        <section className="mt-8 grid gap-8 xl:grid-cols-[0.9fr_1.1fr]">
-          <div className="surface-card p-6">
-            <div className="flex items-center gap-2">
-              <Lock size={16} className="text-accent" />
-              <div className="section-title">Short version</div>
+        <section className="mt-10 grid gap-8 xl:grid-cols-[0.92fr_1.08fr]">
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-cyan-100">
+              <Lock size={16} />
+              <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">Short version</h2>
             </div>
-            <div className="mt-5 space-y-3">
+            <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
               {shortVersion.map((item) => (
-                <div key={item} className="flex items-start gap-3 rounded-[18px] bg-[rgba(255,255,255,0.74)] px-4 py-3">
-                  <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-accent" />
-                  <p className="text-sm leading-6 text-primary">{item}</p>
+                <div key={item} className="flex items-start gap-3 py-3">
+                  <CheckCircle2 size={15} className="mt-1 shrink-0 text-cyan-200" />
+                  <p className="text-sm leading-6 text-zinc-200">{item}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] px-6 py-6 text-white shadow-[0_26px_70px_rgba(8,24,46,0.16)]">
-            <div className="section-title text-white/55">Trust posture</div>
-            <h2 className="orx-section-heading mt-3 text-[clamp(1.8rem,3vw,2.8rem)]">
-              We built OpenRx to reduce healthcare friction, not to monetize patient exposure.
+          <div className="border-y border-white/10 py-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Trust posture</p>
+            <h2 className="orx-section-heading mt-3 text-[clamp(1.9rem,3vw,2.85rem)] text-white">
+              Reduce healthcare friction without monetizing patient exposure.
             </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-white/72">
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300">
               The design principle is simple: use the minimum information needed to move a workflow forward, keep the
               user in control of when identity becomes persistent, and avoid hiding sensitive behavior behind vague copy.
             </p>
-            <div className="mt-6 grid gap-3 md:grid-cols-2">
-              <div className="rounded-[20px] border border-white/10 bg-white/[0.05] p-4">
-                <div className="section-title text-white/50">Default mode</div>
-                <p className="mt-2 text-sm leading-6 text-white/78">
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div>
+                <h3 className="text-sm font-semibold text-white">Default mode</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
                   Demo-safe exploration is a first-class path. The product should be understandable before you trust it.
                 </p>
               </div>
-              <div className="rounded-[20px] border border-white/10 bg-white/[0.05] p-4">
-                <div className="section-title text-white/50">Persistent mode</div>
-                <p className="mt-2 text-sm leading-6 text-white/78">
+              <div>
+                <h3 className="text-sm font-semibold text-white">Persistent mode</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
                   When you connect identity, the app should explain what is being stored, why, and what still stays out.
                 </p>
               </div>
@@ -154,93 +162,93 @@ export default function PrivacyExplainedPage() {
           </div>
         </section>
 
-        <section className="mt-10 grid gap-4 lg:grid-cols-2">
-          <div className="surface-card p-6">
-            <div className="flex items-center gap-2">
-              <Server size={16} className="text-teal" />
-              <div className="section-title">What stays local in demo mode</div>
+        <section className="mt-10 grid gap-5 lg:grid-cols-2">
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-cyan-100">
+              <Server size={16} />
+              <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">What stays local in demo mode</h2>
             </div>
-            <div className="mt-5 space-y-3">
+            <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
               {demoStorage.map((item) => (
-                <div key={item} className="rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-[rgba(255,255,255,0.74)] px-4 py-3 text-sm leading-6 text-secondary">
+                <p key={item} className="py-3 text-sm leading-6 text-zinc-300">
                   {item}
-                </div>
+                </p>
               ))}
             </div>
           </div>
 
-          <div className="surface-card p-6">
-            <div className="flex items-center gap-2">
-              <Shield size={16} className="text-teal" />
-              <div className="section-title">What changes if you connect a wallet</div>
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-cyan-100">
+              <Shield size={16} />
+              <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">What changes if you connect a wallet</h2>
             </div>
-            <div className="mt-5 space-y-3">
+            <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
               {walletStorage.map((item) => (
-                <div key={item} className="rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-[rgba(255,255,255,0.74)] px-4 py-3 text-sm leading-6 text-secondary">
+                <p key={item} className="py-3 text-sm leading-6 text-zinc-300">
                   {item}
-                </div>
+                </p>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="mt-10 surface-card p-6">
-          <div className="flex items-center gap-2">
-            <EyeOff size={16} className="text-soft-red" />
-            <div className="section-title">What we do not do</div>
+        <section className="mt-10 rounded-[24px] border border-rose-300/16 bg-rose-300/[0.035] p-5 sm:p-6">
+          <div className="flex items-center gap-2 text-rose-100">
+            <EyeOff size={16} />
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">What we do not do</h2>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-5 grid gap-x-6 gap-y-3 md:grid-cols-2 xl:grid-cols-3">
             {neverDo.map((item) => (
               <div
                 key={item}
-                className="flex items-start gap-3 rounded-[20px] border border-soft-red/12 bg-soft-red/5 px-4 py-4"
+                className="flex items-start gap-3 border-t border-white/10 pt-3"
               >
-                <XCircle size={15} className="mt-0.5 shrink-0 text-soft-red" />
-                <p className="text-sm leading-6 text-primary">{item}</p>
+                <XCircle size={15} className="mt-1 shrink-0 text-rose-200" />
+                <p className="text-sm leading-6 text-zinc-200">{item}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mt-10 surface-card p-6">
-          <div className="flex items-center gap-2">
-            <Eye size={16} className="text-teal" />
-            <div className="section-title">Workflow analytics</div>
+        <section className="mt-10 rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
+          <div className="flex items-center gap-2 text-cyan-100">
+            <Eye size={16} />
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">Workflow analytics</h2>
           </div>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
             {workflowAnalytics.map((item) => (
-              <div key={item} className="rounded-[18px] border border-[rgba(82,108,139,0.12)] bg-[rgba(255,255,255,0.74)] px-4 py-3 text-sm leading-6 text-secondary">
+              <p key={item} className="py-3 text-sm leading-6 text-zinc-300">
                 {item}
-              </div>
+              </p>
             ))}
           </div>
         </section>
 
         <section className="mt-10 grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
-          <div className="surface-card p-6">
-            <div className="flex items-center gap-2">
-              <Bot size={16} className="text-accent" />
-              <div className="section-title">How AI is routed</div>
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-cyan-100">
+              <Bot size={16} />
+              <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">How AI is routed</h2>
             </div>
-            <div className="mt-5 space-y-4">
-              <div className="rounded-[20px] bg-[rgba(255,255,255,0.78)] px-5 py-4">
-                <h3 className="text-sm font-semibold text-primary">Safety layer first, provider second</h3>
-                <p className="mt-2 text-sm leading-6 text-secondary">
+            <div className="mt-5 space-y-5">
+              <div className="border-t border-white/10 pt-4">
+                <h3 className="text-sm font-semibold text-white">Safety layer first, provider second</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
                   OpenRx routes AI requests through a safety and workflow layer before they reach any model provider.
                   The exact provider behind a workflow may change over time as reliability, safety, and cost settings
                   change, so we do not treat any one model vendor as permanent product infrastructure.
                 </p>
               </div>
-              <div className="rounded-[20px] bg-[rgba(255,255,255,0.78)] px-5 py-4">
-                <h3 className="text-sm font-semibold text-primary">Minimum context only</h3>
-                <p className="mt-2 text-sm leading-6 text-secondary">
+              <div className="border-t border-white/10 pt-4">
+                <h3 className="text-sm font-semibold text-white">Minimum context only</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
                   We only send the prompt and the smallest amount of structured context needed for the task. We do not
                   intentionally include Social Security numbers, insurance IDs, or wallet addresses in model requests.
                 </p>
               </div>
-              <div className="rounded-[20px] bg-[rgba(255,255,255,0.78)] px-5 py-4">
-                <h3 className="text-sm font-semibold text-primary">Retention is provider-dependent</h3>
-                <p className="mt-2 text-sm leading-6 text-secondary">
+              <div className="border-t border-white/10 pt-4">
+                <h3 className="text-sm font-semibold text-white">Retention is provider-dependent</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
                   Where a provider offers no-training or reduced-retention controls, OpenRx is configured to prefer
                   them. Provider-side policies can still differ by workflow, so we avoid promising that every provider
                   behaves identically.
@@ -249,29 +257,29 @@ export default function PrivacyExplainedPage() {
             </div>
           </div>
 
-          <div className="surface-card p-6">
-            <div className="flex items-center gap-2">
-              <Eye size={16} className="text-teal" />
-              <div className="section-title">What the assistant cannot do</div>
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-cyan-100">
+              <Eye size={16} />
+              <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">What the assistant cannot do</h2>
             </div>
-            <div className="mt-5 space-y-3">
+            <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
               {assistantLimits.map((item) => (
-                <div key={item} className="flex items-start gap-3 rounded-[18px] bg-[rgba(239,246,255,0.84)] px-4 py-3">
-                  <XCircle size={14} className="mt-0.5 shrink-0 text-muted" />
-                  <p className="text-sm leading-6 text-secondary">{item}</p>
+                <div key={item} className="flex items-start gap-3 py-3">
+                  <XCircle size={14} className="mt-1 shrink-0 text-zinc-500" />
+                  <p className="text-sm leading-6 text-zinc-300">{item}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="mt-10 rounded-[28px] border border-amber-300/28 bg-[linear-gradient(180deg,rgba(120,81,0,0.09),rgba(255,255,255,0.76))] p-6">
+        <section className="mt-10 rounded-[24px] border border-amber-200/20 bg-amber-200/[0.045] p-5 sm:p-6">
           <div className="flex items-start gap-3">
-            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-700" />
+            <AlertTriangle size={18} className="mt-1 shrink-0 text-amber-200" />
             <div>
-              <div className="section-title text-amber-800/80">Clinical boundary</div>
-              <h2 className="mt-3 text-2xl font-serif text-primary">OpenRx is not your doctor.</h2>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-secondary">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-100">Clinical boundary</p>
+              <h2 className="orx-section-heading mt-3 text-[1.7rem] text-white">OpenRx is not your doctor.</h2>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">
                 OpenRx is a personal coordination and decision-support product. It can help you organize questions,
                 surface likely next steps, and reduce friction across care workflows. It does not replace a licensed
                 clinician, hospital, or health plan, and it should not be treated like a legal medical record.
@@ -281,29 +289,29 @@ export default function PrivacyExplainedPage() {
         </section>
 
         <section className="mt-10">
-          <div className="flex items-center gap-2">
-            <Shield size={16} className="text-teal" />
-            <div className="section-title">Your rights in the product</div>
+          <div className="flex items-center gap-2 text-cyan-100">
+            <Shield size={16} />
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">Your rights in the product</h2>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             {rights.map((item) => (
-              <div key={item.title} className="surface-card p-5">
-                <CheckCircle2 size={16} className="text-accent" />
-                <h3 className="mt-4 text-base font-semibold text-primary">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-secondary">{item.description}</p>
+              <div key={item.title} className="rounded-[20px] border border-white/10 bg-white/[0.035] p-5">
+                <CheckCircle2 size={16} className="text-cyan-200" />
+                <h3 className="mt-4 text-base font-semibold text-white">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">{item.description}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <footer className="mt-12 border-t border-[rgba(82,108,139,0.12)] py-8 text-center">
-          <p className="text-sm text-secondary">
+        <footer className="mt-12 border-t border-white/10 py-8 text-center">
+          <p className="text-sm text-zinc-300">
             Questions about privacy or data handling?{" "}
-            <a href="mailto:privacy@openrx.health" className="font-semibold text-teal hover:underline">
+            <a href="mailto:privacy@openrx.health" className="font-semibold text-cyan-100 hover:text-white">
               privacy@openrx.health
             </a>
           </p>
-          <p className="mt-2 text-xs text-muted">Last updated April 2026</p>
+          <p className="mt-2 text-xs text-zinc-500">Last updated April 2026</p>
         </footer>
       </main>
     </div>

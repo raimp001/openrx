@@ -223,6 +223,169 @@ export default function HomePage() {
             </p>
           </div>
         </section>
+
+        {/* A real, server-rendered specimen of the product's output. Crawlers,
+            link previews, and skeptical first-time visitors all see what an
+            answer actually looks like before they type anything. */}
+        <section aria-labelledby="example-answer-heading" className="border-t border-white/[0.08] px-4 py-16 sm:px-6">
+          <div className="mx-auto w-full max-w-6xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
+              What an answer looks like
+            </p>
+            <h2 id="example-answer-heading" className="mt-3 max-w-2xl text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              Every recommendation names its guideline, grade, and version.
+            </h2>
+            <p className="mt-3 max-w-2xl text-[15px] leading-7 text-zinc-400">
+              Example output for a sample profile — a 52-year-old woman whose mother had breast cancer at 49.
+              Educational, not personal medical advice.
+            </p>
+
+            <div className="mt-8 grid gap-4 lg:grid-cols-2">
+              <article className="rounded-[20px] border border-amber-400/20 bg-amber-950/20 p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-200">
+                  Needs clinician review
+                </p>
+                <p className="mt-3 text-[15px] leading-7 text-zinc-100">
+                  Genetic counseling and BRCA-related risk assessment: a first-degree relative with breast cancer
+                  before 50 may mean hereditary-risk review comes before a routine screening plan.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-medium">
+                  <span className="rounded-full border border-cyan-200/25 bg-cyan-200/[0.08] px-2.5 py-1 text-cyan-100">
+                    USPSTF: BRCA-related cancer risk assessment (2019-08-20)
+                  </span>
+                  <span className="rounded-full border border-white/12 bg-white/[0.05] px-2.5 py-1 text-zinc-300">Grade B</span>
+                  <span className="rounded-full border border-white/12 bg-white/[0.05] px-2.5 py-1 text-zinc-400">Rule: brca-family-history-risk-assessment</span>
+                </div>
+              </article>
+
+              <article className="rounded-[20px] border border-white/[0.08] bg-black/25 p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">
+                  Depends on your history
+                </p>
+                <p className="mt-3 text-[15px] leading-7 text-zinc-100">
+                  Breast cancer screening mammogram: age is in the mammography range, but the engine needs the prior
+                  test date and result before calling it due — it will ask, not guess.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-medium">
+                  <span className="rounded-full border border-cyan-200/25 bg-cyan-200/[0.08] px-2.5 py-1 text-cyan-100">
+                    USPSTF: Breast cancer screening (2024-04-30)
+                  </span>
+                  <span className="rounded-full border border-white/12 bg-white/[0.05] px-2.5 py-1 text-zinc-300">Grade B</span>
+                  <span className="rounded-full border border-white/12 bg-white/[0.05] px-2.5 py-1 text-zinc-400">Version 2024-04-30</span>
+                </div>
+              </article>
+            </div>
+
+            <div className="mt-4 rounded-[20px] border border-white/[0.08] bg-black/25 p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">
+                One question that could change this plan
+              </p>
+              <p className="mt-3 text-[15px] leading-7 text-zinc-100">
+                Have you ever been diagnosed with cancer? If yes, include the type, diagnosis age, treatment, and
+                current follow-up plan.
+              </p>
+              <p className="mt-2 text-[13px] leading-6 text-zinc-400">
+                Why this matters: personal cancer history can replace average-risk screening with surveillance,
+                earlier testing, or genetic-counseling review.
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <Link
+                href={{ pathname: "/chat", query: { topic: "screening", autorun: "1", prompt: "What cancer screening is due for me?" } }}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-cyan-200 px-5 text-sm font-semibold text-black transition hover:bg-cyan-100"
+              >
+                Ask about your own screening
+                <ArrowRight size={14} />
+              </Link>
+              <p className="text-xs leading-6 text-zinc-400">
+                Free. No account. Nothing stored unless you opt in.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* How the answer is derived — the boundary between rules, model, and
+            human review, stated as product architecture rather than marketing. */}
+        <section aria-labelledby="method-heading" className="border-t border-white/[0.08] px-4 py-16 sm:px-6">
+          <div className="mx-auto w-full max-w-6xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">How OpenRx decides</p>
+            <h2 id="method-heading" className="mt-3 max-w-2xl text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              Rules decide. Models explain. Clinicians approve.
+            </h2>
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              <article className="rounded-[20px] border border-white/[0.08] bg-black/25 p-5">
+                <p className="text-sm font-semibold text-white">1. A deterministic rules engine decides</p>
+                <p className="mt-2 text-[14px] leading-7 text-zinc-400">
+                  Screening status comes from version-stamped guideline rules — each answer carries the source
+                  organization, publication date, evidence grade, and the exact rule id that produced it.
+                </p>
+              </article>
+              <article className="rounded-[20px] border border-white/[0.08] bg-black/25 p-5">
+                <p className="text-sm font-semibold text-white">2. Language models only parse and explain</p>
+                <p className="mt-2 text-[14px] leading-7 text-zinc-400">
+                  Models help read your question and phrase the answer in plain language. They do not invent
+                  screening intervals, eligibility, or clinical certainty.
+                </p>
+              </article>
+              <article className="rounded-[20px] border border-white/[0.08] bg-black/25 p-5">
+                <p className="text-sm font-semibold text-white">3. High-stakes actions wait for a human</p>
+                <p className="mt-2 text-[14px] leading-7 text-zinc-400">
+                  Referrals, prior-auth submissions, and anything uncertain route to clinician review before any
+                  external action. Uncertainty is stated, never smoothed over.
+                </p>
+              </article>
+            </div>
+            <p className="mt-5 text-xs leading-6 text-zinc-400">
+              Read the full operating boundaries on the{" "}
+              <Link href="/trust" className="font-semibold text-zinc-300 underline decoration-zinc-600 underline-offset-2 transition hover:text-white">
+                trust and evidence page
+              </Link>
+              .
+            </p>
+          </div>
+        </section>
+
+        {/* Audience lanes: one product, three doors. */}
+        <section aria-labelledby="audience-heading" className="border-t border-white/[0.08] px-4 py-16 sm:px-6">
+          <div className="mx-auto w-full max-w-6xl">
+            <h2 id="audience-heading" className="max-w-2xl text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              Built for the person asking — and the clinician answering.
+            </h2>
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              <article className="flex flex-col rounded-[20px] border border-white/[0.08] bg-black/25 p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-200/80">Patients</p>
+                <p className="mt-3 text-[15px] leading-7 text-zinc-200">
+                  Find out which preventive screening may be due, why, and who to call — with the guideline behind
+                  every answer and clear questions when your history is incomplete.
+                </p>
+                <Link href="/chat" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-100 transition hover:text-white">
+                  Ask a screening question <ArrowRight size={13} />
+                </Link>
+              </article>
+              <article className="flex flex-col rounded-[20px] border border-white/[0.08] bg-black/25 p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-200/80">Clinicians</p>
+                <p className="mt-3 text-[15px] leading-7 text-zinc-200">
+                  Source-stamped screening summaries you can verify in one tap, and prior-authorization appeal
+                  preparation grounded in the payer&apos;s own criteria — drafts, never submissions.
+                </p>
+                <Link href="/demo" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-100 transition hover:text-white">
+                  Open the sandbox <ArrowRight size={13} />
+                </Link>
+              </article>
+              <article className="flex flex-col rounded-[20px] border border-white/[0.08] bg-black/25 p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-200/80">Health systems &amp; developers</p>
+                <p className="mt-3 text-[15px] leading-7 text-zinc-200">
+                  Deterministic guideline rules, PHI-minimized logging, consent snapshots, and audit rows — designed
+                  as a navigation layer over FHIR, provider directories, and prior-auth workflows.
+                </p>
+                <Link href="/trust" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-100 transition hover:text-white">
+                  Review the governance model <ArrowRight size={13} />
+                </Link>
+              </article>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   )

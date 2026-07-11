@@ -130,7 +130,8 @@ test("uncertain history never renders synthetic booking deadlines or unrelated l
   )
   await page.getByTestId("screening-submit-preview").click()
 
-  await expect(page.getByText("Free screening plan ready.")).toBeVisible({ timeout: 15_000 })
+  // First assertion pays the dev-server compile cost when this test runs first.
+  await expect(page.getByText("Free screening plan ready.")).toBeVisible({ timeout: 30_000 })
   await expect(page.getByTestId("screening-clarification-questions")).toBeVisible({ timeout: 15_000 })
   await expect(page.getByTestId("screening-timeline")).toContainText("Clarify prior")
   await expect(page.getByText("Book this month", { exact: true })).toHaveCount(0)
@@ -617,7 +618,7 @@ test("landing care action stays in chat before a user intentionally opens the di
   })
 
   await page.goto("/chat")
-  await page.getByRole("button", { name: "Find care near me" }).click()
+  await page.getByRole("button", { name: "Find care", exact: true }).click()
 
   await expect(page).toHaveURL(/\/chat/)
   // First hit can pay dev-server compile cost for the stream route.
@@ -759,7 +760,7 @@ test("landing screening suggestion opens chat and does not redirect to screening
   })
 
   await page.goto("/chat")
-  await page.getByRole("button", { name: /Check my screening/ }).click()
+  await page.getByRole("button", { name: "Screening", exact: true }).click()
 
   await expect(page).toHaveURL(/\/chat/)
   await expect(page).not.toHaveURL(/\/screening/)
@@ -810,7 +811,7 @@ test("chat keeps medication symptom and prevention questions in conversation", a
   expect(routedAgents).toContain("wellness")
 })
 
-test("chat renders structured screening sections and a citation rail", async ({ page }) => {
+test("chat renders structured screening sections and inline source chips", async ({ page }) => {
   await page.route(/\/api\/openclaw\/status$/, async (route) => {
     await route.fulfill({
       status: 200,
@@ -829,13 +830,14 @@ test("chat renders structured screening sections and a citation rail", async ({ 
   await expect(page.getByTestId("chat-section-upcoming-or-depends")).toBeVisible()
   await expect(page.getByTestId("chat-section-questions-that-could-change-this-plan")).toBeVisible()
   await expect(page.getByTestId("chat-section-due-now")).toHaveCount(0)
-  await expect(page.getByTestId("chat-section-references")).toHaveCount(0) // refs render as a rail
-  await expect(page.getByTestId("chat-citations")).toBeVisible()
+  await expect(page.getByTestId("chat-section-references")).toHaveCount(0) // refs render inline
 
-  // Citations row exposes guideline pills with testids
-  const citations = page.getByTestId("chat-citation")
-  await expect(citations.first()).toBeVisible()
-  expect(await citations.count()).toBeGreaterThan(0)
+  // Sources render as inline audit chips next to each recommendation, so the
+  // separate citation rail stays hidden for deterministic guideline answers.
+  await expect(page.getByTestId("chat-citations")).toHaveCount(0)
+  const sourceLinks = page.getByRole("link", { name: /USPSTF/i })
+  await expect(sourceLinks.first()).toBeVisible()
+  expect(await sourceLinks.count()).toBeGreaterThan(0)
 })
 
 test("chat surfaces smart care actions with directory links", async ({ page }) => {
@@ -885,7 +887,7 @@ test("chat retains compact screening clarification in place and suppresses prema
   })
 
   await page.goto("/chat")
-  await page.getByRole("button", { name: /Check my screening/ }).click()
+  await page.getByRole("button", { name: "Screening", exact: true }).click()
   await expect(page.getByText(/need one missing detail/i)).toBeVisible()
   await expect(page.getByTestId("chat-action-plan")).toHaveCount(0)
 

@@ -125,9 +125,28 @@ export default function DashboardPage() {
   }, [deniedClaims, getPhysician, snapshot.labResults, upcomingAppointments])
 
   if (loading) {
+    // Content-shaped skeleton instead of a lone spinner, so the page doesn't
+    // swap from blank to fully-populated on every visit.
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-teal" />
+      <div className="space-y-6" data-testid="dashboard-skeleton" aria-busy="true" aria-label="Loading your care summary">
+        <div className="space-y-3">
+          <div className="orx-skeleton h-4 w-24 rounded-full" />
+          <div className="orx-skeleton h-8 w-72 max-w-full rounded-[10px]" />
+          <div className="orx-skeleton h-4 w-96 max-w-full rounded-full" />
+        </div>
+        <div className="orx-skeleton h-28 w-full rounded-[22px]" />
+        <div className="grid gap-3 md:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="orx-skeleton h-24 rounded-[18px]" />
+          ))}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="orx-skeleton h-56 rounded-[22px]" />
+          <div className="grid gap-4">
+            <div className="orx-skeleton h-[104px] rounded-[22px]" />
+            <div className="orx-skeleton h-[104px] rounded-[22px]" />
+          </div>
+        </div>
       </div>
     )
   }

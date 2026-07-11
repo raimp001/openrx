@@ -64,9 +64,9 @@ describe("deterministic clinical screening response", () => {
 
   it("every age/sex answer asks for the risk factors that could change the plan", () => {
     const response = deterministicClinicalResponse("age 45 male")
-    expect(response).toContain("Question to refine this")
-    expect(response).toMatch(/family history/i)
-    expect(response).toMatch(/smoking exposure/i)
-    expect(response).toMatch(/prior test dates|genetic results/i)
+    expect(response).toContain("Questions that could change this plan")
+    expect(response).toMatch(/close blood relative had cancer/i)
+    expect(response).toMatch(/colonoscopy, FIT\/stool testing/i)
+    expect(response).toMatch(/Why this matters/i)
   })
 })

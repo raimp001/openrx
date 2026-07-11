@@ -6,8 +6,10 @@ import { executeWorkflow } from "@/lib/openclaw/orchestrator"
 import { useWalletIdentity } from "@/lib/wallet-context"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
+  ArrowDown,
   ArrowUp,
   Bot,
+  RotateCcw,
   Calendar,
   Check,
   Copy,
@@ -602,7 +604,9 @@ export default function ChatPage() {
   const [activeAgent, setActiveAgent] = useState<AgentId>("coordinator")
   const [errorBanner, setErrorBanner] = useState<string | null>(null)
   const [safetyHold, setSafetyHold] = useState<{ messageId: string; finding: RedFlagResult; acknowledged: boolean } | null>(null)
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messageLogRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const seededPromptRef = useRef(false)
@@ -734,6 +738,23 @@ export default function ChatPage() {
       node?.scrollIntoView({ behavior: "smooth", block: "start" })
     }
   }, [isLoading, latestMessage, showEmptyState])
+
+  // Show a "jump to latest" affordance when the reader scrolls away from the
+  // newest answer — common while a long sourced answer is streaming.
+  useEffect(() => {
+    const node = messageLogRef.current
+    if (!node || showEmptyState) {
+      setShowJumpToLatest(false)
+      return
+    }
+    const onScroll = () => {
+      const distanceFromBottom = node.scrollHeight - node.scrollTop - node.clientHeight
+      setShowJumpToLatest(distanceFromBottom > 320)
+    }
+    onScroll()
+    node.addEventListener("scroll", onScroll, { passive: true })
+    return () => node.removeEventListener("scroll", onScroll)
+  }, [showEmptyState, messages.length])
 
   // Auto-grow textarea (Claude-style — grows with content, capped at max).
   useEffect(() => {
@@ -1123,7 +1144,7 @@ export default function ChatPage() {
           </button>
         )}
       </form>
-      <p className={cn("mt-2 px-3 text-center text-[11px] text-zinc-300", placement === "hero" && "hidden sm:block")}>
+      <p className="mt-2 px-3 text-center text-[11px] text-zinc-300">
         {isLoading
           ? "Press Esc to stop."
           : "Educational guidance. A clinician confirms decisions."}
@@ -1278,6 +1299,7 @@ export default function ChatPage() {
 
       {/* Messages */}
       <div
+        ref={messageLogRef}
         className="flex-1 space-y-6 overflow-y-auto py-6"
         role="log"
         aria-live="polite"
@@ -1367,6 +1389,17 @@ export default function ChatPage() {
                       <ChatAnswer content={msg.content} />
                       {isStreamingThis ? <StreamingCursor /> : null}
                     </div>
+                    {!isStreamingThis && isCleanModelBusyMessage(msg) && previousUserMessage && !isLoading ? (
+                      <button
+                        type="button"
+                        onClick={() => void sendMessage(previousUserMessage.content, msg.agentId as AgentId | undefined)}
+                        data-testid="chat-retry"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/25 bg-cyan-200/[0.08] px-3.5 py-2 text-[12px] font-semibold text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-200/[0.14]"
+                      >
+                        <RotateCcw size={12} />
+                        Try again
+                      </button>
+                    ) : null}
                     {inlineActionItems.length ? (
                       <div className="pt-1 2xl:hidden">
                         <ChatActionPlan items={inlineActionItems} title="Care actions" layout="dock" onPrompt={handleActionPrompt} />
@@ -1399,6 +1432,20 @@ export default function ChatPage() {
 
         <div ref={messagesEndRef} />
       </div>
+
+      {showJumpToLatest ? (
+        <div className="pointer-events-none relative">
+          <button
+            type="button"
+            onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })}
+            data-testid="chat-jump-to-latest"
+            className="pointer-events-auto absolute -top-12 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/14 bg-[#101010]/95 px-3.5 py-2 text-[12px] font-semibold text-zinc-100 shadow-[0_14px_38px_rgba(0,0,0,0.5)] backdrop-blur-xl transition hover:border-cyan-200/35 hover:text-white"
+          >
+            <ArrowDown size={13} className="text-cyan-200" />
+            Jump to latest
+          </button>
+        </div>
+      ) : null}
 
       {/* Error banner */}
       {errorBanner ? (

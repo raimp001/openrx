@@ -106,15 +106,26 @@ function addToConversation(sessionKey: string, role: "user" | "assistant", conte
 // Route-level deterministic answers (hotfix rules) bypass runAgent, so the
 // routes record those exchanges here — otherwise follow-ups like a bare ZIP
 // or "my father had colon cancer at 48" lose the earlier turn's context.
+// When no session id is supplied, isolate the caller with a per-invocation
+// key. A stable `${agentId}-default` constant would make every anonymous,
+// session-less caller (MCP server, direct API consumers) share one global
+// conversation buffer — leaking one patient's age/sex/family-history into
+// another's answer via the screening-context merge and replayed history.
+function fallbackSessionKey(agentId: string): string {
+  return `${agentId}-anon-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 export function recordAgentExchange(params: {
   agentId: string
   sessionId?: string
   userMessage: string
   assistantMessage: string
 }): void {
-  const sessionKey = params.sessionId || `${params.agentId}-default`
-  addToConversation(sessionKey, "user", params.userMessage)
-  addToConversation(sessionKey, "assistant", params.assistantMessage)
+  // No session id means there is no follow-up to anchor to; skip rather than
+  // write into a shared default buffer that another caller could read back.
+  if (!params.sessionId) return
+  addToConversation(params.sessionId, "user", params.userMessage)
+  addToConversation(params.sessionId, "assistant", params.assistantMessage)
 }
 
 function buildFallbackAgentResponse(agentId: string): string {
@@ -370,11 +381,29 @@ function screeningGroupTitle(rec: ScreeningRecommendation): "Due now" | "Needs c
   return "Upcoming or depends"
 }
 
+// Mirrors the hotfix formatter in lib/openclaw/deterministic-clinical.ts so a
+// patient gets the same answer shape regardless of which deterministic path
+// produced it: "Name (status): explanation" plus a source/grade/rule stamp.
 function formatScreeningRecommendation(rec: ScreeningRecommendation): string {
-  const nextStep = rec.nextSteps[0] ? nextStepLabel(rec.nextSteps[0]) : rec.recommendedNextStep
+  const source = getGuidelineSource(rec.sourceId)
+  const sourceUrl = rec.sourceUrl || source?.url
+  const sourceVersion = rec.sourceVersion || source?.versionOrDate || "version pending"
+  const grade = rec.evidenceGrade
+    ? /^(?:grade|not graded|conditional|consensus|guideline|outside)/i.test(rec.evidenceGrade)
+      ? rec.evidenceGrade
+      : `Grade ${rec.evidenceGrade}`
+    : "Not graded"
+  const sourceName = source
+    ? `${source.organization}: ${source.topic} (${source.versionOrDate})`
+    : [rec.sourceSystem, rec.screeningName, rec.sourceVersion ? `(${rec.sourceVersion})` : ""].filter(Boolean).join(" ")
+  const sourceText = sourceUrl ? `[${sourceName}](${sourceUrl})` : sourceName
   const review = rec.requiresClinicianReview ? " Review this with a clinician." : ""
+  const nextStep = rec.nextSteps[0] ? nextStepLabel(rec.nextSteps[0]) : rec.recommendedNextStep
 
-  return `- ${rec.screeningName}: ${conciseStatus(rec.status)}. ${rec.patientFriendlyExplanation}${review} Next: ${nextStep}.`
+  return [
+    `- ${rec.screeningName} (${conciseStatus(rec.status)}): ${rec.patientFriendlyExplanation}${review} Next: ${nextStep}.`,
+    `  Source: ${sourceText} · ${grade} · Rule: ${rec.id} · source version ${sourceVersion}`,
+  ].join("\n")
 }
 
 function formatScreeningGroups(recommendations: ScreeningRecommendation[]): string[] {
@@ -680,7 +709,7 @@ export async function runAgent(params: {
     return { response: "Unknown agent.", agentId }
   }
 
-  const sessionKey = sessionId || `${agentId}-default`
+  const sessionKey = sessionId || fallbackSessionKey(agentId)
   const redFlag = detectRedFlagText(message)
   if (redFlag) {
     const response = emergencyResponse(redFlag)
@@ -742,7 +771,12 @@ export async function runAgent(params: {
   // unavailable. In demo mode, never reach the live model at all — serve the
   // cached per-agent rendering so the demo is deterministic offline.
   if (isDemoMode() || (!claude && !modelAvailability.openai.apiPhiAllowed)) {
-    return { response: buildFallbackAgentResponse(agentId), agentId }
+    const fallback = buildFallbackAgentResponse(agentId)
+    // Record like every other return path so a follow-up in the same session
+    // still has the prior turn to anchor to.
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", fallback)
+    return { response: fallback, agentId }
   }
 
   const patientContext = params._cachedPatientContext ?? await getPatientContext(walletAddress)
@@ -956,7 +990,7 @@ export async function* runAgentStream(params: {
     return { agentId, finalText: "Unknown agent." }
   }
 
-  const sessionKey = sessionId || `${agentId}-default`
+  const sessionKey = sessionId || fallbackSessionKey(agentId)
   const redFlag = detectRedFlagText(message)
   if (redFlag) {
     const response = emergencyResponse(redFlag)
@@ -1020,6 +1054,8 @@ export async function* runAgentStream(params: {
   const openAIConfig = resolveOpenAIHealthcareConfig()
   if (isDemoMode() || (!claude && !openai)) {
     const fallback = buildFallbackAgentResponse(agentId)
+    addToConversation(sessionKey, "user", message)
+    addToConversation(sessionKey, "assistant", fallback)
     yield fallback
     return { agentId, finalText: fallback }
   }

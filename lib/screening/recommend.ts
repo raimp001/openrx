@@ -110,7 +110,7 @@ function parseRelationship(value: string): ScreeningRelationship {
 }
 
 function parseDiagnosisAge(value: string): number | undefined {
-  const match = value.match(/(?:age|at)\s*(\d{2})\b/i) || value.match(/\b(\d{2})\s*(?:years old|yo|y\/o)\b/i)
+  const match = value.match(/(?:age|at)\s*(\d{1,3})\b/i) || value.match(/\b(\d{1,3})\s*(?:years old|yo|y\/o)\b/i)
   if (!match) return undefined
   const age = Number.parseInt(match[1], 10)
   return Number.isFinite(age) ? age : undefined
@@ -723,7 +723,7 @@ function addAverageRiskCancerScreening(recommendations: ScreeningRecommendation[
           ? "Based on the screening date you shared, this may not be due yet. Confirm the date and test type with your care team."
           : screeningDue
             ? "Based on age and the prior-screening history supplied, colorectal screening appears due. Symptoms, family history, or prior abnormal results would change the pathway."
-            : "Your age falls within the screening range, but OpenRx still needs your prior colorectal test history before calling it due.",
+            : "Your age falls within the screening range, but OpenRx still needs your prior colorectal test history, so the current due status cannot be settled yet.",
         clinicianSummary: screeningDue
           ? "Average-risk USPSTF colorectal screening logic applied; supplied history indicates no current qualifying screen."
           : "Age-based USPSTF colorectal screening applies, but due status remains unresolved because prior test type/date/result were not supplied.",
@@ -1125,7 +1125,7 @@ function buildClarificationQuestions(
         id: "clarify-colorectal-screening-history",
         category: "colorectal_history",
         question:
-          "Have you had colonoscopy, FIT/stool testing, stool DNA, flexible sigmoidoscopy, or CT colonography before? Include the test, date, and result.",
+          "Have you had a prior colonoscopy, FIT/stool testing, stool DNA, flexible sigmoidoscopy, or CT colonography? Include the test, date, and result.",
         whyItMatters:
           "A prior normal test may mean you are not due yet; a positive test or polyps may require a different surveillance interval.",
         relatedRecommendationIds: colorectalRecommendationIds,

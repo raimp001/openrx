@@ -221,17 +221,33 @@ function extractFamilyHistory(lowered: string): string[] {
 
   const ageSpecificMatches = Array.from(
     lowered.matchAll(
-      /\b(mother|father|mom|dad|brother|sister|sibling|parent|uncle|aunt|grandmother|grandfather)\b[^.!?\n]{0,60}\b(prostate|colon|colorectal|breast|ovarian)\b[^.!?\n]{0,20}\b(?:age|at)\s*(\d{2})\b/g
+      /\b(mother|father|mom|dad|brother|sister|sibling|parent|uncle|aunt|grandmother|grandfather)\b[^.!?\n]{0,60}\b(prostate|colon|colorectal|breast|ovarian)\b[^.!?\n]{0,20}\b(?:age|at)\s*(\d{1,3})\b/g
     )
   )
+  const ageSpecificSites = new Set<string>()
   ageSpecificMatches.forEach((entry) => {
     const relation = entry[1]
     const site = entry[2]
     const age = entry[3]
+    ageSpecificSites.add(site)
     findings.push(`${relation} had ${site} cancer at age ${age}`)
   })
 
-  return unique(findings)
+  // An age-specific entry supersedes the generic same-site finding; keeping
+  // both makes complete family history look incomplete and re-asks for
+  // details the patient already gave.
+  const SITE_GROUPS: Record<string, string[]> = {
+    prostate: ["family history of prostate cancer"],
+    colon: ["family history of colorectal cancer"],
+    colorectal: ["family history of colorectal cancer"],
+    breast: ["family history of breast/ovarian cancer"],
+    ovarian: ["family history of breast/ovarian cancer"],
+  }
+  const superseded = new Set(
+    Array.from(ageSpecificSites).flatMap((site) => SITE_GROUPS[site] || [])
+  )
+
+  return unique(findings.filter((finding) => !superseded.has(finding)))
 }
 
 export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeResult {

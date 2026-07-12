@@ -126,6 +126,7 @@ export function deterministicClinicalResponse(message: string, agentId?: string)
       "",
       "What to do now",
       "- Talk with a clinician or high-risk screening clinic instead of relying on a guessed recommendation.",
+      "- [Book that review](/scheduling) — request an appointment so a clinician can go through this with you.",
       "",
       "References",
       "- [USPSTF: A and B preventive recommendations (accessed-2026-06-24)](https://www.uspreventiveservicestaskforce.org/uspstf/recommendation-topics/uspstf-a-and-b-recommendations)",
@@ -152,7 +153,8 @@ export function deterministicClinicalResponse(message: string, agentId?: string)
         ]
       : []),
     "What to do now",
-    "- Send your ZIP code and I will list primary care or screening clinics near you, with phone numbers you can call.",
+    "- [Book the next step](/scheduling) — request an appointment and OpenRx carries this plan into the visit request for your care team to confirm.",
+    "- Or send your ZIP code and I will list primary care or screening clinics near you, with phone numbers you can call.",
     "",
     "Safety note",
     "Educational navigation only. Confirm every screening decision with a clinician.",

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next"
 
-const PUBLIC_ROUTES = ["/", "/chat", "/demo", "/trust", "/privacy-explained"] as const
+const PUBLIC_ROUTES = ["/", "/chat", "/demo", "/trust", "/benchmark", "/privacy-explained"] as const
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()

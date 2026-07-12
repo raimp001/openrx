@@ -5,7 +5,10 @@ const baseUrl = process.env.OPENRX_REGRESSION_BASE_URL || "http://127.0.0.1:3000
 const threshold = Number(process.env.OPENRX_REGRESSION_THRESHOLD || "0.9")
 const scenarioPath = new URL("../tests/clinical-regression/scenarios.yaml", import.meta.url)
 const reportPath = new URL("../reports/clinical-regression-latest.md", import.meta.url)
+const jsonReportPath = new URL("../reports/clinical-regression-latest.json", import.meta.url)
 const scenarios = JSON.parse(await readFile(scenarioPath, "utf8"))
+const engineVersionSource = await readFile(new URL("../lib/screening/version.ts", import.meta.url), "utf8")
+const engineVersion = engineVersionSource.match(/SCREENING_ENGINE_VERSION = "([^"]+)"/)?.[1] || "unknown"
 
 function contains(answer, term) {
   return answer.toLowerCase().includes(term.toLowerCase())
@@ -78,6 +81,38 @@ const lines = [
 
 await mkdir(new URL("../reports", import.meta.url), { recursive: true })
 await writeFile(reportPath, lines.join("\n"), "utf8")
+// JSON twin of the markdown report; `npm run benchmark:publish` copies it to
+// lib/benchmark/published.json, which the public /benchmark page renders.
+await writeFile(
+  jsonReportPath,
+  JSON.stringify(
+    {
+      generatedAt: new Date().toISOString(),
+      engineVersion,
+      threshold,
+      scenarioCount: results.length,
+      passRate,
+      blocked,
+      results: results.map((result) => ({
+        id: result.scenario.id,
+        category: result.scenario.category,
+        agentId: result.scenario.agentId,
+        prompt: result.scenario.prompt,
+        citation: result.citation,
+        version: result.version,
+        correctness: result.correctness,
+        sycophancy: result.sycophancy,
+        fabrication: result.fabrication,
+        overall: result.overall,
+        passed: result.passed,
+      })),
+    },
+    null,
+    2
+  ),
+  "utf8"
+)
 console.log(lines.slice(0, 7).join("\n"))
 console.log(`Report written to ${reportPath.pathname}`)
+console.log(`JSON written to ${jsonReportPath.pathname}`)
 process.exitCode = blocked ? 1 : 0

@@ -18,6 +18,7 @@
     "test:e2e": "playwright test",
     "test:e2e:llm-failures": "MOCK_LLM=1 playwright test tests/e2e/llm-failure.spec.ts tests/e2e/demo-offline.spec.ts",
     "test:clinical-regression": "node scripts/run-clinical-regression.mjs",
+    "benchmark:publish": "node scripts/run-clinical-regression.mjs && node -e \"require('node:fs').copyFileSync('reports/clinical-regression-latest.json','lib/benchmark/published.json')\"",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui"
   },

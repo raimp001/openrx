@@ -263,7 +263,9 @@ function parseAnswer(content: string): ParsedAnswer {
 
 function renderInlineLinks(text: string, keyPrefix: string) {
   const parts: Array<string | { label: string; url: string }> = []
-  const pattern = /\[([^\]]+)\]\(((?:https?:\/\/|tel:)[^)\s]+)\)|((?:https?:\/\/|tel:)[^\s)]+)/g
+  // Markdown links may be external (https/tel) or in-app relative paths like
+  // [Book the next step](/scheduling); bare URLs are only linked when absolute.
+  const pattern = /\[([^\]]+)\]\(((?:https?:\/\/|tel:)[^)\s]+|\/[^)\s]*)\)|((?:https?:\/\/|tel:)[^\s)]+)/g
   let lastIndex = 0
   let match: RegExpExecArray | null
   while ((match = pattern.exec(text)) !== null) {
@@ -278,8 +280,8 @@ function renderInlineLinks(text: string, keyPrefix: string) {
       <a
         key={`${keyPrefix}-${index}`}
         href={part.url}
-        target={part.url.startsWith("tel:") ? undefined : "_blank"}
-        rel={part.url.startsWith("tel:") ? undefined : "noreferrer"}
+        target={part.url.startsWith("http") ? "_blank" : undefined}
+        rel={part.url.startsWith("http") ? "noreferrer" : undefined}
         className="font-medium text-cyan-200 underline decoration-cyan-200/40 underline-offset-2 transition hover:text-cyan-100 hover:decoration-cyan-100"
       >
         {part.label}

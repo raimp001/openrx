@@ -13,23 +13,27 @@ test.describe("server-rendered landing page", () => {
 
     // Brand, value proposition, and clinical-safety copy
     expect(html).toContain("OpenRx")
-    expect(html).toContain("OpenRx turns guidelines into care.")
-    expect(html).toContain("Guideline-grounded cancer screening and prior-auth workflows")
-    expect(html).toContain("Recommendations come from version-stamped rules, not model guesses.")
+    expect(html).toContain("Clinical evidence is only useful when it becomes action.")
+    expect(html).toContain("source-linked answers")
+    expect(html).toContain("screening, referral, prior-authorization, or appeal workflow")
 
     // Decision-support disclaimer
-    expect(html).toContain("The example is educational, not personal medical advice.")
+    expect(html).toContain("Educational, not medical advice.")
     expect(html).toContain("does not claim HIPAA compliance or SOC 2 certification")
 
     // Working developer and patient entry points
     expect(html).toMatch(/href="\/demo"/)
-    expect(html).toMatch(/href="\/screening"/)
+    expect(html).toMatch(/href="\/chat/)
     expect(html).toContain('name="autorun"')
     expect(html).toContain('value="1"')
 
-    // Source-stamped specimen is server-rendered
-    expect(html).toContain("USPSTF 2021, Grade B")
-    expect(html).toContain("colorectal-cancer-screening")
+    // Engine-backed synthetic specimen is server-rendered
+    expect(html).toContain("Synthetic scenario")
+    expect(html).toContain("PSA and hereditary prostate-risk review")
+    expect(html).toContain("hereditary-prostate-screening-review")
+    expect(html).toContain("BRCA2 pathogenic variant")
+    expect(html).toContain("Review source")
+    expect(html).toContain("https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/prostate-cancer-screening")
 
     // noscript fallback so the page is never blank
     expect(html).toContain("<noscript>")
@@ -55,15 +59,15 @@ test.describe("server-rendered landing page", () => {
 
   test("landing page renders and navigates to the demo in a browser", async ({ page }) => {
     await page.goto("/")
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("OpenRx turns guidelines into care.")
-    await expect(page.getByText("Guideline-grounded cancer screening and prior-auth workflows")).toBeVisible()
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Clinical evidence is only useful when it becomes action.")
+    await expect(page.getByText("Evidence to action")).toBeVisible()
     await expect(page.getByRole("textbox", { name: "Ask OpenRx" })).toBeVisible()
-    const connectedCare = page.getByRole("navigation", { name: "Connected care actions" })
-    await expect(connectedCare).toBeVisible()
-    await expect(connectedCare.getByRole("link", { name: /Screening/ })).toBeVisible()
-    await expect(connectedCare.getByRole("link", { name: /Find care/ })).toBeVisible()
+    await expect(page.getByText("PSA and hereditary prostate-risk review")).toBeVisible()
+    await expect(page.getByText("hereditary-prostate-screening-review")).toBeVisible()
+    await expect(page.getByRole("link", { name: "Review source" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "Try OpenRx" })).toBeVisible()
     await expect(page.getByRole("link", { name: /Trust/ })).toBeVisible()
-    await page.getByRole("link", { name: "API" }).click()
+    await page.getByRole("link", { name: "Open the clinician sandbox" }).click()
     await expect(page).toHaveURL(/\/demo/, { timeout: 30_000 })
   })
 
@@ -73,7 +77,8 @@ test.describe("server-rendered landing page", () => {
 
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
     await expect(page.getByRole("textbox", { name: "Ask OpenRx" })).toBeVisible()
-    await expect(page.getByRole("navigation", { name: "Connected care actions" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "Try a clinical workflow" })).toBeVisible()
+    await expect(page.getByText("Synthetic scenario")).toBeVisible()
     await expect(page.getByRole("navigation", { name: "Main" })).toBeHidden()
 
     const widths = await page.evaluate(() => ({

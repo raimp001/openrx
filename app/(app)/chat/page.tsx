@@ -1236,6 +1236,7 @@ export default function ChatPage() {
                   label: item.label,
                   description: item.description,
                   icon: item.icon,
+                  testId: `chat-service-${item.id}`,
                   tone: index === 0 ? "primary" : "secondary",
                   onClick: () => {
                     void sendMessage(item.prompt, item.agentId)

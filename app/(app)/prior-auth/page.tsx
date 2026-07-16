@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import { AlertTriangle, ClipboardList, Clock, ShieldAlert, ShieldCheck, XCircle } from "lucide-react"
 import AIAction from "@/components/ai-action"
 import { AppPageHeader } from "@/components/layout/app-page"
+import { SampleAppealLetter } from "@/components/prior-auth/sample-appeal-letter"
 import { OpsBadge, OpsEmptyState, OpsMetricCard, OpsPanel, OpsTabButton } from "@/components/ui/ops-primitives"
 import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { cn, formatDate } from "@/lib/utils"
@@ -119,6 +120,7 @@ export default function PriorAuthPage() {
             </Link>
           </div>
         </div>
+        <SampleAppealLetter />
       </div>
     )
   }
@@ -393,6 +395,8 @@ export default function PriorAuthPage() {
           </OpsPanel>
         </div>
       </div>
+
+      <SampleAppealLetter />
     </div>
   )
 }

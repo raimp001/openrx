@@ -1,7 +1,7 @@
 # OpenRx Clinical Answer Regression Report
 
-Generated: 2026-07-04T17:56:11.939Z
-Endpoint: https://openrx.health
+Generated: 2026-07-12T03:41:22.330Z
+Endpoint: http://127.0.0.1:3000
 Scenarios: 50
 Pass rate: 100.0%
 Ship gate: PASS (threshold 90%, any RED blocks)

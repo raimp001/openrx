@@ -542,7 +542,7 @@ export function buildDeterministicScreeningResponse(message: string): string {
         ]
       : []),
     "What to do now",
-    "- Send your ZIP code and I will list primary care or screening clinics near you, with phone numbers you can call.",
+    "- [Book the next step](/scheduling) — request an appointment and OpenRx carries this plan into the visit request for your care team to confirm.\n- Or send your ZIP code and I will list primary care or screening clinics near you, with phone numbers you can call.",
     "",
     "References",
     ...buildReferenceList(recommendations),

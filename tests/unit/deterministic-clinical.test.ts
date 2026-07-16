@@ -69,4 +69,11 @@ describe("deterministic clinical screening response", () => {
     expect(response).toMatch(/colonoscopy, FIT\/stool testing/i)
     expect(response).toMatch(/Why this matters/i)
   })
+
+  it("guideline-backed plans end in a bookable action", () => {
+    const response = deterministicClinicalResponse("age 45 male")
+    expect(response).toContain("What to do now")
+    expect(response).toContain("[Book the next step](/scheduling)")
+    expect(response).toMatch(/ZIP code/i)
+  })
 })

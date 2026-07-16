@@ -618,7 +618,7 @@ test("landing care action stays in chat before a user intentionally opens the di
   })
 
   await page.goto("/chat")
-  await page.getByRole("button", { name: "Find care", exact: true }).click()
+  await page.getByTestId("chat-service-find-care").click()
 
   await expect(page).toHaveURL(/\/chat/)
   // First hit can pay dev-server compile cost for the stream route.
@@ -760,7 +760,7 @@ test("landing screening suggestion opens chat and does not redirect to screening
   })
 
   await page.goto("/chat")
-  await page.getByRole("button", { name: "Screening", exact: true }).click()
+  await page.getByTestId("chat-service-screening").click()
 
   await expect(page).toHaveURL(/\/chat/)
   await expect(page).not.toHaveURL(/\/screening/)
@@ -887,7 +887,7 @@ test("chat retains compact screening clarification in place and suppresses prema
   })
 
   await page.goto("/chat")
-  await page.getByRole("button", { name: "Screening", exact: true }).click()
+  await page.getByTestId("chat-service-screening").click()
   await expect(page.getByText(/need one missing detail/i)).toBeVisible()
   await expect(page.getByTestId("chat-action-plan")).toHaveCount(0)
 

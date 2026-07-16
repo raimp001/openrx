@@ -47,6 +47,10 @@ const navigationControls = [
     text: "Models parse and explain. Screening recommendations come from deterministic, version-stamped rules with source, grade, link, and rule id.",
   },
   {
+    title: "Published benchmark",
+    text: "Every release is scored against a public 50-scenario clinical-answer benchmark covering citations, version pinning, correctness, sycophancy, and fabrication. Results are published, including the yellow cells.",
+  },
+  {
     title: "PHI-minimized logs",
     text: "Operational logs keep request ids, error codes, versions, hashes, and state transitions. Raw patient text is scrubbed or excluded.",
   },
@@ -140,6 +144,9 @@ export default function TrustPage() {
             ))}
           </div>
           <div className="mt-6 flex flex-wrap gap-4 text-sm font-medium">
+            <Link href="/benchmark" className="text-cyan-100 hover:text-white">
+              Published accuracy benchmark
+            </Link>
             <a href="https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html" className="text-cyan-100 hover:text-white">
               HHS Security Rule
             </a>

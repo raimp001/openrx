@@ -388,7 +388,11 @@ export default function HomePage() {
               </article>
             </div>
             <p className="mt-5 text-xs leading-6 text-zinc-400">
-              Read the full operating boundaries on the{" "}
+              Every release is scored against a public 50-scenario accuracy benchmark —{" "}
+              <Link href="/benchmark" className="font-semibold text-zinc-300 underline decoration-zinc-600 underline-offset-2 transition hover:text-white">
+                see the published results
+              </Link>
+              . Full operating boundaries are on the{" "}
               <Link href="/trust" className="font-semibold text-zinc-300 underline decoration-zinc-600 underline-offset-2 transition hover:text-white">
                 trust and evidence page
               </Link>

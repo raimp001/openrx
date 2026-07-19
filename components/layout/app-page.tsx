@@ -33,8 +33,8 @@ export function AppPageHeader({
   return (
     <section
       className={cn(
-        "surface-hero relative overflow-hidden p-5 sm:p-6",
-        variant === "hero" && "p-6 sm:p-8",
+        "relative border-b border-white/10 pb-5 sm:pb-6",
+        variant === "hero" && "pb-6 sm:pb-8",
         className
       )}
     >
@@ -78,7 +78,7 @@ export function AppPageHeader({
       {variant === "hero" ? (
         <div
           className={cn(
-            "relative mt-6 grid gap-px overflow-hidden rounded-[10px] border border-white/10 bg-white/10 sm:grid-cols-4",
+            "relative mt-6 grid gap-px overflow-hidden border-y border-white/10 bg-white/10 sm:grid-cols-4",
             align === "center" && "mx-auto max-w-2xl"
           )}
           aria-label="OpenRx care pathway"

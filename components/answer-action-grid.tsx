@@ -66,6 +66,7 @@ interface AnswerActionGridProps {
   className?: string
   columns?: keyof typeof COLUMN_CLASS
   label?: string
+  compact?: boolean
 }
 
 export function AnswerActionGrid({
@@ -73,6 +74,7 @@ export function AnswerActionGrid({
   className,
   columns = "two",
   label = "Next actions",
+  compact = false,
 }: AnswerActionGridProps) {
   if (!items.length) return null
 
@@ -84,9 +86,12 @@ export function AnswerActionGrid({
         const href = item.href || "#"
         const external = item.external || /^https?:\/\//.test(href)
         const className = cn(
-          "group flex min-h-12 w-full items-center justify-between gap-3 rounded-full border px-3.5 py-2.5 text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/40",
+          "group flex w-full items-center justify-between gap-3 border text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/40",
+          compact ? "min-h-10 rounded-[9px] px-3 py-2" : "min-h-12 rounded-full px-3.5 py-2.5",
           isPrimary
-            ? "border-cyan-200/40 bg-cyan-200 text-black shadow-[0_14px_34px_rgba(103,232,249,0.13)] hover:bg-cyan-100"
+            ? compact
+              ? "border-cyan-200/22 bg-cyan-200/[0.08] text-cyan-50 hover:border-cyan-200/38 hover:bg-cyan-200/[0.12]"
+              : "border-cyan-200/40 bg-cyan-200 text-black shadow-[0_14px_34px_rgba(103,232,249,0.13)] hover:bg-cyan-100"
             : "border-white/10 bg-white/[0.045] text-zinc-100 hover:border-cyan-200/28 hover:bg-white/[0.075]"
         )
         const content = (
@@ -97,12 +102,12 @@ export function AnswerActionGrid({
                 aria-hidden="true"
                 className={cn(
                   "shrink-0 transition",
-                  isPrimary ? "text-black/72" : "text-zinc-300 group-hover:text-cyan-100"
+                  isPrimary && !compact ? "text-black/72" : "text-zinc-300 group-hover:text-cyan-100"
                 )}
               />
               <span className="min-w-0">
                 <span className="block truncate leading-5">{item.label}</span>
-                {item.description ? (
+                {item.description && !compact ? (
                   <span
                     className={cn(
                       "block truncate text-[11px] font-medium leading-4",
@@ -119,7 +124,7 @@ export function AnswerActionGrid({
               aria-hidden="true"
               className={cn(
                 "shrink-0 transition",
-                isPrimary ? "text-black/70" : "text-zinc-600 group-hover:text-cyan-100"
+                isPrimary && !compact ? "text-black/70" : "text-zinc-600 group-hover:text-cyan-100"
               )}
             />
           </>

@@ -85,12 +85,6 @@ const SERVICE_LINKS: Array<{
   },
 ]
 
-const EXAMPLE_QUESTIONS = [
-  "45 male. What cancer screening is due?",
-  "Find care near 97123.",
-  "Draft a message to my PCP.",
-]
-
 interface ChatMessage {
   id: string
   role: "user" | "agent" | "system"
@@ -1103,7 +1097,7 @@ export default function ChatPage() {
       <form
         className={cn(
           "group flex items-end gap-2 border border-white/12 bg-[#0d0f0f]/95 px-4 shadow-[0_26px_90px_rgba(0,0,0,0.50)] backdrop-blur-xl transition focus-within:border-cyan-200/45 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.10),0_28px_92px_rgba(0,0,0,0.58)]",
-          placement === "hero" ? "rounded-[30px] py-3" : "rounded-[26px] py-2.5"
+          placement === "hero" ? "rounded-[16px] py-3" : "rounded-[14px] py-2.5"
         )}
         onSubmit={(event) => {
           event.preventDefault()
@@ -1197,21 +1191,17 @@ export default function ChatPage() {
       {showEmptyState ? (
         <main
           data-testid="chat-empty-state"
-          className="flex min-h-screen flex-1 items-start justify-center px-2 pb-14 pt-[18svh] sm:pt-[20svh] lg:pt-[18svh]"
+          className="flex min-h-screen flex-1 items-start justify-center px-2 pb-14 pt-[20svh] sm:pt-[22svh] lg:pt-[20svh]"
         >
           <section className="mx-auto w-full max-w-3xl text-center">
-            <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-[11px] font-medium text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              {isConnected ? "Personalized" : "OpenRx"}
-            </p>
-            <h1 className="orx-display-heading mx-auto mt-5 max-w-2xl text-[clamp(2.25rem,7vw,3.8rem)] text-white">
+            <h1 className="orx-display-heading mx-auto max-w-2xl text-[clamp(2.25rem,7vw,3.65rem)] text-white">
               Ask OpenRx
             </h1>
-            <p className="mx-auto mt-4 max-w-xl text-balance text-[14px] leading-6 text-zinc-400 sm:text-[15px]">
-              Ask once. Get a sourced answer and the next care link.
+            <p className="mx-auto mt-3 max-w-xl text-balance text-[14px] leading-6 text-zinc-400 sm:text-[15px]">
+              Source-linked answers with the next care step.
             </p>
 
-            <div className="mx-auto mt-6 max-w-2xl">{renderComposer("hero")}</div>
+            <div className="mx-auto mt-7 max-w-3xl">{renderComposer("hero")}</div>
 
             {errorBanner ? (
               <div
@@ -1226,11 +1216,12 @@ export default function ChatPage() {
 
             <nav
               aria-label="Care service links"
-              className="mx-auto mt-3 max-w-2xl"
+              className="mx-auto mt-3 max-w-3xl"
             >
               <AnswerActionGrid
                 columns="three"
                 label="Care service links"
+                compact
                 items={SERVICE_LINKS.map((item, index) => ({
                   id: item.id,
                   label: item.label,
@@ -1244,19 +1235,9 @@ export default function ChatPage() {
                 }))}
               />
             </nav>
-
-            <div className="mx-auto mt-4 hidden max-w-2xl flex-wrap justify-center gap-2 sm:flex" aria-label="Example questions">
-              {EXAMPLE_QUESTIONS.map((question) => (
-                <button
-                  key={question}
-                  type="button"
-                  onClick={() => setInput(question)}
-                  className="rounded-full border border-white/10 bg-black/24 px-3 py-2 text-[12px] font-medium text-zinc-300 transition hover:border-cyan-200/28 hover:bg-cyan-200/[0.07] hover:text-cyan-50"
-                >
-                  {question}
-                </button>
-              ))}
-            </div>
+            <p className="mx-auto mt-4 max-w-2xl text-[11px] leading-5 text-zinc-500">
+              {isConnected ? "Personalized context is available for this session." : "Private session. Add only the details needed for this question."}
+            </p>
           </section>
         </main>
       ) : (

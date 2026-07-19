@@ -11,7 +11,7 @@ export function SampleAppealLetter() {
   if (!scenario) return null
 
   return (
-    <section aria-labelledby="sample-appeal-heading" className="surface-card p-5 sm:p-6">
+    <section aria-labelledby="sample-appeal-heading" className="border-y border-white/10 py-6 sm:py-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">What a drafted appeal looks like</div>

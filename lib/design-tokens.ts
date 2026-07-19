@@ -111,7 +111,7 @@ export const openRxDesignTokens = {
       patient:
         'var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       display:
-        'var(--font-serif), Georgia, "Times New Roman", serif',
+        'var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       developer:
         'var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       mono:

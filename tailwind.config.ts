@@ -74,7 +74,7 @@ const config: Config = {
         night: "#06111D",
       },
       fontFamily: {
-        serif: ["var(--font-serif)", "Georgia", "serif"],
+        serif: ["var(--font-sans)", "system-ui", "sans-serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-geist-mono)", "monospace"],
       },
@@ -84,7 +84,7 @@ const config: Config = {
         display: ["clamp(1.7rem, 2.6vw, 2.4rem)", { lineHeight: "1.15", letterSpacing: "-0.018em" }],
       },
       borderRadius: {
-        card: "12px",
+        card: "8px",
         button: "8px",
         nav: "8px",
       },

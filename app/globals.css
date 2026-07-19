@@ -10,9 +10,9 @@
 
 :root {
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-serif: var(--font-serif-display), "Source Serif 4", Georgia, "Times New Roman", Times, serif;
+  --font-serif: var(--font-sans);
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
-  --font-display: var(--font-serif);
+  --font-display: var(--font-sans);
   --color-bg-rgb: 5 5 5;
   --color-surface-rgb: 16 16 16;
   --color-surface-muted-rgb: 24 24 27;
@@ -81,9 +81,9 @@ body {
   /* next/font injects its variables via a class on <body>, so the composed
      font stacks must be declared here — a :root declaration cannot see them. */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-serif: var(--font-serif-display), "Source Serif 4", Georgia, "Times New Roman", Times, serif;
+  --font-serif: var(--font-sans);
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
-  --font-display: var(--font-serif);
+  --font-display: var(--font-sans);
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   /* Flat instrument canvas: one whisper of accent light at the top edge,
      no floating color blobs. Depth comes from hairlines, not glow. */
@@ -206,28 +206,27 @@ a {
 }
 
 @layer utilities {
-  /* Display voice: editorial serif, set tight. The contrast against the mono
-     microtype labels is the core of the visual identity. */
+  /* A single sans family keeps patient and clinician surfaces visually stable. */
   .orx-display-heading {
-    font-family: var(--font-serif);
-    font-weight: 560;
-    letter-spacing: -0.015em;
-    line-height: 1.02;
+    font-family: var(--font-sans);
+    font-weight: 650;
+    letter-spacing: 0;
+    line-height: 1;
     text-wrap: balance;
   }
 
   .orx-page-title {
-    font-family: var(--font-serif);
-    font-weight: 560;
-    letter-spacing: -0.012em;
+    font-family: var(--font-sans);
+    font-weight: 650;
+    letter-spacing: 0;
     line-height: 1.06;
     text-wrap: balance;
   }
 
   .orx-section-heading {
-    font-family: var(--font-serif);
-    font-weight: 580;
-    letter-spacing: -0.008em;
+    font-family: var(--font-sans);
+    font-weight: 650;
+    letter-spacing: 0;
     line-height: 1.16;
   }
 
@@ -239,7 +238,7 @@ a {
   }
 
   .surface-card {
-    @apply rounded-[12px] border;
+    @apply rounded-[8px] border;
     border-color: var(--paper-border);
     background: rgb(var(--color-surface-rgb) / 0.92);
     box-shadow: var(--panel-shadow);
@@ -251,13 +250,13 @@ a {
   }
 
   .surface-muted {
-    @apply rounded-[10px] border;
+    @apply rounded-[8px] border;
     border-color: var(--paper-border);
     background: rgb(var(--color-surface-muted-rgb) / 0.88);
   }
 
   .surface-hero {
-    @apply rounded-[14px] border;
+    @apply rounded-[8px] border;
     border-color: var(--paper-border);
     background:
       linear-gradient(180deg, rgb(var(--color-accent-rgb) / 0.05) 0%, transparent 96px),

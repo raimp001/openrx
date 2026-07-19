@@ -208,11 +208,11 @@ export default function Topbar() {
   }
 
   return (
-    <header className="relative sticky top-0 z-30 pl-[4.75rem] pr-3 pt-3 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-white/[0.08] bg-[#050505]/88 pl-[4.75rem] pr-3 backdrop-blur-xl sm:px-6 lg:px-8">
       <div
         className={cn(
-          "ml-auto flex items-center gap-1.5 rounded-full border border-white/10 bg-[#101010]/82 px-2 py-1.5 shadow-[0_18px_54px_rgba(0,0,0,0.28)] backdrop-blur-2xl",
-          isFocusedWorkflow ? "w-fit sm:mr-0" : "w-fit max-w-[1240px] sm:mx-auto sm:w-full sm:gap-3 sm:px-3 sm:py-2"
+          "ml-auto flex min-h-14 items-center gap-1.5",
+          isFocusedWorkflow ? "w-fit sm:mr-0" : "w-fit max-w-[1240px] sm:mx-auto sm:w-full sm:gap-3"
         )}
       >
         {!isFocusedWorkflow ? (

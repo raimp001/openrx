@@ -13,12 +13,12 @@ test.describe("server-rendered landing page", () => {
 
     // Brand, value proposition, and clinical-safety copy
     expect(html).toContain("OpenRx")
-    expect(html).toContain("Clinical evidence is only useful when it becomes action.")
-    expect(html).toContain("source-linked answers")
-    expect(html).toContain("screening, referral, prior-authorization, or appeal workflow")
+    expect(html).toContain("Ask. Verify. Act.")
+    expect(html).toContain("source-linked clinical evidence")
+    expect(html).toContain("the next care step")
 
     // Decision-support disclaimer
-    expect(html).toContain("Educational, not medical advice.")
+    expect(html).toContain("Educational, not medical advice or a diagnosis.")
     expect(html).toContain("does not claim HIPAA compliance or SOC 2 certification")
 
     // Working developer and patient entry points
@@ -28,7 +28,7 @@ test.describe("server-rendered landing page", () => {
     expect(html).toContain('value="1"')
 
     // Engine-backed synthetic specimen is server-rendered
-    expect(html).toContain("Synthetic scenario")
+    expect(html).toContain("Synthetic input")
     expect(html).toContain("PSA and hereditary prostate-risk review")
     expect(html).toContain("hereditary-prostate-screening-review")
     expect(html).toContain("BRCA2 pathogenic variant")
@@ -59,7 +59,7 @@ test.describe("server-rendered landing page", () => {
 
   test("landing page renders and navigates to the demo in a browser", async ({ page }) => {
     await page.goto("/")
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Clinical evidence is only useful when it becomes action.")
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Ask. Verify. Act.")
     await expect(page.getByText("Evidence to action")).toBeVisible()
     await expect(page.getByRole("textbox", { name: "Ask OpenRx" })).toBeVisible()
     await expect(page.getByText("PSA and hereditary prostate-risk review")).toBeVisible()
@@ -67,7 +67,7 @@ test.describe("server-rendered landing page", () => {
     await expect(page.getByRole("link", { name: "Review source" })).toBeVisible()
     await expect(page.getByRole("link", { name: "Try OpenRx" })).toBeVisible()
     await expect(page.getByRole("link", { name: /Trust/ })).toBeVisible()
-    await page.getByRole("link", { name: "Open the clinician sandbox" }).click()
+    await page.getByRole("link", { name: "For clinicians" }).click()
     await expect(page).toHaveURL(/\/demo/, { timeout: 30_000 })
   })
 
@@ -77,8 +77,8 @@ test.describe("server-rendered landing page", () => {
 
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
     await expect(page.getByRole("textbox", { name: "Ask OpenRx" })).toBeVisible()
-    await expect(page.getByRole("link", { name: "Try a clinical workflow" })).toBeVisible()
-    await expect(page.getByText("Synthetic scenario")).toBeVisible()
+    await expect(page.getByRole("link", { name: "Try OpenRx" })).toBeVisible()
+    await expect(page.getByText("Synthetic input")).toBeVisible()
     await expect(page.getByRole("navigation", { name: "Main" })).toBeHidden()
 
     const widths = await page.evaluate(() => ({

@@ -1,18 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
-import { Source_Serif_4 } from "next/font/google"
 import "./globals.css"
-
-// Editorial serif for display headings and clinical answer prose. Loaded as a
-// variable font so optical weight stays crisp from 2rem heroes down to 17px
-// answer text.
-const sourceSerif = Source_Serif_4({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  variable: "--font-serif-display",
-  display: "swap",
-})
 
 export const metadata: Metadata = {
   title: "OpenRx | Prior-auth automation and screening navigation",
@@ -63,7 +52,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${GeistSans.variable} ${GeistMono.variable} ${sourceSerif.variable} min-h-screen bg-surface text-primary antialiased`}>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} min-h-screen bg-surface text-primary antialiased`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}

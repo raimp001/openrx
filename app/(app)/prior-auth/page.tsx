@@ -108,18 +108,19 @@ export default function PriorAuthPage() {
           title="Prior authorization board"
           description="Track insurer approvals, denials, and appeal-ready requests without waiting for a callback chain."
         />
-        <div className="surface-card p-6">
+        <section className="border-y border-white/10 py-7 sm:py-9">
           <OpsEmptyState
             icon={ShieldAlert}
             title="No authorization data is connected yet"
             description="Connect your record first, then this board will track pending authorizations, denials, and appeal opportunities automatically."
+            className="!border-0 !bg-transparent py-7 shadow-none"
           />
-          <div className="mt-5 flex justify-center">
+          <div className="mt-1 flex justify-center">
             <Link href="/onboarding" className="control-button-primary">
               Connect my record
             </Link>
           </div>
-        </div>
+        </section>
         <SampleAppealLetter />
       </div>
     )

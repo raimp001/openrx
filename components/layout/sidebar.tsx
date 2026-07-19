@@ -2,21 +2,16 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Bot, Heart, LayoutDashboard, Menu, MessageSquare, PhoneCall, ShieldCheck, Stethoscope, UserCircle, X } from "lucide-react"
+import { Bot, Heart, LayoutDashboard, Menu, ShieldCheck, Stethoscope, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { BrandMark, BrandWordmark } from "@/components/brand-logo"
 import ChatHistorySidebar from "@/components/chat/chat-history-sidebar"
-import { useLiveSnapshot } from "@/lib/hooks/use-live-snapshot"
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { href: "/chat", label: "Ask", icon: Bot, primary: true },
   { href: "/dashboard", label: "My care", icon: LayoutDashboard, primary: true },
   { href: "/screening", label: "Screenings", icon: Heart },
   { href: "/providers", label: "Find care", icon: Stethoscope },
-  { href: "/outreach", label: "Outreach", icon: PhoneCall },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
-  { href: "/onboarding", label: "Setup", icon: UserCircle },
 ]
 
 export default function Sidebar() {
@@ -25,9 +20,6 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const drawerRef = useRef<HTMLElement>(null)
   const openButtonRef = useRef<HTMLButtonElement>(null)
-  const { snapshot } = useLiveSnapshot()
-  const unreadCount = snapshot.messages.filter((message) => !message.read).length
-
   const visibleItems = useMemo(() => navItems, [])
 
   useEffect(() => {
@@ -116,11 +108,6 @@ export default function Sidebar() {
               >
                 <item.icon size={15} className={active ? "text-primary" : "text-muted group-hover:text-primary"} strokeWidth={1.7} />
                 <span className="flex-1 lg:sr-only">{item.label}</span>
-                {item.href === "/messages" && unreadCount > 0 ? (
-                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-white lg:absolute lg:right-1 lg:top-1">
-                    {unreadCount}
-                  </span>
-                ) : null}
               </Link>
             )
           })}

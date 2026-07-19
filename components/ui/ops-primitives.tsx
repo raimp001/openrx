@@ -1,29 +1,31 @@
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+// Solid signal bars and quiet tinted chips: state is announced with one flat
+// color, never a gradient — the instrument reads, it doesn't decorate.
 const toneStyles = {
   terra: {
-    bar: "bg-gradient-to-r from-coral to-coral-light",
+    bar: "bg-coral/70",
     icon: "bg-coral/10 text-coral",
     badge: "border-coral/20 bg-coral/8 text-coral",
   },
   accent: {
-    bar: "bg-gradient-to-r from-accent to-emerald-400",
+    bar: "bg-accent/70",
     icon: "bg-accent/10 text-accent",
     badge: "border-accent/20 bg-accent/8 text-accent",
   },
   blue: {
-    bar: "bg-gradient-to-r from-soft-blue to-blue-400",
+    bar: "bg-soft-blue/70",
     icon: "bg-soft-blue/10 text-soft-blue",
     badge: "border-soft-blue/20 bg-soft-blue/8 text-soft-blue",
   },
   gold: {
-    bar: "bg-gradient-to-r from-amber-400 to-yellow-300",
+    bar: "bg-amber-300/70",
     icon: "bg-amber-100 text-amber-700",
     badge: "border-amber-200 bg-amber-50 text-amber-700",
   },
   red: {
-    bar: "bg-gradient-to-r from-soft-red to-rose-400",
+    bar: "bg-soft-red/70",
     icon: "bg-soft-red/10 text-soft-red",
     badge: "border-soft-red/20 bg-soft-red/8 text-soft-red",
   },
@@ -54,13 +56,13 @@ export function OpsMetricCard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="section-title">{label}</div>
-          <div className="mt-3 text-2xl font-semibold leading-none text-primary">
+          <div className="font-data mt-3 text-[26px] font-medium leading-none text-primary">
             {value}
           </div>
           {detail ? <p className="mt-2 text-xs leading-5 text-secondary">{detail}</p> : null}
         </div>
-        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-card", styles.icon)}>
-          <Icon size={18} strokeWidth={1.5} />
+        <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px]", styles.icon)}>
+          <Icon size={17} strokeWidth={1.5} />
         </div>
       </div>
     </div>
@@ -176,7 +178,7 @@ export function OpsEmptyState({
 }) {
   return (
     <div className={cn("surface-muted flex flex-col items-center justify-center gap-3 px-6 py-12 text-center", className)}>
-      <div className="flex h-12 w-12 items-center justify-center rounded-card border border-white/10 bg-white/[0.06] text-muted shadow-sm">
+      <div className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.06] text-muted shadow-sm">
         <Icon size={22} strokeWidth={1.5} />
       </div>
       <div>

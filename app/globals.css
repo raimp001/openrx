@@ -10,8 +10,9 @@
 
 :root {
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-serif: Georgia, "Times New Roman", Times, serif;
-  --font-display: var(--font-sans);
+  --font-serif: var(--font-serif-display), "Source Serif 4", Georgia, "Times New Roman", Times, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: var(--font-serif);
   --color-bg-rgb: 5 5 5;
   --color-surface-rgb: 16 16 16;
   --color-surface-muted-rgb: 24 24 27;
@@ -31,9 +32,9 @@
   --color-success-rgb: 52 211 153;
   --color-warning-rgb: 251 191 36;
   --color-danger-rgb: 248 113 113;
-  --focus-ring: 0 0 0 3px rgb(var(--color-accent-rgb) / 0.22);
-  --shell-shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
-  --panel-shadow: 0 18px 54px rgba(0, 0, 0, 0.26);
+  --focus-ring: 0 0 0 2px rgb(var(--color-bg-rgb)), 0 0 0 4px rgb(var(--color-accent-rgb) / 0.55);
+  --shell-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px rgba(0, 0, 0, 0.32);
+  --panel-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 6px 20px rgba(0, 0, 0, 0.28);
   --paper: rgb(var(--color-bg-rgb));
   --paper-deep: rgb(var(--color-surface-muted-rgb));
   --paper-ink: rgb(var(--color-text-rgb));
@@ -77,13 +78,18 @@ body:has([data-openrx-chat-workspace]) .pointer-events-none.fixed.inset-0 {
 
 body {
   position: relative;
+  /* next/font injects its variables via a class on <body>, so the composed
+     font stacks must be declared here — a :root declaration cannot see them. */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: var(--font-sans);
+  --font-serif: var(--font-serif-display), "Source Serif 4", Georgia, "Times New Roman", Times, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: var(--font-serif);
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Flat instrument canvas: one whisper of accent light at the top edge,
+     no floating color blobs. Depth comes from hairlines, not glow. */
   background:
-    radial-gradient(circle at 18% -10%, rgb(var(--color-accent-rgb) / 0.12), transparent 26%),
-    radial-gradient(circle at 90% 0%, rgb(59 130 246 / 0.08), transparent 26%),
-    linear-gradient(180deg, #050505 0%, #080808 48%, #0d0d0f 100%);
+    linear-gradient(180deg, rgb(var(--color-accent-rgb) / 0.045) 0%, transparent 220px),
+    #050505;
   color: var(--paper-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -200,31 +206,40 @@ a {
 }
 
 @layer utilities {
+  /* Display voice: editorial serif, set tight. The contrast against the mono
+     microtype labels is the core of the visual identity. */
   .orx-display-heading {
-    font-family: var(--font-sans), system-ui, sans-serif;
-    font-weight: 720;
-    letter-spacing: 0;
-    line-height: 0.98;
+    font-family: var(--font-serif);
+    font-weight: 560;
+    letter-spacing: -0.015em;
+    line-height: 1.02;
     text-wrap: balance;
   }
 
   .orx-page-title {
-    font-family: var(--font-sans), system-ui, sans-serif;
-    font-weight: 650;
-    letter-spacing: 0;
+    font-family: var(--font-serif);
+    font-weight: 560;
+    letter-spacing: -0.012em;
     line-height: 1.06;
     text-wrap: balance;
   }
 
   .orx-section-heading {
-    font-family: var(--font-sans), system-ui, sans-serif;
-    font-weight: 650;
-    letter-spacing: 0;
+    font-family: var(--font-serif);
+    font-weight: 580;
+    letter-spacing: -0.008em;
     line-height: 1.16;
   }
 
+  /* Data voice: tabular mono for ids, versions, counts, timestamps. */
+  .font-data {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+  }
+
   .surface-card {
-    @apply rounded-[16px] border;
+    @apply rounded-[12px] border;
     border-color: var(--paper-border);
     background: rgb(var(--color-surface-rgb) / 0.92);
     box-shadow: var(--panel-shadow);
@@ -236,16 +251,16 @@ a {
   }
 
   .surface-muted {
-    @apply rounded-[14px] border;
+    @apply rounded-[10px] border;
     border-color: var(--paper-border);
     background: rgb(var(--color-surface-muted-rgb) / 0.88);
   }
 
   .surface-hero {
-    @apply rounded-[20px] border;
+    @apply rounded-[14px] border;
     border-color: var(--paper-border);
     background:
-      radial-gradient(circle at 14% 0%, rgb(var(--color-accent-rgb) / 0.08), transparent 28%),
+      linear-gradient(180deg, rgb(var(--color-accent-rgb) / 0.05) 0%, transparent 96px),
       rgb(var(--color-surface-rgb) / 0.92);
     box-shadow: var(--panel-shadow);
   }
@@ -259,13 +274,14 @@ a {
   }
 
   .execution-step {
-    @apply rounded-[12px] border p-4;
+    @apply rounded-[10px] border p-4;
     border-color: var(--paper-border);
     background: rgb(var(--color-surface-rgb) / 0.84);
   }
 
   .section-title {
-    @apply text-[12px] font-semibold uppercase tracking-[0.12em] text-muted;
+    @apply text-[10.5px] font-medium uppercase tracking-[0.16em] text-muted;
+    font-family: var(--font-mono);
   }
 
   .sidebar-scroll::-webkit-scrollbar {
@@ -281,9 +297,10 @@ a {
   }
 
   .eyebrow-pill {
-    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.1em] text-muted;
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10.5px] font-medium uppercase tracking-[0.16em] text-muted;
     border-color: var(--paper-border);
     background: rgb(var(--color-surface-rgb) / 0.90);
+    font-family: var(--font-mono);
   }
 
   .metric-chip,
@@ -299,11 +316,12 @@ a {
   }
 
   .control-label {
-    @apply block text-[12px] font-semibold uppercase tracking-[0.1em] text-muted;
+    @apply block text-[10.5px] font-medium uppercase tracking-[0.16em] text-muted;
+    font-family: var(--font-mono);
   }
 
   .control-input {
-    @apply mt-2 w-full rounded-[10px] border px-3.5 py-2.5 text-sm text-primary shadow-sm transition placeholder:text-subtle focus:border-teal/50 focus:outline-none focus:ring-2 focus:ring-teal/20;
+    @apply mt-2 w-full rounded-[8px] border px-3.5 py-2.5 text-sm text-primary shadow-sm transition placeholder:text-subtle focus:border-teal/50 focus:outline-none focus:ring-2 focus:ring-teal/20;
     border-color: var(--paper-border);
     background: rgb(var(--color-surface-rgb) / 0.94);
   }
@@ -313,12 +331,12 @@ a {
   }
 
   .control-button {
-    @apply inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-[8px] px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .control-button-primary {
     @apply control-button bg-navy text-black hover:bg-navy-hover;
-    box-shadow: 0 12px 30px rgba(103, 232, 249, 0.12);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 4px 14px rgba(103, 232, 249, 0.10);
   }
 
   .control-button-secondary {
@@ -359,7 +377,8 @@ a {
   }
 
   .shell-kicker {
-    @apply text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
+    @apply text-[10px] font-medium uppercase tracking-[0.16em] text-muted;
+    font-family: var(--font-mono);
   }
 
   .editorial-panel {
@@ -394,23 +413,24 @@ a {
   }
 
   .chat-bubble-agent {
-    @apply rounded-[14px] border px-4 py-3 text-[15px] leading-7 text-secondary;
+    @apply rounded-[12px] border px-4 py-3 text-[15px] leading-7 text-secondary;
     border-color: var(--paper-border);
     background: rgb(var(--color-surface-rgb) / 0.90);
   }
 
   .chat-bubble-user {
-    @apply rounded-[14px] bg-navy px-4 py-3 text-[15px] leading-7 text-white;
+    @apply rounded-[12px] bg-navy px-4 py-3 text-[15px] leading-7 text-white;
   }
 
   .chat-bubble-system {
-    @apply rounded-[10px] border px-3 py-2 text-[12px] leading-5 text-muted;
+    @apply rounded-[8px] border px-3 py-2 text-[12px] leading-5 text-muted;
     border-color: var(--paper-border);
     background: rgb(var(--color-surface-muted-rgb) / 0.90);
   }
 
   .chat-section-heading {
-    @apply mb-2 mt-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted first:mt-0;
+    @apply mb-2 mt-4 flex items-center gap-2 text-[10.5px] font-medium uppercase tracking-[0.16em] text-muted first:mt-0;
+    font-family: var(--font-mono);
   }
 
   .chat-citation-pill {

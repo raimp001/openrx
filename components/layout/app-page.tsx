@@ -38,7 +38,7 @@ export function AppPageHeader({
         className
       )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(103,232,249,0.08),transparent_26%),radial-gradient(circle_at_92%_12%,rgba(20,184,166,0.07),transparent_24%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/30 to-transparent" />
       <div
         className={cn(
           "relative flex gap-5",
@@ -78,17 +78,15 @@ export function AppPageHeader({
       {variant === "hero" ? (
         <div
           className={cn(
-            "relative mt-6 grid gap-2 rounded-[22px] border border-white/10 bg-white/[0.055] p-2 backdrop-blur sm:grid-cols-4",
+            "relative mt-6 grid gap-px overflow-hidden rounded-[10px] border border-white/10 bg-white/10 sm:grid-cols-4",
             align === "center" && "mx-auto max-w-2xl"
           )}
           aria-label="OpenRx care pathway"
         >
           {executionLoop.map((item, index) => (
-            <div key={item} className="flex items-center gap-2 rounded-[16px] px-3 py-2">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-200 text-[10px] font-semibold text-black">
-                {index + 1}
-              </span>
-              <span className="text-[12px] font-semibold text-primary">{item}</span>
+            <div key={item} className="flex items-center gap-2.5 bg-[#0b0b0c] px-3.5 py-2.5">
+              <span className="font-data text-[10px] text-cyan-200/80">{String(index + 1).padStart(2, "0")}</span>
+              <span className="text-[12px] font-medium text-primary">{item}</span>
             </div>
           ))}
         </div>

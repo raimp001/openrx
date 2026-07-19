@@ -385,7 +385,7 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
     return (
       <div
         data-testid="chat-section-care-options"
-        className={cn("rounded-[16px] border px-4 py-3", tone)}
+        className={cn("rounded-[12px] border px-4 py-3", tone)}
       >
         <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-current">
           {Icon ? <Icon size={12} /> : null}
@@ -395,7 +395,7 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
           {items.map((block, i) => (
             <div
               key={`care-${i}`}
-              className="rounded-[14px] border border-white/10 bg-black/20 px-3 py-2.5 text-[14px] leading-6 text-zinc-100"
+              className="rounded-[10px] border border-white/10 bg-black/20 px-3 py-2.5 text-[14px] leading-6 text-zinc-100"
             >
               {renderInlineLinks(block.text, `care-${i}`)}
             </div>
@@ -413,7 +413,7 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
     <div
       data-testid={section.heading ? `chat-section-${section.heading.toLowerCase().replace(/[^a-z]+/g, "-")}` : undefined}
       className={cn(
-        boxed ? cn("rounded-[14px] border px-4 py-3.5", tone) : "px-0.5 py-1.5",
+        boxed ? cn("rounded-[12px] border px-4 py-3.5", tone) : "px-0.5 py-1.5",
         idx === 0 && !section.heading && "p-0"
       )}
     >
@@ -428,7 +428,7 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
           {section.heading}
         </p>
       ) : null}
-      <div className={cn("space-y-2", section.variant === "answer" ? "text-[17px] leading-8" : "text-[15px] leading-7", "text-zinc-100")}>
+      <div className={cn("space-y-2", section.variant === "answer" ? "font-serif text-[17.5px] leading-8" : "text-[15px] leading-7", "text-zinc-100")}>
         {blocks.map((block, i) => {
           if (block.kind === "blank") return <div key={`b-${i}`} className="h-1.5" />
           const sourceAudit = parseSourceAuditLine(block.text)
@@ -462,7 +462,7 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
             )
           }
           return (
-            <p key={`b-${i}`} className={cn(section.variant === "answer" && "font-semibold text-zinc-50")}>
+            <p key={`b-${i}`} className={cn(section.variant === "answer" && "font-medium text-zinc-50")}>
               {renderInlineLinks(block.text, `b-${i}`)}
             </p>
           )

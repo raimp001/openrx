@@ -13,8 +13,8 @@ test.describe("server-rendered landing page", () => {
 
     // Brand, value proposition, and clinical-safety copy
     expect(html).toContain("OpenRx")
-    expect(html).toContain("Ask. Verify. Act.")
-    expect(html).toContain("source-linked clinical evidence")
+    expect(html).toContain("Health answers,")
+    expect(html).toContain("verification")
     expect(html).toContain("the next care step")
 
     // Decision-support disclaimer
@@ -24,16 +24,14 @@ test.describe("server-rendered landing page", () => {
     // Working developer and patient entry points
     expect(html).toMatch(/href="\/demo"/)
     expect(html).toMatch(/href="\/chat/)
-    expect(html).toContain('name="autorun"')
-    expect(html).toContain('value="1"')
+    expect(html).toMatch(/href="\/screening"/)
+    expect(html).toMatch(/href="\/benchmark"/)
 
-    // Engine-backed synthetic specimen is server-rendered
-    expect(html).toContain("Synthetic input")
-    expect(html).toContain("PSA and hereditary prostate-risk review")
-    expect(html).toContain("hereditary-prostate-screening-review")
-    expect(html).toContain("BRCA2 pathogenic variant")
-    expect(html).toContain("Review source")
-    expect(html).toContain("https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/prostate-cancer-screening")
+    // Engine-backed demo panel is server-rendered
+    expect(html).toContain("Deterministic response")
+    expect(html).toContain("Colorectal cancer screening")
+    expect(html).toContain("uspstf-average-risk-colorectal")
+    expect(html).toContain("https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening")
 
     // noscript fallback so the page is never blank
     expect(html).toContain("<noscript>")
@@ -59,14 +57,13 @@ test.describe("server-rendered landing page", () => {
 
   test("landing page renders and navigates to the demo in a browser", async ({ page }) => {
     await page.goto("/")
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Ask. Verify. Act.")
-    await expect(page.getByText("Evidence to action")).toBeVisible()
-    await expect(page.getByRole("textbox", { name: "Ask OpenRx" })).toBeVisible()
-    await expect(page.getByText("PSA and hereditary prostate-risk review")).toBeVisible()
-    await expect(page.getByText("hereditary-prostate-screening-review")).toBeVisible()
-    await expect(page.getByRole("link", { name: "Review source" })).toBeVisible()
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Health answers")
+    await expect(page.getByText("Deterministic response")).toBeVisible()
+    await expect(page.getByText("Colorectal cancer screening", { exact: true })).toBeVisible()
+    await expect(page.getByRole("link", { name: /uspstf-average-risk-colorectal/ })).toBeVisible()
+    await expect(page.getByRole("link", { name: "Check my screening — free" })).toBeVisible()
     await expect(page.getByRole("link", { name: "Try OpenRx" })).toBeVisible()
-    await expect(page.getByRole("link", { name: /Trust/ })).toBeVisible()
+    await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Trust" })).toBeVisible()
     await page.getByRole("link", { name: "For clinicians" }).click()
     await expect(page).toHaveURL(/\/demo/, { timeout: 30_000 })
   })
@@ -76,9 +73,9 @@ test.describe("server-rendered landing page", () => {
     await page.goto("/")
 
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
-    await expect(page.getByRole("textbox", { name: "Ask OpenRx" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "Check my screening — free" })).toBeVisible()
     await expect(page.getByRole("link", { name: "Try OpenRx" })).toBeVisible()
-    await expect(page.getByText("Synthetic input")).toBeVisible()
+    await expect(page.getByText("Deterministic response")).toBeVisible()
     await expect(page.getByRole("navigation", { name: "Main" })).toBeHidden()
 
     const widths = await page.evaluate(() => ({
@@ -88,31 +85,14 @@ test.describe("server-rendered landing page", () => {
     expect(widths.content).toBeLessThanOrEqual(widths.viewport)
   })
 
-  test("landing question submits into chat autorun", async ({ page }) => {
-    await page.route(/\/api\/openclaw\/status$/, async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ connected: true }),
-      })
-    })
-    await page.route(/\/api\/openclaw\/chat\/stream$/, async (route) => {
-      const text = "Answer\n\nColorectal cancer screening may be due.\n\nSafety note\n\nConfirm with a clinician."
-      await route.fulfill({
-        status: 200,
-        contentType: "text/event-stream",
-        body: `event: delta\ndata: ${JSON.stringify({ text })}\n\nevent: done\ndata: ${JSON.stringify({ finalText: text, agentId: "screening" })}\n\n`,
-      })
-    })
+  test("landing primary CTAs route to chat and screening", async ({ page }) => {
     await page.goto("/")
 
-    await page.getByRole("textbox", { name: "Ask OpenRx" }).fill("age 45 male")
-    await page.getByRole("button", { name: "Submit question" }).click()
+    await page.getByRole("link", { name: "Try OpenRx" }).click()
+    await expect(page).toHaveURL(/\/chat/, { timeout: 30_000 })
 
-    await expect(page).toHaveURL(/\/chat\?/, { timeout: 30_000 })
-    const url = new URL(page.url())
-    expect(url.searchParams.get("prompt")).toBe("age 45 male")
-    expect(url.searchParams.get("topic")).toBe("screening")
-    expect(url.searchParams.get("autorun")).toBe("1")
+    await page.goto("/")
+    await page.getByRole("link", { name: "Check my screening — free" }).click()
+    await expect(page).toHaveURL(/\/screening/, { timeout: 30_000 })
   })
 })

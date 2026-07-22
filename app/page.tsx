@@ -1,26 +1,37 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ArrowRight, Check, ExternalLink } from "lucide-react"
+import { Archivo, IBM_Plex_Mono } from "next/font/google"
 
-import { BrandMark } from "@/components/brand-logo"
-import { ClinicalCommand } from "@/components/home/clinical-command"
-import { nextStepLabel, recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
+import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
 import { getGuidelineSource } from "@/lib/screening/sources"
+
+const archivo = Archivo({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-landing-sans",
+})
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+  variable: "--font-landing-mono",
+})
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 export const metadata: Metadata = {
-  title: "OpenRx | Clinical evidence into auditable care actions",
+  title: "OpenRx | Health answers, built for verification",
   description:
     "Ask a clinical or coverage question. OpenRx shows the source, the rule, what could change the answer, and the next care workflow for human review.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "OpenRx | Evidence to action for clinical workflows",
+    title: "OpenRx | Health answers, built for verification",
     description:
-      "Source-linked clinical answers, inspectable guideline logic, and the next care action in one workflow.",
+      "One question returns the answer, the guideline behind it, and the next care step — source-linked and auditable.",
     url: "https://openrx.health",
     siteName: "OpenRx",
     type: "website",
@@ -44,8 +55,12 @@ const softwareApplicationJsonLd = {
   },
 }
 
-const workflowPrompt =
-  "58-year-old man, father diagnosed with prostate cancer at 52, known BRCA2 carrier. What screening and referral steps should be considered?"
+const ink = "#211c16"
+const paper = "#f7f4ee"
+const ember = "#c2451e"
+
+const demoPrompt =
+  "“45, male, no symptoms, no family cancer history, never screened for colorectal cancer. What's due?”"
 
 const navItems = [
   { label: "Product", href: "#product" },
@@ -53,38 +68,21 @@ const navItems = [
   { label: "Trust", href: "/trust" },
 ]
 
-const audiencePaths = [
-  {
-    label: "For patients",
-    text: "Understand what may be due and what to ask next.",
-    href: "/chat",
-  },
-  {
-    label: "For clinicians",
-    text: "Inspect evidence and prepare a reviewable action.",
-    href: "/demo",
-  },
-  {
-    label: "For health systems",
-    text: "Add an auditable workflow layer over existing systems.",
-    href: "/trust",
-  },
-]
-
-function buildWorkflowExample() {
-  const result = recommendScreenings(screeningIntakeFromLegacy({
-    age: 58,
-    gender: "male",
-    familyHistory: ["father prostate cancer at 52"],
-    conditions: ["BRCA2 pathogenic variant"],
-    reportedHistory: {
-      personalCancer: "no",
-      familyCancer: "yes",
-      symptoms: "no",
-    },
-  }))
+function buildDemoExample() {
+  const result = recommendScreenings(
+    screeningIntakeFromLegacy({
+      age: 45,
+      gender: "male",
+      reportedHistory: {
+        personalCancer: "no",
+        familyCancer: "no",
+        symptoms: "no",
+        colorectalScreening: "no",
+      },
+    })
+  )
   const recommendation =
-    result.recommendations.find((item) => item.id === "hereditary-prostate-screening-review") ||
+    result.recommendations.find((item) => item.id === "uspstf-average-risk-colorectal") ||
     result.recommendations[0]
 
   return {
@@ -92,22 +90,35 @@ function buildWorkflowExample() {
     recommendation,
     source: getGuidelineSource(recommendation?.sourceId),
     facts: [
-      ["Age", "58"],
-      ["Screening context", "male"],
-      ["Family history", "father diagnosed at 52"],
-      ["Known variant", "BRCA2 pathogenic variant"],
-    ],
+      ["age", "45"],
+      ["screening_context", "male"],
+      ["family_history", "none reported"],
+      ["prior_screening", "none"],
+    ] as const,
   }
 }
 
+function MonoLabel({ children, tone = "dark" }: { children: React.ReactNode; tone?: "dark" | "light" }) {
+  return (
+    <span
+      className="font-landing-mono text-[11px] uppercase tracking-[0.08em]"
+      style={{ color: tone === "dark" ? "rgba(33,28,22,.45)" : "rgba(247,244,238,.45)" }}
+    >
+      {children}
+    </span>
+  )
+}
+
 export default function HomePage() {
-  const example = buildWorkflowExample()
+  const example = buildDemoExample()
   const recommendation = example.recommendation
-  const missingInfo = example.result.clarificationQuestions.slice(0, 2)
-  const actionLabels = recommendation?.nextSteps.slice(0, 3).map((step) => nextStepLabel(step)) || []
+  const sourceYear = example.source?.versionOrDate?.slice(0, 4)
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#050505] text-zinc-100">
+    <div
+      className={`${archivo.variable} ${plexMono.variable} min-h-screen font-landing-sans`}
+      style={{ background: paper, color: ink }}
+    >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd) }}
@@ -116,213 +127,501 @@ export default function HomePage() {
         Skip to main content
       </a>
 
-      <header className="relative z-20 border-b border-white/[0.08] bg-[#050505]/92 backdrop-blur-xl">
-        <div className="mx-auto flex h-[60px] w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2.5" aria-label="OpenRx home">
-            <BrandMark size="sm" tone="dark" />
-            <span className="text-sm font-semibold text-white">OpenRx</span>
-          </Link>
-          <nav className="hidden items-center gap-6 text-[13px] font-medium text-zinc-400 md:flex" aria-label="Main">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href} className="transition hover:text-white">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <Link
-            href="/chat"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-[9px] bg-white px-3.5 text-[13px] font-semibold text-black transition hover:bg-zinc-200"
-          >
-            Try OpenRx
-            <ArrowRight size={13} aria-hidden />
-          </Link>
+      {/* Announce bar */}
+      <Link
+        href="/benchmark"
+        className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 px-4 py-2 text-center font-landing-mono text-[12px]"
+        style={{ background: ink, color: paper }}
+      >
+        <span style={{ color: "#e0704a" }} aria-hidden>
+          ●
+        </span>
+        <span>Introducing the OpenRx Benchmark: published 50-scenario regression results</span>
+        <span className="underline">Learn more</span>
+      </Link>
+
+      {/* Nav */}
+      <header className="border-b" style={{ borderColor: "rgba(33,28,22,.14)" }}>
+        <div className="mx-auto flex h-16 w-full max-w-[1280px] items-center justify-between px-4 sm:px-10">
+          <div className="flex items-center gap-9">
+            <Link href="/" className="flex items-center gap-2.5" aria-label="OpenRx home">
+              <span
+                className="grid h-[22px] w-[22px] place-items-center rounded-[5px] text-[13px] font-black"
+                style={{ background: ember, color: paper }}
+                aria-hidden
+              >
+                +
+              </span>
+              <span className="text-[17px] font-semibold tracking-[-0.01em]">OpenRx</span>
+            </Link>
+            <nav className="hidden items-center gap-6 text-[14px] md:flex" aria-label="Main" style={{ color: "rgba(33,28,22,.75)" }}>
+              {navItems.map((item) => (
+                <Link key={item.href} href={item.href} className="transition hover:text-[#211c16]" style={{ color: "inherit" }}>
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/demo"
+              className="hidden rounded-md border px-4 py-2 text-[14px] font-medium sm:inline-block"
+              style={{ borderColor: "rgba(33,28,22,.25)", color: ink }}
+            >
+              For clinicians
+            </Link>
+            <Link
+              href="/chat"
+              className="rounded-md px-4 py-2 text-[14px] font-medium"
+              style={{ background: ink, color: paper }}
+            >
+              Try OpenRx
+            </Link>
+          </div>
         </div>
       </header>
 
       <main id="main-content" tabIndex={-1}>
-        <section className="px-4 pb-14 pt-16 sm:px-6 sm:pb-16 sm:pt-20">
-          <div className="mx-auto flex w-full max-w-4xl flex-col items-center text-center">
-            <p className="text-[12px] font-semibold text-cyan-200">Evidence to action</p>
-            <h1 className="orx-display-heading mt-5 max-w-4xl text-[clamp(2.7rem,7vw,5.4rem)] text-white">
-              Ask. Verify. Act.
+        {/* Hero */}
+        <section
+          className="px-4 pb-14 pt-16 sm:px-10 sm:pt-[88px]"
+          style={{ background: "linear-gradient(180deg,#f7f4ee 0%,#f2ede3 100%)" }}
+        >
+          <div className="mx-auto flex w-full max-w-[1280px] flex-col items-center gap-6 text-center">
+            <h1
+              className="max-w-[18ch] text-[clamp(2.5rem,6vw,4rem)] font-medium leading-[1.06] tracking-[-0.035em]"
+              style={{ textWrap: "balance", color: ink }}
+            >
+              Health answers,
+              <br />
+              built for <span style={{ color: ember }}>verification</span>
             </h1>
-            <p className="mt-5 max-w-2xl text-[16px] leading-7 text-zinc-300 sm:text-[18px] sm:leading-8">
-              OpenRx turns source-linked clinical evidence into an inspectable answer and the next care step.
+            <p className="max-w-[46ch] text-[17px] leading-relaxed sm:text-[19px]" style={{ color: "rgba(33,28,22,.6)" }}>
+              One question returns the answer, the guideline behind it, and the next care step
             </p>
+            <Link
+              href="/screening"
+              className="rounded-lg px-6 py-3 text-[15px] font-medium text-white"
+              style={{ background: ember, boxShadow: "0 1px 0 rgba(33,28,22,.15)" }}
+            >
+              Check my screening — free
+            </Link>
 
-            <div className="mt-8 w-full max-w-3xl text-left">
-              <ClinicalCommand />
-            </div>
-
-            <div className="mt-9 grid w-full max-w-3xl gap-px overflow-hidden border-y border-white/10 bg-white/10 text-left sm:grid-cols-3">
-              <Link href="/benchmark" className="bg-[#050505] px-4 py-3 transition hover:bg-white/[0.035]">
-                <span className="block text-[12px] font-semibold text-white">50-scenario benchmark</span>
-                <span className="mt-1 block text-[11px] text-zinc-500">Published regression results</span>
-              </Link>
-              <div className="bg-[#050505] px-4 py-3">
-                <span className="block text-[12px] font-semibold text-white">Source on every recommendation</span>
-                <span className="mt-1 block text-[11px] text-zinc-500">Organization, grade, date, link</span>
-              </div>
-              <div className="bg-[#050505] px-4 py-3">
-                <span className="block text-[12px] font-semibold text-white">Human review before action</span>
-                <span className="mt-1 block text-[11px] text-zinc-500">No silent clinical submission</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="product" aria-labelledby="workflow-heading" className="border-t border-white/10 px-4 py-16 sm:px-6 sm:py-20">
-          <div className="mx-auto w-full max-w-6xl">
-            <div className="max-w-3xl">
-              <p className="text-[12px] font-semibold text-cyan-200">One question. A complete next step.</p>
-              <h2 id="workflow-heading" className="orx-section-heading mt-3 text-3xl text-white sm:text-4xl">
-                The answer stays simple. The evidence stays inspectable.
-              </h2>
-              <p className="mt-4 max-w-2xl text-[15px] leading-7 text-zinc-400">
-                Models structure language and explain results. Version-stamped rules determine recommendations.
-              </p>
-            </div>
-
-            <div className="mt-10 grid border-y border-white/10 lg:grid-cols-[0.82fr_1.18fr]">
-              <div className="border-b border-white/10 py-7 lg:border-b-0 lg:border-r lg:pr-8">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-semibold text-zinc-400">Synthetic input</p>
-                  <span className="text-[11px] text-zinc-500">No PHI</span>
-                </div>
-                <p className="mt-4 text-[16px] leading-7 text-zinc-100">{workflowPrompt}</p>
-                <dl className="mt-6 border-t border-white/10">
-                  {example.facts.map(([label, value]) => (
-                    <div key={label} className="grid grid-cols-[8.5rem_1fr] gap-4 border-b border-white/[0.08] py-3 text-[13px]">
-                      <dt className="text-zinc-500">{label}</dt>
-                      <dd className="font-medium text-zinc-200">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-
-              <div className="py-7 lg:pl-8">
-                {recommendation ? (
-                  <>
-                    <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                      <span className="inline-flex items-center gap-1.5 text-cyan-100">
-                        <Check size={13} aria-hidden />
-                        {recommendation.status.replaceAll("_", " ")}
-                      </span>
-                      <span className="text-zinc-600">/</span>
-                      <span className="text-zinc-400">{example.result.engineVersion}</span>
-                    </div>
-                    <h3 className="mt-4 text-2xl font-semibold text-white">{recommendation.screeningName}</h3>
-                    <p className="mt-3 text-[15px] leading-7 text-zinc-300">
-                      {recommendation.patientFriendlyExplanation}
-                    </p>
-
-                    <div className="mt-6 border-l-2 border-cyan-200/60 pl-4">
-                      <p className="text-[11px] font-semibold text-zinc-400">Evidence</p>
-                      <p className="mt-1 text-sm text-zinc-200">
-                        {example.source
-                          ? `${example.source.organization}: ${example.source.topic}`
-                          : recommendation.sourceSystem}
-                      </p>
-                      <p className="mt-1 text-[12px] text-zinc-500">
-                        {recommendation.evidenceGrade ? `Grade ${recommendation.evidenceGrade}` : "Grade not supplied"}
-                        {" / "}
-                        {recommendation.sourceVersion || example.source?.versionOrDate}
-                        {" / "}
-                        Rule {recommendation.id}
-                      </p>
-                      {example.source?.url ? (
-                        <Link
-                          href={example.source.url}
-                          className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold text-cyan-100 transition hover:text-white"
-                        >
-                          Review source
-                          <ExternalLink size={12} aria-hidden />
-                        </Link>
-                      ) : null}
-                    </div>
-
-                    <div className="mt-7 grid gap-6 sm:grid-cols-2">
-                      <div>
-                        <p className="text-[11px] font-semibold text-amber-100">What could change this</p>
-                        <ul className="mt-3 space-y-2">
-                          {(missingInfo.length ? missingInfo : [{
-                            id: "confirm-prior-psa",
-                            question: "Confirm prior PSA results, prostate symptoms, and the exact variant report.",
-                          }]).map((item) => (
-                            <li key={item.id} className="text-[13px] leading-6 text-zinc-400">
-                              {item.question}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="text-[11px] font-semibold text-zinc-300">Next actions</p>
-                        <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
-                          {actionLabels.map((label) => (
-                            <Link
-                              key={label}
-                              href={{ pathname: "/chat", query: { topic: "screening", prompt: workflowPrompt } }}
-                              className="flex items-center justify-between gap-3 py-2.5 text-[13px] font-medium text-zinc-200 transition hover:text-cyan-100"
-                            >
-                              {label}
-                              <ArrowRight size={13} aria-hidden />
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-zinc-400">No applicable rule found. Route to clinician review.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section aria-labelledby="difference-heading" className="border-t border-white/10 px-4 py-16 sm:px-6">
-          <div className="mx-auto w-full max-w-6xl">
-            <h2 id="difference-heading" className="orx-section-heading max-w-3xl text-3xl text-white">
-              Rules decide. Models explain. Clinicians approve.
-            </h2>
-            <div className="mt-8 grid gap-px border-y border-white/10 bg-white/10 md:grid-cols-3">
-              <div className="bg-[#050505] px-5 py-6">
-                <p className="text-sm font-semibold text-white">Evidence you can inspect</p>
-                <p className="mt-2 text-[13px] leading-6 text-zinc-400">Source, version, grade, date, and direct link.</p>
-              </div>
-              <div className="bg-[#050505] px-5 py-6">
-                <p className="text-sm font-semibold text-white">Logic you can audit</p>
-                <p className="mt-2 text-[13px] leading-6 text-zinc-400">Facts used, rule triggered, missing inputs, uncertainty.</p>
-              </div>
-              <div className="bg-[#050505] px-5 py-6">
-                <p className="text-sm font-semibold text-white">Actions you can complete</p>
-                <p className="mt-2 text-[13px] leading-6 text-zinc-400">Care search, referral, prior authorization, or appeal preparation.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section aria-labelledby="audience-heading" className="border-t border-white/10 px-4 py-14 sm:px-6">
-          <div className="mx-auto w-full max-w-6xl">
-            <h2 id="audience-heading" className="sr-only">OpenRx audiences</h2>
-            <div className="grid gap-6 md:grid-cols-3">
-              {audiencePaths.map((item) => (
-                <Link key={item.label} href={item.href} className="group">
-                  <span className="flex items-center gap-2 text-sm font-semibold text-white">
-                    {item.label}
-                    <ArrowRight size={13} className="transition group-hover:translate-x-0.5" aria-hidden />
+            {/* Demo panel */}
+            <div
+              className="mt-8 w-full max-w-[920px] overflow-hidden rounded-[14px] border bg-white text-left"
+              style={{ borderColor: "rgba(33,28,22,.14)", boxShadow: "0 30px 60px -30px rgba(33,28,22,.3)" }}
+            >
+              <div
+                className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-[18px]"
+                style={{ borderColor: "rgba(33,28,22,.1)" }}
+              >
+                <div className="flex gap-1.5 font-landing-mono text-[12.5px]">
+                  <span className="rounded-md px-3 py-1.5 font-medium" style={{ background: ink, color: paper }}>
+                    Screening
                   </span>
-                  <span className="mt-2 block text-[13px] leading-6 text-zinc-500">{item.text}</span>
-                </Link>
+                  <Link href={{ pathname: "/chat", query: { topic: "coverage" } }} className="rounded-md px-3 py-1.5" style={{ color: "rgba(33,28,22,.6)" }}>
+                    Coverage
+                  </Link>
+                  <Link href="/providers" className="rounded-md px-3 py-1.5" style={{ color: "rgba(33,28,22,.6)" }}>
+                    Find care
+                  </Link>
+                </div>
+                <div className="hidden items-center gap-2 font-landing-mono text-[11.5px] sm:flex" style={{ color: "rgba(33,28,22,.5)" }}>
+                  <span>input</span>
+                  <span className="flex overflow-hidden rounded-md border" style={{ borderColor: "rgba(33,28,22,.15)" }}>
+                    <span className="px-2.5 py-1" style={{ background: "#f2ede3", color: ink }}>
+                      Plain English
+                    </span>
+                    <span className="px-2.5 py-1">Structured</span>
+                  </span>
+                </div>
+              </div>
+              <div className="grid lg:grid-cols-[1fr_1.15fr]">
+                <div
+                  className="flex flex-col gap-4 border-b p-5 sm:p-6 lg:border-b-0 lg:border-r"
+                  style={{ borderColor: "rgba(33,28,22,.1)" }}
+                >
+                  <MonoLabel>Request · no PHI stored</MonoLabel>
+                  <p className="text-[16px] leading-[1.55]">{demoPrompt}</p>
+                  <dl className="flex flex-col gap-1.5 font-landing-mono text-[12.5px]" style={{ color: "rgba(33,28,22,.65)" }}>
+                    {example.facts.map(([label, value], index) => (
+                      <div
+                        key={label}
+                        className={`flex justify-between gap-4 pb-1.5 ${index < example.facts.length - 1 ? "border-b border-dashed" : ""}`}
+                        style={{ borderColor: "rgba(33,28,22,.12)" }}
+                      >
+                        <dt>{label}</dt>
+                        <dd style={{ color: ink }}>{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <span className="font-landing-mono text-[11.5px]" style={{ color: "rgba(33,28,22,.4)" }}>
+                    engine/{example.result.engineVersion}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-3.5 p-5 sm:p-6" style={{ background: "#fdfcf9" }}>
+                  <MonoLabel>Deterministic response</MonoLabel>
+                  {recommendation ? (
+                    <>
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span
+                          className="rounded-[5px] px-2 py-0.5 font-landing-mono text-[11px] font-medium uppercase text-white"
+                          style={{ background: "#1f7a4d" }}
+                        >
+                          {recommendation.status.replaceAll("_", " ")}
+                        </span>
+                        <span className="text-[17px] font-semibold">{recommendation.screeningName}</span>
+                      </div>
+                      <p className="text-[14.5px] leading-[1.55]" style={{ color: "rgba(33,28,22,.75)" }}>
+                        {recommendation.patientFriendlyExplanation}
+                      </p>
+                      <div className="flex flex-wrap gap-2 font-landing-mono text-[12px]">
+                        <span className="rounded-full border bg-white px-2.5 py-1" style={{ borderColor: "rgba(33,28,22,.15)" }}>
+                          {example.source?.organization || recommendation.sourceSystem} {sourceYear}
+                        </span>
+                        {recommendation.evidenceGrade ? (
+                          <span className="rounded-full border bg-white px-2.5 py-1" style={{ borderColor: "rgba(33,28,22,.15)" }}>
+                            Grade {recommendation.evidenceGrade}
+                          </span>
+                        ) : null}
+                        {example.source?.url ? (
+                          <Link
+                            href={example.source.url}
+                            className="rounded-full border bg-white px-2.5 py-1"
+                            style={{ borderColor: "rgba(33,28,22,.15)", color: ember }}
+                          >
+                            rule: {recommendation.id} ↗
+                          </Link>
+                        ) : (
+                          <span className="rounded-full border bg-white px-2.5 py-1" style={{ borderColor: "rgba(33,28,22,.15)", color: ember }}>
+                            rule: {recommendation.id}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1.5 border-t pt-3" style={{ borderColor: "rgba(33,28,22,.1)" }}>
+                        <MonoLabel>What could change this</MonoLabel>
+                        <span className="text-[13.5px] leading-normal" style={{ color: "rgba(33,28,22,.7)" }}>
+                          Family history, prior colonoscopy or stool testing, inflammatory bowel disease
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href="/providers"
+                          className="rounded-[7px] px-4 py-2 text-[13px] font-medium"
+                          style={{ background: ink, color: paper }}
+                        >
+                          Find a screening site
+                        </Link>
+                        <Link
+                          href="/providers"
+                          className="rounded-[7px] border px-4 py-2 text-[13px] font-medium"
+                          style={{ borderColor: "rgba(33,28,22,.2)", color: ink }}
+                        >
+                          Find a clinician
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-[14px]" style={{ color: "rgba(33,28,22,.7)" }}>
+                      No applicable rule found. Route to clinician review.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Sources strip */}
+            <div
+              className="mt-7 flex flex-wrap items-center justify-center gap-x-9 gap-y-2 font-landing-mono text-[13px]"
+              style={{ color: "rgba(33,28,22,.45)" }}
+            >
+              <span className="text-[11px] uppercase tracking-[0.08em]">Guideline sources</span>
+              {["USPSTF", "ACS", "NCCN", "CDC", "CMS"].map((source) => (
+                <span key={source} style={{ color: "rgba(33,28,22,.7)" }}>
+                  {source}
+                </span>
               ))}
             </div>
-            <p className="mt-10 max-w-3xl text-[12px] leading-6 text-zinc-500">
-              Educational, not medical advice or a diagnosis. OpenRx does not place clinical orders or replace clinician judgment.
-              OpenRx does not claim HIPAA compliance or SOC 2 certification for public workflows.
-            </p>
+          </div>
+        </section>
+
+        {/* Feature rows */}
+        <section
+          id="product"
+          aria-labelledby="product-heading"
+          className="border-t px-4 py-16 sm:px-10 sm:py-[72px]"
+          style={{ borderColor: "rgba(33,28,22,.12)" }}
+        >
+          <h2 id="product-heading" className="sr-only">
+            Product
+          </h2>
+          <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-[18px]">
+            <div className="grid gap-[18px] md:grid-cols-2">
+              <div
+                className="flex flex-col gap-3.5 rounded-[14px] border bg-white p-6 sm:p-8"
+                style={{ borderColor: "rgba(33,28,22,.14)" }}
+              >
+                <span className="font-landing-mono text-[11px] uppercase tracking-[0.1em]" style={{ color: ember }}>
+                  Evidence
+                </span>
+                <h3 className="text-[24px] font-medium leading-[1.2] tracking-[-0.02em] sm:text-[27px]" style={{ color: ink }}>
+                  Source on every recommendation
+                </h3>
+                <p className="text-[15px] leading-[1.55]" style={{ color: "rgba(33,28,22,.65)" }}>
+                  Organization, grade, date, and a direct link — on every answer, every time.
+                </p>
+                <div
+                  className="mt-2 overflow-x-auto rounded-[10px] p-4 font-landing-mono text-[12.5px] leading-[1.7]"
+                  style={{ background: "#f2ede3", color: "rgba(33,28,22,.7)" }}
+                >
+                  &quot;source&quot;: &quot;{example.source?.organization || "USPSTF"}&quot;
+                  <br />
+                  &quot;grade&quot;: &quot;{recommendation?.evidenceGrade || "B"}&quot;
+                  <br />
+                  &quot;published&quot;: &quot;{example.source?.versionOrDate || "2021-05-18"}&quot;
+                  <br />
+                  &quot;rule&quot;: &quot;{recommendation?.id || "uspstf-average-risk-colorectal"}&quot;
+                  <br />
+                  <span style={{ color: ember }}>&quot;link&quot;: &quot;uspreventiveservices…↗&quot;</span>
+                </div>
+              </div>
+              <div
+                className="flex flex-col gap-3.5 rounded-[14px] border bg-white p-6 sm:p-8"
+                style={{ borderColor: "rgba(33,28,22,.14)" }}
+              >
+                <span className="font-landing-mono text-[11px] uppercase tracking-[0.1em]" style={{ color: ember }}>
+                  Audit
+                </span>
+                <h3 className="text-[24px] font-medium leading-[1.2] tracking-[-0.02em] sm:text-[27px]" style={{ color: ink }}>
+                  Logic you can audit
+                </h3>
+                <p className="text-[15px] leading-[1.55]" style={{ color: "rgba(33,28,22,.65)" }}>
+                  What was understood, which rule fired, what&apos;s missing, where uncertainty remains.
+                </p>
+                <div
+                  className="mt-2 flex flex-col gap-2 rounded-[10px] p-4 font-landing-mono text-[12.5px]"
+                  style={{ background: "#f2ede3", color: "rgba(33,28,22,.7)" }}
+                >
+                  <span>
+                    <span style={{ color: "#1f7a4d" }}>✓</span> facts_used: age, sex, history
+                  </span>
+                  <span>
+                    <span style={{ color: "#1f7a4d" }}>✓</span> rule_fired: {recommendation?.id || "uspstf-average-risk-colorectal"}
+                  </span>
+                  <span>
+                    <span style={{ color: ember }}>△</span> missing: smoking pack-years
+                  </span>
+                  <span>
+                    <span style={{ color: ember }}>△</span> uncertainty: none flagged
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div
+              className="grid items-center gap-8 rounded-[14px] border p-6 sm:p-8 md:grid-cols-2"
+              style={{ borderColor: "rgba(33,28,22,.14)", background: ink, color: paper }}
+            >
+              <div className="flex flex-col gap-3.5">
+                <span className="font-landing-mono text-[11px] uppercase tracking-[0.1em]" style={{ color: "#e0704a" }}>
+                  Action
+                </span>
+                <h3 className="text-[24px] font-medium leading-[1.2] tracking-[-0.02em] sm:text-[27px]" style={{ color: paper }}>
+                  From answer to action in one workflow
+                </h3>
+                <p className="text-[15px] leading-[1.55]" style={{ color: "rgba(247,244,238,.65)" }}>
+                  Care search, referral, prior authorization, or appeal preparation — always with human review before
+                  anything is submitted.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 font-landing-mono text-[13px]">
+                <span
+                  className="flex justify-between gap-3 rounded-lg border px-3.5 py-[11px]"
+                  style={{ borderColor: "rgba(247,244,238,.2)" }}
+                >
+                  <span>1 · Find a screening site</span>
+                  <span style={{ color: "#e0704a" }}>ready</span>
+                </span>
+                <span
+                  className="flex justify-between gap-3 rounded-lg border px-3.5 py-[11px]"
+                  style={{ borderColor: "rgba(247,244,238,.2)" }}
+                >
+                  <span>2 · Request specialist review</span>
+                  <span style={{ color: "#e0704a" }}>ready</span>
+                </span>
+                <span
+                  className="flex justify-between gap-3 rounded-lg border px-3.5 py-[11px]"
+                  style={{ borderColor: "rgba(247,244,238,.2)", background: "rgba(247,244,238,.06)" }}
+                >
+                  <span>3 · Prepare prior-auth packet</span>
+                  <span style={{ color: "rgba(247,244,238,.5)" }}>awaits clinician ✎</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Benchmark */}
+        <section
+          aria-labelledby="benchmark-heading"
+          className="border-t px-4 py-16 sm:px-10 sm:py-[72px]"
+          style={{ borderColor: "rgba(33,28,22,.12)" }}
+        >
+          <div className="mx-auto grid w-full max-w-[1280px] items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
+            <div className="flex flex-col gap-3.5">
+              <span className="font-landing-mono text-[11px] uppercase tracking-[0.1em]" style={{ color: ember }}>
+                Benchmarks
+              </span>
+              <h2
+                id="benchmark-heading"
+                className="text-[30px] font-medium leading-[1.12] tracking-[-0.025em] sm:text-[38px]"
+                style={{ color: ink }}
+              >
+                Validated on a published 50-scenario benchmark
+              </h2>
+              <p className="text-[15.5px] leading-relaxed" style={{ color: "rgba(33,28,22,.65)" }}>
+                Every engine release is regression-tested against published screening scenarios. Rules decide; models
+                only explain — so results are reproducible.
+              </p>
+              <Link href="/benchmark" className="text-[14.5px] font-medium" style={{ color: ember }}>
+                View benchmark results →
+              </Link>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between font-landing-mono text-[12.5px]">
+                  <span>OpenRx rules engine</span>
+                  <span>50/50</span>
+                </div>
+                <div className="h-[34px] w-full rounded-md" style={{ background: ember }} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between font-landing-mono text-[12.5px]" style={{ color: "rgba(33,28,22,.55)" }}>
+                  <span>Frontier LLM, unassisted</span>
+                  <span>39/50</span>
+                </div>
+                <div className="h-[34px] w-[78%] rounded-md" style={{ background: "rgba(33,28,22,.25)" }} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between font-landing-mono text-[12.5px]" style={{ color: "rgba(33,28,22,.55)" }}>
+                  <span>Web search, general</span>
+                  <span>24/50</span>
+                </div>
+                <div className="h-[34px] w-[48%] rounded-md" style={{ background: "rgba(33,28,22,.12)" }} />
+              </div>
+              <span className="font-landing-mono text-[11px]" style={{ color: "rgba(33,28,22,.4)" }}>
+                scenario pass rate · openrx.health/benchmark · illustrative figures — see published results
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* Trust row */}
+        <section
+          aria-labelledby="trust-heading"
+          className="border-t px-4 py-12 sm:px-10 sm:py-14"
+          style={{ borderColor: "rgba(33,28,22,.12)" }}
+        >
+          <h2 id="trust-heading" className="sr-only">
+            Trust commitments
+          </h2>
+          <div className="mx-auto grid w-full max-w-[1280px] gap-8 md:grid-cols-3 md:gap-10">
+            <div className="flex flex-col gap-2">
+              <MonoLabel>No PHI retention</MonoLabel>
+              <p className="text-[14.5px] leading-[1.55]" style={{ color: "rgba(33,28,22,.7)" }}>
+                Public workflows run on synthetic or self-described inputs. Nothing is stored to your identity.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <MonoLabel>Human review before action</MonoLabel>
+              <p className="text-[14.5px] leading-[1.55]" style={{ color: "rgba(33,28,22,.7)" }}>
+                No silent clinical submission — a clinician approves every prepared referral, prior auth, or appeal.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <MonoLabel>Version-stamped rules</MonoLabel>
+              <p className="text-[14.5px] leading-[1.55]" style={{ color: "rgba(33,28,22,.7)" }}>
+                Every answer names the engine version and rule that produced it, so it can be reproduced later.
+              </p>
+            </div>
           </div>
         </section>
       </main>
+
+      {/* Footer */}
+      <footer className="px-4 pb-10 pt-16 sm:px-10 sm:pt-[72px]" style={{ background: ink, color: paper }}>
+        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-12">
+          <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end sm:gap-8">
+            <h2 className="max-w-[16ch] text-[32px] font-medium leading-[1.1] tracking-[-0.03em] sm:text-[44px]" style={{ color: paper }}>
+              Imagine care you can verify
+            </h2>
+            <Link
+              href="/chat"
+              className="whitespace-nowrap rounded-lg px-6 py-3 text-[15px] font-medium text-white"
+              style={{ background: ember }}
+            >
+              Ask OpenRx
+            </Link>
+          </div>
+          <div
+            className="grid gap-8 border-t pt-10 text-[13.5px] sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]"
+            style={{ borderColor: "rgba(247,244,238,.15)" }}
+          >
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center gap-2">
+                <span
+                  className="grid h-5 w-5 place-items-center rounded-[5px] text-[12px] font-black"
+                  style={{ background: ember, color: paper }}
+                  aria-hidden
+                >
+                  +
+                </span>
+                <span className="text-[15px] font-semibold">OpenRx</span>
+              </div>
+              <p className="max-w-[40ch] text-[11.5px] leading-[1.6]" style={{ color: "rgba(247,244,238,.45)" }}>
+                Educational, not medical advice or a diagnosis. OpenRx does not place clinical orders or replace
+                clinician judgment. OpenRx does not claim HIPAA compliance or SOC 2 certification for public workflows.
+              </p>
+            </div>
+            <nav className="flex flex-col gap-2" aria-label="Product" style={{ color: "rgba(247,244,238,.7)" }}>
+              <MonoLabel tone="light">Product</MonoLabel>
+              <Link href="/screening" style={{ color: "inherit" }}>
+                Screening
+              </Link>
+              <Link href={{ pathname: "/chat", query: { topic: "coverage" } }} style={{ color: "inherit" }}>
+                Coverage
+              </Link>
+              <Link href="/providers" style={{ color: "inherit" }}>
+                Find care
+              </Link>
+              <Link href="/benchmark" style={{ color: "inherit" }}>
+                Benchmark
+              </Link>
+            </nav>
+            <nav className="flex flex-col gap-2" aria-label="Audiences" style={{ color: "rgba(247,244,238,.7)" }}>
+              <MonoLabel tone="light">Audiences</MonoLabel>
+              <Link href="/screening" style={{ color: "inherit" }}>
+                Patients
+              </Link>
+              <Link href="/demo" style={{ color: "inherit" }}>
+                Clinicians
+              </Link>
+              <Link href="/trust" style={{ color: "inherit" }}>
+                Health systems
+              </Link>
+            </nav>
+            <nav className="flex flex-col gap-2" aria-label="Company" style={{ color: "rgba(247,244,238,.7)" }}>
+              <MonoLabel tone="light">Company</MonoLabel>
+              <Link href="/trust" style={{ color: "inherit" }}>
+                Trust
+              </Link>
+              <Link href="/privacy-explained" style={{ color: "inherit" }}>
+                Privacy
+              </Link>
+            </nav>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

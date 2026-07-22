@@ -77,6 +77,8 @@ const config: Config = {
         serif: ["var(--font-sans)", "system-ui", "sans-serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-geist-mono)", "monospace"],
+        "landing-sans": ["var(--font-landing-sans)", "system-ui", "sans-serif"],
+        "landing-mono": ["var(--font-landing-mono)", "ui-monospace", "monospace"],
       },
       fontSize: {
         "display-xl": ["clamp(2.6rem, 4.6vw, 4.2rem)", { lineHeight: "1.05", letterSpacing: "-0.025em" }],

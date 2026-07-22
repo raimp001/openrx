@@ -1,7 +1,10 @@
 import { defineConfig, devices } from "@playwright/test"
+import os from "os"
+import path from "path"
 
 const PORT = Number(process.env.PORT || 3000)
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${PORT}`
+const USE_E2E_DATABASE = process.env.OPENRX_E2E_USE_DATABASE === "1"
 
 // MOCK_LLM=1 stands up a mock model-API server and points the app's real SDK
 // clients at it, so upstream-failure paths (429/500/timeout) can be exercised
@@ -30,6 +33,10 @@ const appServer = {
     // production; tests run against synthetic data only, with the gate on so
     // save/restore behavior stays covered.
     OPENRX_ENABLE_PHI_CHAT_HISTORY: "true",
+    DATABASE_URL: USE_E2E_DATABASE ? process.env.DATABASE_URL || "" : "",
+    OPENRX_CHAT_HISTORY_PATH:
+      process.env.OPENRX_CHAT_HISTORY_PATH ||
+      path.join(os.tmpdir(), `openrx-chat-history-e2e-${PORT}.json`),
     ...(MOCK_LLM
       ? {
           ANTHROPIC_API_KEY: "sk-ant-mock-e2e",

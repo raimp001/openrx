@@ -79,10 +79,11 @@ export default function EmergencyCardPage() {
   if (loading) {
     return (
       <div className="animate-slide-up space-y-6">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-52" />
-          <Skeleton className="h-4 w-80" />
-        </div>
+        <AppPageHeader
+          eyebrow="Emergency handoff"
+          title="Emergency card"
+          description="Loading the printable emergency handoff card with allergies, medications, contacts, and insurance context."
+        />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[...Array(4)].map((_, index) => (
             <div key={index} className="surface-card p-5">

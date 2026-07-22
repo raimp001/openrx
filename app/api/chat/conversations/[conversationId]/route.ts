@@ -15,6 +15,21 @@ type RouteContext = {
   }
 }
 
+let warnedMissingChatHistorySchema = false
+
+function isMissingChatHistorySchema(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code
+  return code === "P2021" || code === "P2022"
+}
+
+function logChatHistorySchemaWarning(error: unknown) {
+  if (warnedMissingChatHistorySchema) return
+  warnedMissingChatHistorySchema = true
+  const meta = (error as { meta?: { table?: string; column?: string } } | null)?.meta
+  const location = meta?.table || meta?.column || "chat history persistence tables"
+  console.warn(`[chat-history] schema_unavailable: ${location}`)
+}
+
 function safeConversation(conversation: ChatConversation) {
   return {
     id: conversation.id,
@@ -39,7 +54,35 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const owner = await resolveChatHistoryOwner(request)
   if ("response" in owner) return owner.response
 
-  const conversation = await getChatConversation(owner.ownerKey, context.params.conversationId)
+  let conversation: Awaited<ReturnType<typeof getChatConversation>>
+  try {
+    conversation = await getChatConversation(owner.ownerKey, context.params.conversationId)
+  } catch (error) {
+    if (isMissingChatHistorySchema(error)) {
+      logChatHistorySchemaWarning(error)
+      return attachChatHistoryCookie(
+        NextResponse.json(
+          {
+            error: "Chat history is temporarily unavailable until persistence tables are migrated.",
+            historyStatus: "schema_unavailable",
+          },
+          { status: 503 }
+        ),
+        owner
+      )
+    }
+    console.error("[chat-history]", { code: "conversation_get_failed" })
+    return attachChatHistoryCookie(
+      NextResponse.json(
+        {
+          error: "Chat history is temporarily unavailable.",
+          historyStatus: "temporarily_unavailable",
+        },
+        { status: 503 }
+      ),
+      owner
+    )
+  }
   if (!conversation) {
     return attachChatHistoryCookie(NextResponse.json({ error: "Conversation not found." }, { status: 404 }), owner)
   }
@@ -76,6 +119,19 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       archived: body.archived,
     })
   } catch (error) {
+    if (isMissingChatHistorySchema(error)) {
+      logChatHistorySchemaWarning(error)
+      return attachChatHistoryCookie(
+        NextResponse.json(
+          {
+            error: "Chat history is temporarily unavailable until persistence tables are migrated.",
+            historyStatus: "schema_unavailable",
+          },
+          { status: 503 }
+        ),
+        owner
+      )
+    }
     const message = error instanceof Error ? error.message : "Update failed."
     return attachChatHistoryCookie(NextResponse.json({ error: message }, { status: 409 }), owner)
   }
@@ -95,6 +151,22 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   const owner = await resolveChatHistoryOwner(request)
   if ("response" in owner) return owner.response
 
-  const deleted = await deleteChatConversation(owner.ownerKey, context.params.conversationId)
+  let deleted = false
+  try {
+    deleted = await deleteChatConversation(owner.ownerKey, context.params.conversationId)
+  } catch (error) {
+    if (isMissingChatHistorySchema(error)) {
+      logChatHistorySchemaWarning(error)
+      return attachChatHistoryCookie(
+        NextResponse.json({ ok: false, historyStatus: "schema_unavailable" }, { status: 503 }),
+        owner
+      )
+    }
+    console.error("[chat-history]", { code: "conversation_delete_failed" })
+    return attachChatHistoryCookie(
+      NextResponse.json({ ok: false, historyStatus: "temporarily_unavailable" }, { status: 503 }),
+      owner
+    )
+  }
   return attachChatHistoryCookie(NextResponse.json({ ok: deleted }), owner)
 }

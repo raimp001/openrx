@@ -89,8 +89,15 @@ async function canUseDatabaseStore(): Promise<boolean> {
   const health = await getDatabaseHealth()
   if (!health.reachable) return false
   try {
-    await prisma.screeningNextStepRequestRecord.count()
-    return true
+    const rows = await prisma.$queryRaw<{ exists: boolean }[]>`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'screening_next_step_requests'
+      ) AS exists
+    `
+    return Boolean(rows[0]?.exists)
   } catch (error) {
     if (isMissingTableError(error)) return false
     return false

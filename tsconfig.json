@@ -17,5 +17,14 @@
     "paths": { "@/*": ["./*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "tests", "playwright.config.ts", "vitest.config.ts"]
+  "exclude": [
+    "node_modules",
+    "tests",
+    "playwright.config.ts",
+    "vitest.config.ts",
+    "vitest.config.mts",
+    "openrx",
+    "openrx-1",
+    "openrx-2"
+  ]
 }

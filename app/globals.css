@@ -453,6 +453,19 @@ a {
     background-size: 220% 100%;
     animation: orx-skeleton-shimmer 1.1s ease-in-out infinite;
   }
+
+  /* Content-shaped placeholder for the light chat surface (zinc-50/zinc-200 shimmer). */
+  .orx-skeleton-on-light {
+    background:
+      linear-gradient(
+        90deg,
+        rgb(244 244 245 / 1) 0%,
+        rgb(228 228 231 / 0.95) 44%,
+        rgb(244 244 245 / 1) 88%
+      );
+    background-size: 220% 100%;
+    animation: orx-skeleton-shimmer 1.1s ease-in-out infinite;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -475,7 +488,8 @@ a {
     transform: none;
   }
 
-  .orx-skeleton {
+  .orx-skeleton,
+  .orx-skeleton-on-light {
     animation: none !important;
     background-position: 0 0;
   }

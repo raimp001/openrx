@@ -189,33 +189,75 @@ function screeningMentionContext(lowered: string, keyword: string) {
   return { clause, localKeywordIndex }
 }
 
+const NEGATION_WORD_PATTERN = /\b(?:no|not|never|without|denies|denied|deny|none|negative for|free of|rules? out)\b/
+
+/**
+ * A clinical mention only counts when it is affirmed. Negated phrasing
+ * ("no family history of colon cancer", "denies chest pain", "BRCA2 negative")
+ * must never be extracted as a positive finding — inverting negation flips
+ * average-risk guideline pathways into high-risk ones.
+ */
+function isNegatedContext(clause: string, localKeywordIndex: number): boolean {
+  const before = clause.slice(0, Math.max(0, localKeywordIndex))
+  if (NEGATION_WORD_PATTERN.test(before)) return true
+  // Trailing negation: "chest pain: none", "family history of cancer - no"
+  const after = clause.slice(localKeywordIndex, localKeywordIndex + 40)
+  return /[:;\-–—]?\s*\b(?:no|none|negative|denied|absent)\b\s*$/.test(after)
+}
+
+/** True when the keyword appears and its surrounding clause is not negated. */
+function affirmativeKeyword(lowered: string, keyword: string): boolean {
+  const found = keyword.length <= 3 ? hasWord(lowered, keyword) : lowered.includes(keyword)
+  if (!found) return false
+  const mention = screeningMentionContext(lowered, keyword)
+  if (!mention) return true
+  return !isNegatedContext(mention.clause, mention.localKeywordIndex)
+}
+
+function isNegatedAtIndex(lowered: string, index: number): boolean {
+  const clauseStart = Math.max(
+    lowered.lastIndexOf(".", index),
+    lowered.lastIndexOf("!", index),
+    lowered.lastIndexOf("?", index),
+    lowered.lastIndexOf("\n", index),
+    lowered.lastIndexOf(",", index),
+    lowered.lastIndexOf(";", index)
+  ) + 1
+  const clause = lowered.slice(clauseStart, index)
+  return NEGATION_WORD_PATTERN.test(clause)
+}
+
+function includesAnyAffirmative(lowered: string, terms: string[]): boolean {
+  return terms.some((term) => affirmativeKeyword(lowered, term))
+}
+
 function extractFamilyHistory(lowered: string): string[] {
   const hasFamilyContext = includesAny(lowered, FAMILY_CUES) || lowered.includes("hereditary")
   if (!hasFamilyContext) return []
 
   const findings: string[] = []
 
-  if (includesAny(lowered, ["prostate cancer", "prostate ca"])) {
+  if (includesAnyAffirmative(lowered, ["prostate cancer", "prostate ca"])) {
     findings.push("family history of prostate cancer")
   }
 
-  if (includesAny(lowered, ["colorectal cancer", "colon cancer", "rectal cancer"])) {
+  if (includesAnyAffirmative(lowered, ["colorectal cancer", "colon cancer", "rectal cancer"])) {
     findings.push("family history of colorectal cancer")
   }
 
-  if (includesAny(lowered, ["breast cancer", "ovarian cancer"])) {
+  if (includesAnyAffirmative(lowered, ["breast cancer", "ovarian cancer"])) {
     findings.push("family history of breast/ovarian cancer")
   }
 
-  if (includesAny(lowered, ["lymphoma", "leukemia", "blood cancer", "hematologic cancer"])) {
+  if (includesAnyAffirmative(lowered, ["lymphoma", "leukemia", "blood cancer", "hematologic cancer"])) {
     findings.push("family history of lymphoma or hematologic cancer")
   }
 
-  if (includesAny(lowered, ["polyposis", "familial adenomatous polyposis", "fap", "mutyh-associated polyposis"])) {
+  if (includesAnyAffirmative(lowered, ["polyposis", "familial adenomatous polyposis", "fap", "mutyh-associated polyposis"])) {
     findings.push("family history of polyposis syndrome")
   }
 
-  if (lowered.includes("lynch")) {
+  if (affirmativeKeyword(lowered, "lynch")) {
     findings.push("family history of lynch syndrome")
   }
 
@@ -226,6 +268,7 @@ function extractFamilyHistory(lowered: string): string[] {
   )
   const ageSpecificSites = new Set<string>()
   ageSpecificMatches.forEach((entry) => {
+    if (isNegatedAtIndex(lowered, entry.index || 0)) return
     const relation = entry[1]
     const site = entry[2]
     const age = entry[3]
@@ -272,14 +315,16 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   const bmiMatch = lowered.match(/\bbmi\s*(?:is|=|:)?\s*(\d{1,2}(?:\.\d+)?)\b/)
   const bmi = bmiMatch ? Number.parseFloat(bmiMatch[1]) : undefined
 
+  const neverSmokedEarly = /\b(?:never smoked|never smoker|never a smoker|non[- ]smoker|do not smoke|don't smoke|does not smoke)\b/.test(lowered)
   const formerSmoking = /\bformer smoker\b|\bquit smoking\b|\bquit\s+\d{1,2}\s+years?\s+ago\b|\bused to smoke\b|\bex-smoker\b/.test(lowered)
   const currentSmoking =
-    /\bcurrent smoker\b|\bsmoking now\b|\bsmokes\b|\bi smoke\b/.test(lowered) ||
-    (/\bsmoker\b|\bsmoking\b|\bsmoke\b/.test(lowered) && !formerSmoking)
+    !neverSmokedEarly &&
+    (/\bcurrent smoker\b|\bsmoking now\b|\bsmokes\b|\bi smoke\b/.test(lowered) ||
+      (/\bsmoker\b|\bsmoking\b|\bsmoke\b/.test(lowered) && !formerSmoking))
   const smoker = currentSmoking ? true : formerSmoking ? false : undefined
 
   const symptoms = unique(
-    SYMPTOM_KEYWORDS.filter((keyword) => lowered.includes(keyword))
+    SYMPTOM_KEYWORDS.filter((keyword) => affirmativeKeyword(lowered, keyword))
   )
   const familyHistory = extractFamilyHistory(lowered)
 
@@ -292,8 +337,8 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   if (currentSmoking) smokingContext.push("current smoker")
 
   const conditions = unique([
-    ...CONDITION_KEYWORDS.filter((keyword) => lowered.includes(keyword)),
-    ...SCREENING_RISK_HISTORY_KEYWORDS.filter((keyword) => lowered.includes(keyword)),
+    ...CONDITION_KEYWORDS.filter((keyword) => affirmativeKeyword(lowered, keyword)),
+    ...SCREENING_RISK_HISTORY_KEYWORDS.filter((keyword) => affirmativeKeyword(lowered, keyword)),
     ...smokingContext,
   ])
 
@@ -355,7 +400,7 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   }
 
   const genes = unique(
-    GENE_MARKERS.filter((marker) => hasWord(lowered, marker))
+    GENE_MARKERS.filter((marker) => affirmativeKeyword(lowered, marker))
       .map((marker) => marker.toUpperCase())
   )
   if (genes.length > 0) {
@@ -388,7 +433,9 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   const noPersonalCancer = noPersonalCancerSignal
   const noFamilyCancer =
     noPersonalOrFamilyCancerSignal ||
-    /\b(?:no|without|denies?)\s+family\s+(?:history|hx)\s+of\s+(?:any\s+)?cancer\b|\b(?:no|without|denies?)\s+family\s+cancer\s+(?:history|hx)\b/.test(lowered)
+    /\b(?:no|without|denies?|never had)\s+family\s+(?:history|hx)\b/.test(lowered) ||
+    /\b(?:no|without|denies?)\s+family\s+(?:history|hx)\s+of\s+(?:any\s+)?[a-z/\s-]{0,40}?\b(?:cancer|tumou?r|carcinoma|malignan\w*|polyposis|lynch)\b/.test(lowered) ||
+    /\b(?:no|without|denies?)\s+family\s+cancer\s+(?:history|hx)\b/.test(lowered)
   const noSymptoms =
     /\b(?:no|without|denies?)\s+(?:symptoms|red flags?)\b|\basymptomatic\b/.test(lowered)
   const noColorectalScreening =
@@ -408,6 +455,9 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,35}\b(pap|pap smear|hpv test|cervical screening)\b/.test(lowered)
   const hasCervicalScreening =
     !noCervicalScreening && /\b(pap|pap smear|hpv test|cervical screening)\b/.test(lowered)
+  const noGenericScreening =
+    /\b(?:never|not yet|have not|haven't|has not|hasn't|no prior)\s+(?:been\s+)?screened\b/.test(lowered) ||
+    /\bnever had (?:any )?(?:cancer )?screening\b|\bno prior (?:cancer )?screening\b|\bnot up to date (?:on|with) (?:any )?screening\b/.test(lowered)
   const cervixAbsent =
     /\b(?:no cervix|without a cervix|cervix (?:was )?removed|total hysterectomy|hysterectomy with cervix removed)\b/.test(lowered)
   const cervixPresent =
@@ -415,12 +465,17 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   if (/\bhysterectomy\b/.test(lowered)) conditions.push("hysterectomy")
   if (cervixAbsent) conditions.push("cervix absent")
   if (cervixPresent) conditions.push("cervix present")
-  const neverSmoked = /\b(?:never smoked|never smoker|non[- ]smoker|do not smoke|don't smoke)\b/.test(lowered)
+  const neverSmoked = neverSmokedEarly
   const reportedHistory: ScreeningReportedHistory = {
     personalCancer: noPersonalCancer ? "no" : personalCancerValue ? "yes" : undefined,
-    familyCancer: noFamilyCancer ? "no" : familyHistory.length > 0 ? "yes" : undefined,
+    familyCancer: familyHistory.length > 0 ? "yes" : noFamilyCancer ? "no" : undefined,
     symptoms: noSymptoms ? "no" : symptoms.length > 0 ? "yes" : undefined,
-    colorectalScreening: noColorectalScreening ? "no" : hasColorectalScreening ? "yes" : undefined,
+    colorectalScreening:
+      noColorectalScreening || (noGenericScreening && !hasColorectalScreening)
+        ? "no"
+        : hasColorectalScreening
+          ? "yes"
+          : undefined,
     breastScreening: noBreastScreening ? "no" : hasBreastScreening ? "yes" : undefined,
     cervicalScreening: noCervicalScreening ? "no" : hasCervicalScreening ? "yes" : undefined,
     lungScreeningCt: noLungScreeningCt ? "no" : hasLungScreeningCt ? "yes" : undefined,

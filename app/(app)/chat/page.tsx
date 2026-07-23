@@ -1166,7 +1166,11 @@ export default function ChatPage() {
       data-openrx-chat-workspace
       className={cn(
         "relative isolate mx-auto flex min-h-screen animate-fade-in flex-col overflow-hidden bg-white px-4 text-zinc-900 sm:px-6",
-        showEmptyState ? "max-w-5xl justify-start" : "max-w-3xl"
+        // At 2xl the fixed "Care actions" rail (330px) sits over the right side
+        // of the viewport; reserve space for it so it never clips answer text.
+        showEmptyState
+          ? "max-w-5xl justify-start"
+          : "max-w-3xl 2xl:max-w-[calc(48rem+370px)] 2xl:pr-[370px]"
       )}
     >
       {showEmptyState ? (

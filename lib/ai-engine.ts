@@ -20,6 +20,7 @@ import {
   requestIdFromModelError,
   withModelApiBoundary,
 } from "./openclaw/model-boundary"
+import { getActionLogStore, getContextCacheStore, getConversationStore } from "./memory-store"
 
 // ── AI Clients ────────────────────────────────────────────
 // Timeout/retry knobs are env-configurable so tests can simulate upstream
@@ -36,7 +37,9 @@ const getClaudeClient = () =>
       })
     : null
 
-// ── Agent Action Log (in-memory, production would use DB) ─
+// ── Agent Action Log ─────────────────────────────────────
+// Backed by the shared in-memory store (see lib/memory-store.ts);
+// TODO(multi-instance): production would use DB/Redis backing.
 export interface AgentAction {
   id: string
   agentId: string
@@ -47,7 +50,7 @@ export interface AgentAction {
   channel: string
 }
 
-const actionLog: AgentAction[] = []
+const actionLog = getActionLogStore<AgentAction>()
 
 export function logAction(agentId: string, action: string, detail: string, channel = "system") {
   const agent = OPENCLAW_CONFIG.agents.find((a) => a.id === agentId)
@@ -75,7 +78,7 @@ export interface ConversationMessage {
   content: string
 }
 
-const conversations = new Map<string, ConversationMessage[]>()
+const conversations = getConversationStore<ConversationMessage[]>()
 const MAX_CONVERSATION_SESSIONS = 300
 
 function getConversation(sessionKey: string): ConversationMessage[] {
@@ -599,7 +602,7 @@ interface CachedContext {
   text: string
   expiresAt: number
 }
-const contextCache = new Map<string, CachedContext>()
+const contextCache = getContextCacheStore<CachedContext>()
 const CONTEXT_TTL_MS = 30_000 // 30 s — covers a full MoE fan-out round-trip
 const MAX_CONTEXT_CACHE_SIZE = 200
 
@@ -956,6 +959,7 @@ export async function runCoordinator(
       const followUp = await runAgent({
         agentId: result.handoff,
         message,
+        screeningContext,
         sessionId: sessionId ? `${sessionId}-${result.handoff}` : undefined,
         walletAddress,
       })
@@ -970,6 +974,58 @@ export async function runCoordinator(
   }
 
   return result
+}
+
+// ── Handoff marker stream filter ─────────────────────────
+// Buffers potential `[HANDOFF:agentId]` control markers across streamed deltas
+// so the marker can never reach the client, even when it is split across
+// multiple chunks. Completed markers are swallowed; anything that turns out
+// not to be a marker is forwarded verbatim.
+export function createHandoffStreamFilter(): { push: (chunk: string) => string; flush: () => string } {
+  const MARKER_PREFIX = "[HANDOFF:"
+  const MARKER_FULL = /^\[HANDOFF:\w[\w-]*\]/
+  let buffer = ""
+
+  function push(chunk: string): string {
+    buffer += chunk
+    let out = ""
+    for (;;) {
+      const idx = buffer.indexOf("[")
+      if (idx === -1) {
+        out += buffer
+        buffer = ""
+        break
+      }
+      const rest = buffer.slice(idx)
+      const full = rest.match(MARKER_FULL)
+      if (full) {
+        // Drop the completed marker entirely; keep scanning the remainder.
+        out += buffer.slice(0, idx)
+        buffer = rest.slice(full[0].length)
+        continue
+      }
+      if (rest.length <= MARKER_PREFIX.length
+          ? MARKER_PREFIX.startsWith(rest)
+          : MARKER_PREFIX === rest.slice(0, MARKER_PREFIX.length)) {
+        // Possible (possibly complete-prefix) marker — hold it in the buffer.
+        out += buffer.slice(0, idx)
+        buffer = rest
+        break
+      }
+      // A literal "[" that cannot start a marker: emit it and continue.
+      out += buffer.slice(0, idx + 1)
+      buffer = rest.slice(1)
+    }
+    return out
+  }
+
+  function flush(): string {
+    const remaining = buffer
+    buffer = ""
+    return remaining
+  }
+
+  return { push, flush }
 }
 
 // ── Streaming Agent ──────────────────────────────────────
@@ -1103,13 +1159,17 @@ IMPORTANT RULES:
         })
       )
 
+      const handoffFilter = createHandoffStreamFilter()
       for await (const event of stream) {
         if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
           const chunk = event.delta.text
           collected += chunk
-          yield chunk
+          const visible = handoffFilter.push(chunk)
+          if (visible) yield visible
         }
       }
+      const claudeTail = handoffFilter.flush()
+      if (claudeTail) yield claudeTail
     } else if (openai) {
       const completion = await withModelApiBoundary("ai-engine-openai-stream", () =>
         openai.chat.completions.create(
@@ -1128,13 +1188,17 @@ IMPORTANT RULES:
         )
       )
 
+      const handoffFilter = createHandoffStreamFilter()
       for await (const chunk of completion) {
         const delta = chunk.choices?.[0]?.delta?.content
         if (delta) {
           collected += delta
-          yield delta
+          const visible = handoffFilter.push(delta)
+          if (visible) yield visible
         }
       }
+      const openaiTail = handoffFilter.flush()
+      if (openaiTail) yield openaiTail
     } else {
       yield buildFallbackAgentResponse(agentId)
       return { agentId, finalText: buildFallbackAgentResponse(agentId) }

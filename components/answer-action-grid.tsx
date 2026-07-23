@@ -67,6 +67,8 @@ interface AnswerActionGridProps {
   columns?: keyof typeof COLUMN_CLASS
   label?: string
   compact?: boolean
+  /** Visual surface. "dark" preserves the legacy app-shell styling. */
+  surface?: "dark" | "light"
 }
 
 export function AnswerActionGrid({
@@ -75,7 +77,9 @@ export function AnswerActionGrid({
   columns = "two",
   label = "Next actions",
   compact = false,
+  surface = "dark",
 }: AnswerActionGridProps) {
+  const light = surface === "light"
   if (!items.length) return null
 
   return (
@@ -86,13 +90,22 @@ export function AnswerActionGrid({
         const href = item.href || "#"
         const external = item.external || /^https?:\/\//.test(href)
         const className = cn(
-          "group flex w-full items-center justify-between gap-3 border text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/40",
-          compact ? "min-h-10 rounded-[9px] px-3 py-2" : "min-h-12 rounded-full px-3.5 py-2.5",
-          isPrimary
-            ? compact
-              ? "border-cyan-200/22 bg-cyan-200/[0.08] text-cyan-50 hover:border-cyan-200/38 hover:bg-cyan-200/[0.12]"
-              : "border-cyan-200/40 bg-cyan-200 text-black shadow-[0_14px_34px_rgba(103,232,249,0.13)] hover:bg-cyan-100"
-            : "border-white/10 bg-white/[0.045] text-zinc-100 hover:border-cyan-200/28 hover:bg-white/[0.075]"
+          "group flex w-full items-center justify-between gap-3 border text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2",
+          light ? "focus-visible:ring-cyan-700/40" : "focus-visible:ring-cyan-200/40",
+          compact
+            ? cn("rounded-[9px] px-3 py-2", light ? "min-h-11" : "min-h-10")
+            : cn("rounded-full px-3.5 py-2.5", light ? "min-h-11" : "min-h-12"),
+          light
+            ? isPrimary
+              ? compact
+                ? "border-cyan-700/25 bg-cyan-50 text-cyan-900 hover:border-cyan-700/50 hover:bg-cyan-100"
+                : "border-cyan-700 bg-cyan-700 text-white hover:bg-cyan-800"
+              : "border-zinc-200 bg-white text-zinc-800 hover:border-cyan-700/35 hover:bg-zinc-50"
+            : isPrimary
+              ? compact
+                ? "border-cyan-200/22 bg-cyan-200/[0.08] text-cyan-50 hover:border-cyan-200/38 hover:bg-cyan-200/[0.12]"
+                : "border-cyan-200/40 bg-cyan-200 text-black shadow-[0_14px_34px_rgba(103,232,249,0.13)] hover:bg-cyan-100"
+              : "border-white/10 bg-white/[0.045] text-zinc-100 hover:border-cyan-200/28 hover:bg-white/[0.075]"
         )
         const content = (
           <>
@@ -102,7 +115,13 @@ export function AnswerActionGrid({
                 aria-hidden="true"
                 className={cn(
                   "shrink-0 transition",
-                  isPrimary && !compact ? "text-black/72" : "text-zinc-300 group-hover:text-cyan-100"
+                  light
+                    ? isPrimary && !compact
+                      ? "text-white/75"
+                      : "text-zinc-400 group-hover:text-cyan-700"
+                    : isPrimary && !compact
+                      ? "text-black/72"
+                      : "text-zinc-300 group-hover:text-cyan-100"
                 )}
               />
               <span className="min-w-0">
@@ -111,7 +130,13 @@ export function AnswerActionGrid({
                   <span
                     className={cn(
                       "block truncate text-[11px] font-medium leading-4",
-                      isPrimary ? "text-black/62" : "text-zinc-400"
+                      light
+                        ? isPrimary
+                          ? "text-white/70"
+                          : "text-zinc-500"
+                        : isPrimary
+                          ? "text-black/62"
+                          : "text-zinc-400"
                     )}
                   >
                     {item.description}
@@ -124,7 +149,13 @@ export function AnswerActionGrid({
               aria-hidden="true"
               className={cn(
                 "shrink-0 transition",
-                isPrimary && !compact ? "text-black/70" : "text-zinc-600 group-hover:text-cyan-100"
+                light
+                  ? isPrimary && !compact
+                    ? "text-white/70"
+                    : "text-zinc-400 group-hover:text-cyan-700"
+                  : isPrimary && !compact
+                    ? "text-black/70"
+                    : "text-zinc-600 group-hover:text-cyan-100"
               )}
             />
           </>

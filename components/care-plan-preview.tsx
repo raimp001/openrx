@@ -10,6 +10,8 @@ interface CarePlanPreviewProps {
   draft: CarePlan
   compact?: boolean
   className?: string
+  /** Visual surface. "dark" preserves the legacy app-shell styling. */
+  surface?: "dark" | "light"
 }
 
 const urgencyTone = {
@@ -19,7 +21,15 @@ const urgencyTone = {
   emergency: "border-red-300/24 bg-red-400/[0.1] text-red-100",
 }
 
-export function CarePlanPreview({ draft, compact = false, className }: CarePlanPreviewProps) {
+const urgencyToneLight = {
+  routine: "border-zinc-300 bg-zinc-50 text-zinc-600",
+  soon: "border-cyan-700/25 bg-cyan-50 text-cyan-800",
+  urgent: "border-amber-600/35 bg-amber-50 text-amber-800",
+  emergency: "border-red-600/35 bg-red-50 text-red-700",
+}
+
+export function CarePlanPreview({ draft, compact = false, className, surface = "dark" }: CarePlanPreviewProps) {
+  const light = surface === "light"
   const { plans, addPlan, setRecommendationStatus } = useCarePlans()
   const saved = plans.find((plan) => plan.id === draft.id)
   const plan = saved || draft
@@ -36,34 +46,36 @@ export function CarePlanPreview({ draft, compact = false, className }: CarePlanP
       <section
         data-testid="care-plan-preview"
         className={cn(
-          "rounded-[18px] border border-cyan-200/18 bg-cyan-200/[0.065] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]",
+          light
+            ? "rounded-[14px] border border-cyan-700/20 bg-cyan-50/60 p-3.5"
+            : "rounded-[18px] border border-cyan-200/18 bg-cyan-200/[0.065] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]",
           className
         )}
       >
         <header className="flex flex-wrap items-center justify-between gap-2">
-          <p className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-cyan-100">
+          <p className={cn("flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.14em]", light ? "text-cyan-800" : "text-cyan-100")}>
             <ClipboardList size={12} />
             Suggested care plan
           </p>
           {saved ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/18 bg-emerald-300/[0.08] px-2 py-0.5 text-[10px] font-semibold text-emerald-100">
+            <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold", light ? "border-emerald-600/30 bg-emerald-50 text-emerald-800" : "border-emerald-300/18 bg-emerald-300/[0.08] text-emerald-100")}>
               <CheckCircle2 size={11} />
               Saved
             </span>
           ) : null}
         </header>
-        <p className="mt-2 line-clamp-2 text-[12px] leading-5 text-zinc-200">{plan.patientContextSummary}</p>
+        <p className={cn("mt-2 line-clamp-2 text-[12px] leading-5", light ? "text-zinc-600" : "text-zinc-200")}>{plan.patientContextSummary}</p>
         <div className="mt-3 grid gap-2">
           {plan.recommendations.slice(0, 2).map((item) => (
-            <div key={item.id} data-testid="care-plan-item" className="rounded-[14px] border border-white/12 bg-black/22 px-3 py-2.5">
+            <div key={item.id} data-testid="care-plan-item" className={cn("rounded-[14px] border px-3 py-2.5", light ? "border-zinc-200 bg-white" : "border-white/12 bg-black/22")}>
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[13px] font-semibold leading-5 text-zinc-50">{item.title}</p>
-                <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold", urgencyTone[item.urgency])}>
+                <p className={cn("text-[13px] font-semibold leading-5", light ? "text-zinc-900" : "text-zinc-50")}>{item.title}</p>
+                <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold", (light ? urgencyToneLight : urgencyTone)[item.urgency])}>
                   {item.urgency}
                 </span>
               </div>
-              <p className="mt-1 line-clamp-1 text-[11px] leading-5 text-zinc-300">{item.nextAction}</p>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-zinc-400">
+              <p className={cn("mt-1 line-clamp-1 text-[11px] leading-5", light ? "text-zinc-600" : "text-zinc-300")}>{item.nextAction}</p>
+              <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-zinc-500">
                 {item.status.replaceAll("_", " ")} · {item.sourceLabel}
               </p>
             </div>
@@ -75,7 +87,7 @@ export function CarePlanPreview({ draft, compact = false, className }: CarePlanP
               type="button"
               data-testid="care-plan-add-button"
               onClick={() => addPlan(draft)}
-              className="inline-flex items-center gap-2 rounded-full bg-cyan-200 px-3 py-1.5 text-[12px] font-semibold text-black transition hover:bg-cyan-100"
+              className={cn("inline-flex min-h-[44px] items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition", light ? "bg-cyan-700 text-white hover:bg-cyan-800" : "bg-cyan-200 px-3 text-black hover:bg-cyan-100")}
             >
               <BookmarkPlus size={13} />
               Add to My Care
@@ -86,19 +98,19 @@ export function CarePlanPreview({ draft, compact = false, className }: CarePlanP
             data-testid="care-plan-mark-next-button"
             onClick={markNextStep}
             disabled={!nextItem}
-            className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[12px] font-semibold text-zinc-100 transition hover:bg-white/[0.1] disabled:opacity-45"
+            className={cn("inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition disabled:opacity-45", light ? "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50" : "border-white/12 bg-white/[0.05] px-3 text-zinc-100 hover:bg-white/[0.1]")}
           >
             <CheckCircle2 size={13} />
             Mark next step
           </button>
           {saved ? (
-            <Link href="/dashboard" className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-semibold text-cyan-100 hover:text-cyan-50">
+            <Link href="/dashboard" className={cn("inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-semibold", light ? "text-cyan-700 hover:text-cyan-900" : "text-cyan-100 hover:text-cyan-50")}>
               View
               <ArrowRight size={12} />
             </Link>
           ) : null}
         </div>
-        <p className="mt-2 text-[10.5px] leading-5 text-zinc-400">Demo mode saves this plan only in this browser.</p>
+        <p className="mt-2 text-[10.5px] leading-5 text-zinc-500">Demo mode saves this plan only in this browser.</p>
       </section>
     )
   }
@@ -131,7 +143,7 @@ export function CarePlanPreview({ draft, compact = false, className }: CarePlanP
           <div key={item.id} data-testid="care-plan-item" className="rounded-[15px] border border-white/9 bg-white/[0.035] p-3">
             <div className="flex items-start justify-between gap-2">
               <p className="text-[13px] font-semibold leading-5 text-zinc-100">{item.title}</p>
-              <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold", urgencyTone[item.urgency])}>
+              <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold", (light ? urgencyToneLight : urgencyTone)[item.urgency])}>
                 {item.urgency}
               </span>
             </div>

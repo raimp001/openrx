@@ -212,7 +212,7 @@ export function CareAskPanel({
                   disabled={isLaunching}
                   aria-label="Ask OpenRx"
                   className={cn(
-                    "inline-flex h-9 w-9 items-center justify-center rounded-[10px] transition disabled:cursor-not-allowed disabled:opacity-50",
+                    "inline-flex h-11 w-11 items-center justify-center rounded-[10px] transition disabled:cursor-not-allowed disabled:opacity-50",
                     dark ? "bg-white text-primary hover:bg-white/90" : "bg-cyan-200 text-black hover:bg-cyan-100"
                   )}
                 >
@@ -225,6 +225,11 @@ export function CareAskPanel({
               </div>
             </form>
 
+            {!minimal ? (
+              <p className={cn("mt-3 max-w-xl text-[12px] leading-5", dark ? "text-white/56" : "text-muted")}>
+                Answers drawn from USPSTF, CDC, NCCN, ACS, and CMS guidance — every recommendation names its source and date.
+              </p>
+            ) : null}
             <div className={cn("mt-3 flex flex-wrap gap-2", minimal && "justify-center")}>
               {suggestions.slice(0, 4).map((suggestion) => (
                 <button
@@ -246,24 +251,22 @@ export function CareAskPanel({
           </div>
 
           {showLanes && !minimal ? (
-            <div className={cn("grid gap-3", compact && "sm:grid-cols-3")}>
+            <div className={cn("grid", compact && "sm:grid-cols-3 sm:gap-x-6")}>
               {lanes.map((lane, index) => (
                 <div
                   key={lane.label}
                   className={cn(
-                    "rounded-[14px] border p-4",
-                    dark ? "border-white/12 bg-white/[0.05]" : "border-white/10 bg-white/[0.045]"
+                    "border-t py-4 first:border-t-0 first:pt-0 sm:first:pt-4",
+                    compact && "sm:border-t-0 sm:border-l sm:pl-5 sm:first:border-l-0 sm:first:pl-0",
+                    dark ? "border-white/12" : "border-white/10"
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <div
-                      className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]",
-                        dark ? "bg-white/10 text-white" : "bg-teal-50 text-teal-dark"
-                      )}
-                    >
-                      <lane.icon size={15} strokeWidth={1.8} />
-                    </div>
+                    <lane.icon
+                      size={15}
+                      strokeWidth={1.8}
+                      className={cn("mt-0.5 shrink-0", dark ? "text-white/72" : "text-muted")}
+                    />
                     <div>
                       <div className="flex items-center gap-2">
                         <span

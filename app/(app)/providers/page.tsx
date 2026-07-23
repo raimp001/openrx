@@ -18,6 +18,7 @@ import {
   FolderPlus,
   UserCheck,
 } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { TrustDrawer } from "@/components/trust-drawer"
 import {
@@ -90,7 +91,13 @@ export default function ProvidersPage() {
   const [error, setError] = useState("")
   const [autoLocationNote, setAutoLocationNote] = useState("")
   const [handoffNotice, setHandoffNotice] = useState("")
-  const [activeGroup, setActiveGroup] = useState<"all" | CareDirectoryMatch["kind"]>("all")
+  const searchParams = useSearchParams()
+  const kindParam = searchParams.get("kind")
+  const initialGroup: "all" | CareDirectoryMatch["kind"] =
+    kindParam === "provider" || kindParam === "caregiver" || kindParam === "lab" || kindParam === "radiology"
+      ? kindParam
+      : "all"
+  const [activeGroup, setActiveGroup] = useState<"all" | CareDirectoryMatch["kind"]>(initialGroup)
   const { addPlan } = useCarePlans()
 
   const grouped = useMemo(() => {

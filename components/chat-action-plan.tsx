@@ -28,9 +28,12 @@ interface ChatActionPlanProps {
   // Disable prompt actions while an answer is streaming so a click never
   // silently no-ops against the in-flight guard in the chat page.
   disabled?: boolean
+  /** Visual surface. "dark" preserves the legacy app-shell styling. */
+  surface?: "dark" | "light"
 }
 
-export function ChatActionPlan({ items, title = "Next step", layout = "inline", testIdPrefix = "chat-action", onPrompt, disabled = false }: ChatActionPlanProps) {
+export function ChatActionPlan({ items, title = "Next step", layout = "inline", testIdPrefix = "chat-action", onPrompt, disabled = false, surface = "dark" }: ChatActionPlanProps) {
+  const light = surface === "light"
   if (!items.length) return null
   const allPromptActions = items.every((item) => item.actionType === "chat_prompt")
   const isRail = layout === "rail"
@@ -42,15 +45,17 @@ export function ChatActionPlan({ items, title = "Next step", layout = "inline", 
       className={cn(
         isDock
           ? "border-0 bg-transparent p-0 shadow-none"
-          : "rounded-[22px] border border-white/12 bg-[#0b0d0d]/88 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl",
-        isRail && "bg-[#090b0b]/90"
+          : light
+            ? "rounded-[14px] border border-zinc-200 bg-zinc-50 p-3"
+            : "rounded-[22px] border border-white/12 bg-[#0b0d0d]/88 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl",
+        isRail && !light && "bg-[#090b0b]/90"
       )}
     >
       <header className={cn("mb-2.5 flex items-center justify-between gap-3 px-1", isDock && "sr-only")}>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-200">
+        <p className={cn("text-[11px] font-semibold uppercase tracking-[0.14em]", light ? "text-zinc-600" : "text-zinc-200")}>
           {title}
         </p>
-        <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-zinc-400">
+        <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
           {allPromptActions ? "stays here" : "sources + actions"}
         </span>
       </header>
@@ -64,27 +69,33 @@ export function ChatActionPlan({ items, title = "Next step", layout = "inline", 
           const rel = external && !tel ? "noreferrer" : undefined
           const content = (
             <>
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-200/16 bg-cyan-200/[0.10] text-cyan-100 transition group-hover:border-cyan-200/32 group-hover:bg-cyan-200/[0.16]">
+              <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition", light ? "border-cyan-700/20 bg-cyan-50 text-cyan-700 group-hover:border-cyan-700/40 group-hover:bg-cyan-100" : "border-cyan-200/16 bg-cyan-200/[0.10] text-cyan-100 group-hover:border-cyan-200/32 group-hover:bg-cyan-200/[0.16]")}>
                 <Icon size={14} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className={cn("block text-[13px] font-semibold text-zinc-50", isDock ? "line-clamp-2 leading-4" : "truncate")}>{item.label}</span>
+                <span className={cn("block text-[13px] font-semibold", light ? "text-zinc-900" : "text-zinc-50", isDock ? "line-clamp-2 leading-4" : "truncate")}>{item.label}</span>
                 {!isDock ? (
-                  <span className="mt-0.5 block text-[11px] font-medium leading-5 text-zinc-300">
+                  <span className={cn("mt-0.5 block text-[11px] font-medium leading-5", light ? "text-zinc-500" : "text-zinc-300")}>
                     {item.description}
                   </span>
                 ) : null}
               </span>
               {item.actionType === "chat_prompt" ? null : (
-                <ArrowUpRight size={14} className="shrink-0 text-cyan-100/85" />
+                <ArrowUpRight size={14} className={cn("shrink-0", light ? "text-cyan-700/85" : "text-cyan-100/85")} />
               )}
             </>
           )
           const itemClassName = cn(
-            "group flex h-full items-center gap-2.5 rounded-[16px] border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/35",
-            item.actionType === "chat_prompt"
-              ? "border-cyan-200/20 bg-cyan-200/[0.08] hover:border-cyan-200/40 hover:bg-cyan-200/[0.14]"
-              : "border-white/12 bg-white/[0.055] hover:border-cyan-200/28 hover:bg-white/[0.095]",
+            "group flex h-full items-center gap-2.5 rounded-[16px] border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2",
+            light && "min-h-11",
+            light ? "focus-visible:ring-cyan-700/35" : "focus-visible:ring-cyan-200/35",
+            light
+              ? item.actionType === "chat_prompt"
+                ? "border-cyan-700/25 bg-cyan-50 hover:border-cyan-700/50 hover:bg-cyan-100"
+                : "border-zinc-200 bg-white hover:border-cyan-700/35 hover:bg-zinc-50"
+              : item.actionType === "chat_prompt"
+                ? "border-cyan-200/20 bg-cyan-200/[0.08] hover:border-cyan-200/40 hover:bg-cyan-200/[0.14]"
+                : "border-white/12 bg-white/[0.055] hover:border-cyan-200/28 hover:bg-white/[0.095]",
             isDock && "min-h-11 rounded-full px-3.5 py-2",
             "w-full"
           )

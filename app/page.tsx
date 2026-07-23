@@ -367,7 +367,7 @@ export default function HomePage() {
                           style={{ background: ink, color: paper }}
                         >
                           Find a screening site
-                         </Link>
+                        </Link>
                         <Link
                           href={{ pathname: "/providers", query: { kind: "provider" } }}
                           className="rounded-[7px] border px-4 py-2 text-[13px] font-medium"

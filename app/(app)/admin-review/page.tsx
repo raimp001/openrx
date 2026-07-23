@@ -1,12 +1,18 @@
+import type { Metadata } from "next"
 import { Inbox, LockKeyhole, MailCheck, ShieldCheck } from "lucide-react"
 import { AppPageHeader } from "@/components/layout/app-page"
 import { OpsBadge, OpsMetricCard } from "@/components/ui/ops-primitives"
 
-const envRequirements = [
-  "OPENRX_ADMIN_EMAILS",
-  "OPENRX_ADMIN_REVIEW_SECRET",
-  "RESEND_API_KEY",
-  "OPENRX_EMAIL_FROM",
+export const metadata: Metadata = {
+  title: "Admin review routing | OpenRx",
+  description:
+    "How OpenRx routes provider and caregiver network applications to reviewers via signed email approval links.",
+}
+
+const reviewerSafeguards = [
+  "Signed links expire and are validated server-side before any state changes.",
+  "Every decision writes an audit record with reviewer identity and timestamp.",
+  "Applicants are notified of the outcome without seeing queue internals.",
 ]
 
 const reviewFlow = [
@@ -43,7 +49,7 @@ export default function AdminReviewPage() {
         <OpsMetricCard
           label="Queue posture"
           value="Hidden from patients"
-          detail="This admin page is only a routing explainer. It does not function as a live in-product backlog."
+          detail="Application state is never exposed on the patient-facing surface; reviewers act from signed email links."
           icon={Inbox}
           tone="blue"
         />
@@ -89,21 +95,21 @@ export default function AdminReviewPage() {
           <div className="border-t border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-6 py-6 lg:border-l lg:border-t-0">
             <div className="flex items-center gap-2">
               <ShieldCheck size={15} className="text-white/72" />
-              <div className="section-title text-white/55">Required production settings</div>
+              <div className="section-title text-white/55">Reviewer safeguards</div>
             </div>
             <div className="mt-4 space-y-2.5">
-              {envRequirements.map((item) => (
+              {reviewerSafeguards.map((item) => (
                 <div
                   key={item}
-                  className="rounded-[18px] border border-white/10 bg-black/10 px-4 py-3 text-xs font-medium tracking-[0.02em] text-white/82"
+                  className="rounded-[18px] border border-white/10 bg-black/10 px-4 py-3 text-xs font-medium leading-5 tracking-[0.02em] text-white/82"
                 >
                   {item}
                 </div>
               ))}
             </div>
             <p className="mt-4 text-xs leading-6 text-white/62">
-              If any of these are missing, submission review will degrade into a dead-end state and the email-first
-              workflow will not fire reliably.
+              Review access is restricted to configured administrators. Operational configuration details are kept
+              in deployment documentation, not on this page.
             </p>
           </div>
         </div>

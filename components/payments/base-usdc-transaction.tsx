@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import type { ComponentType } from "react"
+import type { ComponentProps, ComponentType } from "react"
 import {
   Transaction,
   TransactionButton,
@@ -9,11 +9,7 @@ import {
   TransactionStatusAction,
   TransactionStatusLabel,
   type LifecycleStatus,
-  type TransactionButtonProps,
-  type TransactionResponseType,
-  type TransactionStatusActionProps,
-  type TransactionStatusLabelProps,
-  type TransactionStatusProps,
+  type TransactionResponse,
 } from "@coinbase/onchainkit/transaction"
 import type { Call, Hex } from "viem"
 import { base } from "viem/chains"
@@ -22,10 +18,11 @@ import { buildUsdcTransferCall } from "@/lib/basebuilder/usdc"
 import { getBaseBuilderChainId } from "@/lib/basebuilder/config"
 import { cn } from "@/lib/utils"
 
-const SafeTransactionButton = TransactionButton as unknown as ComponentType<TransactionButtonProps>
-const SafeTransactionStatus = TransactionStatus as unknown as ComponentType<TransactionStatusProps>
-const SafeTransactionStatusLabel = TransactionStatusLabel as unknown as ComponentType<TransactionStatusLabelProps>
-const SafeTransactionStatusAction = TransactionStatusAction as unknown as ComponentType<TransactionStatusActionProps>
+// onchainkit 0.38 no longer exports dedicated prop types; derive them from the components.
+const SafeTransactionButton = TransactionButton as unknown as ComponentType<ComponentProps<typeof TransactionButton>>
+const SafeTransactionStatus = TransactionStatus as unknown as ComponentType<ComponentProps<typeof TransactionStatus>>
+const SafeTransactionStatusLabel = TransactionStatusLabel as unknown as ComponentType<ComponentProps<typeof TransactionStatusLabel>>
+const SafeTransactionStatusAction = TransactionStatusAction as unknown as ComponentType<ComponentProps<typeof TransactionStatusAction>>
 
 interface BaseUsdcTransactionProps {
   amount: string
@@ -63,7 +60,7 @@ function firstHashFromStatus(status: LifecycleStatus): string {
   return ""
 }
 
-function firstHashFromSuccess(response: TransactionResponseType): string {
+function firstHashFromSuccess(response: TransactionResponse): string {
   return response.transactionReceipts[0]?.transactionHash || ""
 }
 
@@ -110,7 +107,7 @@ export function BaseUsdcTransaction({
     }
   }
 
-  function handleSuccess(response: TransactionResponseType) {
+  function handleSuccess(response: TransactionResponse) {
     const hash = firstHashFromSuccess(response)
     if (hash) {
       onTransactionHash(hash)

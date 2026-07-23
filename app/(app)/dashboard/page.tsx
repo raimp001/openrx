@@ -155,10 +155,22 @@ export default function DashboardPage() {
     return (
       <div ref={scrollRef} className="mx-auto max-w-4xl animate-hero-fade space-y-6">
         <AppPageHeader
-          eyebrow={isConnected ? "Finish setup" : "Start"}
-          title={isConnected && firstName ? `${firstName}, set up your care.` : "Set up your care."}
-          description="Answer a few questions so OpenRx can personalize screenings, visits, medications, messages, and billing help."
+          eyebrow={isConnected ? "Finish setup" : "Dashboard preview"}
+          title={isConnected && firstName ? `${firstName}, set up your care.` : "Your care dashboard, once you start."}
+          description={
+            isConnected
+              ? "Answer a few questions so OpenRx can personalize screenings, visits, medications, messages, and billing help."
+              : "This is where your screening plan, visits, medications, messages, and billing help will live. Sign in or run the short guided setup to make it yours."
+          }
         />
+        {!isConnected && (
+          <section className="grid gap-3 md:grid-cols-4" aria-label="Dashboard preview metrics">
+            <CareMetric label="Needs attention" value="—" />
+            <CareMetric label="Labs flagged" value="—" />
+            <CareMetric label="Vaccines due" value="—" />
+            <CareMetric label="Claims denied" value="—" />
+          </section>
+        )}
         <CareAskPanel
           compact
           title="You can ask first."
@@ -168,9 +180,20 @@ export default function DashboardPage() {
         />
         <ActiveCarePlans plans={plans} onAdvance={setRecommendationStatus} />
         <div className="flex flex-wrap gap-3">
-          <Link href="/onboarding" className="control-button-primary">
-            Complete setup
-          </Link>
+          {isConnected ? (
+            <Link href="/onboarding" className="control-button-primary">
+              Complete setup
+            </Link>
+          ) : (
+            <>
+              <Link href="/signup" className="control-button-primary">
+                Create your account
+              </Link>
+              <Link href="/login" className="control-button-secondary">
+                Sign in
+              </Link>
+            </>
+          )}
           <Link href="/chat" className="control-button-secondary">
             Ask a question
           </Link>
@@ -308,7 +331,7 @@ function ActiveCarePlans({
   )
 }
 
-function CareMetric({ label, value }: { label: string; value: number }) {
+function CareMetric({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-[18px] border border-white/10 bg-white/[0.055] p-4">
       <p className="text-[12px] text-muted">{label}</p>

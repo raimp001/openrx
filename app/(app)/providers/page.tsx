@@ -98,6 +98,8 @@ export default function ProvidersPage() {
       ? kindParam
       : "all"
   const [activeGroup, setActiveGroup] = useState<"all" | CareDirectoryMatch["kind"]>(initialGroup)
+  const [supplementalKind, setSupplementalKind] = useState<"lab" | "radiology" | null>(null)
+  const supplementalDoneRef = useRef<Set<string>>(new Set())
   const { addPlan } = useCarePlans()
 
   const grouped = useMemo(() => {
@@ -194,6 +196,56 @@ export default function ProvidersPage() {
       }
     },
     [profileLocation, query]
+  )
+
+  // Tabs for facility kinds (labs / radiology) should not sit at zero when the
+  // original query only asked for providers. The NPI registry supports
+  // taxonomy-filtered organization searches, so the first time one of those
+  // tabs is opened we run a real supplemental search against the same location.
+  const runSupplementalSearch = useCallback(
+    async (kind: "lab" | "radiology") => {
+      const locationText =
+        parsed?.zip ||
+        [parsed?.city, parsed?.state].filter(Boolean).join(" ").trim() ||
+        profileLocation
+      if (!locationText) return
+      const dedupeKey = `${kind}:${locationText.toLowerCase()}`
+      if (supplementalDoneRef.current.has(dedupeKey)) return
+      supplementalDoneRef.current.add(dedupeKey)
+
+      setSupplementalKind(kind)
+      try {
+        const supplementalQuery = `${kind === "lab" ? "clinical laboratory" : "radiology imaging center"} near ${locationText}`
+        const response = await fetch(`/api/providers/search?q=${encodeURIComponent(supplementalQuery)}&limit=12`)
+        const data = (await response.json()) as { matches?: CareDirectoryMatch[] }
+        if (response.ok && Array.isArray(data.matches) && data.matches.length > 0) {
+          trackWorkflowEvent("provider_search_started", { surface: "providers" })
+          setMatches((current) => {
+            const existingNpis = new Set(current.map((item) => item.npi))
+            const additions = data.matches!.filter(
+              (item) => item.kind === kind && !existingNpis.has(item.npi)
+            )
+            return additions.length > 0 ? [...current, ...additions] : current
+          })
+        }
+      } catch {
+        // Supplemental tab searches are best-effort; the empty state below
+        // honestly reports when the registry returns nothing for the area.
+      } finally {
+        setSupplementalKind(null)
+      }
+    },
+    [parsed, profileLocation]
+  )
+
+  const handleGroupSelect = useCallback(
+    (id: "all" | CareDirectoryMatch["kind"]) => {
+      setActiveGroup(id)
+      if ((id === "lab" || id === "radiology") && !matches.some((item) => item.kind === id)) {
+        void runSupplementalSearch(id)
+      }
+    },
+    [matches, runSupplementalSearch]
   )
 
   useEffect(() => {
@@ -546,7 +598,7 @@ export default function ProvidersPage() {
             {groupItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveGroup(item.id)}
+                onClick={() => handleGroupSelect(item.id)}
                 className={cn(
                   "text-[11px] font-semibold px-3 py-1.5 rounded-full border transition",
                   activeGroup === item.id
@@ -575,30 +627,73 @@ export default function ProvidersPage() {
               onSave={saveCandidate}
             />
           )}
-          {visible.caregivers && (
-            <ResultGroup
-              title="Caregivers"
-              icon={Users}
-              items={grouped.caregivers}
-              onSave={saveCandidate}
-            />
-          )}
-          {visible.labs && (
-            <ResultGroup
-              title="Labs"
-              icon={Search}
-              items={grouped.labs}
-              onSave={saveCandidate}
-            />
-          )}
-          {visible.radiology && (
-            <ResultGroup
-              title="Radiology Centers"
-              icon={ShieldCheck}
-              items={grouped.radiology}
-              onSave={saveCandidate}
-            />
-          )}
+          {visible.caregivers &&
+            (grouped.caregivers.length > 0 ? (
+              <ResultGroup
+                title="Caregivers"
+                icon={Users}
+                items={grouped.caregivers}
+                onSave={saveCandidate}
+              />
+            ) : activeGroup !== "caregiver" ? null : (
+              <section className="surface-card flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-secondary">
+                    <Users size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-semibold text-primary">No caregivers in this area yet</h3>
+                    <p className="mt-1 max-w-xl text-[13px] leading-5 text-secondary">
+                      Caregiver supply is onboarded directly through the OpenRx network rather than pulled from a
+                      public registry, and nobody has joined near this location yet.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/join-network"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-full bg-cyan-300 px-4 py-2 text-[12px] font-semibold text-black transition hover:bg-cyan-200"
+                >
+                  Join the network as a caregiver
+                  <ArrowRight size={14} />
+                </Link>
+              </section>
+            ))}
+          {visible.labs &&
+            (grouped.labs.length > 0 ? (
+              <ResultGroup
+                title="Labs"
+                icon={Search}
+                items={grouped.labs}
+                onSave={saveCandidate}
+              />
+            ) : activeGroup !== "lab" ? null : supplementalKind === "lab" ? (
+              <div className="surface-card flex items-center gap-3 p-5 text-sm text-secondary">
+                <Loader2 size={16} className="animate-spin text-teal" />
+                Searching the NPI registry for laboratory organizations near this location…
+              </div>
+            ) : (
+              <div className="surface-card p-5 text-sm text-secondary">
+                No laboratory organizations in the NPI registry matched this area. Try a nearby city or a ZIP code.
+              </div>
+            ))}
+          {visible.radiology &&
+            (grouped.radiology.length > 0 ? (
+              <ResultGroup
+                title="Radiology Centers"
+                icon={ShieldCheck}
+                items={grouped.radiology}
+                onSave={saveCandidate}
+              />
+            ) : activeGroup !== "radiology" ? null : supplementalKind === "radiology" ? (
+              <div className="surface-card flex items-center gap-3 p-5 text-sm text-secondary">
+                <Loader2 size={16} className="animate-spin text-teal" />
+                Searching the NPI registry for radiology and imaging centers near this location…
+              </div>
+            ) : (
+              <div className="surface-card p-5 text-sm text-secondary">
+                No radiology or imaging centers in the NPI registry matched this area. Try a nearby city or a ZIP code.
+              </div>
+            ))}
         </div>
       )}
 

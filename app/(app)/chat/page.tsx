@@ -434,7 +434,6 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
                 {block.text}
               </p>
             )
-
           }
           // Rationale lines read as supporting detail under their question,
           // not as more questions — the densest section stays scannable.
@@ -1031,8 +1030,7 @@ export default function ChatPage() {
             const placeholder = prev[placeholderIndex]
             if (!placeholder.content.trim()) return prev.filter((m) => m.id !== agentMsgId)
             return prev.map((m) =>
-              m.id === agentMsgId
-                ? { ...m, content: `${m.content}\n\n_Stopped._` } : m
+              m.id === agentMsgId ? { ...m, content: `${m.content}\n\n_Stopped._` } : m
             )
           })
         } else {

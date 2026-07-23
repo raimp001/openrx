@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && (test -z \"$DATABASE_URL\" || prisma migrate deploy) && next build",
+    "build": "prisma generate && next build",
+    "build:migrate": "prisma generate && prisma migrate deploy && next build",
     "db:deploy": "prisma migrate deploy",
     "start": "next start",
     "lint": "next lint",
@@ -25,7 +26,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@base-org/account": "^2.5.2",
-    "@coinbase/onchainkit": "^1.1.2",
+    "@coinbase/onchainkit": "^0.38.19",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@prisma/client": "^6.18.0",
     "@tanstack/react-query": "^5.90.21",

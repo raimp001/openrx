@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { getDatabaseHealth } from "@/lib/database-health"
+import { prisma } from "@/lib/db"
 
 interface NetworkApplicationRecord {
   id: string
@@ -40,10 +41,6 @@ interface AdminNotificationRecord {
   isRead: boolean
   createdAt: Date
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const prismaAny = prisma as any
-import { prisma } from "@/lib/db"
 
 export const OPENRX_ADMIN_ID = "admin-openrx" as const
 
@@ -219,7 +216,7 @@ async function canUseDatabaseStore(): Promise<boolean> {
   const health = await getDatabaseHealth()
   if (!health.reachable) return false
   try {
-    await prismaAny.networkApplicationRecord.count()
+    await prisma.networkApplicationRecord.count()
     return true
   } catch (error) {
     if (isMissingTableError(error)) return false
@@ -285,7 +282,7 @@ export async function submitNetworkApplication(input: {
     const now = new Date()
     const applicationId = createId("app")
     const [application] = await prisma.$transaction([
-      prismaAny.networkApplicationRecord.create({
+      prisma.networkApplicationRecord.create({
         data: {
           id: applicationId,
           role: input.role,
@@ -311,7 +308,7 @@ export async function submitNetworkApplication(input: {
           submittedAt: now,
         },
       }),
-      prismaAny.adminNotificationRecord.create({
+      prisma.adminNotificationRecord.create({
         data: {
           id: createId("ntf"),
           adminId: OPENRX_ADMIN_ID,
@@ -368,7 +365,7 @@ export async function submitNetworkApplication(input: {
 
 export async function deleteNetworkApplication(applicationId: string): Promise<void> {
   if (await canUseDatabaseStore()) {
-    await prismaAny.networkApplicationRecord.delete({ where: { id: applicationId } }).catch(() => undefined)
+    await prisma.networkApplicationRecord.delete({ where: { id: applicationId } }).catch(() => undefined)
     return
   }
 
@@ -383,7 +380,7 @@ export async function listNetworkApplications(params?: {
   role?: ApplicantRole
 }): Promise<NetworkApplication[]> {
   if (await canUseDatabaseStore()) {
-    const records = await prismaAny.networkApplicationRecord.findMany({
+    const records = await prisma.networkApplicationRecord.findMany({
       where: {
         ...(params?.status ? { status: params.status } : {}),
         ...(params?.role ? { role: params.role } : {}),
@@ -407,7 +404,7 @@ export async function reviewNetworkApplication(input: {
   notes?: string
 }): Promise<NetworkApplication> {
   if (await canUseDatabaseStore()) {
-    const existing = await prismaAny.networkApplicationRecord.findUnique({
+    const existing = await prisma.networkApplicationRecord.findUnique({
       where: { id: input.applicationId },
     })
     if (!existing) throw new Error("Application not found.")
@@ -418,7 +415,7 @@ export async function reviewNetworkApplication(input: {
 
     const now = new Date()
     const [application] = await prisma.$transaction([
-      prismaAny.networkApplicationRecord.update({
+      prisma.networkApplicationRecord.update({
         where: { id: input.applicationId },
         data: {
           status: input.decision,
@@ -427,7 +424,7 @@ export async function reviewNetworkApplication(input: {
           reviewNotes: input.notes,
         },
       }),
-      prismaAny.adminNotificationRecord.create({
+      prisma.adminNotificationRecord.create({
         data: {
           id: createId("ntf"),
           adminId: OPENRX_ADMIN_ID,
@@ -470,7 +467,7 @@ export async function reviewNetworkApplication(input: {
 
 export async function listAdminNotifications(adminId: string = OPENRX_ADMIN_ID): Promise<AdminNotification[]> {
   if (await canUseDatabaseStore()) {
-    const records = await prismaAny.adminNotificationRecord.findMany({
+    const records = await prisma.adminNotificationRecord.findMany({
       where: { adminId },
       orderBy: { createdAt: "desc" },
     })
@@ -483,7 +480,7 @@ export async function listAdminNotifications(adminId: string = OPENRX_ADMIN_ID):
 
 export async function markAdminNotificationRead(notificationId: string): Promise<AdminNotification> {
   if (await canUseDatabaseStore()) {
-    const notification = await prismaAny.adminNotificationRecord.update({
+    const notification = await prisma.adminNotificationRecord.update({
       where: { id: notificationId },
       data: { isRead: true },
     })

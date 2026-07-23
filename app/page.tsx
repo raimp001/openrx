@@ -59,6 +59,13 @@ const ink = "#211c16"
 const paper = "#f7f4ee"
 const ember = "#c2451e"
 
+const exampleQuestions = [
+  "What cancer screening does a 50-year-old woman need?",
+  "45, male, never screened for colorectal cancer — what's due?",
+  "Does Medicare cover an annual wellness visit?",
+  "My father had colon cancer at 48. When should I start screening?",
+]
+
 const demoPrompt =
   "“45, male, no symptoms, no family cancer history, never screened for colorectal cancer. What's due?”"
 
@@ -185,7 +192,7 @@ export default function HomePage() {
         {/* Hero */}
         <section
           className="px-4 pb-14 pt-16 sm:px-10 sm:pt-[88px]"
-          style={{ background: "linear-gradient(180deg,#f7f4ee 0%,#f2ede3 100%)" }}
+          style={{ background: paper }}
         >
           <div className="mx-auto flex w-full max-w-[1280px] flex-col items-center gap-6 text-center">
             <h1
@@ -199,6 +206,52 @@ export default function HomePage() {
             <p className="max-w-[46ch] text-[17px] leading-relaxed sm:text-[19px]" style={{ color: "rgba(33,28,22,.6)" }}>
               One question returns the answer, the guideline behind it, and the next care step
             </p>
+
+            {/* Ask input — the product is the hero */}
+            <form action="/chat" method="get" className="w-full max-w-[680px]">
+              <input type="hidden" name="autorun" value="1" />
+              <div
+                className="flex items-center gap-2 rounded-[12px] border bg-white p-2"
+                style={{ borderColor: "rgba(33,28,22,.2)" }}
+              >
+                <label htmlFor="hero-ask" className="sr-only">
+                  Ask a clinical or coverage question
+                </label>
+                <input
+                  id="hero-ask"
+                  name="prompt"
+                  type="text"
+                  required
+                  minLength={3}
+                  placeholder="Ask a clinical or coverage question…"
+                  className="min-h-[44px] min-w-0 flex-1 bg-transparent px-3 text-[16px] outline-none"
+                  style={{ color: ink }}
+                />
+                <button
+                  type="submit"
+                  className="min-h-[44px] shrink-0 rounded-[9px] px-5 text-[15px] font-medium text-white"
+                  style={{ background: ember }}
+                >
+                  Ask
+                </button>
+              </div>
+            </form>
+            <div className="flex max-w-[720px] flex-wrap items-center justify-center gap-2">
+              {exampleQuestions.map((question) => (
+                <Link
+                  key={question}
+                  href={{ pathname: "/chat", query: { prompt: question, autorun: "1" } }}
+                  className="rounded-full border bg-white px-3.5 py-2 text-left text-[13px] leading-snug"
+                  style={{ borderColor: "rgba(33,28,22,.16)", color: "rgba(33,28,22,.72)" }}
+                >
+                  {question}
+                </Link>
+              ))}
+            </div>
+            <p className="max-w-[52ch] text-[13.5px] leading-relaxed" style={{ color: "rgba(33,28,22,.55)" }}>
+              Answers drawn from USPSTF, CDC, NCCN, ACS, and CMS guidance — every recommendation names its source,
+              grade, and publication date.
+            </p>
             <Link
               href="/screening"
               className="rounded-lg px-6 py-3 text-[15px] font-medium text-white"
@@ -210,7 +263,7 @@ export default function HomePage() {
             {/* Demo panel */}
             <div
               className="mt-8 w-full max-w-[920px] overflow-hidden rounded-[14px] border bg-white text-left"
-              style={{ borderColor: "rgba(33,28,22,.14)", boxShadow: "0 30px 60px -30px rgba(33,28,22,.3)" }}
+              style={{ borderColor: "rgba(33,28,22,.14)", boxShadow: "0 12px 32px -24px rgba(33,28,22,.22)" }}
             >
               <div
                 className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-[18px]"
@@ -286,13 +339,15 @@ export default function HomePage() {
                           </span>
                         ) : null}
                         {example.source?.url ? (
-                          <Link
+                          <a
                             href={example.source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="rounded-full border bg-white px-2.5 py-1"
                             style={{ borderColor: "rgba(33,28,22,.15)", color: ember }}
                           >
                             rule: {recommendation.id} ↗
-                          </Link>
+                          </a>
                         ) : (
                           <span className="rounded-full border bg-white px-2.5 py-1" style={{ borderColor: "rgba(33,28,22,.15)", color: ember }}>
                             rule: {recommendation.id}
@@ -307,14 +362,14 @@ export default function HomePage() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Link
-                          href="/providers"
+                          href={{ pathname: "/providers", query: { kind: "lab" } }}
                           className="rounded-[7px] px-4 py-2 text-[13px] font-medium"
                           style={{ background: ink, color: paper }}
                         >
                           Find a screening site
-                        </Link>
+                         </Link>
                         <Link
-                          href="/providers"
+                          href={{ pathname: "/providers", query: { kind: "provider" } }}
                           className="rounded-[7px] border px-4 py-2 text-[13px] font-medium"
                           style={{ borderColor: "rgba(33,28,22,.2)", color: ink }}
                         >

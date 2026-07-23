@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Archivo, IBM_Plex_Mono } from "next/font/google"
 
 import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
+import { BrandMark } from "@/components/brand-logo"
 import { getGuidelineSource } from "@/lib/screening/sources"
 
 const archivo = Archivo({
@@ -152,13 +153,8 @@ export default function HomePage() {
         <div className="mx-auto flex h-16 w-full max-w-[1280px] items-center justify-between px-4 sm:px-10">
           <div className="flex items-center gap-9">
             <Link href="/" className="flex items-center gap-2.5" aria-label="OpenRx home">
-              <span
-                className="grid h-[22px] w-[22px] place-items-center rounded-[5px] text-[13px] font-black"
-                style={{ background: ember, color: paper }}
-                aria-hidden
-              >
-                +
-              </span>
+              {/* Shared brand mark so landing (light) and app shell (dark) read as one product */}
+              <BrandMark size="sm" tone="light" className="h-[26px] w-[26px] rounded-[6px]" />
               <span className="text-[17px] font-semibold tracking-[-0.01em]">OpenRx</span>
             </Link>
             <nav className="hidden items-center gap-6 text-[14px] md:flex" aria-label="Main" style={{ color: "rgba(33,28,22,.75)" }}>

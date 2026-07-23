@@ -1,6 +1,6 @@
 # Background agents & AWS (OpenClaw / OpenRx)
 
-OpenRx’s OpenClaw agents run inside the Next.js app via `runAgent` / `runCoordinator` in [`/Users/shardingdog/openrx/lib/ai-engine.ts`](/Users/shardingdog/openrx/lib/ai-engine.ts). Cron-style jobs are declared in [`/Users/shardingdog/openrx/lib/openclaw/config.ts`](/Users/shardingdog/openrx/lib/openclaw/config.ts) under `OPENCLAW_CONFIG.cronJobs`.
+OpenRx’s OpenClaw agents run inside the Next.js app via `runAgent` / `runCoordinator` in [`lib/ai-engine.ts`](lib/ai-engine.ts). Cron-style jobs are declared in [`lib/openclaw/config.ts`](lib/openclaw/config.ts) under `OPENCLAW_CONFIG.cronJobs`.
 
 If you want agents to keep working while your laptop sleeps, the correct shape is:
 
@@ -67,20 +67,20 @@ curl -fsS -X POST "https://openrx.health/api/openclaw/cron/screening-reminders" 
 
 The local autoresearch workspace now lives under:
 
-- [`/Users/shardingdog/openrx/tools/researcher-vm`](/Users/shardingdog/openrx/tools/researcher-vm)
+- [`tools/researcher-vm`](tools/researcher-vm)
 
 That workspace is intentionally isolated from the Next.js app. Use it as an auxiliary worker or experimentation kit, not as part of the request-response path for patients.
 
 Useful entry points:
 
-- [`/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-cron.sh`](/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-cron.sh)
-- [`/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-due-jobs.sh`](/Users/shardingdog/openrx/tools/researcher-vm/scripts/run-openrx-due-jobs.sh)
-- [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/bootstrap/setup-openrx-scheduler-vm.sh`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/bootstrap/setup-openrx-scheduler-vm.sh)
-- [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/env/openrx-research.example.env`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/env/openrx-research.example.env)
-- [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-cron@.service`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-cron@.service)
-- [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.service`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.service)
-- [`/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.timer`](/Users/shardingdog/openrx/tools/researcher-vm/deploy/systemd/openrx-scheduler.timer)
-- [`/Users/shardingdog/openrx/prisma/manual-migrations/20260323_core_prisma_tables.sql`](/Users/shardingdog/openrx/prisma/manual-migrations/20260323_core_prisma_tables.sql)
+- [`tools/researcher-vm/scripts/run-openrx-cron.sh`](tools/researcher-vm/scripts/run-openrx-cron.sh)
+- [`tools/researcher-vm/scripts/run-openrx-due-jobs.sh`](tools/researcher-vm/scripts/run-openrx-due-jobs.sh)
+- [`tools/researcher-vm/deploy/bootstrap/setup-openrx-scheduler-vm.sh`](tools/researcher-vm/deploy/bootstrap/setup-openrx-scheduler-vm.sh)
+- [`tools/researcher-vm/deploy/env/openrx-research.example.env`](tools/researcher-vm/deploy/env/openrx-research.example.env)
+- [`tools/researcher-vm/deploy/systemd/openrx-cron@.service`](tools/researcher-vm/deploy/systemd/openrx-cron@.service)
+- [`tools/researcher-vm/deploy/systemd/openrx-scheduler.service`](tools/researcher-vm/deploy/systemd/openrx-scheduler.service)
+- [`tools/researcher-vm/deploy/systemd/openrx-scheduler.timer`](tools/researcher-vm/deploy/systemd/openrx-scheduler.timer)
+- `prisma/migrations/` (canonical schema migrations; apply with `npx prisma migrate deploy`)
 
 ## Recommended cutover
 
@@ -94,7 +94,7 @@ Useful entry points:
 If the live cron route reports missing core tables like `public.users`, do this first:
 
 1. Open Supabase SQL Editor.
-2. Run [`/Users/shardingdog/openrx/prisma/manual-migrations/20260323_core_prisma_tables.sql`](/Users/shardingdog/openrx/prisma/manual-migrations/20260323_core_prisma_tables.sql).
+2. Apply the Prisma migrations (`npx prisma migrate deploy`; the consolidated schema lives in `prisma/migrations/`).
 3. Re-run one authenticated cron request and confirm warnings about unavailable core tables disappear.
 
 Then cut over the scheduler host:
@@ -136,7 +136,7 @@ OPENRX_WORKER_TYPE=aws-scheduler
 AWS_REGION=us-east-1
 ```
 
-After the AWS timer is stable and `/api/openclaw/status` shows only the AWS worker path you want, remove the `crons` block from [`/Users/shardingdog/openrx/vercel.json`](/Users/shardingdog/openrx/vercel.json) and redeploy.
+After the AWS timer is stable and `/api/openclaw/status` shows only the AWS worker path you want, remove the `crons` block from [`vercel.json`](vercel.json) and redeploy.
 
 ## Guardrails
 

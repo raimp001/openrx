@@ -19,7 +19,6 @@ import {
   Stethoscope,
   FlaskConical,
   Heart,
-  Loader2,
   Menu,
   ExternalLink,
   AlertTriangle,
@@ -161,17 +160,17 @@ const SECTION_LABELS: Record<string, { variant: "due" | "review" | "upcoming" | 
 }
 
 const sectionTone: Record<string, string> = {
-  due: "text-cyan-50 bg-cyan-950/30 border-cyan-300/20",
-  review: "text-amber-100 bg-amber-950/30 border-amber-400/20",
-  upcoming: "text-sky-100 bg-sky-950/24 border-sky-400/20",
-  current: "text-emerald-100 bg-emerald-950/24 border-emerald-400/20",
-  followup: "text-zinc-200 bg-white/[0.04] border-white/10",
-  next: "text-zinc-100 bg-white/[0.05] border-white/12",
-  answer: "text-white bg-white/[0.06] border-white/12",
-  refs: "text-zinc-300 bg-white/[0.04] border-white/10",
-  safety: "text-amber-100 bg-amber-950/30 border-amber-400/20",
-  care: "text-cyan-50 bg-cyan-950/18 border-cyan-200/14",
-  info: "text-zinc-300 bg-white/[0.04] border-white/10",
+  due: "text-cyan-900 bg-cyan-50 border-cyan-200",
+  review: "text-amber-900 bg-amber-50 border-amber-300/60",
+  upcoming: "text-sky-900 bg-sky-50 border-sky-200",
+  current: "text-emerald-900 bg-emerald-50 border-emerald-300/60",
+  followup: "text-zinc-700 bg-zinc-50 border-zinc-200",
+  next: "text-zinc-800 bg-zinc-50 border-zinc-200",
+  answer: "text-zinc-900 bg-zinc-50 border-zinc-200",
+  refs: "text-zinc-600 bg-zinc-50 border-zinc-200",
+  safety: "text-amber-900 bg-amber-50 border-amber-300/60",
+  care: "text-cyan-900 bg-cyan-50 border-cyan-200",
+  info: "text-zinc-600 bg-zinc-50 border-zinc-200",
 }
 
 interface ParsedSection {
@@ -276,7 +275,7 @@ function renderInlineLinks(text: string, keyPrefix: string) {
         href={part.url}
         target={part.url.startsWith("http") ? "_blank" : undefined}
         rel={part.url.startsWith("http") ? "noreferrer" : undefined}
-        className="font-medium text-cyan-200 underline decoration-cyan-200/40 underline-offset-2 transition hover:text-cyan-100 hover:decoration-cyan-100"
+        className="font-medium text-cyan-700 underline decoration-cyan-700/40 underline-offset-2 transition hover:text-cyan-900 hover:decoration-cyan-900"
       >
         {part.label}
       </a>
@@ -319,23 +318,23 @@ function SourceAuditChip({ text }: { text: string }) {
           target="_blank"
           rel="noreferrer"
           onClick={() => trackWorkflowEvent("source_opened", { surface: "chat_inline_source" })}
-          className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-cyan-200/20 bg-cyan-200/[0.08] px-2.5 py-1 font-medium text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-200/[0.14]"
+          className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-cyan-700/25 bg-cyan-50 px-2.5 py-1 font-medium text-cyan-800 transition hover:border-cyan-700/50 hover:bg-cyan-100"
         >
           <span className="truncate">{source.label}</span>
           <ExternalLink size={10} className="shrink-0" />
         </a>
       ) : (
-        <span className="inline-flex max-w-full rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 font-medium text-zinc-200">
+        <span className="inline-flex max-w-full rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-medium text-zinc-700">
           <span className="truncate">{source.label}</span>
         </span>
       )}
       {source.grade ? (
-        <span className="rounded-full border border-white/10 bg-white/[0.045] px-2 py-1 font-medium text-zinc-300">
+        <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 font-medium text-zinc-600">
           {source.grade}
         </span>
       ) : null}
       {source.sourceVersion ? (
-        <span className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 font-medium text-zinc-400">
+        <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 font-medium text-zinc-500">
           Version {source.sourceVersion}
         </span>
       ) : null}
@@ -389,7 +388,7 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
           {items.map((block, i) => (
             <div
               key={`care-${i}`}
-              className="rounded-[10px] border border-white/10 bg-black/20 px-3 py-2.5 text-[14px] leading-6 text-zinc-100"
+              className="rounded-[10px] border border-cyan-200 bg-white px-3 py-2.5 text-[14px] leading-6 text-zinc-800"
             >
               {renderInlineLinks(block.text, `care-${i}`)}
             </div>
@@ -415,14 +414,14 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
         <p
           className={cn(
             "mb-2.5 flex items-center gap-1.5 text-[10.5px] font-semibold uppercase",
-            boxed ? "tracking-[0.12em] text-current" : "tracking-[0.16em] text-zinc-300"
+            boxed ? "tracking-[0.12em] text-current" : "tracking-[0.16em] text-zinc-500"
           )}
         >
           {Icon ? <Icon size={12} /> : null}
           {section.heading}
         </p>
       ) : null}
-      <div className={cn("space-y-2", section.variant === "answer" ? "font-serif text-[17.5px] leading-8" : "text-[15px] leading-7", "text-zinc-100")}>
+      <div className={cn("space-y-2", section.variant === "answer" ? "font-serif text-[17.5px] leading-8" : "text-[15px] leading-7", "text-zinc-800")}>
         {blocks.map((block, i) => {
           if (block.kind === "blank") return <div key={`b-${i}`} className="h-1.5" />
           const sourceAudit = parseSourceAuditLine(block.text)
@@ -431,16 +430,17 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
           // as part of the clinical sentence.
           if (/\bRule: |openrx-screening-engine-\d|openrx-hotfix-prevention-rules-\d/.test(block.text)) {
             return (
-              <p key={`b-${i}`} className={cn("font-mono text-[10.5px] tracking-wide text-zinc-400", block.kind === "bullet" && "pl-5")}>
+              <p key={`b-${i}`} className={cn("font-mono text-[10.5px] tracking-wide text-zinc-500", block.kind === "bullet" && "pl-5")}>
                 {block.text}
               </p>
             )
+
           }
           // Rationale lines read as supporting detail under their question,
           // not as more questions — the densest section stays scannable.
           if (/^Why this matters:/i.test(block.text)) {
             return (
-              <p key={`b-${i}`} className={cn("text-[13px] leading-6 text-zinc-400", block.kind === "bullet" && "pl-5")}>
+              <p key={`b-${i}`} className={cn("text-[13px] leading-6 text-zinc-500", block.kind === "bullet" && "pl-5")}>
                 {renderInlineLinks(block.text, `b-${i}`)}
               </p>
             )
@@ -449,14 +449,14 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
             return (
               <p
                 key={`b-${i}`}
-                className="pl-5 before:-ml-5 before:mr-2.5 before:text-cyan-300/70 before:content-['•']"
+                className="pl-5 before:-ml-5 before:mr-2.5 before:text-cyan-700/70 before:content-['•']"
               >
                 {renderInlineLinks(block.text, `b-${i}`)}
               </p>
             )
           }
           return (
-            <p key={`b-${i}`} className={cn(section.variant === "answer" && "font-medium text-zinc-50")}>
+            <p key={`b-${i}`} className={cn(section.variant === "answer" && "font-medium text-zinc-900")}>
               {renderInlineLinks(block.text, `b-${i}`)}
             </p>
           )
@@ -469,8 +469,8 @@ function SectionBlock({ section, idx }: { section: ParsedSection; idx: number })
 function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
   if (!citations.length) return null
   return (
-    <div data-testid="chat-citations" className="mt-3 flex flex-wrap gap-2 border-t border-white/12 pt-3">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-300">Sources</span>
+    <div data-testid="chat-citations" className="mt-3 flex flex-wrap gap-2 border-t border-zinc-200 pt-3">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Sources</span>
       {citations.map((c, i) => (
         <a
           key={`${c.url}-${i}`}
@@ -479,7 +479,7 @@ function CitationRail({ citations }: { citations: ParsedAnswer["citations"] }) {
           rel="noreferrer"
           onClick={() => trackWorkflowEvent("source_opened", { surface: "chat" })}
           data-testid="chat-citation"
-          className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/20 bg-cyan-200/[0.08] px-2.5 py-1 text-[11px] font-medium text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-200/[0.14]"
+          className="inline-flex items-center gap-1.5 rounded-full border border-cyan-700/25 bg-cyan-50 px-2.5 py-1 text-[11px] font-medium text-cyan-800 transition hover:border-cyan-700/50 hover:bg-cyan-100"
         >
           {c.label}
           <ExternalLink size={10} />
@@ -556,7 +556,7 @@ function CopyButton({ text }: { text: string }) {
       onClick={onCopy}
       data-testid="chat-copy-button"
       aria-label={copied ? "Copied" : "Copy answer"}
-      className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] font-medium text-zinc-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+      className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] font-medium text-zinc-500 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
     >
       {copied ? <Check size={11} /> : <Copy size={11} />}
       {copied ? "Copied" : "Copy"}
@@ -566,7 +566,7 @@ function CopyButton({ text }: { text: string }) {
 
 function StreamingCursor() {
   return (
-    <span className="ml-0.5 inline-block h-[14px] w-[2px] translate-y-[2px] animate-pulse bg-cyan-300/80 align-middle" aria-hidden />
+    <span className="ml-0.5 inline-block h-[14px] w-[2px] translate-y-[2px] animate-pulse bg-cyan-700/80 align-middle" aria-hidden />
   )
 }
 
@@ -586,8 +586,8 @@ function SmartCareActions({
       className="fixed right-5 top-24 z-20 hidden w-[330px] 2xl:right-[calc((100vw-1440px)/2+24px)] 2xl:block"
     >
       <div className="space-y-2">
-        <ChatActionPlan items={items} title="Care actions" layout="rail" testIdPrefix="chat-rail-action" onPrompt={onPrompt} />
-        <p className="px-1 text-[11px] leading-5 text-zinc-400">
+        <ChatActionPlan items={items} title="Care actions" layout="rail" testIdPrefix="chat-rail-action" onPrompt={onPrompt} surface="light" />
+        <p className="px-1 text-[11px] leading-5 text-zinc-500">
           These actions search public directories or prepare the next message. They do not place orders or confirm provider availability.
         </p>
       </div>
@@ -1031,7 +1031,8 @@ export default function ChatPage() {
             const placeholder = prev[placeholderIndex]
             if (!placeholder.content.trim()) return prev.filter((m) => m.id !== agentMsgId)
             return prev.map((m) =>
-              m.id === agentMsgId ? { ...m, content: `${m.content}\n\n_Stopped._` } : m
+              m.id === agentMsgId
+                ? { ...m, content: `${m.content}\n\n_Stopped._` } : m
             )
           })
         } else {
@@ -1096,7 +1097,7 @@ export default function ChatPage() {
     <div className={cn(placement === "hero" ? "w-full" : "sticky bottom-2 mb-2")}>
       <form
         className={cn(
-          "group flex items-end gap-2 border border-white/12 bg-[#0d0f0f]/95 px-4 shadow-[0_26px_90px_rgba(0,0,0,0.50)] backdrop-blur-xl transition focus-within:border-cyan-200/45 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.10),0_28px_92px_rgba(0,0,0,0.58)]",
+          "group flex items-end gap-2 border border-zinc-300 bg-white px-4 shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition focus-within:border-cyan-700/60 focus-within:shadow-[0_0_0_3px_rgba(14,116,144,0.12),0_8px_30px_rgba(0,0,0,0.10)]",
           placement === "hero" ? "rounded-[16px] py-3" : "rounded-[14px] py-2.5"
         )}
         onSubmit={(event) => {
@@ -1128,7 +1129,7 @@ export default function ChatPage() {
           disabled={isLoadingConversation}
           rows={1}
           className={cn(
-            "block w-full flex-1 resize-none overflow-hidden border-0 bg-transparent py-1.5 text-zinc-50 outline-none placeholder:text-zinc-400",
+            "block w-full flex-1 resize-none overflow-hidden border-0 bg-transparent py-1.5 text-zinc-900 outline-none placeholder:text-zinc-400",
             placement === "hero" ? "min-h-[56px] text-[17px] leading-7" : "min-h-[36px] text-[15px] leading-6"
           )}
         />
@@ -1138,12 +1139,9 @@ export default function ChatPage() {
             onClick={stopGeneration}
             data-testid="chat-stop-button"
             aria-label="Stop generating"
-            className={cn(
-              "mb-0.5 inline-flex shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/[0.06] text-zinc-100 transition hover:border-white/40 hover:bg-white/[0.12]",
-              placement === "hero" ? "h-10 w-10" : "h-9 w-9"
-            )}
+            className="mb-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-zinc-300 bg-white text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100"
           >
-            <span className={cn("rounded-[2px] bg-zinc-100", placement === "hero" ? "h-3 w-3" : "h-2.5 w-2.5")} />
+            <span className="h-3 w-3 rounded-[2px] bg-zinc-700" />
           </button>
         ) : (
           <button
@@ -1151,16 +1149,13 @@ export default function ChatPage() {
             data-testid="chat-send-button"
             disabled={isLoadingConversation || !input.trim()}
             aria-label="Send"
-            className={cn(
-              "mb-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-cyan-200 text-black shadow-[0_10px_28px_rgba(103,232,249,0.16)] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40",
-              placement === "hero" ? "h-10 w-10" : "h-9 w-9"
-            )}
+            className="mb-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cyan-700 text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <ArrowUp size={placement === "hero" ? 16 : 14} />
+            <ArrowUp size={16} />
           </button>
         )}
       </form>
-      <p className="mt-2 px-3 text-center text-[11px] text-zinc-300">
+      <p className="mt-2 px-3 text-center text-[11px] text-zinc-500">
         {isLoading
           ? "Press Esc to stop."
           : "Educational guidance. A clinician confirms decisions."}
@@ -1172,16 +1167,15 @@ export default function ChatPage() {
     <div
       data-openrx-chat-workspace
       className={cn(
-        "relative isolate mx-auto flex min-h-screen animate-fade-in flex-col overflow-hidden bg-[#050505] px-4 text-zinc-100 sm:px-6",
+        "relative isolate mx-auto flex min-h-screen animate-fade-in flex-col overflow-hidden bg-white px-4 text-zinc-900 sm:px-6",
         showEmptyState ? "max-w-5xl justify-start" : "max-w-3xl"
       )}
     >
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[#050505]" />
       {showEmptyState ? (
         <button
           type="button"
           onClick={openChatHistory}
-          className="absolute left-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0b0b0b]/82 text-zinc-200 shadow-[0_12px_30px_rgba(0,0,0,0.26)] backdrop-blur-xl transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white lg:hidden"
+          className="absolute left-4 top-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 lg:hidden"
           aria-label="Open chat history"
           data-testid="chat-history-mobile-trigger"
         >
@@ -1194,10 +1188,10 @@ export default function ChatPage() {
           className="flex min-h-screen flex-1 items-start justify-center px-2 pb-14 pt-[20svh] sm:pt-[22svh] lg:pt-[20svh]"
         >
           <section className="mx-auto w-full max-w-3xl text-center">
-            <h1 className="orx-display-heading mx-auto max-w-2xl text-[clamp(2.25rem,7vw,3.65rem)] text-white">
+            <h1 className="orx-display-heading mx-auto max-w-2xl text-[clamp(2.25rem,7vw,3.65rem)] text-zinc-900">
               Ask OpenRx
             </h1>
-            <p className="mx-auto mt-3 max-w-xl text-balance text-[14px] leading-6 text-zinc-400 sm:text-[15px]">
+            <p className="mx-auto mt-3 max-w-xl text-balance text-[14px] leading-6 text-zinc-500 sm:text-[15px]">
               Source-linked answers with the next care step.
             </p>
 
@@ -1207,7 +1201,7 @@ export default function ChatPage() {
               <div
                 role="alert"
                 data-testid="chat-error"
-                className="mt-3 flex max-w-3xl items-center gap-2 rounded-[10px] border border-red-400/25 bg-red-950/30 px-3 py-2 text-left text-[13px] text-red-100"
+                className="mt-3 flex max-w-3xl items-center gap-2 rounded-[10px] border border-red-300 bg-red-50 px-3 py-2 text-left text-[13px] text-red-700"
               >
                 <AlertTriangle size={14} />
                 {errorBanner}
@@ -1222,6 +1216,7 @@ export default function ChatPage() {
                 columns="three"
                 label="Care service links"
                 compact
+                surface="light"
                 items={SERVICE_LINKS.map((item, index) => ({
                   id: item.id,
                   label: item.label,
@@ -1244,20 +1239,20 @@ export default function ChatPage() {
         <>
       <SmartCareActions items={latestActionItems} onPrompt={handleActionPrompt} />
       {/* Header */}
-      <header className="flex items-center justify-between gap-3 border-b border-white/10 pb-3 pt-4">
+      <header className="flex items-center justify-between gap-3 border-b border-zinc-200 pb-3 pt-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <button
             type="button"
             onClick={openChatHistory}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-zinc-200 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white lg:hidden"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 lg:hidden"
             aria-label="Open chat history"
             data-testid="chat-history-mobile-trigger"
           >
             <Menu size={18} />
           </button>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-300">Ask OpenRx</p>
-            <h1 className="truncate text-[18px] font-semibold tracking-tight text-white">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Ask OpenRx</p>
+            <h1 className="truncate text-[18px] font-semibold tracking-tight text-zinc-900">
               Care answer
             </h1>
           </div>
@@ -1265,9 +1260,9 @@ export default function ChatPage() {
         <div className="flex items-center gap-2">
           <span
             data-testid="chat-status-indicator"
-            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-200"
+            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-800"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             online
           </span>
           <span
@@ -1275,19 +1270,19 @@ export default function ChatPage() {
             className={cn(
               "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium md:inline-flex",
               isConnected
-                ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-                : "border-white/12 bg-white/[0.05] text-zinc-300"
+                ? "border-emerald-600/30 bg-emerald-50 text-emerald-800"
+                : "border-zinc-200 bg-zinc-50 text-zinc-600"
             )}
           >
             <span
-              className={cn("h-1.5 w-1.5 rounded-full", isConnected ? "bg-emerald-400" : "bg-zinc-600")}
+              className={cn("h-1.5 w-1.5 rounded-full", isConnected ? "bg-emerald-500" : "bg-zinc-400")}
             />
             {isConnected ? "Personalized" : "General"}
           </span>
           <button
             type="button"
             onClick={clearChat}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isLoading || messages.length <= 1}
             data-testid="chat-clear"
             aria-label="Clear"
@@ -1308,9 +1303,16 @@ export default function ChatPage() {
         aria-label="Chat conversation"
       >
         {isLoadingConversation ? (
-          <div className="mx-auto max-w-sm rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm text-zinc-400" data-testid="chat-loading-conversation">
-            <Loader2 size={15} className="mx-auto mb-2 animate-spin text-cyan-300" />
-            Restoring the clinical thread...
+          <div className="mx-auto max-w-2xl space-y-3 rounded-[14px] border border-zinc-200 bg-zinc-50 px-4 py-4" data-testid="chat-loading-conversation" aria-label="Restoring the clinical thread">
+            <div className="orx-skeleton-on-light h-3.5 w-1/4 rounded" />
+            <div className="orx-skeleton-on-light h-3 w-full rounded" />
+            <div className="orx-skeleton-on-light h-3 w-11/12 rounded" />
+            <div className="orx-skeleton-on-light h-3 w-3/4 rounded" />
+            <div className="flex gap-2 pt-1">
+              <div className="orx-skeleton-on-light h-6 w-24 rounded-full" />
+              <div className="orx-skeleton-on-light h-6 w-28 rounded-full" />
+            </div>
+            <span className="sr-only">Restoring the clinical thread...</span>
           </div>
         ) : null}
 
@@ -1327,7 +1329,7 @@ export default function ChatPage() {
               <div key={msg.id} data-chat-message-id={msg.id} className="flex justify-end">
                 <div
                   data-testid="chat-message-user"
-                  className="max-w-[85%] whitespace-pre-wrap rounded-[20px] border border-cyan-200/12 bg-cyan-200/[0.085] px-4 py-3 text-[15px] leading-7 text-cyan-50"
+                  className="max-w-[85%] whitespace-pre-wrap rounded-[20px] border border-cyan-700/20 bg-cyan-50 px-4 py-3 text-[15px] leading-7 text-zinc-900"
                 >
                   {msg.content}
                 </div>
@@ -1357,13 +1359,13 @@ export default function ChatPage() {
             <article key={msg.id} data-chat-message-id={msg.id} data-testid="chat-message-agent" className="animate-fade-in scroll-mt-4">
               <div className="px-1 sm:px-0">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-300">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-cyan-200/12 bg-cyan-200/[0.055] text-cyan-300/80">
+                  <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-cyan-700/20 bg-cyan-50 text-cyan-700">
                       <Icon size={11} />
                     </span>
                     {meta?.label || "OpenRx"}
                     {isStreamingThis ? (
-                      <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-zinc-300">
+                      <span className="ml-1 text-[10px] font-medium normal-case tracking-normal text-zinc-500">
                         streaming…
                       </span>
                     ) : null}
@@ -1376,13 +1378,13 @@ export default function ChatPage() {
                   ) : null}
                 </div>
                 {showEmptyStreamingIndicator ? (
-                  <div className="flex items-center gap-1 py-2 text-[14px] text-zinc-400" data-testid="chat-loading">
-                    Thinking
-                    <span className="ml-1 inline-flex items-center gap-1">
-                      <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "0ms" }} />
-                      <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "120ms" }} />
-                      <span className="typing-dot h-1 w-1 rounded-full bg-zinc-500" style={{ animationDelay: "240ms" }} />
-                    </span>
+                  <div className="space-y-2.5 py-2" data-testid="chat-loading" aria-label="Generating answer">
+                    <div className="orx-skeleton-on-light h-4 w-2/5 rounded" />
+                    <div className="orx-skeleton-on-light h-3 w-full rounded" />
+                    <div className="orx-skeleton-on-light h-3 w-11/12 rounded" />
+                    <div className="orx-skeleton-on-light h-3 w-4/5 rounded" />
+                    <div className="orx-skeleton-on-light h-3 w-3/5 rounded" />
+                    <span className="sr-only">Thinking</span>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1395,7 +1397,7 @@ export default function ChatPage() {
                         type="button"
                         onClick={() => void sendMessage(previousUserMessage.content, msg.agentId as AgentId | undefined)}
                         data-testid="chat-retry"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/25 bg-cyan-200/[0.08] px-3.5 py-2 text-[12px] font-semibold text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-200/[0.14]"
+                        className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-cyan-700/30 bg-cyan-50 px-3.5 py-2 text-[12px] font-semibold text-cyan-800 transition hover:border-cyan-700/55 hover:bg-cyan-100"
                       >
                         <RotateCcw size={12} />
                         Try again
@@ -1403,7 +1405,7 @@ export default function ChatPage() {
                     ) : null}
                     {inlineActionItems.length ? (
                       <div className="pt-1 2xl:hidden">
-                        <ChatActionPlan items={inlineActionItems} title="Care actions" layout="dock" onPrompt={handleActionPrompt} />
+                        <ChatActionPlan items={inlineActionItems} title="Care actions" layout="dock" onPrompt={handleActionPrompt} surface="light" />
                       </div>
                     ) : null}
                     {safetyHold?.messageId === msg.id ? (
@@ -1413,9 +1415,10 @@ export default function ChatPage() {
                         onAcknowledge={() => setSafetyHold((current) => current ? { ...current, acknowledged: true } : current)}
                       />
                     ) : null}
-                    {carePlanDraft && !isStreamingThis && !isClarifyingScreeningIntake ? <CarePlanPreview draft={carePlanDraft} compact /> : null}
+                    {carePlanDraft && !isStreamingThis && !isClarifyingScreeningIntake ? <CarePlanPreview draft={carePlanDraft} compact surface="light" /> : null}
                     {!isStreamingThis && msg.content.trim() ? (
                       <TrustDrawer
+                        surface="light"
                         sources={trustSources}
                         inputsUsed={carePlanDraft ? [carePlanDraft.patientContextSummary] : hasScreeningInputs ? [screeningInputSummary!] : []}
                         inputsNotUsed={carePlanDraft || hasScreeningInputs ? ["Insurance and payer network", "Full medical record"] : ["No saved patient profile required"]}
@@ -1440,9 +1443,9 @@ export default function ChatPage() {
             type="button"
             onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })}
             data-testid="chat-jump-to-latest"
-            className="pointer-events-auto absolute -top-12 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/14 bg-[#101010]/95 px-3.5 py-2 text-[12px] font-semibold text-zinc-100 shadow-[0_14px_38px_rgba(0,0,0,0.5)] backdrop-blur-xl transition hover:border-cyan-200/35 hover:text-white"
+            className="pointer-events-auto absolute -top-12 left-1/2 z-10 inline-flex min-h-[44px] -translate-x-1/2 items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-3.5 py-2 text-[12px] font-semibold text-zinc-800 shadow-[0_10px_28px_rgba(0,0,0,0.12)] transition hover:border-cyan-700/40 hover:text-zinc-900"
           >
-            <ArrowDown size={13} className="text-cyan-200" />
+            <ArrowDown size={13} className="text-cyan-700" />
             Jump to latest
           </button>
         </div>
@@ -1453,7 +1456,7 @@ export default function ChatPage() {
         <div
           role="alert"
           data-testid="chat-error"
-          className="mb-3 flex items-center gap-2 rounded-[10px] border border-red-400/25 bg-red-950/30 px-3 py-2 text-[13px] text-red-100"
+          className="mb-3 flex items-center gap-2 rounded-[10px] border border-red-300 bg-red-50 px-3 py-2 text-[13px] text-red-700"
         >
           <AlertTriangle size={14} />
           {errorBanner}

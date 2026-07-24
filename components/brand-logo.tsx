@@ -81,8 +81,8 @@ export function BrandWordmark({
   tone = "light",
 }: BrandWordmarkProps) {
   const Title = titleAs
-  const titleColor = tone === "dark" ? "text-white" : "text-primary"
-  const subtitleColor = tone === "dark" ? "text-white/56" : "text-muted"
+  const titleColor = tone === "dark" ? "text-white" : "text-zinc-900"
+  const subtitleColor = tone === "dark" ? "text-white/56" : "text-zinc-500"
 
   return (
     <div className={cn("min-w-0", className)}>

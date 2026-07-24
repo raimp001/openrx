@@ -1236,7 +1236,7 @@ export default function ScreeningPage() {
   }
 
   return (
-    <div data-openrx-screening-workspace className="animate-slide-up space-y-5 sm:space-y-6">
+    <div data-openrx-screening-workspace data-openrx-warm className="animate-slide-up space-y-5 sm:space-y-6">
       <section className="px-0 pt-2">
         <div className="mx-auto max-w-5xl border-b border-white/10 pb-5 text-left">
           <h1 className="orx-display-heading max-w-2xl text-[clamp(2rem,4.2vw,3rem)] text-primary">

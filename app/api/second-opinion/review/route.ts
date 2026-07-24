@@ -10,7 +10,7 @@ import {
   withModelApiBoundary,
 } from "@/lib/openclaw/model-boundary"
 
-// Pull Orion's (second-opinion agent) system prompt from config
+// Pull the second-opinion agent system prompt from config
 const ORION = OPENCLAW_CONFIG.agents.find((a) => a.id === "second-opinion")!
 
 const ORION_JSON_INSTRUCTIONS = `
@@ -43,7 +43,7 @@ async function reviewWithClaude(input: SecondOpinionInput): Promise<SecondOpinio
     .filter(Boolean)
     .join("\n")
 
-  // Extended thinking enabled — Orion reasons privately before answering
+  // Extended thinking enabled — OpenRx reasons privately before answering
   const resp = await withModelApiBoundary("second-opinion-claude", () => client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 16000,

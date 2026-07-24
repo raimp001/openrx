@@ -166,7 +166,7 @@ export default function PAAuditPage() {
         />
       </div>
 
-      <section className="overflow-hidden rounded-[30px] border border-[rgba(82,108,139,0.12)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] text-white shadow-[0_24px_70px_rgba(8,24,46,0.17)]">
+      <section className="overflow-hidden rounded-[30px] border border-zinc-200 bg-white shadow-soft-card">
         <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="px-6 py-6 sm:px-7">
             <div className="section-title text-white/55">Audit posture</div>
@@ -178,10 +178,10 @@ export default function PAAuditPage() {
               actor, event type, and supporting details visible without claiming a real submission occurred.
             </p>
           </div>
-          <div className="border-t border-white/10 bg-white/[0.04] px-6 py-6 lg:border-l lg:border-t-0">
+          <div className="border-t border-zinc-200 bg-white/[0.04] px-6 py-6 lg:border-l lg:border-t-0">
             <div className="section-title text-white/55">Latest signal</div>
             {latestEvent ? (
-              <div className="mt-4 rounded-[24px] border border-white/10 bg-black/12 p-4">
+              <div className="mt-4 rounded-[24px] border border-zinc-200 bg-black/12 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]", eventTone(latestEvent.type))}>
                     {EVENT_TYPE_LABELS[latestEvent.type]}

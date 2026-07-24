@@ -400,7 +400,7 @@ export default function OutreachPage() {
                   inputMode="tel"
                   className="block w-full rounded-[10px] border border-border bg-white px-3 py-2 font-mono text-[14px] text-primary outline-none transition focus:border-teal/60 focus:shadow-focus"
                 />
-                <span className="text-[11px] text-muted">
+                <span className="block text-[11px] leading-5 text-muted">
                   OpenRx stores only the last four digits after the call is placed. Your personal number is never sent to the patient.
                 </span>
               </label>
@@ -421,7 +421,7 @@ export default function OutreachPage() {
                   ))}
                 </select>
                 {selectedCaller ? (
-                  <span data-testid="outreach-caller-id-preview" className="text-[11px] text-muted">
+                  <span data-testid="outreach-caller-id-preview" className="block text-[11px] leading-5 text-muted">
                     Patient will see: <span className="font-mono">{selectedCaller.maskedNumber}</span>
                   </span>
                 ) : null}

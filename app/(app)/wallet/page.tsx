@@ -30,6 +30,7 @@ import {
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import type { PaymentRecord } from "@/lib/payments-ledger"
+import { FundingRails } from "@/components/payments/funding-rails"
 
 interface LedgerSnapshotResponse {
   payments: PaymentRecord[]
@@ -359,6 +360,16 @@ export default function WalletPage() {
               <p className="mt-1 text-[10px] text-muted">Transparent pricing for diagnostics, imaging, and lab work.</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {isConnected && (
+        <div className="surface-card p-6 text-primary">
+          <h2 className="text-base font-serif text-primary">Fund your payment address</h2>
+          <p className="mt-1 text-xs text-muted">
+            Buy USDC on Base with a card or bank account, or withdraw from an exchange to the connected address.
+          </p>
+          <FundingRails walletAddress={walletAddress} amount="25" className="mt-4" />
         </div>
       )}
 

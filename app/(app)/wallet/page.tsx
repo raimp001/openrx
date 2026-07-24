@@ -25,6 +25,7 @@ import {
   Loader2,
   Copy,
   Check,
+  LockKeyhole,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -89,6 +90,15 @@ export default function WalletPage() {
   const [loadingPayments, setLoadingPayments] = useState(false)
   const [paymentsError, setPaymentsError] = useState("")
   const [copiedField, setCopiedField] = useState<"wallet" | "treasury" | "developer" | null>(null)
+  const [adminUnlocked, setAdminUnlocked] = useState(false)
+
+  useEffect(() => {
+    try {
+      setAdminUnlocked(Boolean(window.sessionStorage.getItem("openrx.admin.api.key")))
+    } catch {
+      setAdminUnlocked(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!walletAddress) {
@@ -497,40 +507,57 @@ export default function WalletPage() {
             </p>
           </div>
         </div>
-        <div className="mt-4 space-y-3">
-          <div className="rounded-[22px] border border-border/60 bg-white/72 px-4 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+        {adminUnlocked ? (
+          <div className="mt-4 space-y-3">
+            <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 px-4 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Platform treasury</div>
+                  <code className="mt-2 block break-all font-mono text-[12px] text-primary">{PLATFORM_WALLET}</code>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void copyValue(PLATFORM_WALLET, "treasury")}
+                  className="control-button-secondary h-auto min-h-0 px-3 py-2 text-[11px]"
+                >
+                  {copiedField === "treasury" ? <Check size={12} /> : <Copy size={12} />}
+                  {copiedField === "treasury" ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+            <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 px-4 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Developer payment account</div>
+                  <code className="mt-2 block break-all font-mono text-[12px] text-primary">{DEVELOPER_WALLET}</code>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void copyValue(DEVELOPER_WALLET, "developer")}
+                  className="control-button-secondary h-auto min-h-0 px-3 py-2 text-[11px]"
+                >
+                  {copiedField === "developer" ? <Check size={12} /> : <Copy size={12} />}
+                  {copiedField === "developer" ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 rounded-[22px] border border-zinc-200 bg-zinc-50 px-4 py-4">
+            <div className="flex items-start gap-3">
+              <LockKeyhole size={14} className="mt-0.5 shrink-0 text-muted" />
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Platform treasury</div>
-                <code className="mt-2 block break-all font-mono text-[12px] text-primary">{PLATFORM_WALLET}</code>
+                <code className="mt-1 block font-mono text-[12px] text-secondary">{maskAddress(PLATFORM_WALLET)}</code>
+                <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Developer payment account</div>
+                <code className="mt-1 block font-mono text-[12px] text-secondary">{maskAddress(DEVELOPER_WALLET)}</code>
+                <p className="mt-3 text-[11px] leading-5 text-muted">
+                  Full platform addresses are restricted to OpenRx administrators and are never shown to anonymous visitors.
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={() => void copyValue(PLATFORM_WALLET, "treasury")}
-                className="control-button-secondary h-auto min-h-0 px-3 py-2 text-[11px]"
-              >
-                {copiedField === "treasury" ? <Check size={12} /> : <Copy size={12} />}
-                {copiedField === "treasury" ? "Copied" : "Copy"}
-              </button>
             </div>
           </div>
-          <div className="rounded-[22px] border border-border/60 bg-white/72 px-4 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Developer payment account</div>
-                <code className="mt-2 block break-all font-mono text-[12px] text-primary">{DEVELOPER_WALLET}</code>
-              </div>
-              <button
-                type="button"
-                onClick={() => void copyValue(DEVELOPER_WALLET, "developer")}
-                className="control-button-secondary h-auto min-h-0 px-3 py-2 text-[11px]"
-              >
-                {copiedField === "developer" ? <Check size={12} /> : <Copy size={12} />}
-                {copiedField === "developer" ? "Copied" : "Copy"}
-              </button>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )

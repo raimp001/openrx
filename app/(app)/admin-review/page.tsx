@@ -62,8 +62,8 @@ export default function AdminReviewPage() {
         />
       </div>
 
-      <section className="overflow-hidden rounded-[30px] border border-[rgba(82,108,139,0.12)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] text-white shadow-[0_24px_70px_rgba(8,24,46,0.18)]">
-        <div className="border-b border-white/10 px-6 py-5">
+      <section className="overflow-hidden rounded-[30px] border border-zinc-200 bg-white shadow-soft-card">
+        <div className="border-b border-zinc-200 px-6 py-5">
           <div className="section-title text-white/55">Operating brief</div>
           <h2 className="orx-section-heading mt-3 text-[clamp(1.6rem,3vw,2.4rem)]">
             Review happens in inboxes first, not inside the care shell.
@@ -81,9 +81,9 @@ export default function AdminReviewPage() {
               {reviewFlow.map((step, index) => (
                 <div
                   key={step}
-                  className="flex items-start gap-3 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4"
+                  className="flex items-start gap-3 rounded-[22px] border border-zinc-200 bg-zinc-50 px-4 py-4"
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/14 bg-white/[0.06] text-xs font-semibold text-white/75">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-xs font-semibold text-white/75">
                     0{index + 1}
                   </div>
                   <p className="text-sm leading-6 text-white/78">{step}</p>
@@ -92,7 +92,7 @@ export default function AdminReviewPage() {
             </div>
           </div>
 
-          <div className="border-t border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-6 py-6 lg:border-l lg:border-t-0">
+          <div className="border-t border-zinc-200 bg-zinc-50 px-6 py-6 lg:border-l lg:border-t-0">
             <div className="flex items-center gap-2">
               <ShieldCheck size={15} className="text-white/72" />
               <div className="section-title text-white/55">Reviewer safeguards</div>
@@ -101,7 +101,7 @@ export default function AdminReviewPage() {
               {reviewerSafeguards.map((item) => (
                 <div
                   key={item}
-                  className="rounded-[18px] border border-white/10 bg-black/10 px-4 py-3 text-xs font-medium leading-5 tracking-[0.02em] text-white/82"
+                  className="rounded-[18px] border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs font-medium leading-5 tracking-[0.02em] text-white/82"
                 >
                   {item}
                 </div>

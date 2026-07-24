@@ -25,7 +25,7 @@ All agents are configured in `lib/openclaw/config.ts`. Each has a unique system 
 | `prior-auth` | Rex | Prior authorization workflows, submissions to appeals | billing, coordinator, scheduling |
 | `wellness` | Ivy | Preventive care, USPSTF screenings, health goals | scheduling, rx, coordinator, onboarding |
 | `screening` | Quinn | Risk stratification, preventive screening priorities | triage, scheduling, wellness, coordinator, trials |
-| `second-opinion` | Orion | Diagnosis and care-plan review | triage, wellness, scheduling, coordinator, screening |
+| `second-opinion` | OpenRx | Diagnosis and care-plan review | triage, wellness, scheduling, coordinator, screening |
 | `trials` | Lyra | Clinical trial discovery and enrollment fit | coordinator, screening, wellness, billing, scheduling |
 | `devops` | Bolt | Builds, deployments, monitoring, self-improvement | coordinator |
 

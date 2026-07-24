@@ -81,7 +81,7 @@ export function SupportOpenRx() {
         type="button"
         onClick={() => setOpen(true)}
         data-testid="support-openrx-button"
-        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-[11px] font-semibold text-zinc-300 transition hover:border-cyan-200/25 hover:text-cyan-100"
+        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-zinc-600 transition hover:border-cyan-700/35 hover:text-cyan-700"
       >
         <HeartHandshake size={12} />
         Support OpenRx
@@ -90,10 +90,10 @@ export function SupportOpenRx() {
   }
 
   return (
-    <section data-testid="support-openrx-panel" className="rounded-[16px] border border-white/10 bg-white/[0.035] p-4 text-[12px] text-zinc-300">
+    <section data-testid="support-openrx-panel" className="rounded-[16px] border border-zinc-200 bg-white p-4 text-[12px] text-zinc-600">
       <div className="flex items-center justify-between gap-2">
-        <p className="flex items-center gap-2 font-semibold text-zinc-100"><HeartHandshake size={14} className="text-cyan-200" />Support OpenRx</p>
-        <button type="button" onClick={() => setOpen(false)} className="text-zinc-400 hover:text-zinc-100">Close</button>
+        <p className="flex items-center gap-2 font-semibold text-zinc-900"><HeartHandshake size={14} className="text-cyan-700" />Support OpenRx</p>
+        <button type="button" onClick={() => setOpen(false)} className="text-zinc-500 hover:text-zinc-900">Close</button>
       </div>
       {success ? (
         <p className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-300/18 bg-emerald-300/[0.08] p-3 text-emerald-100">
@@ -105,7 +105,7 @@ export function SupportOpenRx() {
           <p className="mt-2 leading-5">Optional USDC tip on Base. Medical help stays free and never requires a wallet.</p>
           {!isConnected ? (
             <div className="mt-3 space-y-2">
-              <Link href="/wallet" className="inline-flex rounded-full bg-cyan-200 px-3 py-2 font-semibold text-black">Connect wallet for tipping</Link>
+              <Link href="/wallet" className="inline-flex rounded-full bg-cyan-700 px-3 py-2 font-semibold text-white">Connect wallet for tipping</Link>
               <p className="text-zinc-400">Continue without wallet: simply close this panel and keep using care guidance.</p>
             </div>
           ) : intent ? (
@@ -125,12 +125,12 @@ export function SupportOpenRx() {
                     key={option}
                     type="button"
                     onClick={() => setAmount(option)}
-                    className={`rounded-full border px-3 py-1.5 font-semibold ${amount === option ? "border-cyan-200/30 bg-cyan-200/[0.1] text-cyan-100" : "border-white/10 text-zinc-300"}`}
+                    className={`rounded-full border px-3 py-1.5 font-semibold ${amount === option ? "border-cyan-700/30 bg-cyan-50 text-cyan-800" : "border-zinc-200 text-zinc-600"}`}
                   >
                     ${Number(option)}
                   </button>
                 ))}
-                <button type="button" onClick={() => setAmount("custom")} className="rounded-full border border-white/10 px-3 py-1.5 font-semibold text-zinc-300">Custom</button>
+                <button type="button" onClick={() => setAmount("custom")} className="rounded-full border border-zinc-200 px-3 py-1.5 font-semibold text-zinc-600">Custom</button>
               </div>
               {amount === "custom" ? (
                 <input
@@ -139,14 +139,14 @@ export function SupportOpenRx() {
                   value={customAmount}
                   onChange={(event) => setCustomAmount(event.target.value)}
                   placeholder="Amount in USDC"
-                  className="mt-3 w-full rounded-xl border border-white/12 bg-black/30 px-3 py-2 text-zinc-100 outline-none focus:border-cyan-200/35"
+                  className="mt-3 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-cyan-700/45"
                 />
               ) : null}
               <button
                 type="button"
                 onClick={() => void startTip()}
                 disabled={loading || !selectedAmount}
-                className="mt-3 inline-flex items-center gap-2 rounded-full bg-cyan-200 px-3.5 py-2 font-semibold text-black disabled:opacity-45"
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-cyan-700 px-3.5 py-2 font-semibold text-white disabled:opacity-45"
               >
                 {loading ? <Loader2 size={13} className="animate-spin" /> : null}
                 Tip {selectedAmount || "0"} USDC

@@ -119,7 +119,7 @@ export function CareAskPanel({
       className={cn(
         "relative overflow-hidden rounded-[18px] border p-4 sm:p-5",
         minimal && "p-2 sm:p-2",
-        dark ? "border-white/15 bg-[#0B1B33] text-white" : "border-white/10 bg-[#0b0c0d] text-primary",
+        dark ? "border-white/15 bg-[#0B1B33] text-white" : "border-zinc-200 bg-white text-primary",
         !minimal && "shadow-card",
         className
       )}
@@ -169,8 +169,8 @@ export function CareAskPanel({
               className={cn(
                 "overflow-hidden rounded-[16px] border",
                 !minimal && "mt-4",
-                dark ? "border-white/15 bg-white/[0.04]" : "border-white/10 bg-[#0f1112]",
-                "shadow-card focus-within:border-cyan-200/45 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.10)]"
+                dark ? "border-white/15 bg-white/[0.04]" : "border-zinc-200 bg-white",
+                "shadow-card focus-within:border-cyan-700/45 focus-within:shadow-[0_0_0_3px_rgba(14,116,144,0.12)]"
               )}
               onSubmit={(event) => {
                 event.preventDefault()
@@ -213,7 +213,7 @@ export function CareAskPanel({
                   aria-label="Ask OpenRx"
                   className={cn(
                     "inline-flex h-11 w-11 items-center justify-center rounded-[10px] transition disabled:cursor-not-allowed disabled:opacity-50",
-                    dark ? "bg-white text-primary hover:bg-white/90" : "bg-cyan-200 text-black hover:bg-cyan-100"
+                    dark ? "bg-white text-primary hover:bg-white/90" : "bg-cyan-700 text-white hover:bg-cyan-800"
                   )}
                 >
                   {isLaunching ? (
@@ -258,7 +258,7 @@ export function CareAskPanel({
                   className={cn(
                     "border-t py-4 first:border-t-0 first:pt-0 sm:first:pt-4",
                     compact && "sm:border-t-0 sm:border-l sm:pl-5 sm:first:border-l-0 sm:first:pl-0",
-                    dark ? "border-white/12" : "border-white/10"
+                    dark ? "border-white/12" : "border-zinc-200"
                   )}
                 >
                   <div className="flex items-start gap-3">

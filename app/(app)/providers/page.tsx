@@ -435,7 +435,8 @@ export default function ProvidersPage() {
         routingNote="Search terms are used for the public CMS NPI directory query. OpenRx verification fields remain separate."
         safetyBoundary="Directory candidates are not approved clinicians or a guarantee of access. Verify licensure, payer fit, ordering authority, and availability."
         clinicianQuestions={["Does this clinic accept my plan and new patients?", "Can this clinic arrange the recommended screening or referral?"]}
-      />
+      surface="light"
+          />
 
       {hasSearched && !isLoading && ready === false && (
         <div className="reveal surface-card border-yellow-300/40 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(239,246,255,0.88))] p-5">
@@ -473,11 +474,11 @@ export default function ProvidersPage() {
 
       {hasSearched && !isLoading && ready && (
         <div className="space-y-5">
-          <div className="reveal overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_60%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(8,24,46,0.16)]">
+          <div className="reveal overflow-hidden rounded-[28px] border border-zinc-200 bg-white p-5 shadow-soft-card">
             <div className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Matched network</p>
-                <h2 className="orx-section-heading mt-4 text-[2.1rem] text-white">{matches.length} care option{matches.length === 1 ? "" : "s"} ready</h2>
+                <h2 className="orx-section-heading mt-4 text-[2.1rem] text-zinc-900">{matches.length} care option{matches.length === 1 ? "" : "s"} ready</h2>
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
                   {parsed?.serviceTypes?.length
                     ? `OpenRx resolved ${parsed.serviceTypes.join(", ")} and limited the result set to the most usable local options.`
@@ -485,18 +486,18 @@ export default function ProvidersPage() {
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+                <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Location read</p>
-                  <p className="mt-2 text-sm font-semibold text-white">
+                  <p className="mt-2 text-sm font-semibold text-zinc-900">
                     {parsed?.city || parsed?.zip || parsed?.state || "Broad geography"}
                   </p>
                   <p className="mt-1 text-[12px] leading-6 text-white/64">
                     {parsed?.zip || parsed?.city ? "Local matching is constrained and actionable." : "Review geography closely before calling."}
                   </p>
                 </div>
-                <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+                <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Source</p>
-                  <p className="mt-2 text-sm font-semibold text-white flex items-center gap-2">
+                  <p className="mt-2 text-sm font-semibold text-zinc-900 flex items-center gap-2">
                     <BadgeCheck size={12} />
                     CMS NPI-backed
                   </p>
@@ -532,21 +533,21 @@ export default function ProvidersPage() {
               </div>
 
               {topMatch ? (
-                <div className="overflow-hidden rounded-[26px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_60%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(8,24,46,0.16)]">
+                <div className="overflow-hidden rounded-[26px] border border-zinc-200 bg-white p-5 shadow-soft-card">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Best first call</p>
                   <div className="mt-3 flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-900">
                       <Building2 size={18} />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-[1.45rem] font-semibold text-white">{topMatch.name}</h2>
+                      <h2 className="text-[1.45rem] font-semibold text-zinc-900">{topMatch.name}</h2>
                       <p className="mt-1 text-sm font-semibold text-white/82">{topMatch.specialty || "General care"}</p>
                       <p className="mt-3 text-sm leading-7 text-white/72">
                         {buildProviderRecommendation(topMatch)}
                       </p>
                     </div>
                   </div>
-                  <div className="mt-4 rounded-[20px] border border-white/12 bg-white/8 p-4 text-[12px] leading-6 text-white/70">
+                  <div className="mt-4 rounded-[20px] border border-zinc-200 bg-zinc-50 p-4 text-[12px] leading-6 text-white/70">
                     {topMatch.fullAddress ? <p>{topMatch.fullAddress}</p> : null}
                     {topMatch.phone ? <p className="mt-1">{topMatch.phone}</p> : null}
                   </div>
@@ -563,7 +564,7 @@ export default function ProvidersPage() {
                     <button
                       type="button"
                       onClick={() => saveCandidate(topMatch)}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/10 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-white/12"
+                      className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-[12px] font-semibold text-zinc-900 transition hover:bg-white/12"
                     >
                       <FolderPlus size={14} />
                       Save to Care Plan
@@ -571,7 +572,7 @@ export default function ProvidersPage() {
                     {topMatch.phone ? (
                       <a
                         href={`tel:${topMatch.phone.replace(/[^\d+]/g, "")}`}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/10 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-white/12"
+                        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-[12px] font-semibold text-zinc-900 transition hover:bg-white/12"
                       >
                         <Phone size={14} />
                         Call first
@@ -582,7 +583,7 @@ export default function ProvidersPage() {
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(topMatch.fullAddress)}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/10 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-white/12"
+                        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-[12px] font-semibold text-zinc-900 transition hover:bg-white/12"
                       >
                         <MapPin size={14} />
                         Open map
@@ -651,7 +652,7 @@ export default function ProvidersPage() {
                 </div>
                 <Link
                   href="/join-network"
-                  className="inline-flex shrink-0 items-center gap-2 rounded-full bg-cyan-300 px-4 py-2 text-[12px] font-semibold text-black transition hover:bg-cyan-200"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-full bg-cyan-700 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-cyan-800"
                 >
                   Join the network as a caregiver
                   <ArrowRight size={14} />

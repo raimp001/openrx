@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react"
 import { BaseUsdcTransaction } from "@/components/payments/base-usdc-transaction"
+import { FundingRails } from "@/components/payments/funding-rails"
 import { AnswerActionGrid, type AnswerActionItem } from "@/components/answer-action-grid"
 import { CarePlanPreview } from "@/components/care-plan-preview"
 import { RedFlagAlert } from "@/components/red-flag-alert"
@@ -1253,7 +1254,7 @@ export default function ScreeningPage() {
           ref={errorBannerRef}
           role="alert"
           data-testid="screening-error"
-          className="rounded-xl border border-red-200 bg-red-50 p-3 text-[13px] leading-6 text-red-700"
+          className="rounded-xl border border-red-400/25 bg-red-950/30 p-3 text-[13px] leading-6 text-red-100"
         >
           {error}
         </div>
@@ -1277,33 +1278,33 @@ export default function ScreeningPage() {
         <FieldsetCard
           legend="Advanced review access"
           description="The free preview stays open to everyone. Advanced inherited-risk recommendations require verified payment."
-          className="space-y-4 border-zinc-200 bg-white shadow-soft-card"
+          className="space-y-4 border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] text-white shadow-[0_18px_38px_rgba(47,107,255,0.14)]"
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <CreditCard size={14} className="text-cyan-700" />
-              <h2 className="text-sm font-bold text-zinc-900">Complete payment before advanced review</h2>
+              <CreditCard size={14} className="text-white" />
+              <h2 className="text-sm font-bold text-white">Complete payment before advanced review</h2>
             </div>
             <button
               onClick={() => setShowPaymentGate(false)}
-              className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-900 transition"
+              className="text-[11px] font-semibold text-white/64 hover:text-white transition"
             >
               Close
             </button>
           </div>
 
-          <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4 text-xs text-zinc-600">
+          <div className="rounded-[22px] border border-white/12 bg-white/8 p-4 text-xs text-white/74">
             <p>
-              <span className="font-semibold text-zinc-900">Account:</span>{" "}
+              <span className="font-semibold text-white">Account:</span>{" "}
               {connectedPatientName
                 ? `${connectedPatientName} · ${connectedWalletLabel || "payment account pending"}`
                 : connectedWalletLabel || "Connect payment account"}
             </p>
             <p>
-              <span className="font-semibold text-zinc-900">Fee:</span> {fee} USDC
+              <span className="font-semibold text-white">Fee:</span> {fee} USDC
             </p>
             <p className="break-all pt-1">
-              <span className="font-semibold text-zinc-900">Recipient:</span> {recipientAddress || "Preparing recipient..."}
+              <span className="font-semibold text-white">Recipient:</span> {recipientAddress || "Preparing recipient..."}
             </p>
           </div>
 
@@ -1336,6 +1337,11 @@ export default function ScreeningPage() {
               <p className="text-[11px] leading-5 text-white/56">
                 CDP OnchainKit sends USDC on Base from the connected wallet. When the transaction confirms, OpenRx auto-fills the proof and verifies it against the payment intent.
               </p>
+              <FundingRails
+                walletAddress={walletAddress}
+                amount={fee}
+                className="rounded-[18px] border border-white/12 bg-white/8 p-3 text-white/84"
+              />
             </div>
             <div className="space-y-3">
               <ClinicalField
@@ -1363,7 +1369,7 @@ export default function ScreeningPage() {
               <button
                 onClick={() => void verifyScreeningPayment()}
                 disabled={!walletAddress || verifyingPayment}
-                className="w-full rounded-[18px] bg-cyan-700 px-3 py-3 text-xs font-semibold text-white transition hover:bg-cyan-800 disabled:opacity-60"
+                className="w-full rounded-[18px] bg-white px-3 py-3 text-xs font-semibold text-primary transition hover:bg-white/92 disabled:opacity-60"
               >
                 {verifyingPayment ? "Verifying..." : "2. Verify onchain payment"}
               </button>
@@ -1374,7 +1380,7 @@ export default function ScreeningPage() {
             <button
               onClick={() => void runScreening("deep")}
               disabled={running}
-              className="w-full rounded-[18px] bg-cyan-700 px-3 py-3 text-xs font-semibold text-white transition hover:bg-cyan-800 disabled:opacity-60"
+              className="w-full rounded-[18px] bg-white px-3 py-3 text-xs font-semibold text-primary transition hover:bg-white/92 disabled:opacity-60"
             >
               {running ? "Generating deep recommendation..." : "3. Release deep recommendation"}
             </button>
@@ -1387,7 +1393,7 @@ export default function ScreeningPage() {
           <section className="relative">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-700">Ask in plain language</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">Ask in plain language</p>
                 <h2 className="mt-2 text-[1.2rem] font-semibold leading-tight text-primary sm:text-[1.35rem]">
                   Start with age, sex used for screening, and what you are worried about.
                 </h2>
@@ -1413,7 +1419,7 @@ export default function ScreeningPage() {
                   onChange={(event) => setNarrative(event.target.value)}
                   rows={4}
                   placeholder="Example: 45 male, no symptoms, what cancer screening is due?"
-                  className="min-h-[112px] resize-y rounded-[22px] border-zinc-200 bg-white px-5 py-4 text-base leading-7 placeholder:text-zinc-400 shadow-sm"
+                  className="min-h-[112px] resize-y rounded-[22px] border-white/12 bg-[#050707]/92 px-5 py-4 text-base leading-7 placeholder:text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                 />
               </ClinicalField>
 
@@ -1437,7 +1443,7 @@ export default function ScreeningPage() {
                   data-testid="screening-submit-preview"
                   onClick={() => void runScreening("preview")}
                   disabled={running || !canRunPreview}
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-cyan-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-cyan-800 disabled:opacity-60 sm:w-auto"
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-cyan-200 px-5 py-3 text-sm font-bold text-black transition hover:bg-cyan-100 disabled:opacity-60 sm:w-auto"
                 >
                   {running ? <Loader2 size={14} className="animate-spin" /> : <Activity size={14} />}
                   Get sourced plan
@@ -1445,7 +1451,7 @@ export default function ScreeningPage() {
               </div>
 
               <details className="group rounded-[16px] border border-white/[0.08] bg-transparent">
-                <summary className="cursor-pointer list-none px-3 py-3 text-[12px] font-semibold text-secondary transition hover:text-primary">
+                <summary className="cursor-pointer list-none px-3 py-3 text-[12px] font-semibold text-zinc-300 transition hover:text-white">
                   Use an example
                 </summary>
                 <div className="flex flex-wrap gap-2 border-t border-white/[0.06] px-3 pb-3 pt-2">
@@ -1463,7 +1469,7 @@ export default function ScreeningPage() {
               </details>
 
               <details className="group rounded-[16px] border border-white/[0.08] bg-transparent">
-                <summary className="cursor-pointer list-none px-3 py-3 text-[12px] font-semibold text-secondary transition hover:text-primary">
+                <summary className="cursor-pointer list-none px-3 py-3 text-[12px] font-semibold text-zinc-300 transition hover:text-white">
                   Add details that prevent wrong timing
                 </summary>
                 <div className="flex flex-wrap gap-2 border-t border-white/[0.06] px-3 pb-3 pt-2">
@@ -1484,7 +1490,7 @@ export default function ScreeningPage() {
                 <button
                   type="button"
                   onClick={() => void parseNarrativeIntakeIfPresent()}
-                  className="text-[12px] font-semibold text-cyan-700 transition hover:text-cyan-800"
+                  className="text-[12px] font-semibold text-cyan-100 transition hover:text-cyan-50"
                 >
                   Preview what we understood
                 </button>
@@ -1493,7 +1499,7 @@ export default function ScreeningPage() {
 
               {intakePreview ? (
                 <div data-testid="screening-intake-preview" className="border-t border-white/10 pt-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-700">What OpenRx understood</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100">What OpenRx understood</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {typeof intakePreview.age === "number" ? <ChoiceChip>Age {intakePreview.age}</ChoiceChip> : null}
                     {intakePreview.sexAtBirth ? <ChoiceChip>Sex for screening: {intakePreview.sexAtBirth}</ChoiceChip> : null}
@@ -1550,7 +1556,7 @@ export default function ScreeningPage() {
                         id="screening-gender"
                         value={gender}
                         onChange={(event) => setGender(event.target.value)}
-                        className="w-full rounded-[18px] border border-zinc-200 bg-white px-4 py-3.5 text-sm text-primary shadow-sm transition focus:border-cyan-700/40 focus:outline-none focus:ring-2 focus:ring-cyan-700/10"
+                        className="w-full rounded-[18px] border border-white/10 bg-[#0d0f10] px-4 py-3.5 text-sm text-primary shadow-sm transition focus:border-cyan-200/40 focus:outline-none focus:ring-2 focus:ring-cyan-200/10"
                       >
                         <option value="">Not specified</option>
                         <option value="female">Female</option>
@@ -1651,10 +1657,10 @@ export default function ScreeningPage() {
           )}
         </div>
 
-        <aside className="xl:sticky xl:top-28">
+        <aside className="text-white xl:sticky xl:top-28">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-primary">Answer</h2>
-            {assessment ? <span className="rounded-full border border-cyan-700/20 bg-cyan-50 px-2 py-1 text-[10px] font-bold uppercase text-cyan-800">ready</span> : null}
+            <h2 className="text-sm font-semibold text-white">Answer</h2>
+            {assessment ? <span className="rounded-full border border-cyan-200/18 bg-cyan-200/[0.08] px-2 py-1 text-[10px] font-bold uppercase text-cyan-100">ready</span> : null}
           </div>
           {!assessment ? (
             running ? (
@@ -1664,21 +1670,21 @@ export default function ScreeningPage() {
                 <div className="orx-skeleton h-16 rounded-[16px] bg-white/12" />
               </div>
             ) : (
-              <div className="rounded-[22px] border border-zinc-200 bg-white p-4 text-xs leading-6 text-secondary">
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.035] p-4 text-xs leading-6 text-white/72">
                 <p>Sourced plan and care links appear here.</p>
               </div>
             )
           ) : (
             <>
-              <p className="text-sm leading-6 text-secondary">OpenRx found {structuredRecommendations.length || assessment.recommendedScreenings.length} care item{structuredRecommendations.length === 1 ? "" : "s"} from the information supplied.</p>
+              <p className="text-sm leading-6 text-white/82">OpenRx found {structuredRecommendations.length || assessment.recommendedScreenings.length} care item{structuredRecommendations.length === 1 ? "" : "s"} from the information supplied.</p>
               {assessment.clinicalSafety ? (
                 <p className={cn(
                   "mt-2 text-xs leading-5",
                   assessment.clinicalSafety.status === "passed"
-                    ? "text-cyan-700"
+                    ? "text-cyan-100"
                     : assessment.clinicalSafety.status === "needs_review"
-                      ? "text-amber-700"
-                      : "text-rose-700"
+                      ? "text-amber-100"
+                      : "text-rose-100"
                 )}>
                   Safety gate: {assessment.clinicalSafety.status === "passed"
                     ? "sources complete"
@@ -1688,35 +1694,35 @@ export default function ScreeningPage() {
                 </p>
               ) : null}
               {assessment.clarificationQuestions?.length ? (
-                <p className="mt-2 text-xs leading-5 text-amber-700">
+                <p className="mt-2 text-xs leading-5 text-amber-100">
                   {assessment.clarificationQuestions.length} answer{assessment.clarificationQuestions.length === 1 ? "" : "s"} could change the timing or pathway.
                 </p>
               ) : null}
               {briefRecommendationItems.length > 0 && (
-                <div className="mt-4 border-t border-zinc-200 pt-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
                     Recommendations
                   </p>
                   <div className="mt-3 space-y-3">
                     {briefRecommendationItems.map((item) => (
-                      <div key={item.id} className="rounded-[16px] border border-zinc-100 bg-zinc-50 p-3">
+                      <div key={item.id} className="rounded-[16px] bg-white/[0.055] p-3">
                         <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm font-semibold leading-5 text-primary">{item.label}</p>
-                          <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-muted">
+                          <p className="text-sm font-semibold leading-5 text-white">{item.label}</p>
+                          <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-white/64">
                             {item.meta}
                           </span>
                         </div>
-                        <p className="mt-2 text-[12px] leading-5 text-secondary">{item.detail}</p>
+                        <p className="mt-2 text-[12px] leading-5 text-white/68">{item.detail}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-              <div className="mt-4 border-t border-zinc-200 pt-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+              <div className="mt-4 border-t border-white/10 pt-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/56">
                   Next action
                 </p>
-                <p className="mt-2 text-sm leading-6 text-secondary" data-testid="screening-care-summary">
+                <p className="mt-2 text-sm leading-6 text-white/68" data-testid="screening-care-summary">
                   {actionableCareConnections.length > 0
                     ? `${actionableCareConnections.length} nearby care option group${actionableCareConnections.length === 1 ? " is" : "s are"} ready below. Call to confirm availability; OpenRx does not place orders.`
                     : assessment?.clarificationQuestions?.length
@@ -1766,7 +1772,7 @@ export default function ScreeningPage() {
                         icon: "source" as const,
                       }] : []),
                     ]
-                    return <AnswerActionGrid items={actions} columns="single" label="Answer next action" surface="light" />
+                    return <AnswerActionGrid items={actions} columns="single" label="Answer next action" />
                   })()}
                 </div>
               </div>
@@ -1790,10 +1796,10 @@ export default function ScreeningPage() {
                   className={cn(
                     "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]",
                     careBrief.safetyStatus === "passed"
-                      ? "border-cyan-700/20 bg-cyan-50 text-cyan-800"
+                      ? "border-cyan-200/20 bg-cyan-200/[0.08] text-cyan-100"
                       : careBrief.safetyStatus === "needs_review"
-                        ? "border-amber-200 bg-amber-50 text-amber-800"
-                        : "border-rose-200 bg-rose-50 text-rose-700"
+                        ? "border-amber-100/25 bg-amber-100/[0.08] text-amber-100"
+                        : "border-rose-100/25 bg-rose-100/[0.08] text-rose-100"
                   )}
                 >
                   {careBrief.safetyLabel}
@@ -1816,10 +1822,10 @@ export default function ScreeningPage() {
               )}
               {careBrief.missingDetails.length > 0 ? (
                 <div className="mt-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700">Details that could change timing</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-100/80">Details that could change timing</p>
                   <ul className="mt-2 space-y-1.5">
                     {careBrief.missingDetails.map((item) => (
-                      <li key={item.id} className="text-sm leading-6 text-zinc-700">
+                      <li key={item.id} className="text-sm leading-6 text-white/76">
                         {item.question}
                       </li>
                     ))}
@@ -1864,7 +1870,7 @@ export default function ScreeningPage() {
                   },
                 ]
                 return (
-                  <AnswerActionGrid items={actions} columns="single" label="Screening care actions" surface="light" />
+                  <AnswerActionGrid items={actions} columns="single" label="Screening care actions" />
                 )
               })()}
             </div>
@@ -1905,7 +1911,7 @@ export default function ScreeningPage() {
         >
           <div className="grid gap-5 lg:grid-cols-[minmax(0,0.34fr)_minmax(0,0.66fr)]">
             <div>
-              <div className="flex items-center gap-2 text-amber-700">
+              <div className="flex items-center gap-2 text-amber-100">
                 <CircleHelp size={18} aria-hidden="true" />
                 <p className="text-xs font-bold uppercase tracking-[0.14em]">Refine this plan</p>
               </div>
@@ -1921,7 +1927,7 @@ export default function ScreeningPage() {
                   document.getElementById("screening-narrative")?.focus()
                   document.getElementById("screening-narrative")?.scrollIntoView({ behavior: "smooth", block: "center" })
                 }}
-                className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-amber-300 px-4 py-2 text-xs font-bold text-amber-800 transition hover:border-amber-400 hover:bg-amber-50"
+                className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-amber-100/25 px-4 py-2 text-xs font-bold text-amber-50 transition hover:border-amber-100/50 hover:bg-amber-100/10"
               >
                 Add details
                 <ArrowRight size={13} aria-hidden="true" />
@@ -1930,13 +1936,13 @@ export default function ScreeningPage() {
             <ol className="divide-y divide-white/10 border-y border-white/10">
               {assessment.clarificationQuestions.map((item, index) => (
                 <li key={item.id} className="grid gap-2 py-4 sm:grid-cols-[2rem_minmax(0,1fr)]">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-800">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100/12 text-xs font-bold text-amber-100">
                     {index + 1}
                   </span>
                   <div>
                     <p className="text-sm font-semibold leading-6 text-primary">{item.question}</p>
                     <p className="mt-1 text-xs leading-5 text-secondary">{item.whyItMatters}</p>
-                    <span className="mt-2 inline-flex text-[10px] font-bold uppercase tracking-[0.1em] text-amber-700">
+                    <span className="mt-2 inline-flex text-[10px] font-bold uppercase tracking-[0.1em] text-amber-100/80">
                       {item.priority === "required" ? "Needed to resolve this pathway" : "May change timing"}
                     </span>
                   </div>
@@ -1947,7 +1953,7 @@ export default function ScreeningPage() {
         </section>
       ) : null}
 
-      {carePlanDraft ? <CarePlanPreview draft={carePlanDraft} surface="light" /> : null}
+      {carePlanDraft ? <CarePlanPreview draft={carePlanDraft} /> : null}
 
       {assessment ? (
         <TrustDrawer
@@ -1958,8 +1964,7 @@ export default function ScreeningPage() {
           routingNote={showingDeepResults ? "Advanced evidence review may query configured evidence services using minimized screening context." : "Free preview is generated from typed screening rules and source metadata."}
           emergencyWarning={narrativeRedFlag?.emergencyMessage}
           clinicianQuestions={["Which recommendation should I act on first?", "Does my family or genetic history change the interval?"]}
-        surface="light"
-          />
+        />
       ) : null}
 
       {assessment && patientNextActions.length > 0 && (
@@ -2125,16 +2130,16 @@ export default function ScreeningPage() {
                                 {activeReferralPanel && !activeReferralPanel.loading ? (
                                   <div
                                     data-testid="screening-referral-consent-panel"
-                                    className="mt-4 overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-soft-card"
+                                    className="mt-4 overflow-hidden rounded-[24px] border border-white/12 bg-[#070b0b]/92 shadow-[0_22px_70px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl"
                                   >
                                     {activeReferralPanel.error ? (
-                                      <p className="m-4 rounded-[16px] border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-700">{activeReferralPanel.error}</p>
+                                      <p className="m-4 rounded-[16px] border border-red-300/20 bg-red-400/[0.08] p-3 text-xs leading-5 text-red-100">{activeReferralPanel.error}</p>
                                     ) : null}
                                     {activeReferralPanel.preview ? (
                                       <div className="space-y-4 p-4">
-                                        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-3">
+                                        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-3">
                                           <div>
-                                            <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-cyan-700">
+                                            <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-cyan-100">
                                               <ShieldCheck size={13} />
                                               Consent preview
                                             </p>
@@ -2145,7 +2150,7 @@ export default function ScreeningPage() {
                                               href={activeReferralPanel.preview.evidence.sourceUrl}
                                               target="_blank"
                                               rel="noreferrer"
-                                              className="inline-flex items-center gap-1 rounded-full border border-cyan-700/20 bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold text-cyan-800 hover:border-cyan-700/40"
+                                              className="inline-flex items-center gap-1 rounded-full border border-cyan-200/20 bg-cyan-200/[0.08] px-2.5 py-1 text-[11px] font-semibold text-cyan-100 hover:border-cyan-200/40"
                                             >
                                               {activeReferralPanel.preview.evidence.sourceSystem} {activeReferralPanel.preview.evidence.evidenceGrade}
                                               <ExternalLink size={10} />
@@ -2165,14 +2170,14 @@ export default function ScreeningPage() {
                                                 className={cn(
                                                   "flex cursor-pointer items-start gap-3 rounded-[18px] border p-3 transition",
                                                   activeReferralPanel.selectedProviderId === provider.id
-                                                    ? "border-cyan-700/25 bg-cyan-50"
-                                                    : "border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-zinc-100"
+                                                    ? "border-cyan-200/28 bg-cyan-200/[0.08]"
+                                                    : "border-white/10 bg-white/[0.045] hover:border-white/18 hover:bg-white/[0.07]"
                                                 )}
                                               >
                                                 <input
                                                   type="radio"
                                                   name={`referral-provider-${rec.id}`}
-                                                  className="mt-1 accent-cyan-700"
+                                                  className="mt-1 accent-cyan-200"
                                                   checked={activeReferralPanel.selectedProviderId === provider.id}
                                                   onChange={() => setReferralPanel((current) => current ? {
                                                     ...current,
@@ -2182,7 +2187,7 @@ export default function ScreeningPage() {
                                                 />
                                                 <span className="min-w-0 flex-1">
                                                   <span className="block text-xs font-semibold text-primary">{provider.name}</span>
-                                                  <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-cyan-700/20 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-800">
+                                                  <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-cyan-200/18 bg-cyan-200/[0.08] px-2 py-0.5 text-[10px] font-semibold text-cyan-100">
                                                     <ShieldCheck size={10} />
                                                     {provider.specialty || "OpenRx network provider"} - verified + BAA
                                                   </span>
@@ -2218,7 +2223,7 @@ export default function ScreeningPage() {
                                             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Public directory only</p>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                               {activeReferralPanel.preview.seededContactOnly.slice(0, 4).map((provider) => (
-                                                <div key={provider.id} className="rounded-[16px] border border-zinc-200 bg-zinc-50 p-3">
+                                                <div key={provider.id} className="rounded-[16px] border border-white/10 bg-white/[0.04] p-3">
                                                   <p className="text-xs font-semibold text-primary">{provider.name}</p>
                                                   <p className="text-[11px] text-muted mt-1">{provider.statusLabel}</p>
                                                   {provider.phone ? <p className="text-[11px] text-muted mt-1">{provider.phone}</p> : null}
@@ -2229,22 +2234,22 @@ export default function ScreeningPage() {
                                         ) : null}
 
                                         {activeReferralPanel.preview.supported ? (
-                                          <div className="space-y-3 rounded-[22px] border border-zinc-200 bg-zinc-50 p-3">
+                                          <div className="space-y-3 rounded-[22px] border border-white/12 bg-white/[0.045] p-3">
                                             <div className="grid gap-2 sm:grid-cols-3">
-                                              <div className="rounded-[16px] border border-zinc-200 bg-zinc-50 p-3">
-                                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-700">Who</p>
+                                              <div className="rounded-[16px] border border-white/10 bg-black/20 p-3">
+                                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-100">Who</p>
                                                 <p className="mt-1 text-sm font-semibold text-primary">{selectedProvider?.name || "Choose a verified provider"}</p>
                                                 <p className="mt-1 text-[11px] leading-5 text-secondary">
                                                   {selectedProvider ? `${selectedProvider.specialty || "OpenRx network provider"} - verified + BAA` : "No PHI can move until one provider is selected."}
                                                 </p>
                                               </div>
-                                              <div className="rounded-[16px] border border-zinc-200 bg-zinc-50 p-3">
-                                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-700">Why</p>
+                                              <div className="rounded-[16px] border border-white/10 bg-black/20 p-3">
+                                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-100">Why</p>
                                                 <p className="mt-1 text-sm font-semibold text-primary">{rec.screeningName}</p>
                                                 <p className="mt-1 text-[11px] leading-5 text-secondary">{rec.sourceSystem} - {sourceVersion} - {gradeLabel || "Clinician review"}</p>
                                               </div>
-                                              <div className="rounded-[16px] border border-zinc-200 bg-zinc-50 p-3">
-                                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-700">Proof</p>
+                                              <div className="rounded-[16px] border border-white/10 bg-black/20 p-3">
+                                                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-100">Proof</p>
                                                 <p className="mt-1 break-all font-mono text-[10px] leading-5 text-secondary">
                                                   {(activeReferralPanel.preview.disclosurePayloadHash || "").slice(0, 18) || "Preview hash"}...
                                                 </p>
@@ -2254,7 +2259,7 @@ export default function ScreeningPage() {
                                               </div>
                                             </div>
 
-                                            <details className="group rounded-[18px] border border-zinc-200 bg-zinc-50 p-3" open>
+                                            <details className="group rounded-[18px] border border-white/10 bg-black/18 p-3" open>
                                               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-left">
                                                 <span>
                                                   <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
@@ -2265,7 +2270,7 @@ export default function ScreeningPage() {
                                                     Required fields are the minimum needed for this referral. Optional fields start off and only share if you select them.
                                                   </span>
                                                 </span>
-                                                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-[10px] font-semibold text-secondary">
+                                                <span className="rounded-full border border-white/10 bg-white/[0.05] px-2 py-1 text-[10px] font-semibold text-secondary">
                                                   {selectedFields.length}/{activeReferralPanel.preview.displayedFields.length} selected
                                                 </span>
                                               </summary>
@@ -2279,7 +2284,7 @@ export default function ScreeningPage() {
                                                       data-required={field.required ? "true" : "false"}
                                                       className={cn(
                                                         "rounded-[16px] border p-3 transition",
-                                                        checked ? "border-cyan-700/25 bg-cyan-50" : "border-zinc-200 bg-white"
+                                                        checked ? "border-cyan-200/22 bg-cyan-200/[0.07]" : "border-white/10 bg-white/[0.035]"
                                                       )}
                                                     >
                                                       <label className="flex cursor-pointer items-start gap-2">
@@ -2305,7 +2310,7 @@ export default function ScreeningPage() {
                                                             {field.label}
                                                             <span className={cn(
                                                               "rounded-full border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em]",
-                                                              field.required ? "border-cyan-700/25 text-cyan-700" : "border-zinc-200 text-secondary"
+                                                              field.required ? "border-cyan-200/24 text-cyan-100" : "border-white/12 text-secondary"
                                                             )}>
                                                               {field.required ? "required" : "optional"}
                                                             </span>
@@ -2315,7 +2320,7 @@ export default function ScreeningPage() {
                                                           </span>
                                                           <span className="mt-1 block break-all font-mono text-[10px] text-muted">{field.path}</span>
                                                           {field.required && !checked ? (
-                                                            <span className="mt-2 block rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10.5px] leading-5 text-amber-800">
+                                                            <span className="mt-2 block rounded-lg border border-amber-300/20 bg-amber-300/[0.08] px-2 py-1.5 text-[10.5px] leading-5 text-amber-100">
                                                               {field.requiredReason || "This field is required to make the referral meaningful."}
                                                             </span>
                                                           ) : null}
@@ -2327,13 +2332,13 @@ export default function ScreeningPage() {
                                               </ul>
                                             </details>
 
-                                            <div className="rounded-[18px] border border-zinc-200 bg-zinc-50 p-3 text-[11px] leading-5 text-secondary">
+                                            <div className="rounded-[18px] border border-white/10 bg-black/18 p-3 text-[11px] leading-5 text-secondary">
                                               <p className="flex items-start gap-2">
-                                                <ClipboardCheck size={14} className="mt-0.5 shrink-0 text-cyan-700" />
+                                                <ClipboardCheck size={14} className="mt-0.5 shrink-0 text-cyan-100" />
                                                 Share creates one consent for this provider and this recommendation only. OpenRx does not place an order.
                                               </p>
                                               <p className="mt-2 flex items-start gap-2">
-                                                <ShieldCheck size={14} className="mt-0.5 shrink-0 text-cyan-700" />
+                                                <ShieldCheck size={14} className="mt-0.5 shrink-0 text-cyan-100" />
                                                 You can revoke future disclosures. Already-sent data cannot be recalled from the provider.
                                               </p>
                                             </div>
@@ -2342,7 +2347,7 @@ export default function ScreeningPage() {
                                               <div
                                                 role="alert"
                                                 data-testid="referral-required-field-warning"
-                                                className="rounded-[16px] border border-amber-200 bg-amber-50 p-3 text-[11px] leading-5 text-amber-800"
+                                                className="rounded-[16px] border border-amber-300/24 bg-amber-300/[0.08] p-3 text-[11px] leading-5 text-amber-100"
                                               >
                                                 Share is paused because required fields were removed. Re-select them or decline without sharing.
                                               </div>
@@ -2353,7 +2358,7 @@ export default function ScreeningPage() {
                                                 type="button"
                                                 data-testid="referral-decline-share"
                                                 onClick={() => setReferralPanel(null)}
-                                                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-xs font-semibold text-primary transition hover:bg-zinc-100"
+                                                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border border-white/14 bg-white/[0.045] px-4 py-2 text-xs font-semibold text-primary transition hover:bg-white/[0.08]"
                                               >
                                                 <X size={13} />
                                                 Decline / do not share
@@ -2367,7 +2372,7 @@ export default function ScreeningPage() {
                                                   Boolean(activeReferralPanel.preview.created)
                                                 }
                                                 onClick={() => void submitReferralConsent()}
-                                                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl bg-cyan-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border border-cyan-200/18 bg-cyan-200 px-4 py-2 text-xs font-semibold text-black transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
                                               >
                                                 <Check size={13} />
                                                 Share selected fields
@@ -2378,8 +2383,8 @@ export default function ScreeningPage() {
                                         ) : null}
 
                                         {activeReferralPanel.preview.created ? (
-                                          <div className="rounded-[20px] border border-emerald-200 bg-emerald-50 p-4 text-xs leading-5 text-emerald-700">
-                                            <p className="flex items-center gap-2 font-semibold text-emerald-800">
+                                          <div className="rounded-[20px] border border-emerald-300/20 bg-emerald-300/[0.08] p-4 text-xs leading-5 text-emerald-100">
+                                            <p className="flex items-center gap-2 font-semibold text-emerald-50">
                                               <Check size={14} />
                                               Consent receipt issued
                                             </p>

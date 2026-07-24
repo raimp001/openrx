@@ -48,8 +48,14 @@ export default function MessagesPage() {
     return messages.sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime())
   }, [allMessages, channelFilter])
 
+  // Skip the initial mount so the page never loads scrolled mid-thread.
+  const didMountRef = useRef(false)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    if (!didMountRef.current) {
+      didMountRef.current = true
+      return
+    }
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
   }, [activeMessages.length])
 
   const sendMessage = async () => {
@@ -183,11 +189,11 @@ export default function MessagesPage() {
 
       <section className="surface-card p-5 sm:p-6">
         <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
-          <div className="overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_60%,#173B83_100%)] p-4 text-white shadow-[0_18px_38px_rgba(47,107,255,0.14)] sm:p-5">
+          <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white p-4 shadow-soft-card sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/58">Conversation brief</p>
-                <h2 className="mt-3 font-serif text-[1.95rem] leading-[0.98] text-white">{conversationSummary}</h2>
+                <h2 className="mt-3 font-serif text-[1.95rem] leading-[0.98] text-zinc-900">{conversationSummary}</h2>
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
                   {latestMessage
                     ? `Last activity was ${formatDate(latestMessage.created_at)} through ${latestMessage.channel}. Use the thread below to respond, then keep the side rail open for care context.`
@@ -195,11 +201,11 @@ export default function MessagesPage() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <ChoiceChip active={unreadCount > 0} className="!border-white/12 !bg-white/10 !text-white">
+                <ChoiceChip active={unreadCount > 0}>
                   <Bell size={12} />
                   {unreadCount} unread
                 </ChoiceChip>
-                <ChoiceChip className="!border-white/12 !bg-white/10 !text-white">
+                <ChoiceChip>
                   <Sparkles size={12} />
                   Portal first
                 </ChoiceChip>
@@ -363,6 +369,7 @@ export default function MessagesPage() {
             safetyBoundary="Drafts are not clinical orders or medical advice. Urgent symptoms should not wait for a message reply."
             emergencyWarning={safetyHold ? safetyHold.finding.emergencyMessage : undefined}
             clinicianQuestions={["What next step should I take and when?", "What symptoms should make me seek urgent care?"]}
+          surface="light"
           />
 
           <section className="surface-card p-5">

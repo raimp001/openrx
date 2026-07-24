@@ -255,11 +255,11 @@ export default function PrescriptionsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
-        <div className="overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(8,24,46,0.16)]">
+        <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white p-5 shadow-soft-card">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Medication to address first</p>
-              <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-white">
+              <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-zinc-900">
                 {primaryConcern ? primaryConcern.medication_name : "No urgent medication"}
               </h2>
               <p className="mt-3 text-sm leading-7 text-white/72">
@@ -268,23 +268,23 @@ export default function PrescriptionsPage() {
                   : "The current regimen is stable. No refill or adherence signal is leading the queue right now."}
               </p>
             </div>
-            <OpsBadge tone={primaryConcern?.status === "pending-refill" || (primaryConcern?.adherence_pct ?? 100) < 80 ? "red" : primaryConcern ? "gold" : "accent"} className="!border-white/12 !bg-white/10 !text-white">
+            <OpsBadge tone={primaryConcern?.status === "pending-refill" || (primaryConcern?.adherence_pct ?? 100) < 80 ? "red" : primaryConcern ? "gold" : "accent"}>
               {primaryConcern?.status === "pending-refill" || (primaryConcern?.adherence_pct ?? 100) < 80 ? "urgent" : primaryConcern ? "review" : "stable"}
             </OpsBadge>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+            <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Refill pressure</p>
-              <p className="mt-2 text-lg font-semibold text-white">{pendingRefills.length + refillSoon.length} medication{pendingRefills.length + refillSoon.length === 1 ? "" : "s"}</p>
+              <p className="mt-2 text-lg font-semibold text-zinc-900">{pendingRefills.length + refillSoon.length} medication{pendingRefills.length + refillSoon.length === 1 ? "" : "s"}</p>
               <p className="mt-1 text-[12px] leading-6 text-white/64">
                 {pendingRefills.length || refillSoon.length
                   ? "These prescriptions are already waiting for a refill or are closing in on the refill window."
                   : "No refill bottleneck is visible in the active regimen."}
               </p>
             </div>
-            <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+            <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Regimen posture</p>
-              <p className="mt-2 text-lg font-semibold text-white">
+              <p className="mt-2 text-lg font-semibold text-zinc-900">
                 {avgAdherence === null
                   ? "No active regimen"
                   : avgAdherence >= 90

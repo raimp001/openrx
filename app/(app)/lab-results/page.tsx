@@ -248,11 +248,11 @@ export default function LabResultsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
-        <div className="overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(8,24,46,0.16)]">
+        <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white p-5 shadow-soft-card">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Open this result first</p>
-              <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-white">
+              <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-zinc-900">
                 {prioritizedLab ? prioritizedLab.test_name : "No resulted labs yet"}
               </h2>
               <p className="mt-3 text-sm leading-7 text-white/72">
@@ -261,23 +261,23 @@ export default function LabResultsPage() {
                   : "The board has no resulted panels to prioritize yet."}
               </p>
             </div>
-            <OpsBadge tone={prioritizedLab?.results.some((result) => result.flag === "critical") ? "red" : prioritizedLab?.results.some((result) => result.flag !== "normal") ? "gold" : "accent"} className="!border-white/12 !bg-white/10 !text-white">
+            <OpsBadge tone={prioritizedLab?.results.some((result) => result.flag === "critical") ? "red" : prioritizedLab?.results.some((result) => result.flag !== "normal") ? "gold" : "accent"}>
               {prioritizedLab?.results.some((result) => result.flag === "critical") ? "urgent" : prioritizedLab?.results.some((result) => result.flag !== "normal") ? "review" : "stable"}
             </OpsBadge>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+            <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Pending work</p>
-              <p className="mt-2 text-lg font-semibold text-white">{pendingLabs.length} test{pendingLabs.length === 1 ? "" : "s"}</p>
+              <p className="mt-2 text-lg font-semibold text-zinc-900">{pendingLabs.length} test{pendingLabs.length === 1 ? "" : "s"}</p>
               <p className="mt-1 text-[12px] leading-6 text-white/64">
                 {pendingLabs.length
                   ? "The board is still incomplete while pending orders are processing."
                   : "There are no pending tests, so this board reflects the full diagnostic set on file."}
               </p>
             </div>
-            <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+            <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Clinical posture</p>
-              <p className="mt-2 text-lg font-semibold text-white">
+              <p className="mt-2 text-lg font-semibold text-zinc-900">
                 {criticalCount ? "Escalate now" : abnormalCount ? "Review abnormal values" : "Stable result set"}
               </p>
               <p className="mt-1 text-[12px] leading-6 text-white/64">

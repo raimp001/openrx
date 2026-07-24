@@ -42,16 +42,18 @@ function tailwindHexToken(name: string) {
   return match[1]
 }
 
-test("dark app text tokens meet WCAG AA contrast for small clinical UI text", () => {
-  const surface = [16, 16, 16] as [number, number, number]
+test("light app text tokens meet WCAG AA contrast for small clinical UI text", () => {
+  const surface = [255, 255, 255] as [number, number, number]
 
   expect(contrastRatio(cssRgbVariable("--color-muted-rgb"), surface)).toBeGreaterThanOrEqual(4.5)
   expect(contrastRatio(cssRgbVariable("--color-subtle-rgb"), surface)).toBeGreaterThanOrEqual(4.5)
+  expect(contrastRatio(cssRgbVariable("--color-secondary-rgb"), surface)).toBeGreaterThanOrEqual(4.5)
 })
 
-test("interactive accent tokens stay readable on their actual dark backgrounds", () => {
+test("interactive accent tokens stay readable on their actual light backgrounds", () => {
   expect(contrastRatio([255, 255, 255], hexToRgb(tailwindHexToken("midnight")))).toBeGreaterThanOrEqual(4.5)
-  expect(contrastRatio(hexToRgb(tailwindHexToken('"soft-blue"')), hexToRgb("#050505"))).toBeGreaterThanOrEqual(4.5)
+  expect(contrastRatio(hexToRgb(tailwindHexToken('"soft-blue"')), hexToRgb("#FFFFFF"))).toBeGreaterThanOrEqual(4.5)
+  expect(contrastRatio(cssRgbVariable("--color-accent-rgb"), [255, 255, 255])).toBeGreaterThanOrEqual(4.5)
 })
 
 test("exported design tokens keep muted copy readable in light and dark themes", () => {

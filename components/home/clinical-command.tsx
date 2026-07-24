@@ -61,7 +61,7 @@ export function ClinicalCommand() {
       }}>
         <input type="hidden" name="topic" value={activeMode.topic} />
         <input type="hidden" name="autorun" value="1" />
-        <div className="overflow-hidden rounded-[16px] border border-white/14 bg-[#0d0f0f] shadow-[0_20px_70px_rgba(0,0,0,0.38)] transition focus-within:border-cyan-200/48 focus-within:shadow-[0_0_0_3px_rgba(165,243,252,0.09),0_24px_76px_rgba(0,0,0,0.44)]">
+        <div className="overflow-hidden rounded-[16px] border border-zinc-200 bg-white shadow-[0_20px_70px_rgba(15,23,42,0.10)] transition focus-within:border-cyan-700/45 focus-within:shadow-[0_0_0_3px_rgba(14,116,144,0.12),0_24px_76px_rgba(15,23,42,0.12)]">
           <label htmlFor="home-clinical-command" className="sr-only">
             Ask OpenRx
           </label>
@@ -74,7 +74,7 @@ export function ClinicalCommand() {
               onChange={(event) => setPrompt(event.target.value)}
               rows={2}
               placeholder={activeMode.placeholder}
-              className="min-h-[72px] w-full resize-none bg-transparent text-[16px] leading-7 text-white outline-none placeholder:text-zinc-500"
+              className="min-h-[72px] w-full resize-none bg-transparent text-[16px] leading-7 text-zinc-900 outline-none placeholder:text-zinc-500"
             />
           </div>
           <div className="flex flex-col gap-3 border-t border-white/10 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -92,8 +92,8 @@ export function ClinicalCommand() {
                     className={cn(
                       "inline-flex min-h-9 shrink-0 items-center gap-2 rounded-[8px] px-3 text-[12px] font-semibold transition",
                       active
-                        ? "bg-white/[0.11] text-white"
-                        : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100"
+                        ? "bg-zinc-900 text-white"
+                        : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
                     )}
                   >
                     <Icon size={14} aria-hidden />
@@ -105,7 +105,7 @@ export function ClinicalCommand() {
             <button
               type="submit"
               disabled={!prompt.trim()}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-[10px] bg-cyan-200 px-4 text-sm font-semibold text-black transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-[10px] bg-cyan-700 px-4 text-sm font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Submit question"
             >
               Ask OpenRx
@@ -125,11 +125,11 @@ export function ClinicalCommand() {
               setPrompt(example.prompt)
             }}
             className={cn(
-              "text-left text-[12px] leading-5 text-zinc-400 transition hover:text-cyan-100",
+              "text-left text-[12px] leading-5 text-zinc-400 transition hover:text-cyan-700",
               index > 0 && "hidden sm:block"
             )}
           >
-            <span className="font-semibold text-zinc-300">{example.label}:</span>{" "}
+            <span className="font-semibold text-zinc-700">{example.label}:</span>{" "}
             {example.prompt}
           </button>
         ))}

@@ -74,7 +74,7 @@ export default function SecondOpinionPage() {
         actions={
           <AIAction
             agentId="second-opinion"
-            label="Ask Orion"
+            label="Ask OpenRx"
             prompt="Review my current diagnosis and treatment plan, identify gaps, red flags, and the highest-value questions to ask my clinician next."
           />
         }
@@ -82,7 +82,7 @@ export default function SecondOpinionPage() {
 
       <ClinicalSection
         kicker="Review request"
-        title="Give Orion the diagnosis and the current plan, not just the worry."
+        title="Give OpenRx the diagnosis and the current plan, not just the worry."
         description="A useful second opinion starts with the treatment plan that was actually recommended. Include medications, monitoring, next tests, and follow-up timing so the review stays anchored to reality."
         aside={
           <div className="space-y-3">
@@ -109,7 +109,7 @@ export default function SecondOpinionPage() {
           {activeConditions.length > 0 && !diagnosis ? (
             <FieldsetCard
               legend="Quick-fill from your record"
-              description="Start from an active condition, then Orion will preload the active medication list into the current plan field."
+              description="Start from an active condition, then OpenRx will preload the active medication list into the current plan field."
             >
               <div className="flex flex-wrap gap-2">
                 {activeConditions.map((condition) => (
@@ -225,11 +225,11 @@ export default function SecondOpinionPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
-            <div className="overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(8,24,46,0.16)]">
+            <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white p-5 shadow-soft-card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Review outcome</p>
-                  <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-white">
+                  <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-zinc-900">
                     {result.agreement === "supports-current-plan"
                       ? "Current plan broadly holds up."
                       : result.agreement === "partial-agreement"
@@ -238,19 +238,19 @@ export default function SecondOpinionPage() {
                   </h2>
                   <p className="mt-3 text-sm leading-7 text-white/72">{result.summary}</p>
                 </div>
-                <OpsBadge tone={agreementTone} className="!border-white/12 !bg-white/10 !text-white">
+                <OpsBadge tone={agreementTone}>
                   {result.agreement.replaceAll("-", " ")}
                 </OpsBadge>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+                <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Confidence</p>
-                  <p className="mt-2 text-lg font-semibold text-white capitalize">{result.confidence}</p>
+                  <p className="mt-2 text-lg font-semibold text-zinc-900 capitalize">{result.confidence}</p>
                   <p className="mt-1 text-[12px] leading-6 text-white/64">Confidence reflects the specificity of the diagnosis and the treatment details you provided.</p>
                 </div>
-                <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+                <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Immediate priority</p>
-                  <p className="mt-2 text-lg font-semibold text-white">
+                  <p className="mt-2 text-lg font-semibold text-zinc-900">
                     {result.redFlags.length
                       ? "Start with safety flags"
                       : result.keyQuestions.length
@@ -358,7 +358,7 @@ export default function SecondOpinionPage() {
         <div className="surface-card px-6 py-12 text-center">
           <Loader2 size={24} className="mx-auto mb-3 animate-spin text-teal" />
           <p className="text-sm font-medium text-primary">Generating second-opinion review...</p>
-          <p className="mt-2 text-xs leading-6 text-muted">Orion is checking agreement with the current plan, safety flags, and the highest-value follow-up questions.</p>
+          <p className="mt-2 text-xs leading-6 text-muted">OpenRx is checking agreement with the current plan, safety flags, and the highest-value follow-up questions.</p>
         </div>
       ) : null}
     </div>
@@ -381,14 +381,14 @@ function SecondOpinionBriefCard({
       className={cn(
         "rounded-[24px] border px-5 py-5",
         tone === "red"
-          ? "border-red-200/45 bg-[linear-gradient(180deg,rgba(255,247,246,0.96),rgba(255,239,237,0.92))]"
+          ? "border-red-200 bg-red-50"
           : tone === "gold"
-            ? "border-amber-300/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,246,255,0.90))]"
+            ? "border-amber-200 bg-amber-50"
             : tone === "blue"
-              ? "border-[rgba(59,130,246,0.18)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
+              ? "border-blue-200 bg-blue-50"
               : tone === "accent"
-                ? "border-[rgba(47,107,255,0.14)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
-                : "border-[rgba(47,107,255,0.14)] bg-[linear-gradient(180deg,rgba(255,248,244,0.96),rgba(255,242,237,0.92))]"
+                ? "border-cyan-700/15 bg-cyan-50"
+                : "border-zinc-200 bg-white"
       )}
     >
       <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{eyebrow}</div>

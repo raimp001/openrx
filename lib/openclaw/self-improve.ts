@@ -307,7 +307,7 @@ export function runImprovementCycle(): Improvement[] {
     )
   }
 
-  // Orion (Second Opinion) suggests care-plan explainability improvements
+  // OpenRx Second Opinion suggests care-plan explainability improvements
   const hasSecondOpinionImprovement = improvements.some(
     (i) => i.suggestedBy === "second-opinion" && i.status !== "deployed" && i.status !== "rejected"
   )

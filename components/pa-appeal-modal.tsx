@@ -238,7 +238,7 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
 
             <button
               onClick={() => void generateAppeal()}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white transition hover:bg-[#12213a]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white transition hover:bg-zinc-800"
             >
               <Send size={14} />
               Generate appeal package
@@ -358,7 +358,7 @@ export default function PAAppealModal({ pa, patientName, physicianName, onClose 
               </button>
               <button
                 onClick={onClose}
-                className="flex items-center gap-2 bg-primary hover:bg-[#12213a] text-white text-xs font-bold px-4 py-2 rounded-xl transition"
+                className="flex items-center gap-2 bg-primary hover:bg-zinc-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition"
               >
                 Done
               </button>

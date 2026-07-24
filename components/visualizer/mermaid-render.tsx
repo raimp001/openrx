@@ -70,7 +70,7 @@ export default function MermaidRender({ code }: { code: string }) {
 
   return (
     <div
-      className="overflow-auto rounded-[22px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.96))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
+      className="overflow-auto rounded-[22px] border border-border/80 bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   )

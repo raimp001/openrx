@@ -21,10 +21,10 @@ export default function ProjectVisualizerPage({
         }
         meta={
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-secondary ring-1 ring-border">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-secondary ring-1 ring-border">
               repo intelligence
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-secondary ring-1 ring-border">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-secondary ring-1 ring-border">
               exportable diagrams
             </span>
           </div>

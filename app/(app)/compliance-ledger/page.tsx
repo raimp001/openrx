@@ -14,7 +14,6 @@ import {
   Undo2,
 } from "lucide-react"
 import { AppPageHeader } from "@/components/layout/app-page"
-import TreasuryConsole from "@/components/payments/treasury-console"
 import { OpsBadge, OpsEmptyState, OpsMetricCard, OpsPanel } from "@/components/ui/ops-primitives"
 import { launchBaseBuilderPay } from "@/lib/basebuilder/pay"
 import { toBaseBuilderTxUrl } from "@/lib/basebuilder/config"
@@ -390,11 +389,11 @@ export default function ComplianceLedgerPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
-            <div className="overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(8,24,46,0.16)]">
+            <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white p-5 shadow-soft-card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Start here</p>
-                  <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-white">
+                  <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-zinc-900">
                     {activeRefund
                       ? `Refund ${activeRefund.id.slice(0, 8)} needs closure`
                       : reviewPayment
@@ -409,14 +408,14 @@ export default function ComplianceLedgerPage() {
                         : "The current ledger is quiet. No refund or payment verification queue is leading the board right now."}
                   </p>
                 </div>
-                <OpsBadge tone={activeRefund ? "red" : reviewPayment ? "gold" : "accent"} className="!border-white/12 !bg-white/10 !text-white">
+                <OpsBadge tone={activeRefund ? "red" : reviewPayment ? "gold" : "accent"}>
                   {activeRefund ? "urgent" : reviewPayment ? "review" : "stable"}
                 </OpsBadge>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+                <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">First move</p>
-                  <p className="mt-2 text-lg font-semibold text-white">
+                  <p className="mt-2 text-lg font-semibold text-zinc-900">
                     {activeRefund
                       ? "Close refund workflow"
                       : snapshot.summary.pendingVerificationCount
@@ -431,9 +430,9 @@ export default function ComplianceLedgerPage() {
                         : "No active queue is blocked, so the next task is a fresh payment intent."}
                   </p>
                 </div>
-                <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+                <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Operational posture</p>
-                  <p className="mt-2 text-lg font-semibold text-white">
+                  <p className="mt-2 text-lg font-semibold text-zinc-900">
                     {snapshot.summary.openRefundCount
                       ? "Refunds open"
                       : snapshot.summary.pendingVerificationCount
@@ -463,8 +462,6 @@ export default function ComplianceLedgerPage() {
               tone={snapshot.summary.openRefundCount ? "red" : "accent"}
             />
           </div>
-
-          <TreasuryConsole />
 
           <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
             <div className="space-y-4">
@@ -715,14 +712,14 @@ function LedgerBriefCard({
       className={cn(
         "rounded-[24px] border px-5 py-5",
         tone === "red"
-          ? "border-red-200/45 bg-[linear-gradient(180deg,rgba(255,247,246,0.96),rgba(255,239,237,0.92))]"
+          ? "border-red-200 bg-red-50"
           : tone === "gold"
-            ? "border-amber-300/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,246,255,0.90))]"
+            ? "border-amber-200 bg-amber-50"
             : tone === "blue"
-              ? "border-[rgba(59,130,246,0.18)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
+              ? "border-blue-200 bg-blue-50"
               : tone === "accent"
-                ? "border-[rgba(47,107,255,0.14)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
-                : "border-[rgba(47,107,255,0.14)] bg-[linear-gradient(180deg,rgba(255,248,244,0.96),rgba(255,242,237,0.92))]"
+                ? "border-cyan-700/15 bg-cyan-50"
+                : "border-zinc-200 bg-white"
       )}
     >
       <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{eyebrow}</div>

@@ -168,7 +168,7 @@ export default function TreasuryConsole() {
       </div>
 
       {!payload && (
-        <div className="grid grid-cols-1 gap-3 rounded-[24px] border border-border/70 bg-white/65 p-4 md:grid-cols-[1fr_auto]">
+        <div className="grid grid-cols-1 gap-3 rounded-[24px] border border-zinc-200 bg-zinc-50 p-4 md:grid-cols-[1fr_auto]">
           <label className="control-label">
             Admin API key
             <input
@@ -202,7 +202,7 @@ export default function TreasuryConsole() {
           </div>
 
           {!payload.config.configured && (
-            <div className="rounded-xl border border-yellow-300/30 bg-yellow-100/20 p-3 text-xs text-primary">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
               {payload.config.message}
             </div>
           )}
@@ -213,7 +213,7 @@ export default function TreasuryConsole() {
               <div className="space-y-2">
                 {payload.treasury.balances.length === 0 && <p className="text-[11px] text-muted">No balances returned by Privy.</p>}
                 {payload.treasury.balances.map((balance) => (
-                  <div key={`${balance.chain}-${balance.asset}`} className="flex items-center justify-between gap-2 rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm">
+                  <div key={`${balance.chain}-${balance.asset}`} className="flex items-center justify-between gap-2 rounded-2xl border border-zinc-200 bg-white px-3 py-2 shadow-sm">
                     <div>
                       <p className="text-xs font-semibold text-primary">{balance.asset}</p>
                       <p className="text-[10px] text-muted">{balance.chain}</p>
@@ -277,7 +277,7 @@ export default function TreasuryConsole() {
               <div className="space-y-2">
                 {payload.treasury.recentActions.length === 0 && <p className="text-[11px] text-muted">No treasury actions recorded yet.</p>}
                 {payload.treasury.recentActions.map((action) => (
-                  <div key={action.id} className="rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm">
+                  <div key={action.id} className="rounded-2xl border border-zinc-200 bg-white px-3 py-2 shadow-sm">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-semibold text-primary">{action.kind} {action.asset} ${action.amount}</span>
                       <span className="text-[10px] uppercase text-muted">{action.status}</span>
@@ -298,7 +298,7 @@ export default function TreasuryConsole() {
               <div className="space-y-2">
                 {payload.treasury.recentTransactions.length === 0 && <p className="text-[11px] text-muted">No recent transactions returned by Privy.</p>}
                 {payload.treasury.recentTransactions.map((transaction, index) => (
-                  <div key={`${transaction.hash || transaction.createdAt}-${index}`} className="rounded-2xl border border-white/70 bg-white/75 px-3 py-2 shadow-sm">
+                  <div key={`${transaction.hash || transaction.createdAt}-${index}`} className="rounded-2xl border border-zinc-200 bg-white px-3 py-2 shadow-sm">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-semibold text-primary">{transaction.asset || "Asset"} {transaction.type || "transaction"}</span>
                       <span className="text-[10px] uppercase text-muted">{transaction.status}</span>

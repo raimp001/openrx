@@ -13,28 +13,28 @@
   --font-serif: var(--font-sans);
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --font-display: var(--font-sans);
-  --color-bg-rgb: 5 5 5;
-  --color-surface-rgb: 16 16 16;
-  --color-surface-muted-rgb: 24 24 27;
-  --color-text-rgb: 244 244 245;
-  --color-secondary-rgb: 212 212 216;
-  --color-muted-rgb: 190 190 200;
-  --color-subtle-rgb: 161 161 170;
-  --color-border-rgb: 39 39 42;
-  --color-border-strong-rgb: 63 63 70;
-  --color-navy-rgb: 165 243 252;
-  --color-navy-hover-rgb: 103 232 249;
-  --color-accent-rgb: 103 232 249;
-  --color-accent-light-rgb: 165 243 252;
-  --color-accent-dark-rgb: 34 211 238;
-  --color-accent-50-rgb: 8 47 73;
-  --color-accent-100-rgb: 22 78 99;
-  --color-success-rgb: 52 211 153;
-  --color-warning-rgb: 251 191 36;
-  --color-danger-rgb: 248 113 113;
-  --focus-ring: 0 0 0 2px rgb(var(--color-bg-rgb)), 0 0 0 4px rgb(var(--color-accent-rgb) / 0.55);
-  --shell-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px rgba(0, 0, 0, 0.32);
-  --panel-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 6px 20px rgba(0, 0, 0, 0.28);
+  --color-bg-rgb: 250 250 250;
+  --color-surface-rgb: 255 255 255;
+  --color-surface-muted-rgb: 244 244 245;
+  --color-text-rgb: 24 24 27;
+  --color-secondary-rgb: 63 63 70;
+  --color-muted-rgb: 82 82 91;
+  --color-subtle-rgb: 113 113 122;
+  --color-border-rgb: 228 228 231;
+  --color-border-strong-rgb: 212 212 216;
+  --color-navy-rgb: 14 116 144;
+  --color-navy-hover-rgb: 21 94 117;
+  --color-accent-rgb: 14 116 144;
+  --color-accent-light-rgb: 207 250 254;
+  --color-accent-dark-rgb: 21 94 117;
+  --color-accent-50-rgb: 236 254 255;
+  --color-accent-100-rgb: 207 250 254;
+  --color-success-rgb: 4 120 87;
+  --color-warning-rgb: 180 83 9;
+  --color-danger-rgb: 185 28 28;
+  --focus-ring: 0 0 0 2px rgb(var(--color-bg-rgb)), 0 0 0 4px rgb(var(--color-accent-rgb) / 0.45);
+  --shell-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.06);
+  --panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 20px rgba(15, 23, 42, 0.05);
   --paper: rgb(var(--color-bg-rgb));
   --paper-deep: rgb(var(--color-surface-muted-rgb));
   --paper-ink: rgb(var(--color-text-rgb));
@@ -45,7 +45,7 @@
   --paper-border-strong: rgb(var(--color-border-strong-rgb));
   --glass: rgb(var(--color-surface-rgb) / 0.82);
   --openrx-sidebar-width: 76px;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html {
@@ -60,7 +60,7 @@ body {
 main#main-content:has([data-openrx-chat-workspace]) {
   min-height: 100vh;
   padding: 0 !important;
-  background: #050505;
+  background: #fafafa;
 }
 
 main#main-content:has([data-openrx-chat-workspace]) > div {
@@ -68,8 +68,8 @@ main#main-content:has([data-openrx-chat-workspace]) > div {
 }
 
 body:has([data-openrx-chat-workspace]) {
-  background: #050505;
-  color: #f4f4f5;
+  background: #fafafa;
+  color: #18181b;
 }
 
 body:has([data-openrx-chat-workspace]) .pointer-events-none.fixed.inset-0 {
@@ -85,11 +85,9 @@ body {
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --font-display: var(--font-sans);
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
-  /* Flat instrument canvas: one whisper of accent light at the top edge,
-     no floating color blobs. Depth comes from hairlines, not glow. */
-  background:
-    linear-gradient(180deg, rgb(var(--color-accent-rgb) / 0.045) 0%, transparent 220px),
-    #050505;
+  /* Flat light canvas: zinc-50 base, white raised surfaces. Depth comes from
+     hairlines and weight, not glow or gradients. */
+  background: #fafafa;
   color: var(--paper-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -334,8 +332,8 @@ a {
   }
 
   .control-button-primary {
-    @apply control-button bg-navy text-black hover:bg-navy-hover;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 4px 14px rgba(103, 232, 249, 0.10);
+    @apply control-button bg-navy text-white hover:bg-navy-hover;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
   }
 
   .control-button-secondary {
@@ -345,7 +343,7 @@ a {
   }
 
   .control-button-accent {
-    @apply control-button bg-teal text-black hover:bg-teal-light;
+    @apply control-button bg-teal text-white hover:bg-teal-dark;
   }
 
   .stat-card-accent {
@@ -364,8 +362,8 @@ a {
 
   .shell-rail {
     border-color: var(--paper-border);
-    background: rgb(var(--color-surface-rgb) / 0.88);
-    box-shadow: 1px 0 0 rgba(255, 255, 255, 0.04), 18px 0 60px rgba(0, 0, 0, 0.18);
+    background: rgb(var(--color-surface-rgb) / 0.92);
+    box-shadow: 1px 0 0 rgba(15, 23, 42, 0.02), 18px 0 60px rgba(15, 23, 42, 0.05);
     backdrop-filter: blur(18px);
   }
 
@@ -384,6 +382,9 @@ a {
     @apply surface-card relative overflow-hidden;
   }
 
+  /* Legacy white-on-dark alpha text utilities now resolve to the light-theme
+     text ramp so old call sites stay legible on white surfaces. Elements that
+     sit on intentionally dark panels override with plain `text-white`. */
   .text-white\/42,
   .text-white\/48,
   .text-white\/50,
@@ -392,7 +393,7 @@ a {
   .text-white\/58,
   .text-white\/60,
   .text-white\/62 {
-    color: rgba(255, 255, 255, 0.78);
+    color: rgb(var(--color-muted-rgb));
   }
 
   .text-white\/64,
@@ -402,12 +403,41 @@ a {
   .text-white\/72,
   .text-white\/74,
   .text-white\/75 {
-    color: rgba(255, 255, 255, 0.86);
+    color: rgb(var(--color-secondary-rgb));
   }
 
   .text-white\/78,
   .text-white\/82,
   .text-white\/84 {
+    color: rgb(var(--color-text-rgb));
+  }
+
+  /* Inside intentionally dark panels (which set plain `text-white` on the
+     container), keep the alpha-white text as-is. */
+  .text-white .text-white\/42,
+  .text-white .text-white\/48,
+  .text-white .text-white\/50,
+  .text-white .text-white\/55,
+  .text-white .text-white\/56,
+  .text-white .text-white\/58,
+  .text-white .text-white\/60,
+  .text-white .text-white\/62 {
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .text-white .text-white\/64,
+  .text-white .text-white\/66,
+  .text-white .text-white\/68,
+  .text-white .text-white\/70,
+  .text-white .text-white\/72,
+  .text-white .text-white\/74,
+  .text-white .text-white\/75 {
+    color: rgba(255, 255, 255, 0.84);
+  }
+
+  .text-white .text-white\/78,
+  .text-white .text-white\/82,
+  .text-white .text-white\/84 {
     color: rgba(255, 255, 255, 0.92);
   }
 
@@ -495,146 +525,134 @@ a {
   }
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .bg-white,
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,255,255"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,247"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,248"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,239"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(255,242"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(247,250,255"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(247,240"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-[rgba(239,246,255"] {
-  background-color: rgb(var(--color-surface-rgb) / 0.78) !important;
-}
-
+/* Light-theme adaptation for legacy dark call sites inside the app shell.
+   Translucent white fills become translucent ink fills; near-white alpha text
+   is handled by the utilities above. Chat workspace opts out (already light). */
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-white/"] {
-  background-color: rgb(255 255 255 / 0.065) !important;
+  background-color: rgb(24 24 27 / 0.05) !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,255,255"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(239,246,255"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(239,250,247"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,247"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,248"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,239"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(255,242"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(247,240"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="linear-gradient"][class*="rgba(244,236,224"] {
-  background: linear-gradient(180deg, rgb(var(--color-surface-rgb) / 0.94), rgb(var(--color-surface-muted-rgb) / 0.88)) !important;
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="hover:bg-white/"]:hover,
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="hover:bg-[rgba(255,255,255"]:hover {
+  background-color: rgb(24 24 27 / 0.08) !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-[rgba"] {
-  border-color: rgb(var(--color-border-rgb) / 0.72) !important;
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-white/"] {
+  border-color: rgb(var(--color-border-rgb)) !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="hover:bg-white"]:hover,
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="hover:bg-[rgba"]:hover {
-  background-color: rgb(255 255 255 / 0.10) !important;
-}
-
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .bg-primary.text-white,
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .bg-navy.text-white,
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .bg-teal.text-white,
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .control-button-primary,
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) .control-button-accent {
-  color: #050505 !important;
-}
-
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-yellow-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-yellow-100"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-amber-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-amber-100"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-orange-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-orange-100"] {
-  background-color: rgb(var(--color-warning-rgb) / 0.16) !important;
-}
-
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-yellow-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-amber-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-orange-"] {
-  border-color: rgb(var(--color-warning-rgb) / 0.32) !important;
-}
-
+/* Dark-mode-style bright semantic text becomes readable 700-shade text on light. */
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-yellow-"],
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-amber-"],
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-orange-"] {
-  color: #fde68a !important;
+  color: #b45309 !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-red-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-red-100"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-rose-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-rose-100"] {
-  background-color: rgb(var(--color-danger-rgb) / 0.16) !important;
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-red-3"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-red-4"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-rose-3"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-rose-4"] {
+  color: #b91c1c !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-red-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-rose-"] {
-  border-color: rgb(var(--color-danger-rgb) / 0.34) !important;
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-green-3"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-green-4"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-emerald-3"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-emerald-4"] {
+  color: #047857 !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-red-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-rose-"] {
-  color: #fecaca !important;
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-blue-3"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-blue-4"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-sky-3"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-sky-4"] {
+  color: #1d4ed8 !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-green-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-green-100"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-emerald-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-emerald-100"] {
-  background-color: rgb(var(--color-success-rgb) / 0.14) !important;
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-slate-3"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-slate-4"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-gray-3"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-gray-4"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-neutral-3"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-neutral-4"] {
+  color: rgb(var(--color-muted-rgb)) !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-green-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-emerald-"] {
-  border-color: rgb(var(--color-success-rgb) / 0.30) !important;
+/* Cyan-200/300 dark-theme accents map to the single cyan-700 accent on light. */
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-2"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-3"] {
+  color: #0e7490 !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-green-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-emerald-"] {
-  color: #a7f3d0 !important;
+/* Pale 50/100-shade dark-theme text becomes readable 700-shade text on light. */
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-5"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-1"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-teal-1"] {
+  color: #0e7490 !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-blue-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-blue-100"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-sky-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-sky-100"] {
-  background-color: rgb(96 165 250 / 0.14) !important;
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-amber-1"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-amber-2"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-yellow-1"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-yellow-2"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-orange-1"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-orange-2"] {
+  color: #b45309 !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-blue-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-sky-"] {
-  border-color: rgb(96 165 250 / 0.30) !important;
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-rose-1"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-rose-2"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-red-1"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-red-2"] {
+  color: #b91c1c !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-blue-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-sky-"] {
-  color: #bfdbfe !important;
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-emerald-1"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-emerald-2"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-green-1"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-green-2"] {
+  color: #047857 !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-slate-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-slate-100"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-gray-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-gray-100"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-zinc-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-zinc-100"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-neutral-50"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="bg-neutral-100"] {
-  background-color: rgb(var(--color-surface-muted-rgb) / 0.72) !important;
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-blue-1"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-blue-2"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-sky-1"],
+[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-sky-2"] {
+  color: #1d4ed8 !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-slate-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-gray-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-zinc-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="border-neutral-"] {
-  border-color: rgb(var(--color-border-rgb) / 0.86) !important;
+/* Inside intentionally dark panels, pale text keeps its original light shades. */
+[data-openrx-app-shell] .text-white [class*="text-cyan-5"], [data-openrx-app-shell] .text-white [class*="text-cyan-1"] { color: #cffafe !important; }
+[data-openrx-app-shell] .text-white [class*="text-amber-1"], [data-openrx-app-shell] .text-white [class*="text-yellow-1"] { color: #fef3c7 !important; }
+[data-openrx-app-shell] .text-white [class*="text-rose-1"], [data-openrx-app-shell] .text-white [class*="text-red-1"] { color: #fee2e2 !important; }
+[data-openrx-app-shell] .text-white [class*="text-emerald-1"], [data-openrx-app-shell] .text-white [class*="text-green-1"] { color: #d1fae5 !important; }
+[data-openrx-app-shell] .text-white [class*="text-blue-1"], [data-openrx-app-shell] .text-white [class*="text-sky-1"] { color: #dbeafe !important; }
+[data-openrx-app-shell] .text-white [class*="text-cyan-2"], [data-openrx-app-shell] .text-white [class*="text-cyan-3"] { color: #a5f3fc !important; }
+[data-openrx-app-shell] .text-white [class*="text-amber-2"], [data-openrx-app-shell] .text-white [class*="text-amber-3"] { color: #fde68a !important; }
+[data-openrx-app-shell] .text-white [class*="text-red-2"], [data-openrx-app-shell] .text-white [class*="text-red-3"], [data-openrx-app-shell] .text-white [class*="text-red-4"] { color: #fca5a5 !important; }
+[data-openrx-app-shell] .text-white [class*="text-rose-2"], [data-openrx-app-shell] .text-white [class*="text-rose-3"], [data-openrx-app-shell] .text-white [class*="text-rose-4"] { color: #fda4af !important; }
+[data-openrx-app-shell] .text-white [class*="text-emerald-2"], [data-openrx-app-shell] .text-white [class*="text-emerald-3"], [data-openrx-app-shell] .text-white [class*="text-emerald-4"] { color: #6ee7b7 !important; }
+[data-openrx-app-shell] .text-white [class*="text-green-2"], [data-openrx-app-shell] .text-white [class*="text-green-3"], [data-openrx-app-shell] .text-white [class*="text-green-4"] { color: #86efac !important; }
+[data-openrx-app-shell] .text-white [class*="text-blue-2"], [data-openrx-app-shell] .text-white [class*="text-blue-3"], [data-openrx-app-shell] .text-white [class*="text-blue-4"] { color: #93c5fd !important; }
+[data-openrx-app-shell] .text-white [class*="text-sky-2"], [data-openrx-app-shell] .text-white [class*="text-sky-3"], [data-openrx-app-shell] .text-white [class*="text-sky-4"] { color: #7dd3fc !important; }
+[data-openrx-app-shell] .text-white [class*="text-yellow-2"], [data-openrx-app-shell] .text-white [class*="text-yellow-3"], [data-openrx-app-shell] .text-white [class*="text-yellow-4"],
+[data-openrx-app-shell] .text-white [class*="text-orange-2"], [data-openrx-app-shell] .text-white [class*="text-orange-3"], [data-openrx-app-shell] .text-white [class*="text-orange-4"] { color: #fcd34d !important; }
+[data-openrx-app-shell] .text-white [class*="text-teal-3"], [data-openrx-app-shell] .text-white [class*="text-teal-4"] { color: #5eead4 !important; }
+
+/* Near-white zinc text from the dark theme resolves to primary text on light. */
+[data-openrx-app-shell] .text-zinc-50,
+[data-openrx-app-shell] .text-zinc-100,
+[data-openrx-app-shell] .text-zinc-200 {
+  color: rgb(var(--color-text-rgb)) !important;
 }
 
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-slate-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-gray-"],
-[data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-neutral-"] {
-  color: rgb(var(--color-secondary-rgb)) !important;
-}
+/* ...but inside intentionally dark panels, keep the original light zinc shades. */
+.text-white .text-zinc-50 { color: #fafafa !important; }
+.text-white .text-zinc-100 { color: #f4f4f5 !important; }
+.text-white .text-zinc-200 { color: #e4e4e7 !important; }
+.text-white .text-zinc-300 { color: #d4d4d8 !important; }
+.text-white .text-zinc-400 { color: #a1a1aa !important; }
+.text-white .text-zinc-500 { color: #8e8e99 !important; }
 
 .text-zinc-500 {
   color: rgb(var(--color-subtle-rgb)) !important;

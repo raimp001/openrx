@@ -90,7 +90,7 @@ export function ClinicalInput({
     <input
       {...props}
       className={cn(
-        "w-full rounded-[18px] border border-white/10 bg-[#0d0f10] px-4 py-3.5 text-sm text-primary shadow-sm transition placeholder:text-muted focus:border-cyan-200/40 focus:outline-none focus:ring-2 focus:ring-cyan-200/10",
+        "w-full rounded-[18px] border border-zinc-200 bg-white px-4 py-3.5 text-sm text-primary shadow-sm transition placeholder:text-muted focus:border-cyan-700/40 focus:outline-none focus:ring-2 focus:ring-cyan-700/10",
         className
       )}
     />
@@ -105,7 +105,7 @@ export function ClinicalTextarea({
     <textarea
       {...props}
       className={cn(
-        "w-full rounded-[18px] border border-white/10 bg-[#0d0f10] px-4 py-3.5 text-sm text-primary shadow-sm transition placeholder:text-muted focus:border-cyan-200/40 focus:outline-none focus:ring-2 focus:ring-cyan-200/10",
+        "w-full rounded-[18px] border border-zinc-200 bg-white px-4 py-3.5 text-sm text-primary shadow-sm transition placeholder:text-muted focus:border-cyan-700/40 focus:outline-none focus:ring-2 focus:ring-cyan-700/10",
         className
       )}
     />

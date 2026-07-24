@@ -185,8 +185,17 @@ export default function OnboardingPage() {
     })
   }, [stepHistory])
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
-  useEffect(() => { inputRef.current?.focus() }, [step])
+  // Keep the thread pinned to the latest message without dragging the page
+  // scroll position down (which clipped the H1 on load).
+  const didMountRef = useRef(false)
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true
+      return
+    }
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+  }, [messages])
+  useEffect(() => { inputRef.current?.focus({ preventScroll: true }) }, [step])
 
   const addAgent = useCallback((content: string, agent = "sage", options?: Message["options"]) => {
     setIsTyping(true)
@@ -613,7 +622,7 @@ export default function OnboardingPage() {
                     ) : null}
                     <div className={cn(
                       "max-w-[88%] rounded-[20px] px-4 py-3",
-                      msg.role === "user" ? "border border-cyan-200/15 bg-cyan-200/[0.09] text-cyan-50" :
+                      msg.role === "user" ? "border border-cyan-700 bg-cyan-700 text-white" :
                       msg.role === "system" ? "w-full max-w-full bg-white/[0.05] text-center text-xs text-secondary" :
                       "border border-white/10 bg-white/[0.05] text-primary"
                     )}>
@@ -634,7 +643,7 @@ export default function OnboardingPage() {
                         <button
                           key={opt.value}
                           onClick={() => handleOption(opt.value)}
-                          className="rounded-full border border-white/12 bg-white/[0.06] px-3.5 py-2 text-xs font-semibold text-secondary transition hover:border-cyan-200/32 hover:bg-cyan-200/[0.08] hover:text-primary"
+                          className="rounded-full border border-white/12 bg-white/[0.06] px-3.5 py-2 text-xs font-semibold text-secondary transition hover:border-cyan-700/30 hover:bg-cyan-50 hover:text-primary"
                         >
                           {opt.label}
                         </button>
@@ -675,7 +684,7 @@ export default function OnboardingPage() {
                   placeholder={isSearching ? "Searching..." : "Type your answer"}
                   disabled={isTyping || isSearching}
                   aria-label="Onboarding chat input"
-                  className="min-h-11 flex-1 rounded-full border border-white/12 bg-[#0f1112] px-4 py-2.5 text-sm text-primary placeholder:text-muted focus:border-teal/40 focus:outline-none focus:ring-1 focus:ring-teal/20 disabled:opacity-50"
+                  className="min-h-11 flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm text-primary placeholder:text-muted focus:border-teal/40 focus:outline-none focus:ring-1 focus:ring-teal/20 disabled:opacity-50"
                 />
                 <button
                   onClick={() => handleSubmit()}
@@ -699,7 +708,7 @@ export default function OnboardingPage() {
           )}
         </div>
       </section>
-      {step === "complete" && onboardingPlan ? <CarePlanPreview draft={onboardingPlan} /> : null}
+      {step === "complete" && onboardingPlan ? <CarePlanPreview draft={onboardingPlan} surface="light" /> : null}
     </div>
   )
 }

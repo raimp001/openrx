@@ -16,11 +16,11 @@ export function AnalyticsDebugPanel() {
   if (process.env.NODE_ENV !== "development") return null
 
   return (
-    <details className="fixed bottom-3 right-3 z-50 max-w-[320px] rounded-xl border border-white/12 bg-[#070909]/95 p-3 text-[11px] text-zinc-300 shadow-2xl">
-      <summary className="cursor-pointer font-semibold text-zinc-100">Analytics debug ({events.length})</summary>
+    <details className="fixed bottom-3 right-3 z-50 max-w-[320px] rounded-xl border border-zinc-200 bg-white p-3 text-[11px] text-zinc-600 shadow-soft-card">
+      <summary className="cursor-pointer font-semibold text-zinc-900">Analytics debug ({events.length})</summary>
       <p className="mt-2 text-zinc-500">Events only. No prompt, name, contact, insurance, or address fields.</p>
       <ul className="mt-2 space-y-1">
-        {events.map((event) => <li key={`${event.at}-${event.name}`}>{event.name} · {new Date(event.at).toLocaleTimeString()}</li>)}
+        {events.map((event) => <li key={`${event.at}-${event.name}`} className="text-zinc-600">{event.name} · {new Date(event.at).toLocaleTimeString()}</li>)}
       </ul>
     </details>
   )

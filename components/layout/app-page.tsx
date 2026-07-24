@@ -33,12 +33,11 @@ export function AppPageHeader({
   return (
     <section
       className={cn(
-        "relative border-b border-white/10 pb-5 sm:pb-6",
+        "relative border-b border-zinc-200 pb-5 sm:pb-6",
         variant === "hero" && "pb-6 sm:pb-8",
         className
       )}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/30 to-transparent" />
       <div
         className={cn(
           "relative flex gap-5",
@@ -78,14 +77,14 @@ export function AppPageHeader({
       {variant === "hero" ? (
         <div
           className={cn(
-            "relative mt-6 grid gap-px overflow-hidden border-y border-white/10 bg-white/10 sm:grid-cols-4",
+            "relative mt-6 grid gap-px overflow-hidden border-y border-zinc-200 bg-zinc-200 sm:grid-cols-4",
             align === "center" && "mx-auto max-w-2xl"
           )}
           aria-label="OpenRx care pathway"
         >
           {executionLoop.map((item, index) => (
-            <div key={item} className="flex items-center gap-2.5 bg-[#0b0b0c] px-3.5 py-2.5">
-              <span className="font-data text-[10px] text-cyan-200/80">{String(index + 1).padStart(2, "0")}</span>
+            <div key={item} className="flex items-center gap-2.5 bg-white px-3.5 py-2.5">
+              <span className="font-data text-[10px] text-cyan-700">{String(index + 1).padStart(2, "0")}</span>
               <span className="text-[12px] font-medium text-primary">{item}</span>
             </div>
           ))}

@@ -58,7 +58,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "openclaw_chat",
       description:
-        "Send a message to a specific OpenClaw agent (Sage, Atlas, Nova, Cal, Vera, Maya, Rex, Ivy, Quinn, Orion, Lyra, or Bolt) and get their response. " +
+        "Send a message to a specific OpenClaw agent (Sage, Atlas, Nova, Cal, Vera, Maya, Rex, Ivy, Quinn, OpenRx, Lyra, or Bolt) and get their response. " +
         "Agent IDs: onboarding, coordinator, triage, scheduling, billing, rx, prior-auth, wellness, screening, second-opinion, trials, devops",
       inputSchema: {
         type: "object",

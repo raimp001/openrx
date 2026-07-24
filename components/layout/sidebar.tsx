@@ -63,7 +63,7 @@ export default function Sidebar() {
     <>
       <div className="flex items-center justify-between px-4 py-4 lg:justify-center lg:px-2">
         <Link href="/" className="flex items-center gap-3" aria-label="OpenRx home">
-          <BrandMark size="sm" />
+          <BrandMark size="sm" tone="light" />
           <BrandWordmark
             className="min-w-0 lg:hidden"
             titleClassName="text-[15px] font-semibold text-primary"
@@ -73,7 +73,7 @@ export default function Sidebar() {
         <button
           onClick={() => setMobileOpen(false)}
           aria-label="Close navigation"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-muted transition hover:bg-white/10 hover:text-primary lg:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-muted transition hover:bg-zinc-100 hover:text-primary lg:hidden"
         >
           <X size={16} />
         </button>
@@ -82,7 +82,7 @@ export default function Sidebar() {
       <div className="px-3 pb-3 lg:px-2">
         <Link
           href="/chat"
-          className="flex items-center justify-center gap-2 rounded-2xl bg-cyan-200 px-4 py-3 text-sm font-semibold text-black transition hover:bg-cyan-100 lg:h-12 lg:px-0"
+          className="flex items-center justify-center gap-2 rounded-2xl bg-cyan-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-800 lg:h-12 lg:px-0"
           title="Ask OpenRx"
         >
           <Bot size={15} />
@@ -102,11 +102,11 @@ export default function Sidebar() {
                 className={cn(
                   "group flex items-center gap-3 rounded-[16px] px-3 py-2.5 text-[13px] font-medium transition lg:h-11 lg:justify-center lg:px-0",
                   active
-                    ? "bg-cyan-200/10 text-primary ring-1 ring-cyan-200/18"
-                    : "text-secondary hover:bg-white/8 hover:text-primary"
+                    ? "bg-cyan-50 text-cyan-800 ring-1 ring-cyan-700/15"
+                    : "text-secondary hover:bg-zinc-100 hover:text-primary"
                 )}
               >
-                <item.icon size={15} className={active ? "text-primary" : "text-muted group-hover:text-primary"} strokeWidth={1.7} />
+                <item.icon size={15} className={active ? "text-cyan-700" : "text-muted group-hover:text-primary"} strokeWidth={1.7} />
                 <span className="flex-1 lg:sr-only">{item.label}</span>
               </Link>
             )
@@ -117,7 +117,7 @@ export default function Sidebar() {
       <div className="px-3 py-3 lg:px-2">
         <Link
           href="/privacy-explained"
-          className="flex items-center gap-3 rounded-[14px] px-3 py-2 text-[12px] font-medium text-muted transition hover:bg-white/8 hover:text-primary lg:justify-center lg:px-0"
+          className="flex items-center gap-3 rounded-[14px] px-3 py-2 text-[12px] font-medium text-muted transition hover:bg-zinc-100 hover:text-primary lg:justify-center lg:px-0"
           title="Privacy"
         >
           <ShieldCheck size={15} strokeWidth={1.7} aria-hidden />
@@ -132,7 +132,7 @@ export default function Sidebar() {
       <button
         ref={openButtonRef}
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-[#101010]/92 text-secondary shadow-card transition hover:border-white/20 hover:text-primary lg:hidden"
+        className="fixed left-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white/95 text-secondary shadow-card transition hover:border-zinc-300 hover:text-primary lg:hidden"
         aria-label="Open navigation"
         aria-expanded={mobileOpen}
       >

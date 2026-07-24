@@ -8,7 +8,7 @@ const CodebaseVisualizer = dynamic(() => import("@/components/visualizer/codebas
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="surface-card min-h-[720px] px-6 py-6">
         <div className="mb-6 h-8 w-56 animate-pulse rounded-full bg-border/60" />
-        <div className="h-[560px] animate-pulse rounded-[28px] border border-border/60 bg-white/70" />
+        <div className="h-[560px] animate-pulse rounded-[28px] border border-border/60 bg-zinc-100" />
       </div>
       <div className="space-y-4">
         <div className="surface-card h-56 animate-pulse" />

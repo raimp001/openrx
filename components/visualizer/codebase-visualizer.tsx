@@ -42,7 +42,7 @@ interface ChatMessage {
 const ReactFlowCanvas = dynamic(() => import("@/components/visualizer/react-flow-canvas"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full min-h-[620px] items-center justify-center rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.96))] text-sm text-muted">
+    <div className="flex h-full min-h-[620px] items-center justify-center rounded-[24px] border border-border/75 bg-zinc-50 text-sm text-muted">
       Preparing interactive graph canvas...
     </div>
   ),
@@ -357,7 +357,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
               value={repoUrl}
               onChange={(event) => setRepoUrl(event.target.value)}
               placeholder="https://github.com/org/repo"
-              className="mt-1 w-full rounded-2xl border border-border/80 bg-white/82 px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-teal/40 focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-border/80 bg-white px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-teal/40 focus:outline-none"
             />
           </label>
           <label className="text-xs font-semibold text-secondary">
@@ -366,13 +366,13 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
               value={githubToken}
               onChange={(event) => setGithubToken(event.target.value)}
               placeholder="ghp_xxx"
-              className="mt-1 w-full rounded-2xl border border-border/80 bg-white/82 px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-teal/40 focus:outline-none"
+              className="mt-1 w-full rounded-2xl border border-border/80 bg-white px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-teal/40 focus:outline-none"
             />
           </label>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-border/80 bg-white/80 px-3 py-2 text-xs font-semibold text-primary">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-border/80 bg-white px-3 py-2 text-xs font-semibold text-primary">
             <Upload size={13} />
             Upload .zip
             <input
@@ -401,7 +401,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                     "rounded-full border px-3 py-1.5 text-[11px] font-semibold transition",
                     active
                       ? "border-teal/35 bg-teal/10 text-teal"
-                      : "border-border/80 bg-white/78 text-secondary hover:border-teal/30"
+                      : "border-border/80 bg-white text-secondary hover:border-teal/30"
                   )}
                   title={area.description}
                 >
@@ -412,7 +412,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
           </div>
         </div>
 
-        <div className="mt-4 rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,236,224,0.9))] p-3">
+        <div className="mt-4 rounded-[24px] border border-border/75 bg-zinc-50 p-3">
           <div className="flex items-center justify-between text-[11px] text-muted">
             <span>Agent progress</span>
             <span>{progress}%</span>
@@ -423,7 +423,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div ref={logRef} className="mt-2 max-h-28 overflow-auto rounded-2xl border border-border/75 bg-white/80 p-2 text-[11px] text-muted">
+          <div ref={logRef} className="mt-2 max-h-28 overflow-auto rounded-2xl border border-border/75 bg-white p-2 text-[11px] text-muted">
             {logs.length === 0 ? (
               <p>Waiting for mapper execution...</p>
             ) : (
@@ -453,7 +453,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                   onClick={() => setViewMode("graph")}
                   className={cn(
                     "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
-                    viewMode === "graph" ? "border-teal/35 bg-teal/10 text-teal" : "border-border/80 bg-white/75 text-secondary"
+                    viewMode === "graph" ? "border-teal/35 bg-teal/10 text-teal" : "border-border/80 bg-white text-secondary"
                   )}
                 >
                   Graph
@@ -462,7 +462,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                   onClick={() => setViewMode("mermaid")}
                   className={cn(
                     "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
-                    viewMode === "mermaid" ? "border-teal/35 bg-teal/10 text-teal" : "border-border/80 bg-white/75 text-secondary"
+                    viewMode === "mermaid" ? "border-teal/35 bg-teal/10 text-teal" : "border-border/80 bg-white text-secondary"
                   )}
                 >
                   Mermaid
@@ -483,7 +483,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                     "rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
                     activeDiagramId === diagram.id
                       ? "border-teal/35 bg-teal/10 text-teal"
-                      : "border-border/80 bg-white/75 text-secondary"
+                      : "border-border/80 bg-white text-secondary"
                   )}
                 >
                   {diagram.title}
@@ -498,31 +498,31 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search nodes"
-                  className="rounded-xl border border-border/80 bg-white/80 py-1.5 pl-7 pr-2 text-xs text-primary"
+                  className="rounded-xl border border-border/80 bg-white py-1.5 pl-7 pr-2 text-xs text-primary"
                 />
               </div>
               <button
                 onClick={() => void improveCurrentDiagram()}
                 disabled={improveLoading}
                 aria-label="Improve this diagram"
-                className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white/80 px-2.5 py-1.5 text-[11px] font-semibold text-primary hover:border-teal/30"
+                className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-primary hover:border-teal/30"
               >
                 {improveLoading ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
                     Improve diagram
                   </button>
-              <button onClick={() => exportRaw("mermaid")} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-primary">
+              <button onClick={() => exportRaw("mermaid")} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white px-2.5 py-1.5 text-[11px] text-primary">
                 <FileCode2 size={12} /> Mermaid
               </button>
-              <button onClick={() => exportRaw("json")} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-primary">
+              <button onClick={() => exportRaw("json")} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white px-2.5 py-1.5 text-[11px] text-primary">
                 <Download size={12} /> JSON
               </button>
-              <button onClick={() => void exportAs("png")} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-primary">PNG</button>
-              <button onClick={() => void exportAs("svg")} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-primary">SVG</button>
-              <button onClick={() => void exportAs("pdf")} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-primary">PDF</button>
-              <button onClick={() => void copyEmbedLink()} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white/80 px-2.5 py-1.5 text-[11px] text-primary">Copy embed link</button>
+              <button onClick={() => void exportAs("png")} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white px-2.5 py-1.5 text-[11px] text-primary">PNG</button>
+              <button onClick={() => void exportAs("svg")} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white px-2.5 py-1.5 text-[11px] text-primary">SVG</button>
+              <button onClick={() => void exportAs("pdf")} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white px-2.5 py-1.5 text-[11px] text-primary">PDF</button>
+              <button onClick={() => void copyEmbedLink()} className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-white px-2.5 py-1.5 text-[11px] text-primary">Copy embed link</button>
             </div>
 
-            <div ref={diagramRef} className="mt-3 h-[620px] overflow-hidden rounded-[24px] border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.96))]">
+            <div ref={diagramRef} className="mt-3 h-[620px] overflow-hidden rounded-[24px] border border-border/75 bg-zinc-50">
               {viewMode === "graph" ? (
                 <ReactFlowCanvas
                   nodes={visibleNodes}
@@ -538,7 +538,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
 
             <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {activeDiagram.insights.map((insight) => (
-                <div key={insight} className="rounded-[18px] border border-border/75 bg-white/80 p-2 text-[11px] text-secondary">
+                <div key={insight} className="rounded-[18px] border border-border/75 bg-white p-2 text-[11px] text-secondary">
                   {insight}
                 </div>
               ))}
@@ -560,7 +560,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                     </p>
                   )}
                   {selectedNode.data.snippet && (
-                    <pre className="max-h-52 overflow-auto rounded-2xl border border-border/75 bg-[#f9f2e7] p-2 text-[10px] text-primary">
+                    <pre className="max-h-52 overflow-auto rounded-2xl border border-border/75 bg-zinc-50 p-2 text-[10px] text-primary">
                       {selectedNode.data.snippet}
                     </pre>
                   )}
@@ -573,7 +573,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                 <Bot size={14} className="text-teal" />
                 <h3 className="text-sm font-semibold text-primary">Ask the Mapper</h3>
               </div>
-              <div className="mt-3 max-h-64 space-y-2 overflow-auto rounded-2xl border border-border/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,236,224,0.9))] p-2">
+              <div className="mt-3 max-h-64 space-y-2 overflow-auto rounded-2xl border border-border/75 bg-zinc-50 p-2">
                 {chatMessages.length === 0 ? (
                   <p className="text-xs text-muted">
                     Ask: &ldquo;focus on payment flow&rdquo;, &ldquo;show agent bottlenecks&rdquo;, or &ldquo;highlight security boundaries&rdquo;.
@@ -586,7 +586,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                         "rounded-lg p-2 text-xs",
                         message.role === "user"
                           ? "bg-teal/10 text-teal"
-                          : "bg-white/82 text-primary"
+                          : "bg-white text-primary"
                       )}
                     >
                       <p className="mb-0.5 text-[10px] uppercase tracking-[0.12em] text-muted">
@@ -603,7 +603,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
                   onChange={(event) => setChatInput(event.target.value)}
                   onKeyDown={(event) => event.key === "Enter" && !chatLoading && void askMapper()}
                   placeholder="Ask the mapper"
-                  className="flex-1 rounded-2xl border border-border/80 bg-white/80 px-3 py-2 text-xs text-primary"
+                  className="flex-1 rounded-2xl border border-border/80 bg-white px-3 py-2 text-xs text-primary"
                 />
                 <button
                   onClick={() => void askMapper()}
@@ -621,7 +621,7 @@ export default function CodebaseVisualizer(props: CodebaseVisualizerProps) {
               <p className="mt-1">Commit: {mapping.summary.commitSha}</p>
               <p>Files analyzed: {mapping.summary.fileCount}</p>
               <p>Cost estimate: ${mapping.cost.estimatedUsd.toFixed(4)}</p>
-              <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-border/80 bg-white/80 px-2 py-1 text-[10px] text-primary">
+              <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-border/80 bg-white px-2 py-1 text-[10px] text-primary">
                 <GitBranch size={10} />
                 Cache {mapping.cacheHit ? "hit" : "miss"}
               </div>

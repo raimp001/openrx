@@ -956,3 +956,20 @@ body:has([data-openrx-warm]) {
   ) !important;
   background-size: 220% 100% !important;
 }
+
+/* CarePlanPreview panel + remaining zinc shades on warm surfaces. */
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-[#0b1112]"] {
+  background-color: #fffdf9 !important;
+  color: #231d17 !important;
+  border-color: rgb(35 29 23 / 0.14) !important;
+  box-shadow: 0 18px 44px rgba(63, 42, 24, 0.1) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] .text-zinc-50,
+[data-openrx-app-shell] [data-openrx-warm] .text-zinc-100 {
+  color: #231d17 !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] .text-zinc-200 {
+  color: #3c3229 !important;
+}

@@ -234,11 +234,11 @@ export default function DrugPricesPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
-            <div className="overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(8,24,46,0.16)]">
+            <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white p-5 shadow-soft-card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Best lead to check first</p>
-                  <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-white">
+                  <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-zinc-900">
                     {bestOption ? bestOption.source : result.query}
                   </h2>
                   <p className="mt-3 text-sm leading-7 text-white/72">
@@ -249,19 +249,19 @@ export default function DrugPricesPage() {
                         : "No live pricing provider is configured, so this page is showing drug reference data and cost-reduction guidance only."}
                   </p>
                 </div>
-                <OpsBadge tone={bestOption ? "accent" : searchContextTone} className="!border-white/12 !bg-white/10 !text-white">
+                <OpsBadge tone={bestOption ? "accent" : searchContextTone}>
                   {bestOption ? "actionable" : result.pricingProviderConfigured ? "reference + retry" : "reference only"}
                 </OpsBadge>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+                <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Retail anchor</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{result.directPricing?.retail || "Unavailable"}</p>
+                  <p className="mt-2 text-lg font-semibold text-zinc-900">{result.directPricing?.retail || "Unavailable"}</p>
                   <p className="mt-1 text-[12px] leading-6 text-white/64">Use this as a reference point, not a promised checkout total.</p>
                 </div>
-                <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+                <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Next move</p>
-                  <p className="mt-2 text-lg font-semibold text-white">
+                  <p className="mt-2 text-lg font-semibold text-zinc-900">
                     {bestOption
                       ? "Verify fill path"
                       : result.pricingProviderConfigured
@@ -412,9 +412,9 @@ export default function DrugPricesPage() {
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr_0.85fr]">
-          <div className="overflow-hidden rounded-[28px] border border-[rgba(82,108,139,0.18)] bg-[linear-gradient(160deg,#07111f_0%,#10254a_58%,#173B83_100%)] p-5 text-white shadow-[0_18px_40px_rgba(8,24,46,0.16)]">
+          <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white p-5 shadow-soft-card">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">What this page does</p>
-            <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-white">Live-first pricing, honest by default.</h2>
+            <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-zinc-900">Live-first pricing, honest by default.</h2>
             <p className="mt-3 text-sm leading-7 text-white/72">
               Search any medication to get verified drug details and live pricing when a configured provider responds. If it does not, the page stays useful without inventing numbers.
             </p>
@@ -453,14 +453,14 @@ function PriceBriefCard({
       className={cn(
         "rounded-[24px] border px-5 py-5",
         tone === "red"
-          ? "border-red-200/45 bg-[linear-gradient(180deg,rgba(255,247,246,0.96),rgba(255,239,237,0.92))]"
+          ? "border-red-200 bg-red-50"
           : tone === "gold"
-            ? "border-amber-300/35 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,246,255,0.90))]"
+            ? "border-amber-200 bg-amber-50"
             : tone === "blue"
-              ? "border-[rgba(59,130,246,0.18)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
+              ? "border-blue-200 bg-blue-50"
               : tone === "accent"
-                ? "border-[rgba(47,107,255,0.14)] bg-[linear-gradient(180deg,rgba(245,249,255,0.96),rgba(238,245,255,0.92))]"
-                : "border-[rgba(47,107,255,0.14)] bg-[linear-gradient(180deg,rgba(255,248,244,0.96),rgba(255,242,237,0.92))]"
+                ? "border-cyan-700/15 bg-cyan-50"
+                : "border-zinc-200 bg-white"
       )}
     >
       <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{eyebrow}</div>

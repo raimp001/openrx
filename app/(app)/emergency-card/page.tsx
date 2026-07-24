@@ -160,25 +160,25 @@ export default function EmergencyCardPage() {
         />
       </div>
 
-      <div className="overflow-hidden rounded-[28px] border border-[rgba(193,47,47,0.16)] bg-[linear-gradient(160deg,#842029_0%,#6e1821_58%,#54151e_100%)] p-5 text-white shadow-[0_18px_40px_rgba(132,32,41,0.16)]">
+      <div className="overflow-hidden rounded-[28px] border border-red-200 bg-red-50 p-5 shadow-soft-card">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/56">Carry this first</p>
-            <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-white">
+            <h2 className="mt-4 max-w-xl font-serif text-[2.15rem] leading-[0.96] text-zinc-900">
               Critical medical context, condensed for a responder handoff.
             </h2>
             <p className="mt-3 text-sm leading-7 text-white/72">
               This card is not a complete chart. It is the fastest useful summary when someone needs to know allergies, medications, conditions, PCP, contact, and insurance without opening multiple screens.
             </p>
           </div>
-          <OpsBadge tone="red" className="!border-white/12 !bg-white/10 !text-white">
+          <OpsBadge tone="red">
             emergency use
           </OpsBadge>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+          <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Immediate risk check</p>
-            <p className="mt-2 text-lg font-semibold text-white">
+            <p className="mt-2 text-lg font-semibold text-zinc-900">
               {currentUser.allergies.length ? "Read allergies first" : "Check conditions and meds first"}
             </p>
             <p className="mt-1 text-[12px] leading-6 text-white/64">
@@ -187,9 +187,9 @@ export default function EmergencyCardPage() {
                 : "No allergies are listed, so medication and condition context becomes the next key handoff."}
             </p>
           </div>
-          <div className="rounded-[22px] border border-white/12 bg-white/8 p-4">
+          <div className="rounded-[22px] border border-zinc-200 bg-zinc-50 p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/56">Missing data to fix later</p>
-            <p className="mt-2 text-lg font-semibold text-white">
+            <p className="mt-2 text-lg font-semibold text-zinc-900">
               {!currentUser.emergency_contact_phone || !physician?.phone ? "Some contact fields missing" : "Core contacts present"}
             </p>
             <p className="mt-1 text-[12px] leading-6 text-white/64">

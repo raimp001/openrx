@@ -3,6 +3,7 @@ import { LockKeyhole } from "lucide-react"
 import { AppPageHeader } from "@/components/layout/app-page"
 import { OpsBadge } from "@/components/ui/ops-primitives"
 import TreasuryConsole from "@/components/payments/treasury-console"
+import PaymentSelfTestPanel from "@/components/payments/payment-self-test-panel"
 
 export const metadata: Metadata = {
   title: "Treasury console | OpenRx admin",
@@ -32,6 +33,7 @@ export default function AdminTreasuryPage() {
         </span>
       </div>
       <TreasuryConsole />
+      <PaymentSelfTestPanel />
     </div>
   )
 }

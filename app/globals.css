@@ -664,3 +664,277 @@ a {
 .placeholder\:text-muted::placeholder {
   color: rgb(var(--color-muted-rgb)) !important;
 }
+
+/* ---------------------------------------------------------------------------
+   Warm-light surface. A [data-openrx-warm] wrapper re-themes the shared tokens
+   to the cream / ink / burnt-orange brand used by the marketing site, and the
+   remap rules below convert the legacy dark utility classes still present on
+   those pages. Mirrors the [data-openrx-app-shell] remap pattern above.
+--------------------------------------------------------------------------- */
+[data-openrx-warm] {
+  --color-bg-rgb: 250 246 241;
+  --color-surface-rgb: 255 255 255;
+  --color-surface-muted-rgb: 244 237 228;
+  --color-text-rgb: 35 29 23;
+  --color-secondary-rgb: 96 82 68;
+  --color-muted-rgb: 128 112 94;
+  --color-subtle-rgb: 158 141 122;
+  --color-border-rgb: 227 214 199;
+  --color-border-strong-rgb: 203 185 163;
+  --color-navy-rgb: 197 55 16;
+  --color-navy-hover-rgb: 165 42 9;
+  --color-accent-rgb: 197 55 16;
+  --color-accent-light-rgb: 216 88 51;
+  --color-accent-dark-rgb: 154 39 7;
+  --color-accent-50-rgb: 250 231 221;
+  --color-accent-100-rgb: 244 207 188;
+  --color-success-rgb: 21 128 61;
+  --color-warning-rgb: 180 83 9;
+  --color-danger-rgb: 185 28 28;
+  --focus-ring: 0 0 0 2px #faf6f1, 0 0 0 4px rgb(197 55 16 / 0.5);
+  --shell-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 12px 32px rgba(63, 42, 24, 0.1);
+  --panel-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 6px 20px rgba(63, 42, 24, 0.08);
+  color-scheme: light;
+}
+
+body:has([data-openrx-warm]) {
+  background: #faf6f1 !important;
+  color: #231d17 !important;
+}
+
+[data-openrx-app-shell]:has([data-openrx-warm]) .pointer-events-none.fixed.inset-0 {
+  opacity: 0;
+}
+
+/* Translucent white-on-black surfaces become light cards. */
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-white/"] {
+  background-color: rgb(255 255 255 / 0.72) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] .bg-white {
+  background-color: #ffffff !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="hover:bg-white/"]:hover {
+  background-color: rgb(255 255 255 / 0.94) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-white"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="divide-white"] {
+  border-color: rgb(35 29 23 / 0.13) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] .text-white {
+  color: #231d17 !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/42,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/48,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/50,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/55,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/56,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/58,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/60,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/62 {
+  color: #80705e !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/64,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/66,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/68,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/70,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/72,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/74,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/75,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/76 {
+  color: #605244 !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/78,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/82,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/84,
+[data-openrx-app-shell] [data-openrx-warm] .text-white\/92 {
+  color: #3c3229 !important;
+}
+
+/* Cyan accents become the burnt-orange brand accent. */
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-cyan-"] {
+  color: #c53710 !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-cyan-"] {
+  border-color: rgb(197 55 16 / 0.38) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-cyan-"] {
+  background-color: #c53710 !important;
+  color: #ffffff !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-cyan-200/["] {
+  background-color: rgb(197 55 16 / 0.1) !important;
+  color: #c53710 !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="hover:bg-cyan-"]:hover {
+  background-color: #a62a09 !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="hover:border-cyan-"]:hover {
+  border-color: rgb(197 55 16 / 0.45) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="focus:border-cyan-"]:focus {
+  border-color: rgb(197 55 16 / 0.5) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="focus:ring-cyan-"]:focus {
+  --tw-ring-color: rgb(197 55 16 / 0.18) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="accent-cyan-"] {
+  accent-color: #c53710 !important;
+}
+
+/* Hard-coded near-black panels become warm paper. */
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-[#050707]"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-[#0d0f10]"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-[#070b0b]"] {
+  background-color: #fffdf9 !important;
+  color: #231d17 !important;
+  border-color: rgb(35 29 23 / 0.14) !important;
+  box-shadow: 0 18px 44px rgba(63, 42, 24, 0.1) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-black/"] {
+  background-color: rgb(35 29 23 / 0.05) !important;
+}
+
+/* The navy payment-gate gradient becomes a warm cream gradient. */
+[data-openrx-app-shell] [data-openrx-warm] [class*="#07111f"] {
+  background: linear-gradient(160deg, #fdf7f0 0%, #faead9 58%, #f4dcc4 100%) !important;
+  color: #231d17 !important;
+  border-color: rgb(197 55 16 / 0.22) !important;
+  box-shadow: 0 18px 38px rgba(197, 55, 16, 0.1) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] .bg-midnight {
+  background-color: #2b2118 !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="hover:bg-[#12211d]"]:hover {
+  background-color: #463322 !important;
+}
+
+/* Primary buttons on the burnt-orange accent need light text. */
+[data-openrx-app-shell] [data-openrx-warm] .control-button-primary,
+[data-openrx-app-shell] [data-openrx-warm] .control-button-accent {
+  color: #ffffff !important;
+}
+
+/* Semantic status colors: dark-theme shades become light-theme shades. */
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-amber-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-yellow-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-orange-"] {
+  color: #92400e !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-amber-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-yellow-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-orange-"] {
+  background-color: rgb(217 119 6 / 0.12) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-amber-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-yellow-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-orange-"] {
+  border-color: rgb(217 119 6 / 0.4) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-red-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-rose-"] {
+  color: #b91c1c !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-red-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-rose-"] {
+  background-color: rgb(220 38 38 / 0.1) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-red-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-rose-"] {
+  border-color: rgb(220 38 38 / 0.4) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-emerald-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-green-"] {
+  color: #047857 !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-emerald-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-green-"] {
+  background-color: rgb(5 150 105 / 0.1) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-emerald-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-green-"] {
+  border-color: rgb(5 150 105 / 0.35) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-blue-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-sky-"] {
+  color: #1d4ed8 !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-blue-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-sky-"] {
+  background-color: rgb(37 99 235 / 0.1) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-blue-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-sky-"] {
+  border-color: rgb(37 99 235 / 0.35) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-slate-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-gray-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-zinc-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="bg-neutral-"] {
+  background-color: rgb(244 237 228 / 0.85) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-slate-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-gray-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-zinc-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="border-neutral-"] {
+  border-color: rgb(227 214 199) !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-slate-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-gray-"],
+[data-openrx-app-shell] [data-openrx-warm] [class*="text-neutral-"] {
+  color: #605244 !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] .text-zinc-300 {
+  color: #605244 !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] .text-zinc-400 {
+  color: #80705e !important;
+}
+
+[data-openrx-app-shell] [data-openrx-warm] .text-zinc-500 {
+  color: #9e8d7a !important;
+}
+
+/* Warm shimmer for loading placeholders. */
+[data-openrx-warm] .orx-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgb(244 237 228 / 1) 0%,
+    rgb(228 216 201 / 0.95) 44%,
+    rgb(244 237 228 / 1) 88%
+  ) !important;
+  background-size: 220% 100% !important;
+}

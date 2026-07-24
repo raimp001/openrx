@@ -49,6 +49,18 @@ const EXAMPLE_SEARCHES = [
   "Find a radiology center in Austin TX",
 ]
 
+// Self-referential phrases ("near me", "nearby", "my area") carry no real
+// geography. They must not count as an explicit location hint, otherwise the
+// profile-location retry would never fire for the most common phrasing users
+// type ("Find primary care near me").
+const SELF_LOCATION_PATTERN =
+  /\b(?:near|around|close\s+to)\s+me\b|\bnearby\b|\bmy\s+area\b|\blocal(?:ly)?\b/gi
+
+function hasExplicitLocationHint(q: string) {
+  const withoutSelfRefs = q.replace(SELF_LOCATION_PATTERN, " ")
+  return /\d{5}/.test(withoutSelfRefs) || /\b(?:near|in|around)\b/i.test(withoutSelfRefs)
+}
+
 function parseProviderHandoff(raw: string | null): ProviderHandoffPayload | null {
   if (!raw) return null
   try {
@@ -91,6 +103,7 @@ export default function ProvidersPage() {
   const [error, setError] = useState("")
   const [autoLocationNote, setAutoLocationNote] = useState("")
   const [handoffNotice, setHandoffNotice] = useState("")
+  const [zipInput, setZipInput] = useState("")
   const searchParams = useSearchParams()
   const kindParam = searchParams.get("kind")
   const initialGroup: "all" | CareDirectoryMatch["kind"] =
@@ -157,8 +170,7 @@ export default function ProvidersPage() {
         }
 
         const missingLocation = !data.parsed?.city && !data.parsed?.zip
-        const hasLocationHint = /\bnear\b|\bin\b|\baround\b|\d{5}/i.test(q)
-        if (data.ready === false && missingLocation && profileLocation && !hasLocationHint) {
+        if (data.ready === false && missingLocation && profileLocation && !hasExplicitLocationHint(q)) {
           const enrichedQuery = `${q} near ${profileLocation}`.trim()
           const retryResponse = await fetch(
             `/api/providers/search?q=${encodeURIComponent(enrichedQuery)}&limit=24`
@@ -266,19 +278,21 @@ export default function ProvidersPage() {
       stored?.source === "screening" ||
       stored?.source === "link" ||
       handoffSource === "screening"
+    const willAutorun =
+      stored?.autorun ||
+      params.get("autorun") === "1" ||
+      handoffSource === "chat" ||
+      handoffSource === "screening"
     setHandoffNotice(
       isScreeningHandoff
         ? stored?.recommendationName
-          ? `Loaded the screening recommendation for ${stored.recommendationName} and started the care-network search here.`
-          : "Loaded the screening recommendation and started the care-network search here."
-        : "Loaded your chat context and started the care-network search here."
+          ? `Loaded the screening recommendation for ${stored.recommendationName}${willAutorun ? " and ran the care-network search here." : " — review the query and run the search when ready."}`
+          : `Loaded the screening recommendation${willAutorun ? " and ran the care-network search here." : " — review the query and run the search when ready."}`
+        : willAutorun
+          ? "Loaded your chat context and ran the care-network search here."
+          : "Loaded your chat context — review the query and run the search when you're ready."
     )
-    if (
-      stored?.autorun ||
-      params.get("autorun") === "1" ||
-      params.get("handoff") === "chat" ||
-      params.get("handoff") === "screening"
-    ) {
+    if (willAutorun) {
       void searchDirectory(nextQuery.trim())
     }
   }, [searchDirectory])
@@ -444,6 +458,53 @@ export default function ProvidersPage() {
             <p className="text-sm font-semibold text-primary">Need one more detail before search</p>
           </div>
           <p className="mt-2 text-sm leading-7 text-secondary">{clarificationQuestion}</p>
+          {parsed && !parsed.city && !parsed.zip && (
+            <form
+              data-testid="provider-zip-clarification-form"
+              className="mt-3 flex flex-wrap items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault()
+                const zip = zipInput.trim()
+                if (!/^\d{5}$/.test(zip)) return
+                const base = query.replace(SELF_LOCATION_PATTERN, " ").replace(/\s+/g, " ").trim()
+                void searchDirectory(`${base} near ${zip}`)
+              }}
+            >
+              <ClinicalInput
+                data-testid="provider-zip-clarification-input"
+                type="text"
+                inputMode="numeric"
+                maxLength={5}
+                value={zipInput}
+                onChange={(event) => setZipInput(event.target.value.replace(/[^\d]/g, "").slice(0, 5))}
+                placeholder="Enter ZIP, e.g. 97123"
+                className="!w-56"
+                aria-label="ZIP code to search near"
+              />
+              <button
+                type="submit"
+                data-testid="provider-zip-clarification-submit"
+                disabled={!/^\d{5}$/.test(zipInput.trim())}
+                className="control-button-primary"
+              >
+                <MapPin size={15} />
+                Search near this ZIP
+              </button>
+              {profileLocation ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const base = query.replace(SELF_LOCATION_PATTERN, " ").replace(/\s+/g, " ").trim()
+                    void searchDirectory(`${base} near ${profileLocation}`)
+                  }}
+                  className="control-button-secondary"
+                >
+                  <MapPin size={15} className="text-soft-blue" />
+                  Use profile location ({profileLocation})
+                </button>
+              ) : null}
+            </form>
+          )}
           {parsed && (
             <div className="flex flex-wrap gap-2 mt-3">
               {parsed.serviceTypes.map((serviceType) => (

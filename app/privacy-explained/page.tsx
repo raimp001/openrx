@@ -83,18 +83,18 @@ const rights = [
 
 export default function PrivacyExplainedPage() {
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-100">
-      <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#050505]/92 backdrop-blur-xl">
+    <div className="min-h-screen bg-white text-zinc-900">
+      <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
           <Link href="/" className="flex items-center gap-3" aria-label="OpenRx home">
-            <BrandMark size="sm" tone="dark" />
-            <BrandWordmark tone="dark" subtitle />
+            <BrandMark size="sm" tone="light" />
+            <BrandWordmark tone="light" subtitle />
           </Link>
           <div className="flex items-center gap-3 text-sm">
-            <Link href="/" className="hidden rounded-full border border-white/12 px-4 py-2 font-medium text-zinc-300 transition hover:border-white/25 hover:text-white sm:inline-flex">
+            <Link href="/" className="hidden rounded-full border border-zinc-200 px-4 py-2 font-medium text-zinc-700 transition hover:border-zinc-300 hover:text-zinc-900 sm:inline-flex">
               Home
             </Link>
-            <Link href="/chat" className="inline-flex min-h-10 items-center justify-center rounded-full bg-cyan-200 px-4 font-semibold text-black transition hover:bg-cyan-100">
+            <Link href="/chat" className="inline-flex min-h-10 items-center justify-center rounded-full bg-cyan-700 px-4 font-semibold text-white transition hover:bg-cyan-800">
               Ask OpenRx
             </Link>
           </div>
@@ -102,59 +102,59 @@ export default function PrivacyExplainedPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-        <section className="border-b border-white/10 pb-10">
+        <section className="border-b border-zinc-200 pb-10">
           <div className="max-w-4xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">Privacy explained</p>
-            <h1 className="orx-display-heading mt-5 max-w-4xl text-[clamp(2.7rem,6vw,5.3rem)] text-white">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">Privacy explained</p>
+            <h1 className="orx-display-heading mt-5 max-w-4xl text-[clamp(2.7rem,6vw,5.3rem)] text-zinc-900">
               Plain data boundaries before care navigation.
             </h1>
-            <p className="mt-5 max-w-3xl text-[15px] leading-8 text-zinc-300">
+            <p className="mt-5 max-w-3xl text-[15px] leading-8 text-zinc-600">
               OpenRx should be understandable before it asks for trust. This page explains what can stay local, what
               changes when identity is connected, and what the assistant is not allowed to do.
             </p>
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
-            <span className="rounded-full border border-white/12 px-3 py-1.5 text-[12px] font-medium text-zinc-300">demo-first workflows</span>
-            <span className="rounded-full border border-white/12 px-3 py-1.5 text-[12px] font-medium text-zinc-300">wallet optional</span>
-            <span className="rounded-full border border-white/12 px-3 py-1.5 text-[12px] font-medium text-zinc-300">minimum context AI routing</span>
+            <span className="rounded-full border border-zinc-200 px-3 py-1.5 text-[12px] font-medium text-zinc-600">demo-first workflows</span>
+            <span className="rounded-full border border-zinc-200 px-3 py-1.5 text-[12px] font-medium text-zinc-600">wallet optional</span>
+            <span className="rounded-full border border-zinc-200 px-3 py-1.5 text-[12px] font-medium text-zinc-600">minimum context AI routing</span>
           </div>
         </section>
 
         <section className="mt-10 grid gap-8 xl:grid-cols-[0.92fr_1.08fr]">
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
-            <div className="flex items-center gap-2 text-cyan-100">
+          <div className="rounded-[24px] border border-zinc-200 bg-zinc-50 p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-cyan-800">
               <Lock size={16} />
               <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">Short version</h2>
             </div>
-            <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
+            <div className="mt-5 divide-y divide-zinc-200 border-y border-zinc-200">
               {shortVersion.map((item) => (
                 <div key={item} className="flex items-start gap-3 py-3">
-                  <CheckCircle2 size={15} className="mt-1 shrink-0 text-cyan-200" />
-                  <p className="text-sm leading-6 text-zinc-200">{item}</p>
+                  <CheckCircle2 size={15} className="mt-1 shrink-0 text-cyan-700" />
+                  <p className="text-sm leading-6 text-zinc-700">{item}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="border-y border-white/10 py-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Trust posture</p>
-            <h2 className="orx-section-heading mt-3 text-[clamp(1.9rem,3vw,2.85rem)] text-white">
+          <div className="border-y border-zinc-200 py-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">Trust posture</p>
+            <h2 className="orx-section-heading mt-3 text-[clamp(1.9rem,3vw,2.85rem)] text-zinc-900">
               Reduce healthcare friction without monetizing patient exposure.
             </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300">
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-600">
               The design principle is simple: use the minimum information needed to move a workflow forward, keep the
               user in control of when identity becomes persistent, and avoid hiding sensitive behavior behind vague copy.
             </p>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <div>
-                <h3 className="text-sm font-semibold text-white">Default mode</h3>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">
+                <h3 className="text-sm font-semibold text-zinc-900">Default mode</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
                   Demo-safe exploration is a first-class path. The product should be understandable before you trust it.
                 </p>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Persistent mode</h3>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">
+                <h3 className="text-sm font-semibold text-zinc-900">Persistent mode</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
                   When you connect identity, the app should explain what is being stored, why, and what still stays out.
                 </p>
               </div>
@@ -163,28 +163,28 @@ export default function PrivacyExplainedPage() {
         </section>
 
         <section className="mt-10 grid gap-5 lg:grid-cols-2">
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
-            <div className="flex items-center gap-2 text-cyan-100">
+          <div className="rounded-[24px] border border-zinc-200 bg-zinc-50 p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-cyan-800">
               <Server size={16} />
               <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">What stays local in demo mode</h2>
             </div>
-            <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
+            <div className="mt-5 divide-y divide-zinc-200 border-y border-zinc-200">
               {demoStorage.map((item) => (
-                <p key={item} className="py-3 text-sm leading-6 text-zinc-300">
+                <p key={item} className="py-3 text-sm leading-6 text-zinc-600">
                   {item}
                 </p>
               ))}
             </div>
           </div>
 
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
-            <div className="flex items-center gap-2 text-cyan-100">
+          <div className="rounded-[24px] border border-zinc-200 bg-zinc-50 p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-cyan-800">
               <Shield size={16} />
               <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">What changes if you connect a wallet</h2>
             </div>
-            <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
+            <div className="mt-5 divide-y divide-zinc-200 border-y border-zinc-200">
               {walletStorage.map((item) => (
-                <p key={item} className="py-3 text-sm leading-6 text-zinc-300">
+                <p key={item} className="py-3 text-sm leading-6 text-zinc-600">
                   {item}
                 </p>
               ))}
@@ -192,8 +192,8 @@ export default function PrivacyExplainedPage() {
           </div>
         </section>
 
-        <section className="mt-10 rounded-[24px] border border-rose-300/16 bg-rose-300/[0.035] p-5 sm:p-6">
-          <div className="flex items-center gap-2 text-rose-100">
+        <section className="mt-10 rounded-[24px] border border-rose-200 bg-rose-50 p-5 sm:p-6">
+          <div className="flex items-center gap-2 text-rose-700">
             <EyeOff size={16} />
             <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">What we do not do</h2>
           </div>
@@ -201,23 +201,23 @@ export default function PrivacyExplainedPage() {
             {neverDo.map((item) => (
               <div
                 key={item}
-                className="flex items-start gap-3 border-t border-white/10 pt-3"
+                className="flex items-start gap-3 border-t border-zinc-200 pt-3"
               >
-                <XCircle size={15} className="mt-1 shrink-0 text-rose-200" />
-                <p className="text-sm leading-6 text-zinc-200">{item}</p>
+                <XCircle size={15} className="mt-1 shrink-0 text-rose-600" />
+                <p className="text-sm leading-6 text-zinc-700">{item}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mt-10 rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
-          <div className="flex items-center gap-2 text-cyan-100">
+        <section className="mt-10 rounded-[24px] border border-zinc-200 bg-zinc-50 p-5 sm:p-6">
+          <div className="flex items-center gap-2 text-cyan-800">
             <Eye size={16} />
             <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">Workflow analytics</h2>
           </div>
-          <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
+          <div className="mt-5 divide-y divide-zinc-200 border-y border-zinc-200">
             {workflowAnalytics.map((item) => (
-              <p key={item} className="py-3 text-sm leading-6 text-zinc-300">
+              <p key={item} className="py-3 text-sm leading-6 text-zinc-600">
                 {item}
               </p>
             ))}
@@ -225,30 +225,30 @@ export default function PrivacyExplainedPage() {
         </section>
 
         <section className="mt-10 grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
-            <div className="flex items-center gap-2 text-cyan-100">
+          <div className="rounded-[24px] border border-zinc-200 bg-zinc-50 p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-cyan-800">
               <Bot size={16} />
               <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">How AI is routed</h2>
             </div>
             <div className="mt-5 space-y-5">
-              <div className="border-t border-white/10 pt-4">
-                <h3 className="text-sm font-semibold text-white">Safety layer first, provider second</h3>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">
+              <div className="border-t border-zinc-200 pt-4">
+                <h3 className="text-sm font-semibold text-zinc-900">Safety layer first, provider second</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
                   OpenRx routes AI requests through a safety and workflow layer before they reach any model provider.
                   The exact provider behind a workflow may change over time as reliability, safety, and cost settings
                   change, so we do not treat any one model vendor as permanent product infrastructure.
                 </p>
               </div>
-              <div className="border-t border-white/10 pt-4">
-                <h3 className="text-sm font-semibold text-white">Minimum context only</h3>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">
+              <div className="border-t border-zinc-200 pt-4">
+                <h3 className="text-sm font-semibold text-zinc-900">Minimum context only</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
                   We only send the prompt and the smallest amount of structured context needed for the task. We do not
                   intentionally include Social Security numbers, insurance IDs, or wallet addresses in model requests.
                 </p>
               </div>
-              <div className="border-t border-white/10 pt-4">
-                <h3 className="text-sm font-semibold text-white">Retention is provider-dependent</h3>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">
+              <div className="border-t border-zinc-200 pt-4">
+                <h3 className="text-sm font-semibold text-zinc-900">Retention is provider-dependent</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
                   Where a provider offers no-training or reduced-retention controls, OpenRx is configured to prefer
                   them. Provider-side policies can still differ by workflow, so we avoid promising that every provider
                   behaves identically.
@@ -257,29 +257,29 @@ export default function PrivacyExplainedPage() {
             </div>
           </div>
 
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.035] p-5 sm:p-6">
-            <div className="flex items-center gap-2 text-cyan-100">
+          <div className="rounded-[24px] border border-zinc-200 bg-zinc-50 p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-cyan-800">
               <Eye size={16} />
               <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">What the assistant cannot do</h2>
             </div>
-            <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
+            <div className="mt-5 divide-y divide-zinc-200 border-y border-zinc-200">
               {assistantLimits.map((item) => (
                 <div key={item} className="flex items-start gap-3 py-3">
                   <XCircle size={14} className="mt-1 shrink-0 text-zinc-500" />
-                  <p className="text-sm leading-6 text-zinc-300">{item}</p>
+                  <p className="text-sm leading-6 text-zinc-600">{item}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="mt-10 rounded-[24px] border border-amber-200/20 bg-amber-200/[0.045] p-5 sm:p-6">
+        <section className="mt-10 rounded-[24px] border border-amber-200 bg-amber-50 p-5 sm:p-6">
           <div className="flex items-start gap-3">
-            <AlertTriangle size={18} className="mt-1 shrink-0 text-amber-200" />
+            <AlertTriangle size={18} className="mt-1 shrink-0 text-amber-600" />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-100">Clinical boundary</p>
-              <h2 className="orx-section-heading mt-3 text-[1.7rem] text-white">OpenRx is not your doctor.</h2>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">Clinical boundary</p>
+              <h2 className="orx-section-heading mt-3 text-[1.7rem] text-zinc-900">OpenRx is not your doctor.</h2>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600">
                 OpenRx is a personal coordination and decision-support product. It can help you organize questions,
                 surface likely next steps, and reduce friction across care workflows. It does not replace a licensed
                 clinician, hospital, or health plan, and it should not be treated like a legal medical record.
@@ -289,25 +289,25 @@ export default function PrivacyExplainedPage() {
         </section>
 
         <section className="mt-10">
-          <div className="flex items-center gap-2 text-cyan-100">
+          <div className="flex items-center gap-2 text-cyan-800">
             <Shield size={16} />
             <h2 className="text-xs font-semibold uppercase tracking-[0.16em]">Your rights in the product</h2>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             {rights.map((item) => (
-              <div key={item.title} className="rounded-[20px] border border-white/10 bg-white/[0.035] p-5">
-                <CheckCircle2 size={16} className="text-cyan-200" />
-                <h3 className="mt-4 text-base font-semibold text-white">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">{item.description}</p>
+              <div key={item.title} className="rounded-[20px] border border-zinc-200 bg-zinc-50 p-5">
+                <CheckCircle2 size={16} className="text-cyan-700" />
+                <h3 className="mt-4 text-base font-semibold text-zinc-900">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">{item.description}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <footer className="mt-12 border-t border-white/10 py-8 text-center">
-          <p className="text-sm text-zinc-300">
+        <footer className="mt-12 border-t border-zinc-200 py-8 text-center">
+          <p className="text-sm text-zinc-600">
             Questions about privacy or data handling?{" "}
-            <a href="mailto:privacy@openrx.health" className="font-semibold text-cyan-100 hover:text-white">
+            <a href="mailto:privacy@openrx.health" className="font-semibold text-cyan-800 hover:text-zinc-900">
               privacy@openrx.health
             </a>
           </p>

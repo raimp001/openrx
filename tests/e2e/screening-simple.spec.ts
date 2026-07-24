@@ -931,3 +931,79 @@ test("chat shows quick prompts on first load and hides them after first send", a
   await expect(page.getByTestId("chat-message-agent").first()).toBeVisible()
   await expect(page.getByTestId("chat-empty-state")).toHaveCount(0)
 })
+
+test("chat handoff with 'near me' asks for ZIP inline instead of stalling", async ({ page }) => {
+  const requestedQueries: string[] = []
+  await page.route(/\/api\/providers\/search.*/, async (route) => {
+    const q = new URL(route.request().url()).searchParams.get("q") || ""
+    requestedQueries.push(q)
+    const hasZip = /97123/.test(q)
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        hasZip
+          ? {
+              ready: true,
+              parsed: {
+                query: q,
+                serviceTypes: ["provider"],
+                specialty: "Internal Medicine",
+                city: "Hillsboro",
+                state: "OR",
+                zip: "97123",
+                normalizedQuery: q,
+                ready: true,
+                missingInfo: [],
+              },
+              prompt: { id: "care-search", image: "", text: "" },
+              matches: [
+                {
+                  kind: "provider",
+                  npi: "1234567890",
+                  name: "Hillsboro Primary Care Associates",
+                  specialty: "Internal Medicine",
+                  taxonomyCode: "207R00000X",
+                  status: "A",
+                  confidence: "high",
+                  fullAddress: "100 SE Main St, Hillsboro, OR 97123",
+                  phone: "503-555-0100",
+                },
+              ],
+            }
+          : {
+              ready: false,
+              parsed: {
+                query: q,
+                serviceTypes: ["provider"],
+                specialty: "Internal Medicine",
+                city: "",
+                normalizedQuery: q,
+                ready: false,
+                missingInfo: ["location"],
+                clarificationQuestion: "What city/state or ZIP should I search near?",
+              },
+              clarificationQuestion: "What city/state or ZIP should I search near?",
+              prompt: { id: "care-search", image: "", text: "" },
+              matches: [],
+            }
+      ),
+    })
+  })
+
+  await page.goto("/providers?handoff=chat&autorun=1&q=Find+primary+care+near+me")
+
+  // The autorun fires, the API honestly reports the missing location, and the
+  // page must offer an inline ZIP step instead of a dead readiness note.
+  await expect(page.getByText("Loaded your chat context")).toBeVisible()
+  await expect(page.getByText("Need one more detail before search")).toBeVisible()
+  await expect(page.getByTestId("provider-zip-clarification-form")).toBeVisible()
+
+  await page.getByTestId("provider-zip-clarification-input").fill("97123")
+  await page.getByTestId("provider-zip-clarification-submit").click()
+
+  await expect(page.getByText("Matched network")).toBeVisible()
+  await expect(page.getByText("Hillsboro Primary Care Associates").first()).toBeVisible()
+  expect(requestedQueries[0]).toContain("near me")
+  expect(requestedQueries.some((q) => /97123/.test(q))).toBe(true)
+})

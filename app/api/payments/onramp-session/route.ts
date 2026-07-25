@@ -6,6 +6,12 @@ import { buildOnrampSessionBody, isOnrampSessionConfigured } from "@/lib/basebui
 const CDP_ONRAMP_TOKEN_HOST = "api.developer.coinbase.com"
 const CDP_ONRAMP_TOKEN_PATH = "/onramp/v1/token"
 
+// Unauthenticated liveness probe for the Coinbase Onramp funding rail.
+// Reports only whether server-side CDP credentials are present — no secrets.
+export async function GET() {
+  return NextResponse.json({ configured: isOnrampSessionConfigured() })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {

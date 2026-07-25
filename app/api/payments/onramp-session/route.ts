@@ -7,9 +7,19 @@ const CDP_ONRAMP_TOKEN_HOST = "api.developer.coinbase.com"
 const CDP_ONRAMP_TOKEN_PATH = "/onramp/v1/token"
 
 // Unauthenticated liveness probe for the Coinbase Onramp funding rail.
-// Reports only whether server-side CDP credentials are present — no secrets.
+// Reports only which CDP-related env var names are present (never values),
+// so misconfigured Vercel env vars can be diagnosed safely.
 export async function GET() {
-  return NextResponse.json({ configured: isOnrampSessionConfigured() })
+  const present = Object.keys(process.env).filter((key) => /cdp|coinbase|onramp/i.test(key))
+  return NextResponse.json({
+    configured: isOnrampSessionConfigured(),
+    hasKeyName: Boolean((process.env.CDP_API_KEY_NAME || "").trim()),
+    hasKeyId: Boolean((process.env.CDP_API_KEY_ID || "").trim()),
+    hasKeySecret: Boolean((process.env.CDP_API_KEY_SECRET || "").trim()),
+    hasApiSecret: Boolean((process.env.CDP_API_SECRET || "").trim()),
+    cdpLikeEnvNames: present,
+    runtime: process.env.NEXT_RUNTIME || "nodejs",
+  })
 }
 
 export async function POST(request: NextRequest) {

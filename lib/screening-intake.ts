@@ -268,7 +268,11 @@ function extractFamilyHistory(lowered: string): string[] {
   )
   const ageSpecificSites = new Set<string>()
   ageSpecificMatches.forEach((entry) => {
+    // Negation before the match ("no, mother did not have...") or inside the
+    // matched span itself ("mother did not have breast cancer at age 50",
+    // "mother, no breast cancer at age 50") must not become a positive finding.
     if (isNegatedAtIndex(lowered, entry.index || 0)) return
+    if (NEGATION_WORD_PATTERN.test(entry[0])) return
     const relation = entry[1]
     const site = entry[2]
     const age = entry[3]
@@ -315,7 +319,7 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
   const bmiMatch = lowered.match(/\bbmi\s*(?:is|=|:)?\s*(\d{1,2}(?:\.\d+)?)\b/)
   const bmi = bmiMatch ? Number.parseFloat(bmiMatch[1]) : undefined
 
-  const neverSmokedEarly = /\b(?:never smoked|never smoker|never a smoker|non[- ]smoker|do not smoke|don't smoke|does not smoke)\b/.test(lowered)
+  const neverSmokedEarly = /\b(?:never smoked|never smoker|never a smoker|non[- ]smoker|do not smoke|don't smoke|does not smoke|doesn't smoke|not a smoker|no smoking (?:history|hx))\b/.test(lowered)
   const formerSmoking = /\bformer smoker\b|\bquit smoking\b|\bquit\s+\d{1,2}\s+years?\s+ago\b|\bused to smoke\b|\bex-smoker\b/.test(lowered)
   const currentSmoking =
     !neverSmokedEarly &&
@@ -369,10 +373,13 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     const mention = screeningMentionContext(lowered, keyword)
     const localContext = mention?.clause || keyword
     const localKeywordIndex = mention?.localKeywordIndex || 0
+    const beforeKeyword = localContext.slice(0, Math.max(0, localContext.indexOf(keyword)))
     if (
-      /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,45}$/.test(
-        localContext.slice(0, Math.max(0, localContext.indexOf(keyword)))
-      )
+      /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,45}$/.test(beforeKeyword) ||
+      // Adjacent negation: "no colonoscopy", "never had a pap" — the exam was
+      // declined/absent, not performed. Requires immediacy so "no polyps on
+      // colonoscopy" still counts as a completed exam.
+      /\b(?:no|never)\s+(?:prior\s+)?(?:a\s+|an\s+)?$/.test(beforeKeyword)
     ) {
       return
     }
@@ -435,24 +442,32 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     noPersonalOrFamilyCancerSignal ||
     /\b(?:no|without|denies?|never had)\s+family\s+(?:history|hx)\b/.test(lowered) ||
     /\b(?:no|without|denies?)\s+family\s+(?:history|hx)\s+of\s+(?:any\s+)?[a-z/\s-]{0,40}?\b(?:cancer|tumou?r|carcinoma|malignan\w*|polyposis|lynch)\b/.test(lowered) ||
-    /\b(?:no|without|denies?)\s+family\s+cancer\s+(?:history|hx)\b/.test(lowered)
+    /\b(?:no|without|denies?)\s+family\s+cancer\s+(?:history|hx)\b/.test(lowered) ||
+    // Trailing negation: "family history of cancer: no", "family history: none"
+    /\bfamily\s+(?:history|hx)\b[^.!?\n]{0,60}[:;\-–—]?\s*\b(?:no|none|negative|denied)\s*$/.test(lowered)
   const noSymptoms =
-    /\b(?:no|without|denies?)\s+(?:symptoms|red flags?)\b|\basymptomatic\b/.test(lowered)
-  const noColorectalScreening =
-    /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,35}\b(colonoscopy|fit|stool test|cologuard|colorectal screening|ct colonography|virtual colonoscopy)\b/.test(lowered)
+    /\b(?:no|without|denies?)\s+(?:any\s+)?(?:symptoms|red flags?)\b|\basymptomatic\b/.test(lowered)
+  const noScreeningPrefix =
+    "(?:\\b(?:never had|no prior|not had|have not had|haven't had)\\b[^.!?\\n]{0,35}|\\b(?:no|never)\\s+(?:prior\\s+)?(?:a\\s+|an\\s+)?)"
+  const noColorectalScreening = new RegExp(
+    `${noScreeningPrefix}(colonoscopy|fit|stool test|cologuard|colorectal screening|ct colonography|virtual colonoscopy)\\b`
+  ).test(lowered)
   const hasColorectalScreening =
     !noColorectalScreening &&
     /\b(colonoscopy|fit|stool test|cologuard|colorectal screening|ct colonography|virtual colonoscopy)\b/.test(lowered)
-  const noLungScreeningCt =
-    /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,35}\b(ldct|low-dose ct|lung ct|chest ct|ct chest)\b/.test(lowered)
+  const noLungScreeningCt = new RegExp(
+    `${noScreeningPrefix}(ldct|low-dose ct|lung ct|chest ct|ct chest)\\b`
+  ).test(lowered)
   const hasLungScreeningCt =
     !noLungScreeningCt && /\b(ldct|low-dose ct|lung ct|chest ct|ct chest)\b/.test(lowered)
-  const noBreastScreening =
-    /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,35}\b(mammogram|mammography)\b/.test(lowered)
+  const noBreastScreening = new RegExp(
+    `${noScreeningPrefix}(mammogram|mammography)\\b`
+  ).test(lowered)
   const hasBreastScreening =
     !noBreastScreening && /\b(mammogram|mammography)\b/.test(lowered)
-  const noCervicalScreening =
-    /\b(?:never had|no prior|not had|have not had|haven't had)\b[^.!?\n]{0,35}\b(pap|pap smear|hpv test|cervical screening)\b/.test(lowered)
+  const noCervicalScreening = new RegExp(
+    `${noScreeningPrefix}(pap|pap smear|hpv test|cervical screening)\\b`
+  ).test(lowered)
   const hasCervicalScreening =
     !noCervicalScreening && /\b(pap|pap smear|hpv test|cervical screening)\b/.test(lowered)
   const noGenericScreening =
@@ -462,7 +477,7 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     /\b(?:no cervix|without a cervix|cervix (?:was )?removed|total hysterectomy|hysterectomy with cervix removed)\b/.test(lowered)
   const cervixPresent =
     !cervixAbsent && /\b(?:cervix present|with a cervix|have (?:a|my) cervix|still have (?:a|my) cervix|cervix intact|supracervical hysterectomy)\b/.test(lowered)
-  if (/\bhysterectomy\b/.test(lowered)) conditions.push("hysterectomy")
+  if (affirmativeKeyword(lowered, "hysterectomy")) conditions.push("hysterectomy")
   if (cervixAbsent) conditions.push("cervix absent")
   if (cervixPresent) conditions.push("cervix present")
   const neverSmoked = neverSmokedEarly

@@ -28,8 +28,8 @@ export function BrandMark({ className, iconClassName, size = "md", tone = "dark"
       className={cn(
         "relative flex shrink-0 items-center justify-center overflow-hidden rounded-[10px]",
         isLight
-          ? "border border-[rgba(15,23,42,0.12)] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
-          : "border border-[#1E3A3F] bg-[#050707] shadow-[0_2px_10px_rgba(0,0,0,0.30)]",
+          ? "border border-[rgba(33,28,22,0.12)] bg-white shadow-[0_1px_2px_rgba(33,28,22,0.06)]"
+          : "border border-[rgba(33,28,22,0.14)] bg-[#211C16] shadow-[0_2px_10px_rgba(33,28,22,0.25)]",
         className
       )}
       style={{ width: dims.box, height: dims.box }}
@@ -45,19 +45,19 @@ export function BrandMark({ className, iconClassName, size = "md", tone = "dark"
         {/* Open ring: arc sweeps the long way, leaving a gap at the top right */}
         <path
           d="M 16.03 5.55 A 7.6 7.6 0 1 0 19.43 10.42"
-          stroke={isLight ? "#0F766E" : "#67E8F9"}
+          stroke={isLight ? "#C2451E" : "#E0704A"}
           strokeWidth="2.1"
           strokeLinecap="round"
         />
         {/* Evidence diamond seals the opening */}
         <path
           d="M 18.23 4.84 L 21.03 7.64 L 18.23 10.44 L 15.43 7.64 Z"
-          fill={isLight ? "#E6FAF8" : "#0D2A2E"}
-          stroke={isLight ? "#0F3E47" : "#2DD4BF"}
+          fill={isLight ? "#F9E7E0" : "#3A2A20"}
+          stroke={isLight ? "#211C16" : "#E0704A"}
           strokeWidth="1.7"
           strokeLinejoin="round"
         />
-        <circle cx="18.23" cy="7.64" r="1.05" fill={isLight ? "#0F766E" : "#CFFAFE"} />
+        <circle cx="18.23" cy="7.64" r="1.05" fill={isLight ? "#C2451E" : "#F9E7E0"} />
       </svg>
     </div>
   )

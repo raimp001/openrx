@@ -11,30 +11,32 @@
 :root {
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: var(--font-sans);
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-mono: var(--font-brand-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --font-display: var(--font-sans);
-  --color-bg-rgb: 250 250 250;
+  /* Warm-paper brand palette, shared by the landing page and every clinical
+     surface: paper ground, ink text, ember action, moss status green. */
+  --color-bg-rgb: 247 244 238;
   --color-surface-rgb: 255 255 255;
-  --color-surface-muted-rgb: 244 244 245;
-  --color-text-rgb: 24 24 27;
-  --color-secondary-rgb: 63 63 70;
-  --color-muted-rgb: 82 82 91;
-  --color-subtle-rgb: 113 113 122;
-  --color-border-rgb: 228 228 231;
-  --color-border-strong-rgb: 212 212 216;
-  --color-navy-rgb: 14 116 144;
-  --color-navy-hover-rgb: 21 94 117;
-  --color-accent-rgb: 14 116 144;
-  --color-accent-light-rgb: 207 250 254;
-  --color-accent-dark-rgb: 21 94 117;
-  --color-accent-50-rgb: 236 254 255;
-  --color-accent-100-rgb: 207 250 254;
-  --color-success-rgb: 4 120 87;
-  --color-warning-rgb: 180 83 9;
-  --color-danger-rgb: 185 28 28;
+  --color-surface-muted-rgb: 242 237 227;
+  --color-text-rgb: 33 28 22;
+  --color-secondary-rgb: 74 65 55;
+  --color-muted-rgb: 107 97 85;
+  --color-subtle-rgb: 125 115 101;
+  --color-border-rgb: 227 220 208;
+  --color-border-strong-rgb: 210 201 186;
+  --color-navy-rgb: 194 69 30;
+  --color-navy-hover-rgb: 150 51 18;
+  --color-accent-rgb: 194 69 30;
+  --color-accent-light-rgb: 247 231 224;
+  --color-accent-dark-rgb: 150 51 18;
+  --color-accent-50-rgb: 251 243 240;
+  --color-accent-100-rgb: 247 231 224;
+  --color-success-rgb: 31 122 77;
+  --color-warning-rgb: 176 108 20;
+  --color-danger-rgb: 185 45 32;
   --focus-ring: 0 0 0 2px rgb(var(--color-bg-rgb)), 0 0 0 4px rgb(var(--color-accent-rgb) / 0.45);
-  --shell-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.06);
-  --panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 20px rgba(15, 23, 42, 0.05);
+  --shell-shadow: 0 1px 2px rgba(33, 28, 22, 0.04), 0 12px 32px rgba(33, 28, 22, 0.07);
+  --panel-shadow: 0 1px 2px rgba(33, 28, 22, 0.04), 0 6px 20px rgba(33, 28, 22, 0.06);
   --paper: rgb(var(--color-bg-rgb));
   --paper-deep: rgb(var(--color-surface-muted-rgb));
   --paper-ink: rgb(var(--color-text-rgb));
@@ -60,7 +62,7 @@ body {
 main#main-content:has([data-openrx-chat-workspace]) {
   min-height: 100vh;
   padding: 0 !important;
-  background: #fafafa;
+  background: rgb(var(--color-bg-rgb));
 }
 
 main#main-content:has([data-openrx-chat-workspace]) > div {
@@ -68,8 +70,8 @@ main#main-content:has([data-openrx-chat-workspace]) > div {
 }
 
 body:has([data-openrx-chat-workspace]) {
-  background: #fafafa;
-  color: #18181b;
+  background: rgb(var(--color-bg-rgb));
+  color: var(--paper-ink);
 }
 
 body:has([data-openrx-chat-workspace]) .pointer-events-none.fixed.inset-0 {
@@ -80,14 +82,14 @@ body {
   position: relative;
   /* next/font injects its variables via a class on <body>, so the composed
      font stacks must be declared here — a :root declaration cannot see them. */
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: var(--font-brand-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: var(--font-sans);
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-mono: var(--font-brand-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --font-display: var(--font-sans);
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   /* Flat light canvas: zinc-50 base, white raised surfaces. Depth comes from
      hairlines and weight, not glow or gradients. */
-  background: #fafafa;
+  background: rgb(var(--color-bg-rgb));
   color: var(--paper-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -120,8 +122,8 @@ a {
   top: 0;
   z-index: 120;
   padding: 0.6rem 0.9rem;
-  background: rgb(var(--color-accent-light-rgb));
-  color: #050505;
+  background: rgb(var(--color-accent-rgb));
+  color: #ffffff;
   font-weight: 600;
   font-size: 0.875rem;
   border: 1px solid rgb(var(--color-accent-rgb) / 0.42);
@@ -581,14 +583,14 @@ a {
 /* Cyan-200/300 dark-theme accents map to the single cyan-700 accent on light. */
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-2"],
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-3"] {
-  color: #0e7490 !important;
+  color: #c2451e !important;
 }
 
 /* Pale 50/100-shade dark-theme text becomes readable 700-shade text on light. */
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-5"],
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-1"],
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-teal-1"] {
-  color: #0e7490 !important;
+  color: #c2451e !important;
 }
 
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-amber-1"],
@@ -622,12 +624,12 @@ a {
 }
 
 /* Inside intentionally dark panels, pale text keeps its original light shades. */
-[data-openrx-app-shell] .text-white [class*="text-cyan-5"], [data-openrx-app-shell] .text-white [class*="text-cyan-1"] { color: #cffafe !important; }
+[data-openrx-app-shell] .text-white [class*="text-cyan-5"], [data-openrx-app-shell] .text-white [class*="text-cyan-1"] { color: #F9E7E0 !important; }
 [data-openrx-app-shell] .text-white [class*="text-amber-1"], [data-openrx-app-shell] .text-white [class*="text-yellow-1"] { color: #fef3c7 !important; }
 [data-openrx-app-shell] .text-white [class*="text-rose-1"], [data-openrx-app-shell] .text-white [class*="text-red-1"] { color: #fee2e2 !important; }
 [data-openrx-app-shell] .text-white [class*="text-emerald-1"], [data-openrx-app-shell] .text-white [class*="text-green-1"] { color: #d1fae5 !important; }
 [data-openrx-app-shell] .text-white [class*="text-blue-1"], [data-openrx-app-shell] .text-white [class*="text-sky-1"] { color: #dbeafe !important; }
-[data-openrx-app-shell] .text-white [class*="text-cyan-2"], [data-openrx-app-shell] .text-white [class*="text-cyan-3"] { color: #a5f3fc !important; }
+[data-openrx-app-shell] .text-white [class*="text-cyan-2"], [data-openrx-app-shell] .text-white [class*="text-cyan-3"] { color: #F2CABB !important; }
 [data-openrx-app-shell] .text-white [class*="text-amber-2"], [data-openrx-app-shell] .text-white [class*="text-amber-3"] { color: #fde68a !important; }
 [data-openrx-app-shell] .text-white [class*="text-red-2"], [data-openrx-app-shell] .text-white [class*="text-red-3"], [data-openrx-app-shell] .text-white [class*="text-red-4"] { color: #fca5a5 !important; }
 [data-openrx-app-shell] .text-white [class*="text-rose-2"], [data-openrx-app-shell] .text-white [class*="text-rose-3"], [data-openrx-app-shell] .text-white [class*="text-rose-4"] { color: #fda4af !important; }
@@ -690,34 +692,36 @@ a {
    those pages. Mirrors the [data-openrx-app-shell] remap pattern above.
 --------------------------------------------------------------------------- */
 [data-openrx-warm] {
-  --color-bg-rgb: 250 246 241;
+  /* Inherits the root brand palette verbatim — the scope now exists only to
+     carry the legacy dark-utility remap rules below, not a second palette. */
+  --color-bg-rgb: 247 244 238;
   --color-surface-rgb: 255 255 255;
-  --color-surface-muted-rgb: 244 237 228;
-  --color-text-rgb: 35 29 23;
-  --color-secondary-rgb: 96 82 68;
-  --color-muted-rgb: 128 112 94;
-  --color-subtle-rgb: 158 141 122;
-  --color-border-rgb: 227 214 199;
-  --color-border-strong-rgb: 203 185 163;
-  --color-navy-rgb: 197 55 16;
-  --color-navy-hover-rgb: 165 42 9;
-  --color-accent-rgb: 197 55 16;
-  --color-accent-light-rgb: 216 88 51;
-  --color-accent-dark-rgb: 154 39 7;
-  --color-accent-50-rgb: 250 231 221;
-  --color-accent-100-rgb: 244 207 188;
-  --color-success-rgb: 21 128 61;
-  --color-warning-rgb: 180 83 9;
-  --color-danger-rgb: 185 28 28;
-  --focus-ring: 0 0 0 2px #faf6f1, 0 0 0 4px rgb(197 55 16 / 0.5);
+  --color-surface-muted-rgb: 242 237 227;
+  --color-text-rgb: 33 28 22;
+  --color-secondary-rgb: 74 65 55;
+  --color-muted-rgb: 107 97 85;
+  --color-subtle-rgb: 125 115 101;
+  --color-border-rgb: 227 220 208;
+  --color-border-strong-rgb: 210 201 186;
+  --color-navy-rgb: 194 69 30;
+  --color-navy-hover-rgb: 150 51 18;
+  --color-accent-rgb: 194 69 30;
+  --color-accent-light-rgb: 247 231 224;
+  --color-accent-dark-rgb: 150 51 18;
+  --color-accent-50-rgb: 251 243 240;
+  --color-accent-100-rgb: 247 231 224;
+  --color-success-rgb: 31 122 77;
+  --color-warning-rgb: 176 108 20;
+  --color-danger-rgb: 185 45 32;
+  --focus-ring: 0 0 0 2px #f7f4ee, 0 0 0 4px rgb(194 69 30 / 0.5);
   --shell-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 12px 32px rgba(63, 42, 24, 0.1);
   --panel-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 6px 20px rgba(63, 42, 24, 0.08);
   color-scheme: light;
 }
 
 body:has([data-openrx-warm]) {
-  background: #faf6f1 !important;
-  color: #231d17 !important;
+  background: #f7f4ee !important;
+  color: #211c16 !important;
 }
 
 [data-openrx-app-shell]:has([data-openrx-warm]) .pointer-events-none.fixed.inset-0 {
@@ -739,11 +743,11 @@ body:has([data-openrx-warm]) {
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="border-white"],
 [data-openrx-app-shell] [data-openrx-warm] [class*="divide-white"] {
-  border-color: rgb(35 29 23 / 0.13) !important;
+  border-color: rgb(33 28 22 / 0.13) !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] .text-white {
-  color: #231d17 !important;
+  color: #211c16 !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] .text-white\/42,
@@ -777,21 +781,21 @@ body:has([data-openrx-warm]) {
 
 /* Cyan accents become the burnt-orange brand accent. */
 [data-openrx-app-shell] [data-openrx-warm] [class*="text-cyan-"] {
-  color: #c53710 !important;
+  color: #c2451e !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="border-cyan-"] {
-  border-color: rgb(197 55 16 / 0.38) !important;
+  border-color: rgb(194 69 30 / 0.38) !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="bg-cyan-"] {
-  background-color: #c53710 !important;
+  background-color: #c2451e !important;
   color: #ffffff !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="bg-cyan-200/["] {
-  background-color: rgb(197 55 16 / 0.1) !important;
-  color: #c53710 !important;
+  background-color: rgb(194 69 30 / 0.1) !important;
+  color: #c2451e !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="hover:bg-cyan-"]:hover {
@@ -799,40 +803,40 @@ body:has([data-openrx-warm]) {
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="hover:border-cyan-"]:hover {
-  border-color: rgb(197 55 16 / 0.45) !important;
+  border-color: rgb(194 69 30 / 0.45) !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="focus:border-cyan-"]:focus {
-  border-color: rgb(197 55 16 / 0.5) !important;
+  border-color: rgb(194 69 30 / 0.5) !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="focus:ring-cyan-"]:focus {
-  --tw-ring-color: rgb(197 55 16 / 0.18) !important;
+  --tw-ring-color: rgb(194 69 30 / 0.18) !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="accent-cyan-"] {
-  accent-color: #c53710 !important;
+  accent-color: #c2451e !important;
 }
 
 /* Hard-coded near-black panels become warm paper. */
 [data-openrx-app-shell] [data-openrx-warm] [class*="bg-[#050707]"],
 [data-openrx-app-shell] [data-openrx-warm] [class*="bg-[#0d0f10]"],
 [data-openrx-app-shell] [data-openrx-warm] [class*="bg-[#070b0b]"] {
-  background-color: #fffdf9 !important;
-  color: #231d17 !important;
-  border-color: rgb(35 29 23 / 0.14) !important;
+  background-color: #ffffff !important;
+  color: #211c16 !important;
+  border-color: rgb(33 28 22 / 0.14) !important;
   box-shadow: 0 18px 44px rgba(63, 42, 24, 0.1) !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="bg-black/"] {
-  background-color: rgb(35 29 23 / 0.05) !important;
+  background-color: rgb(33 28 22 / 0.05) !important;
 }
 
 /* The navy payment-gate gradient becomes a warm cream gradient. */
 [data-openrx-app-shell] [data-openrx-warm] [class*="#07111f"] {
   background: linear-gradient(160deg, #fdf7f0 0%, #faead9 58%, #f4dcc4 100%) !important;
-  color: #231d17 !important;
-  border-color: rgb(197 55 16 / 0.22) !important;
+  color: #211c16 !important;
+  border-color: rgb(194 69 30 / 0.22) !important;
   box-shadow: 0 18px 38px rgba(197, 55, 16, 0.1) !important;
 }
 
@@ -959,15 +963,15 @@ body:has([data-openrx-warm]) {
 
 /* CarePlanPreview panel + remaining zinc shades on warm surfaces. */
 [data-openrx-app-shell] [data-openrx-warm] [class*="bg-[#0b1112]"] {
-  background-color: #fffdf9 !important;
-  color: #231d17 !important;
-  border-color: rgb(35 29 23 / 0.14) !important;
+  background-color: #ffffff !important;
+  color: #211c16 !important;
+  border-color: rgb(33 28 22 / 0.14) !important;
   box-shadow: 0 18px 44px rgba(63, 42, 24, 0.1) !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] .text-zinc-50,
 [data-openrx-app-shell] [data-openrx-warm] .text-zinc-100 {
-  color: #231d17 !important;
+  color: #211c16 !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] .text-zinc-200 {

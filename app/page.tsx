@@ -1,23 +1,9 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Archivo, IBM_Plex_Mono } from "next/font/google"
 
 import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
 import { BrandMark } from "@/components/brand-logo"
 import { getGuidelineSource } from "@/lib/screening/sources"
-
-const archivo = Archivo({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-landing-sans",
-})
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  display: "swap",
-  variable: "--font-landing-mono",
-})
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -124,7 +110,7 @@ export default function HomePage() {
 
   return (
     <div
-      className={`${archivo.variable} ${plexMono.variable} min-h-screen font-landing-sans`}
+      className="min-h-screen font-landing-sans"
       style={{ background: paper, color: ink }}
     >
       <script

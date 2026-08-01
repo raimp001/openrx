@@ -2,9 +2,9 @@
   <title id="title">OpenRx</title>
   <desc id="desc">An open ring closed by an evidence diamond, with the OpenRx wordmark.</desc>
   <rect x="3" y="7" width="44" height="44" rx="13" fill="#FFFFFF" stroke="rgba(15,23,42,0.16)" stroke-width="1.2"/>
-  <path d="M 30.83 19.67 A 11 11 0 1 0 35.76 26.71" stroke="#0F766E" stroke-width="2.9" stroke-linecap="round" fill="none"/>
-  <path d="M 34.01 18.59 L 38.11 22.69 L 34.01 26.79 L 29.91 22.69 Z" fill="#E6FAF8" stroke="#0F3E47" stroke-width="2.4" stroke-linejoin="round"/>
-  <circle cx="34.01" cy="22.69" r="1.5" fill="#0F766E"/>
+  <path d="M 30.83 19.67 A 11 11 0 1 0 35.76 26.71" stroke="#C2451E" stroke-width="2.9" stroke-linecap="round" fill="none"/>
+  <path d="M 34.01 18.59 L 38.11 22.69 L 34.01 26.79 L 29.91 22.69 Z" fill="#F9E7E0" stroke="#211C16" stroke-width="2.4" stroke-linejoin="round"/>
+  <circle cx="34.01" cy="22.69" r="1.5" fill="#C2451E"/>
   <text x="60" y="32" fill="#0B1D22" font-family="Geist, Inter, system-ui, sans-serif" font-size="24" font-weight="680" letter-spacing="-1.4">OpenRx</text>
   <text x="61" y="47" fill="#5B7177" font-family="Geist, Inter, system-ui, sans-serif" font-size="9" font-weight="650" letter-spacing="1.7">CARE HANDOFFS</text>
 </svg>

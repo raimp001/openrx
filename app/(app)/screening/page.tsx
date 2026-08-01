@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react"
 import { BaseUsdcTransaction } from "@/components/payments/base-usdc-transaction"
+import { FundingRails } from "@/components/payments/funding-rails"
 import { AnswerActionGrid, type AnswerActionItem } from "@/components/answer-action-grid"
 import { CarePlanPreview } from "@/components/care-plan-preview"
 import { RedFlagAlert } from "@/components/red-flag-alert"
@@ -492,6 +493,8 @@ export default function ScreeningPage() {
   const [nextStepStatus, setNextStepStatus] = useState<Record<string, string>>({})
   const [referralPanel, setReferralPanel] = useState<ReferralPanelState | null>(null)
   const [fee, setFee] = useState("0.50")
+  const [baseFee, setBaseFee] = useState("0.50")
+  const [tipAmount, setTipAmount] = useState("0.00")
   const [recipientAddress, setRecipientAddress] = useState("")
   const [showPaymentGate, setShowPaymentGate] = useState(false)
   const [paymentReady, setPaymentReady] = useState(false)
@@ -756,12 +759,14 @@ export default function ScreeningPage() {
       const response = await fetch("/api/screening/payment-intent", {
         method: "POST",
         headers: await getJsonHeaders(),
-        body: JSON.stringify({ walletAddress }),
+        body: JSON.stringify({ walletAddress, tipAmount }),
       })
       const data = (await response.json()) as {
         error?: string
         payment?: PaymentRecord
         fee?: string
+        baseFee?: string
+        tip?: string
         recipientAddress?: string
       }
       if (!response.ok || data.error || !data.payment) {
@@ -771,6 +776,8 @@ export default function ScreeningPage() {
       setPaymentIntent(data.payment)
       setPaymentId(data.payment.id)
       setFee(data.fee || fee)
+      setBaseFee(data.baseFee || baseFee)
+      setTipAmount(data.tip || tipAmount)
       setRecipientAddress(data.recipientAddress || data.payment.recipientAddress)
       setVerifyTxHash("")
       setPaymentReady(false)
@@ -781,6 +788,21 @@ export default function ScreeningPage() {
     } finally {
       setCreatingIntent(false)
     }
+  }
+
+  // Changing the tip invalidates the prepared intent — amounts must match.
+  function selectTip(value: string) {
+    setTipAmount(value)
+    setPaymentIntent(null)
+    setPaymentId("")
+    setVerifyTxHash("")
+    setPaymentReady(false)
+  }
+
+  function continueWithFreeRecommendations() {
+    setShowPaymentGate(false)
+    setError("")
+    void runScreening("preview")
   }
 
   async function openDeepDiveCheckout() {
@@ -1301,10 +1323,38 @@ export default function ScreeningPage() {
             </p>
             <p>
               <span className="font-semibold text-zinc-900">Fee:</span> {fee} USDC
+              {tipAmount !== "0.00" && (
+                <span className="text-zinc-500">
+                  {" "}
+                  ({baseFee} USDC review + {tipAmount} USDC tip)
+                </span>
+              )}
             </p>
             <p className="break-all pt-1">
               <span className="font-semibold text-zinc-900">Recipient:</span> {recipientAddress || "Preparing recipient..."}
             </p>
+            <div className="pt-2">
+              <p className="text-[11px] font-semibold text-zinc-900">Add a tip (optional)</p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {["0.00", "1.00", "2.00", "5.00"].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => selectTip(value)}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
+                      tipAmount === value
+                        ? "border-cyan-700 bg-cyan-700 text-white"
+                        : "border-zinc-200 bg-white text-zinc-600 hover:border-cyan-700/40 hover:text-zinc-900"
+                    }`}
+                  >
+                    {value === "0.00" ? "No tip" : `+${value.replace(/\.00$/, "")} USDC`}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-[10px] leading-4 text-zinc-500">
+                Tips support OpenRx and never change what the guidelines recommend.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[0.9fr_1.1fr]">
@@ -1332,6 +1382,19 @@ export default function ScreeningPage() {
                 className="w-full rounded-[18px] border border-zinc-200 bg-white px-3 py-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-60"
               >
                 {launchingPay ? "Opening Base Pay..." : "Alternative: open Base Pay"}
+              </button>
+              {walletAddress && (
+                <FundingRails
+                  walletAddress={walletAddress}
+                  amount={fee}
+                  className="rounded-[18px] border border-zinc-200 bg-white p-3"
+                />
+              )}
+              <button
+                onClick={continueWithFreeRecommendations}
+                className="w-full rounded-[18px] border border-zinc-200 bg-zinc-50 px-3 py-3 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-100"
+              >
+                Continue with free recommendations instead
               </button>
               <p className="text-[11px] leading-5 text-white/56">
                 CDP OnchainKit sends USDC on Base from the connected wallet. When the transaction confirms, OpenRx auto-fills the proof and verifies it against the payment intent.

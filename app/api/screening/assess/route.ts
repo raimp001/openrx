@@ -26,6 +26,12 @@ import { getLiveSnapshotByWallet } from "@/lib/live-data.server"
 import { createEmptyLiveSnapshot } from "@/lib/live-data-types"
 import { prisma } from "@/lib/db"
 import { verifyScreeningAccess } from "@/lib/screening-access"
+import { verifyAndRecordPayment } from "@/lib/payments-ledger"
+import {
+  X402_PAYMENT_HEADER,
+  buildX402PaymentRequired,
+  decodeXPaymentHeader,
+} from "@/lib/x402"
 
 type ScreeningAnalysisLevel = "preview" | "deep"
 
@@ -597,9 +603,21 @@ function paymentRequiredResponse(input: {
   reason?: string
   fee: string
   recipientAddress: string
+  resource: string
 }) {
+  // x402 (Coinbase agent-payments) body, extended with the legacy fields the
+  // OpenRx UI consumes. AI agents read `accepts`; the web UI reads the flat
+  // fee/recipient fields.
+  const x402 = buildX402PaymentRequired({
+    resource: input.resource,
+    fee: input.fee,
+    recipientAddress: input.recipientAddress,
+    reason: input.reason || "Personalized screening payment is required.",
+    description: "OpenRx advanced inherited-risk screening review, paid in USDC on Base.",
+  })
   return NextResponse.json(
     {
+      ...x402,
       error: input.reason || "Personalized screening payment is required.",
       requiresPayment: true,
       fee: input.fee,
@@ -608,6 +626,35 @@ function paymentRequiredResponse(input: {
     },
     { status: 402 }
   )
+}
+
+/**
+ * x402 retry flow: an agent pays USDC on Base, then retries the request with
+ * an X-PAYMENT header carrying the proof. We settle it against the wallet's
+ * screening intent and re-check access.
+ */
+async function settleX402PaymentHeader(input: {
+  request: NextRequest
+  walletAddress?: string
+  fee: string
+  recipientAddress: string
+}): Promise<boolean> {
+  const proof = decodeXPaymentHeader(input.request.headers.get(X402_PAYMENT_HEADER))
+  if (!proof || !input.walletAddress) return false
+  const txHash = proof.txHash
+  if (!txHash) return false
+  try {
+    await verifyAndRecordPayment({
+      paymentId: proof.paymentId,
+      txHash,
+      walletAddress: input.walletAddress,
+      expectedAmount: input.fee,
+      expectedRecipient: input.recipientAddress,
+    })
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -632,12 +679,24 @@ export async function GET(request: NextRequest) {
     const effectivePatientId = auth.session.authSource !== "default" ? patientId : undefined
 
     if (analysisLevel === "deep") {
-      const access = await verifyScreeningAccess({ walletAddress: effectiveWalletAddress, paymentId })
+      let access = await verifyScreeningAccess({ walletAddress: effectiveWalletAddress, paymentId })
+      if (
+        !access.ok &&
+        (await settleX402PaymentHeader({
+          request,
+          walletAddress: effectiveWalletAddress,
+          fee: access.fee,
+          recipientAddress: access.recipientAddress,
+        }))
+      ) {
+        access = await verifyScreeningAccess({ walletAddress: effectiveWalletAddress, paymentId })
+      }
       if (!access.ok) {
         return paymentRequiredResponse({
           reason: access.reason,
           fee: access.fee,
           recipientAddress: access.recipientAddress,
+          resource: request.url,
         })
       }
     }
@@ -679,15 +738,30 @@ export async function POST(request: NextRequest) {
     const effectivePatientId = auth.session.authSource !== "default" ? body.patientId : undefined
 
     if (analysisLevel === "deep") {
-      const access = await verifyScreeningAccess({
+      let access = await verifyScreeningAccess({
         walletAddress: effectiveWalletAddress,
         paymentId: body.paymentId,
       })
+      if (
+        !access.ok &&
+        (await settleX402PaymentHeader({
+          request,
+          walletAddress: effectiveWalletAddress,
+          fee: access.fee,
+          recipientAddress: access.recipientAddress,
+        }))
+      ) {
+        access = await verifyScreeningAccess({
+          walletAddress: effectiveWalletAddress,
+          paymentId: body.paymentId,
+        })
+      }
       if (!access.ok) {
         return paymentRequiredResponse({
           reason: access.reason,
           fee: access.fee,
           recipientAddress: access.recipientAddress,
+          resource: request.url,
         })
       }
     }

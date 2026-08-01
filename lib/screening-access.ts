@@ -3,10 +3,23 @@ import {
   getLedgerSnapshot,
   type PaymentRecord,
 } from "@/lib/payments-ledger"
-import { toCents, fromCents } from "@/lib/money"
+import { toCents, fromCents, addAmounts } from "@/lib/money"
 
 export const DEFAULT_SCREENING_FEE_USDC = "0.50"
 export const SCREENING_PAYMENT_CATEGORY = "screening" as const
+export const MAX_SCREENING_TIP_USDC = "25"
+
+/** Tips are optional, capped, and never block access: invalid input is 0. */
+export function normalizeTipAmount(raw?: string): string {
+  if (!raw) return "0.00"
+  const cents = toCents(raw)
+  if (cents <= 0) return "0.00"
+  return fromCents(Math.min(cents, toCents(MAX_SCREENING_TIP_USDC)))
+}
+
+export function getScreeningTotalWithTip(tipAmount?: string): string {
+  return addAmounts(getScreeningFeeUsd(), normalizeTipAmount(tipAmount))
+}
 
 function toAmountNumber(value: string | undefined): number {
   const parsed = toCents(value || "0") / 100
@@ -28,17 +41,26 @@ export function getScreeningRecipientWallet(): string {
   )
 }
 
-export async function createScreeningPaymentIntent(walletAddress: string): Promise<PaymentRecord> {
+export async function createScreeningPaymentIntent(
+  walletAddress: string,
+  tipAmount?: string
+): Promise<PaymentRecord> {
   const fee = getScreeningFeeUsd()
+  const tip = normalizeTipAmount(tipAmount)
+  const total = addAmounts(fee, tip)
   return createPaymentIntent({
     walletAddress,
-    amount: fee,
+    amount: total,
     category: SCREENING_PAYMENT_CATEGORY,
-    description: "Personalized AI screening access",
+    description:
+      tip !== "0.00"
+        ? `Personalized AI screening access (+${tip} USDC tip)`
+        : "Personalized AI screening access",
     recipientAddress: getScreeningRecipientWallet(),
     metadata: {
       service: "personalized-screening",
       requiredFee: fee,
+      tipAmount: tip,
     },
   })
 }

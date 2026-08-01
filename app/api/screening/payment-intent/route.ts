@@ -9,6 +9,8 @@ import {
   createScreeningPaymentIntent,
   getScreeningFeeUsd,
   getScreeningRecipientWallet,
+  getScreeningTotalWithTip,
+  normalizeTipAmount,
 } from "@/lib/screening-access"
 
 function isWalletAddress(value: string): boolean {
@@ -17,7 +19,7 @@ function isWalletAddress(value: string): boolean {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { walletAddress?: string }
+    const body = (await request.json()) as { walletAddress?: string; tipAmount?: string }
     const walletAddress = (body.walletAddress || "").trim()
 
     if (!walletAddress) {
@@ -39,10 +41,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Wallet access denied." }, { status: 403 })
     }
 
-    const payment = await createScreeningPaymentIntent(walletAddress)
+    const tip = normalizeTipAmount(body.tipAmount)
+    const payment = await createScreeningPaymentIntent(walletAddress, tip)
     return NextResponse.json({
       payment,
-      fee: getScreeningFeeUsd(),
+      fee: getScreeningTotalWithTip(tip),
+      baseFee: getScreeningFeeUsd(),
+      tip,
       currency: "USDC",
       recipientAddress: getScreeningRecipientWallet(),
     })

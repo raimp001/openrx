@@ -1,7 +1,22 @@
 import type { Metadata, Viewport } from "next"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
+import { Archivo, IBM_Plex_Mono } from "next/font/google"
 import "./globals.css"
+
+// Brand typography: Archivo for UI and display, IBM Plex Mono for the data
+// voice (rule ids, versions, counts). Loaded once at the root so every
+// surface — marketing and clinical — reads as the same product.
+const brandSans = Archivo({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-brand-sans",
+})
+
+const brandMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+  variable: "--font-brand-mono",
+})
 
 export const metadata: Metadata = {
   title: "OpenRx | Prior-auth automation and screening navigation",
@@ -34,7 +49,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#fafafa",
+  themeColor: "#f7f4ee",
 }
 
 const organizationJsonLd = {
@@ -52,7 +67,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${GeistSans.variable} ${GeistMono.variable} min-h-screen bg-surface text-primary antialiased`}>
+      <body className={`${brandSans.variable} ${brandMono.variable} min-h-screen bg-surface text-primary antialiased`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
@@ -61,8 +76,8 @@ export default function RootLayout({
           <div
             style={{
               padding: "12px 16px",
-              background: "#164e63",
-              color: "#f4f4f5",
+              background: "#211c16",
+              color: "#f7f4ee",
               fontSize: "13px",
               textAlign: "center",
             }}

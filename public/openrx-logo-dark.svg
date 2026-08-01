@@ -1,10 +1,10 @@
 <svg width="220" height="58" viewBox="0 0 220 58" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
   <title id="title">OpenRx</title>
   <desc id="desc">An open ring closed by an evidence diamond, with the OpenRx wordmark.</desc>
-  <rect x="3" y="7" width="44" height="44" rx="13" fill="#050707" stroke="#1E3A3F" stroke-width="1.2"/>
-  <path d="M 30.83 19.67 A 11 11 0 1 0 35.76 26.71" stroke="#67E8F9" stroke-width="2.9" stroke-linecap="round" fill="none"/>
-  <path d="M 34.01 18.59 L 38.11 22.69 L 34.01 26.79 L 29.91 22.69 Z" fill="#0D2A2E" stroke="#2DD4BF" stroke-width="2.4" stroke-linejoin="round"/>
-  <circle cx="34.01" cy="22.69" r="1.5" fill="#CFFAFE"/>
+  <rect x="3" y="7" width="44" height="44" rx="13" fill="#211C16" stroke="#3A2A20" stroke-width="1.2"/>
+  <path d="M 30.83 19.67 A 11 11 0 1 0 35.76 26.71" stroke="#E0704A" stroke-width="2.9" stroke-linecap="round" fill="none"/>
+  <path d="M 34.01 18.59 L 38.11 22.69 L 34.01 26.79 L 29.91 22.69 Z" fill="#3A2A20" stroke="#E0704A" stroke-width="2.4" stroke-linejoin="round"/>
+  <circle cx="34.01" cy="22.69" r="1.5" fill="#F9E7E0"/>
   <text x="60" y="32" fill="#F7FAFA" font-family="Geist, Inter, system-ui, sans-serif" font-size="24" font-weight="680" letter-spacing="-1.4">OpenRx</text>
   <text x="61" y="47" fill="#8EA2A6" font-family="Geist, Inter, system-ui, sans-serif" font-size="9" font-weight="650" letter-spacing="1.7">CARE HANDOFFS</text>
 </svg>

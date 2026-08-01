@@ -6,6 +6,42 @@ const opacityScale = Object.fromEntries(
 
 const withAlpha = (variable: string) => `rgb(var(${variable}) / <alpha-value>)`
 
+// The accent ramp is ember, the brand's single voice of action. Legacy surfaces
+// reach for `cyan-*`/`teal-*` as "the accent", so those scales resolve here
+// instead of to Tailwind's stock blue-greens — one accent, sitewide.
+// Warm neutral ramp. Surfaces reach for `zinc-*` as the neutral scale, so it
+// resolves to the brand's paper/ink greys rather than Tailwind's cool greys —
+// keeping every page on the same warm ground as the landing site.
+// The 500/600/700 steps match --color-subtle/muted/secondary and clear WCAG AA
+// on white (4.65:1, 6.06:1, 9.99:1).
+const warmNeutral = {
+  50: "#F7F4EE",
+  100: "#F2EDE3",
+  200: "#E3DCD0",
+  300: "#D2C9BA",
+  400: "#A79B8B",
+  500: "#7D7365",
+  600: "#6B6155",
+  700: "#4A4137",
+  800: "#33291F",
+  900: "#211C16",
+  950: "#16120E",
+}
+
+const ember = {
+  50: "#FDF6F3",
+  100: "#F9E7E0",
+  200: "#F2CABB",
+  300: "#E9A88F",
+  400: "#DD8360",
+  500: "#CF5730",
+  600: "#C2451E",
+  700: "#C2451E",
+  800: "#A13818",
+  900: "#7F2C13",
+  950: "#4A1709",
+}
+
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -31,14 +67,16 @@ const config: Config = {
           900: withAlpha("--color-navy-rgb"),
         },
         teal: {
+          ...ember,
           DEFAULT: withAlpha("--color-accent-rgb"),
           light: withAlpha("--color-accent-light-rgb"),
           dark: withAlpha("--color-accent-dark-rgb"),
-          50: withAlpha("--color-accent-50-rgb"),
-          100: withAlpha("--color-accent-100-rgb"),
-          500: withAlpha("--color-accent-rgb"),
-          600: withAlpha("--color-accent-dark-rgb"),
         },
+        cyan: {
+          ...ember,
+          DEFAULT: withAlpha("--color-accent-rgb"),
+        },
+        zinc: warmNeutral,
         success: withAlpha("--color-success-rgb"),
         warning: withAlpha("--color-warning-rgb"),
         danger: withAlpha("--color-danger-rgb"),
@@ -76,9 +114,11 @@ const config: Config = {
       fontFamily: {
         serif: ["var(--font-sans)", "system-ui", "sans-serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
-        "landing-sans": ["var(--font-landing-sans)", "system-ui", "sans-serif"],
-        "landing-mono": ["var(--font-landing-mono)", "ui-monospace", "monospace"],
+        mono: ["var(--font-brand-mono)", "monospace"],
+        // Landing aliases resolve to the same brand faces loaded at the root,
+        // so marketing and clinical surfaces share one type system.
+        "landing-sans": ["var(--font-brand-sans)", "system-ui", "sans-serif"],
+        "landing-mono": ["var(--font-brand-mono)", "ui-monospace", "monospace"],
       },
       fontSize: {
         "display-xl": ["clamp(2.6rem, 4.6vw, 4.2rem)", { lineHeight: "1.05", letterSpacing: "-0.025em" }],

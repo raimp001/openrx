@@ -50,7 +50,7 @@ test("core app pages load without runtime crash", async ({ page }) => {
   }
 })
 
-test("privacy page uses the dark OpenRx system", async ({ page }) => {
+test("privacy page uses the warm-paper OpenRx system", async ({ page }) => {
   await page.goto("/privacy-explained", { waitUntil: "domcontentloaded" })
   await expect(page.getByRole("heading", { level: 1, name: "Plain data boundaries before care navigation." })).toBeVisible()
   await expect(page.getByText("Short version")).toBeVisible()
@@ -68,8 +68,10 @@ test("privacy page uses the dark OpenRx system", async ({ page }) => {
     }
   })
 
-  expect(colors.bodyBackground).toBe("rgb(5, 5, 5)")
-  expect(colors.headingColor).toBe("rgb(255, 255, 255)")
-  expect(colors.headerBackground).toContain("5, 5, 5")
+  // Warm paper ground, ink headings, light header — the same brand surface the
+  // landing page and clinical shell use.
+  expect(colors.bodyBackground).toBe("rgb(247, 244, 238)")
+  expect(colors.headingColor).toBe("rgb(33, 28, 22)")
+  expect(colors.headerBackground).toContain("255, 255, 255")
   expect(colors.overflow).toBeLessThanOrEqual(1)
 })

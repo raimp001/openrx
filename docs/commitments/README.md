@@ -1,7 +1,8 @@
 # Screening Commitment Pilot
 
-Status: local sandbox implementation. Disabled by default. Not approved for real funds,
-production use, or Base Mainnet.
+Status: production-visible read-only preview plus a local sandbox implementation.
+Transactional features remain disabled by default and are not approved for real funds
+or Base Mainnet.
 
 ## Scope
 
@@ -20,6 +21,11 @@ The local sandbox supports the complete demonstration path:
 6. Return the full mock USDC deposit.
 7. Issue an EAS-compatible private offchain credential.
 8. Share, verify, and revoke a time-limited verifier link.
+
+The production `/commitments` route is intentionally informational while the feature
+flags remain off. It explains the optional workflow and links back to the deterministic
+screening experience, but it cannot create a wallet, accept a deposit, verify completion,
+or issue a credential.
 
 Base Sepolia adapters are present for an existing OpenRx wallet, Coinbase Onramp
 options/quotes/session creation, exact USDC approval and escrow funding, CDP RPC receipt
@@ -48,7 +54,7 @@ sandbox flags and secrets. The repository never defaults to them.
 
 ## Feature Flags
 
-All four flags must remain false in production:
+All four transactional flags remain false in production:
 
 ```text
 SCREENING_COMMITMENT_PILOT=false
@@ -57,8 +63,9 @@ PRIVATE_COMPLETION_CREDENTIALS=false
 INSURER_VERIFIER_DEMO=false
 ```
 
-The runtime also rejects Vercel production and accepts only `local-mock` or
-`base-sepolia`. Base Mainnet is not a valid configuration.
+The runtime also rejects transactional activation on Vercel production and accepts only
+`local-mock` or `base-sepolia`. Base Mainnet is not a valid configuration. Publishing
+the read-only preview does not weaken this boundary.
 
 ## Key Artifacts
 

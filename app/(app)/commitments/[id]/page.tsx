@@ -219,7 +219,7 @@ export default function CommitmentDetailPage({ params }: { params: { id: string 
 
   if (loading) {
     return (
-      <main className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4">
+      <main data-openrx-warm className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4">
         <p className="flex items-center gap-2 text-sm text-secondary">
           <Loader2 size={16} className="animate-spin" />
           Loading reservation...
@@ -229,7 +229,7 @@ export default function CommitmentDetailPage({ params }: { params: { id: string 
   }
   if (!snapshot || !config) {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-10">
+      <main data-openrx-warm className="mx-auto max-w-3xl px-4 py-10">
         <p role="alert" className="text-sm text-red-200">{error || "Reservation not found."}</p>
       </main>
     )
@@ -240,7 +240,7 @@ export default function CommitmentDetailPage({ params }: { params: { id: string 
   const terminal = ["refunded", "cancelled", "expired"].includes(commitment.status)
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
+    <main data-openrx-warm className="mx-auto w-full max-w-4xl px-0 py-5 sm:py-9">
       <Link href="/commitments" className="inline-flex items-center gap-2 text-xs font-semibold text-secondary hover:text-primary">
         <ArrowLeft size={14} />
         Screening reservations

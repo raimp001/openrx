@@ -64,7 +64,7 @@ export default function CommitmentProviderPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
+    <main data-openrx-warm className="mx-auto w-full max-w-4xl px-0 py-5 sm:py-9">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-6">
         <div>
           <p className="flex items-center gap-2 text-xs font-semibold text-teal">

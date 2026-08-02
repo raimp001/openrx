@@ -125,7 +125,7 @@ export function CommitmentOffer(props: CommitmentOfferProps) {
 
       {open ? (
         <div
-          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm sm:items-center sm:p-5"
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/35 p-0 backdrop-blur-sm sm:items-center sm:p-5"
           onMouseDown={(event) => {
             if (event.currentTarget === event.target) setOpen(false)
           }}
@@ -134,12 +134,12 @@ export function CommitmentOffer(props: CommitmentOfferProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="commitment-offer-title"
-            className="max-h-[92vh] w-full overflow-y-auto border border-white/12 bg-[#101413] p-5 shadow-2xl sm:max-w-xl sm:rounded-[20px] sm:p-6"
+            className="max-h-[92vh] w-full overflow-y-auto border border-border bg-white p-5 text-primary shadow-2xl sm:max-w-xl sm:rounded-[12px] sm:p-6"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold text-teal">Optional commitment</p>
-                <h2 id="commitment-offer-title" className="mt-2 text-xl font-semibold text-white">
+                <h2 id="commitment-offer-title" className="mt-2 text-xl font-semibold text-primary">
                   Reserve {props.screeningLabel}
                 </h2>
               </div>
@@ -147,48 +147,48 @@ export function CommitmentOffer(props: CommitmentOfferProps) {
                 type="button"
                 aria-label="Close"
                 onClick={() => setOpen(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-white/65 transition hover:bg-white/10 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-surface hover:text-primary"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <p className="mt-4 text-sm leading-6 text-white/72">
+            <p className="mt-4 text-sm leading-6 text-secondary">
               Set aside {money(terms.depositAmountMinor)} while you arrange this screening. This is optional.
               Declining does not affect your care, recommendation, priority, or access.
             </p>
 
-            <dl className="mt-5 divide-y divide-white/10 border-y border-white/10 text-sm">
+            <dl className="mt-5 divide-y divide-border border-y border-border text-sm">
               <div className="flex justify-between gap-4 py-3">
-                <dt className="text-white/62">Complete within</dt>
-                <dd className="font-medium text-white">{terms.initialWindowDays} days</dd>
+                <dt className="text-muted">Complete within</dt>
+                <dd className="font-medium text-primary">{terms.initialWindowDays} days</dd>
               </div>
               <div className="flex justify-between gap-4 py-3">
-                <dt className="text-white/62">Verified completion refund</dt>
-                <dd className="font-medium text-white">{money(terms.depositAmountMinor)}</dd>
+                <dt className="text-muted">Verified completion refund</dt>
+                <dd className="font-medium text-primary">{money(terms.depositAmountMinor)}</dd>
               </div>
               <div className="flex justify-between gap-4 py-3">
-                <dt className="text-white/62">Cancellation or expiration fee</dt>
-                <dd className="font-medium text-white">{money(terms.cancellationFeeMinor)}</dd>
+                <dt className="text-muted">Cancellation or expiration fee</dt>
+                <dd className="font-medium text-primary">{money(terms.cancellationFeeMinor)}</dd>
               </div>
               <div className="flex justify-between gap-4 py-3">
-                <dt className="text-white/62">Scheduling extension</dt>
-                <dd className="text-right font-medium text-white">
+                <dt className="text-muted">Scheduling extension</dt>
+                <dd className="text-right font-medium text-primary">
                   One {terms.extensionDays}-day extension
                 </dd>
               </div>
             </dl>
 
-            <div className="mt-4 flex gap-3 rounded-[14px] border border-cyan-300/15 bg-cyan-300/[0.06] p-3">
-              <ShieldCheck className="mt-0.5 shrink-0 text-cyan-200" size={17} />
-              <p className="text-xs leading-5 text-white/72">
+            <div className="mt-4 flex gap-3 rounded-[8px] border border-teal/20 bg-teal/5 p-3">
+              <ShieldCheck className="mt-0.5 shrink-0 text-teal-dark" size={17} />
+              <p className="text-xs leading-5 text-secondary">
                 Completion is confirmed by a trusted provider or laboratory. Results and screening details are
                 never sent to a public network.
               </p>
             </div>
 
-            <details className="mt-4 border-t border-white/10 pt-3 text-xs text-white/62">
-              <summary className="flex cursor-pointer list-none items-center justify-between py-2 font-medium text-white/74">
+            <details className="mt-4 border-t border-border pt-3 text-xs text-muted">
+              <summary className="flex cursor-pointer list-none items-center justify-between py-2 font-medium text-secondary">
                 Advanced details
                 <ChevronDown size={15} aria-hidden="true" />
               </summary>
@@ -204,14 +204,14 @@ export function CommitmentOffer(props: CommitmentOfferProps) {
               </p>
             </details>
 
-            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-[14px] border border-white/12 p-3">
+            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-[8px] border border-border p-3">
               <input
                 type="checkbox"
                 checked={accepted}
                 onChange={(event) => setAccepted(event.target.checked)}
                 className="mt-0.5 h-4 w-4 accent-cyan-400"
               />
-              <span className="text-xs leading-5 text-white/78">
+              <span className="text-xs leading-5 text-secondary">
                 I understand the deposit is optional, the refund terms above, and that this does not replace
                 scheduling the screening with a clinician or facility.
               </span>
@@ -227,7 +227,7 @@ export function CommitmentOffer(props: CommitmentOfferProps) {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="min-h-11 rounded-[12px] px-4 text-sm font-medium text-white/68 hover:bg-white/8"
+                className="min-h-11 rounded-[8px] px-4 text-sm font-medium text-secondary hover:bg-surface"
               >
                 Not now
               </button>
@@ -235,7 +235,7 @@ export function CommitmentOffer(props: CommitmentOfferProps) {
                 type="button"
                 disabled={!accepted || loading}
                 onClick={() => void createCommitment()}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-white px-4 text-sm font-semibold text-[#111514] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-45"
+                className="control-button-primary min-h-11 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {loading ? <Loader2 size={15} className="animate-spin" /> : null}
                 Continue

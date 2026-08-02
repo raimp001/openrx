@@ -6,6 +6,7 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  CalendarCheck,
   Check,
   CircleHelp,
   ClipboardCheck,
@@ -1262,13 +1263,19 @@ export default function ScreeningPage() {
   return (
     <div data-openrx-screening-workspace data-openrx-warm className="animate-slide-up space-y-5 sm:space-y-6">
       <section className="px-0 pt-2">
-        <div className="mx-auto max-w-5xl border-b border-white/10 pb-5 text-left">
-          <h1 className="orx-display-heading max-w-2xl text-[clamp(2rem,4.2vw,3rem)] text-primary">
-            What screening is due?
-          </h1>
-          <p className="mt-2 max-w-2xl text-[14px] leading-6 text-secondary">
-            Ask once. Get a sourced plan and the next useful care links.
-          </p>
+        <div className="mx-auto flex max-w-5xl flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5 text-left">
+          <div>
+            <h1 className="orx-display-heading max-w-2xl text-[clamp(2rem,4.2vw,3rem)] text-primary">
+              What screening is due?
+            </h1>
+            <p className="mt-2 max-w-2xl text-[14px] leading-6 text-secondary">
+              Ask once. Get a sourced plan and the next useful care links.
+            </p>
+          </div>
+          <Link href="/commitments" className="control-button-secondary min-h-10 px-3 text-xs">
+            <CalendarCheck size={14} />
+            Reservations
+          </Link>
         </div>
       </section>
 

@@ -32,7 +32,7 @@ export default function Topbar() {
   const pathname = usePathname()
   const router = useRouter()
   const isChatRoute = pathname === "/chat" || pathname?.startsWith("/chat/")
-  const focusedWorkflowPrefixes = ["/screening", "/providers", "/clinical-trials", "/pharmacy", "/prior-auth", "/join-network"]
+  const focusedWorkflowPrefixes = ["/screening", "/commitments", "/providers", "/clinical-trials", "/pharmacy", "/prior-auth", "/join-network"]
   const isFocusedWorkflow = focusedWorkflowPrefixes.some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`))
   const { snapshot, getPhysician } = useLiveSnapshot()
   const { isConnected, profile, walletAddress } = useWalletIdentity()
@@ -61,6 +61,7 @@ export default function Topbar() {
       ["/onboarding", { label: "Care setup", note: "Doctors, pharmacy, medications, and screening context" }],
       ["/providers", { label: "Find care", note: "Doctors, specialists, labs, and imaging near you" }],
       ["/screening", { label: "Screenings", note: "Prevention and hereditary review" }],
+      ["/commitments", { label: "Screening reservations", note: "Optional completion commitments and refund status" }],
       ["/referrals", { label: "Referrals", note: "Specialist handoffs, status, and next actions" }],
       ["/pharmacy", { label: "Pharmacy", note: "Medication access and nearby pharmacy options" }],
       ["/drug-prices", { label: "Drug prices", note: "Medication price checks and savings options" }],
@@ -132,6 +133,7 @@ export default function Topbar() {
       { label: "Vitals", href: "/vitals", icon: Activity, keywords: ["vitals", "bp", "heart rate"] },
       { label: "Vaccinations", href: "/vaccinations", icon: Syringe, keywords: ["vaccines", "shots"] },
       { label: "Referrals", href: "/referrals", icon: ArrowRightCircle, keywords: ["referrals", "specialists"] },
+      { label: "Screening reservations", href: "/commitments", icon: Calendar, keywords: ["commitments", "deposit", "completion", "refund"] },
       { label: "Messages", href: "/messages", icon: MessageSquare, keywords: ["messages", "inbox"] },
       { label: "Ask for help", href: "/chat", icon: Bot, keywords: ["ai", "ask", "chat", "help"] },
     ],

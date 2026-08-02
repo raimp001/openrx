@@ -36,7 +36,7 @@ export default function CredentialVerifierPage({ params }: { params: { token: st
   }, [params.token])
 
   return (
-    <main className="mx-auto flex min-h-[75vh] w-full max-w-xl items-center px-4 py-10">
+    <main data-openrx-warm className="mx-auto flex min-h-[75vh] w-full max-w-xl items-center px-0 py-10">
       <section className="w-full border-y border-white/10 py-8">
         <p className="flex items-center gap-2 text-xs font-semibold text-teal">
           <ShieldCheck size={15} />

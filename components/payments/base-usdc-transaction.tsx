@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import type { ComponentType } from "react"
+import type { ComponentType, ReactNode } from "react"
 import {
   Transaction,
   TransactionButton,
@@ -9,11 +9,6 @@ import {
   TransactionStatusAction,
   TransactionStatusLabel,
   type LifecycleStatus,
-  type TransactionButtonProps,
-  type TransactionResponseType,
-  type TransactionStatusActionProps,
-  type TransactionStatusLabelProps,
-  type TransactionStatusProps,
 } from "@coinbase/onchainkit/transaction"
 import type { Call, Hex } from "viem"
 import { base } from "viem/chains"
@@ -22,11 +17,30 @@ import { buildUsdcTransferCall } from "@/lib/basebuilder/usdc"
 import { getBaseBuilderChainId } from "@/lib/basebuilder/config"
 import { cn } from "@/lib/utils"
 
-// onchainkit 0.38 no longer exports dedicated prop types; derive them from the components.
-const SafeTransactionButton = TransactionButton as unknown as ComponentType<TransactionButtonProps>
-const SafeTransactionStatus = TransactionStatus as unknown as ComponentType<TransactionStatusProps>
-const SafeTransactionStatusLabel = TransactionStatusLabel as unknown as ComponentType<TransactionStatusLabelProps>
-const SafeTransactionStatusAction = TransactionStatusAction as unknown as ComponentType<TransactionStatusActionProps>
+interface TransactionButtonCompatProps {
+  className?: string
+  disabled?: boolean
+  text?: string
+  pendingOverride?: { text?: string }
+  successOverride?: { text?: string }
+}
+
+interface TransactionStatusCompatProps {
+  className?: string
+  children?: ReactNode
+}
+
+interface TransactionResponseCompat {
+  transactionReceipts: Array<{ transactionHash?: string }>
+}
+
+// OnchainKit renamed its exported prop/response types between 0.38 and 1.x.
+// Keep this boundary structural so OpenRx remains compatible with React 18's
+// supported 0.38 line without coupling application code to those type names.
+const SafeTransactionButton = TransactionButton as unknown as ComponentType<TransactionButtonCompatProps>
+const SafeTransactionStatus = TransactionStatus as unknown as ComponentType<TransactionStatusCompatProps>
+const SafeTransactionStatusLabel = TransactionStatusLabel as unknown as ComponentType
+const SafeTransactionStatusAction = TransactionStatusAction as unknown as ComponentType
 
 interface BaseUsdcTransactionProps {
   amount: string
@@ -64,7 +78,7 @@ function firstHashFromStatus(status: LifecycleStatus): string {
   return ""
 }
 
-function firstHashFromSuccess(response: TransactionResponseType): string {
+function firstHashFromSuccess(response: TransactionResponseCompat): string {
   return response.transactionReceipts[0]?.transactionHash || ""
 }
 
@@ -111,7 +125,7 @@ export function BaseUsdcTransaction({
     }
   }
 
-  function handleSuccess(response: TransactionResponseType) {
+  function handleSuccess(response: TransactionResponseCompat) {
     const hash = firstHashFromSuccess(response)
     if (hash) {
       onTransactionHash(hash)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ComponentType } from "react"
+import { useState, type ComponentType, type ReactNode } from "react"
 import {
   Transaction,
   TransactionButton,
@@ -8,19 +8,31 @@ import {
   TransactionStatusAction,
   TransactionStatusLabel,
   type LifecycleStatus,
-  type TransactionButtonProps,
-  type TransactionResponseType,
-  type TransactionStatusActionProps,
-  type TransactionStatusLabelProps,
-  type TransactionStatusProps,
 } from "@coinbase/onchainkit/transaction"
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 import type { PreparedDeposit } from "@/lib/commitments/types"
 
-const SafeTransactionButton = TransactionButton as unknown as ComponentType<TransactionButtonProps>
-const SafeTransactionStatus = TransactionStatus as unknown as ComponentType<TransactionStatusProps>
-const SafeTransactionStatusLabel = TransactionStatusLabel as unknown as ComponentType<TransactionStatusLabelProps>
-const SafeTransactionStatusAction = TransactionStatusAction as unknown as ComponentType<TransactionStatusActionProps>
+interface TransactionButtonCompatProps {
+  className?: string
+  disabled?: boolean
+  text?: string
+  pendingOverride?: { text?: string }
+  successOverride?: { text?: string }
+}
+
+interface TransactionStatusCompatProps {
+  className?: string
+  children?: ReactNode
+}
+
+interface TransactionResponseCompat {
+  transactionReceipts: Array<{ transactionHash?: string }>
+}
+
+const SafeTransactionButton = TransactionButton as unknown as ComponentType<TransactionButtonCompatProps>
+const SafeTransactionStatus = TransactionStatus as unknown as ComponentType<TransactionStatusCompatProps>
+const SafeTransactionStatusLabel = TransactionStatusLabel as unknown as ComponentType
+const SafeTransactionStatusAction = TransactionStatusAction as unknown as ComponentType
 
 export function PreparedDepositTransaction({
   prepared,
@@ -60,7 +72,7 @@ export function PreparedDepositTransaction({
     }
   }
 
-  async function handleSuccess(response: TransactionResponseType) {
+  async function handleSuccess(response: TransactionResponseCompat) {
     const hash = response.transactionReceipts[0]?.transactionHash
     if (hash) await onConfirmed(hash)
   }

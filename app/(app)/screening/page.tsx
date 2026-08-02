@@ -23,6 +23,7 @@ import { BaseUsdcTransaction } from "@/components/payments/base-usdc-transaction
 import { FundingRails } from "@/components/payments/funding-rails"
 import { AnswerActionGrid, type AnswerActionItem } from "@/components/answer-action-grid"
 import { CarePlanPreview } from "@/components/care-plan-preview"
+import { CommitmentOffer } from "@/components/commitments/commitment-offer"
 import { RedFlagAlert } from "@/components/red-flag-alert"
 import { TrustDrawer } from "@/components/trust-drawer"
 import {
@@ -94,6 +95,7 @@ type ScreeningResponse = ScreeningAssessment & {
   fee?: string
   currency?: string
   recipientAddress?: string
+  commitmentEligibility?: Record<string, { token: string; expiresAt: string }>
   error?: string
 }
 
@@ -2160,6 +2162,23 @@ export default function ScreeningPage() {
                                     >
                                       Start referral
                                     </button>
+                                  ) : null}
+                                  {sourceUrl ? (
+                                    <CommitmentOffer
+                                      recommendationId={rec.id}
+                                      screeningLabel={rec.screeningName}
+                                      guidelineSource={rec.sourceSystem}
+                                      guidelineVersion={sourceVersion}
+                                      engineVersion={rec.engineVersion || "unstamped"}
+                                      sourceUrl={sourceUrl}
+                                      recommendationIssuedAt={assessment.generatedAt}
+                                      eligibilityToken={assessment.commitmentEligibility?.[rec.id]?.token || ""}
+                                      eligible={
+                                        canStartReferral &&
+                                        rec.status === "due" &&
+                                        Boolean(assessment.commitmentEligibility?.[rec.id]?.token)
+                                      }
+                                    />
                                   ) : null}
                                   <button
                                     type="button"

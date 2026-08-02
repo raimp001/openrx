@@ -11,6 +11,10 @@ export function getBaseBuilderChainId(): number {
   return getBaseBuilderNetwork() === "base-sepolia" ? baseSepolia.id : base.id
 }
 
+export function getBaseBuilderChain() {
+  return getBaseBuilderNetwork() === "base-sepolia" ? baseSepolia : base
+}
+
 export function getBaseBuilderExplorerBaseUrl(): string {
   return getBaseBuilderNetwork() === "base-sepolia"
     ? "https://sepolia.basescan.org/tx/"

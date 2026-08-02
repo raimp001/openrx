@@ -1,10 +1,12 @@
 import { http, cookieStorage, createConfig, createStorage } from "wagmi"
-import { base } from "wagmi/chains"
+import { base, baseSepolia } from "wagmi/chains"
 import { coinbaseWallet } from "wagmi/connectors"
 
 export function getConfig() {
+  const chain =
+    process.env.NEXT_PUBLIC_BASEBUILDER_NETWORK === "base-sepolia" ? baseSepolia : base
   return createConfig({
-    chains: [base],
+    chains: [chain],
     connectors: [
       coinbaseWallet({
         appName: "OpenRx",
@@ -18,6 +20,7 @@ export function getConfig() {
     ssr: true,
     transports: {
       [base.id]: http(),
+      [baseSepolia.id]: http(),
     },
   })
 }

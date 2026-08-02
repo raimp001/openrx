@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { resolveClinicSession } from "@/lib/clinic-auth"
+import { resolveClinicSession, toCareTeamActorRole } from "@/lib/clinic-auth"
 import { buildCareTeamEvent, resolveHumanInputRequest } from "@/lib/care-team/store"
 import { publishCareTeamEvent } from "@/lib/care-team/realtime"
 import type { CareTeamResolveInput } from "@/lib/care-team/types"
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await resolveHumanInputRequest({
-      actor: { role: session.role, userId: session.userId },
+      actor: { role: toCareTeamActorRole(session.role), userId: session.userId },
       payload,
     })
 

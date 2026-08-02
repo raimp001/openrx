@@ -21,12 +21,15 @@
     "test:clinical-regression": "node scripts/run-clinical-regression.mjs",
     "benchmark:publish": "node scripts/run-clinical-regression.mjs && node -e \"require('node:fs').copyFileSync('reports/clinical-regression-latest.json','lib/benchmark/published.json')\"",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:contracts": "cd contracts && forge test",
+    "commitments:deploy:sepolia": "node scripts/deploy-commitment-escrow.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@base-org/account": "^2.5.2",
-    "@coinbase/onchainkit": "^0.38.19",
+    "@coinbase/cdp-sdk": "1.44.1",
+    "@coinbase/onchainkit": "^1.1.2",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@prisma/client": "^6.18.0",
     "@tanstack/react-query": "^5.90.21",

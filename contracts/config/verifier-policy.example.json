@@ -1,0 +1,16 @@
+{
+  "network": "base-sepolia",
+  "name": "openrx-conditional-refund-verifier-sandbox",
+  "contractAllowlist": [
+    "${COMMITMENT_BASE_SEPOLIA_ESCROW_ADDRESS}"
+  ],
+  "functionAllowlist": [
+    "verifyCondition(bytes32)",
+    "expire(bytes32)"
+  ],
+  "limits": {
+    "transactionsPerHour": 100,
+    "maximumNativeTransfer": "0"
+  },
+  "notes": "The verifier cannot transfer funds to itself or call administrative functions. Contract administration remains with an approved multisig."
+}

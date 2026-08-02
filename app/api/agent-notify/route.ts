@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { resolveClinicSession } from "@/lib/clinic-auth"
+import { resolveClinicSession, toCareTeamActorRole } from "@/lib/clinic-auth"
 import {
   buildCareTeamEvent,
   consumeCareTeamRateLimit,
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
       const result = await submitHumanInputRequest({
         payload,
-        actor: { role: session.role, userId: session.userId },
+        actor: { role: toCareTeamActorRole(session.role), userId: session.userId },
       })
       const event = await buildCareTeamEvent({ type: "request_created", request: result.request, agent: result.agent })
       publishCareTeamEvent(event)
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       agentId: payload.agent_id,
       agentName: payload.agent_name,
       status: payload.status,
-      actor: { role: session.role, userId: session.userId },
+      actor: { role: toCareTeamActorRole(session.role), userId: session.userId },
     })
     const event = await buildCareTeamEvent({ type: "agent_status", agent: result.agent })
     publishCareTeamEvent(event)

@@ -1,0 +1,18 @@
+{
+  "network": "base-sepolia",
+  "name": "openrx-conditional-deposit-sandbox",
+  "contractAllowlist": [
+    "${COMMITMENT_BASE_SEPOLIA_USDC_ADDRESS}",
+    "${COMMITMENT_BASE_SEPOLIA_ESCROW_ADDRESS}"
+  ],
+  "functionAllowlist": [
+    "approve(address,uint256)",
+    "fund(bytes32)"
+  ],
+  "limits": {
+    "perUserOperationsPerDay": 4,
+    "globalOperationsPerDay": 500,
+    "maximumSponsoredValueUsd": 0
+  },
+  "notes": "Configure in CDP Paymaster after security review. Do not reuse a mainnet policy or allow arbitrary calls."
+}

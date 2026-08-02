@@ -30,6 +30,12 @@ const appServer = {
     // production; tests run against synthetic data only, with the gate on so
     // save/restore behavior stays covered.
     OPENRX_ENABLE_PHI_CHAT_HISTORY: "true",
+    SCREENING_COMMITMENT_PILOT: "true",
+    COINBASE_ONRAMP_PILOT: "true",
+    PRIVATE_COMPLETION_CREDENTIALS: "true",
+    INSURER_VERIFIER_DEMO: "true",
+    OPENRX_COMMITMENT_NETWORK: "local-mock",
+    OPENRX_TRUST_ROLE_HEADER: "true",
     ...(MOCK_LLM
       ? {
           ANTHROPIC_API_KEY: "sk-ant-mock-e2e",

@@ -19,6 +19,9 @@ enum UserRole {
   DOCTOR
   ADMIN
   PHARMACIST
+  PROVIDER
+  SUPPORT
+  COMPLIANCE
 }
 
 enum AppointmentStatus {
@@ -967,4 +970,311 @@ model ChatMessageRecord {
 
   @@index([conversationId, createdAt])
   @@map("chat_messages")
+}
+
+// ============================================================
+// SCREENING COMMITMENT PILOT
+// Sandbox only until legal, privacy, security, and payments gates approve it.
+// ============================================================
+
+model CommitmentWalletBindingRecord {
+  id                     String   @id
+  patientId              String
+  provider               String
+  providerReferenceCiphertext String
+  walletAddressCiphertext String
+  walletAddressHash      String
+  dedicated              Boolean  @default(true)
+  recoverySupported      Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([patientId, createdAt])
+  @@unique([patientId, walletAddressHash])
+  @@map("wallet_bindings")
+}
+
+model CommitmentIdentityVerificationRecord {
+  id                       String   @id
+  patientId                String
+  walletBindingId          String
+  provider                 String
+  assuranceLevel           String
+  status                   String
+  providerReferenceCiphertext String
+  verifiedAt               DateTime?
+  expiresAt                DateTime?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([patientId, status])
+  @@index([walletBindingId, createdAt])
+  @@map("identity_verifications")
+}
+
+model ScreeningCommitmentRecord {
+  id                           String   @id
+  opaqueCommitmentId           String   @unique
+  patientId                    String
+  recommendationId             String
+  recommendationSnapshotCiphertext String
+  guidelineVersion             String
+  engineVersion                String
+  network                      String
+  status                       String
+  fundingStatus                String
+  refundStatus                 String
+  walletBindingId              String
+  identityVerificationId       String?
+  consentId                    String
+  consentVersion               String
+  consentedAt                  DateTime
+  consentWithdrawnAt           DateTime?
+  depositAmountMinor           Int
+  cancellationFeeMinor         Int
+  completionFeeMinor           Int
+  initialWindowDays            Int
+  extensionDays                Int
+  extensionUsed                Boolean  @default(false)
+  currentDeadline              DateTime?
+  expectedCompletionProviderHash String?
+  fundedAt                     DateTime?
+  conditionVerifiedAt          DateTime?
+  cancelledAt                  DateTime?
+  expiredAt                    DateTime?
+  refundedAt                   DateTime?
+  terminalReason               String?
+  cohort                       String
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+
+  @@index([patientId, createdAt])
+  @@index([status, currentDeadline])
+  @@index([recommendationId])
+  @@index([cohort, createdAt])
+  @@map("screening_commitments")
+}
+
+model CommitmentExtensionRecord {
+  id            String   @id
+  commitmentId  String
+  previousDeadline DateTime
+  newDeadline   DateTime
+  reasonCategory String
+  diagnosisCollected Boolean @default(false)
+  requestedAt   DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([commitmentId, createdAt])
+  @@map("commitment_extensions")
+}
+
+model CommitmentPaymentQuoteRecord {
+  id                   String   @id
+  commitmentId         String
+  provider             String
+  paymentMethod        String
+  paymentSubtotalMinor Int
+  feeMinor             Int
+  networkFeeMinor      Int
+  paymentTotalMinor    Int
+  paymentCurrency      String
+  purchaseAmountMinor  Int
+  purchaseCurrency     String
+  available            Boolean
+  providerReferenceCiphertext String?
+  expiresAt            DateTime
+  createdAt            DateTime @default(now())
+
+  @@index([commitmentId, createdAt])
+  @@map("payment_quotes")
+}
+
+model CommitmentOnrampSessionRecord {
+  id                        String   @id
+  commitmentId              String
+  quoteId                   String
+  provider                  String
+  opaqueFundingSessionId    String   @unique
+  providerReferenceCiphertext String?
+  status                    String
+  expiresAt                 DateTime?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([commitmentId, createdAt])
+  @@index([status, updatedAt])
+  @@map("onramp_sessions")
+}
+
+model CommitmentDepositTransactionRecord {
+  id                           String   @id
+  commitmentId                 String
+  provider                     String
+  amountMinor                  Int
+  currency                     String
+  status                       String
+  opaqueTransactionReferenceCiphertext String
+  confirmedAt                  DateTime?
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+
+  @@index([commitmentId, createdAt])
+  @@index([status, updatedAt])
+  @@map("deposit_transactions")
+}
+
+model CommitmentRefundTransactionRecord {
+  id                           String   @id
+  commitmentId                 String
+  provider                     String
+  amountMinor                  Int
+  feeMinor                     Int
+  reason                       String
+  currency                     String
+  status                       String
+  opaqueTransactionReferenceCiphertext String
+  retryCount                   Int      @default(0)
+  confirmedAt                  DateTime?
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+
+  @@index([commitmentId, createdAt])
+  @@index([status, updatedAt])
+  @@map("refund_transactions")
+}
+
+model CommitmentOfframpSessionRecord {
+  id                        String   @id
+  commitmentId              String
+  provider                  String
+  providerReferenceCiphertext String?
+  status                    String
+  availabilitySnapshot      Json
+  authorizedAt              DateTime?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([commitmentId, createdAt])
+  @@index([status, updatedAt])
+  @@map("offramp_sessions")
+}
+
+model ProviderCompletionEventRecord {
+  id                  String   @id
+  commitmentId        String
+  providerIdHash      String
+  source              String
+  eventId             String
+  idempotencyKeyHash  String   @unique
+  nonceHash           String   @unique
+  signatureVerified   Boolean
+  occurredAt          DateTime
+  receivedAt          DateTime @default(now())
+  processingStatus    String
+  failureCode         String?
+
+  @@index([commitmentId, receivedAt])
+  @@index([processingStatus, receivedAt])
+  @@map("provider_completion_events")
+}
+
+model PrivateCompletionAttestationRecord {
+  id                    String   @id
+  commitmentId          String
+  protocol              String
+  schemaVersion         String
+  issuerOrganizationId  String
+  issuerKeyId           String
+  issuerAddress         String
+  payload               Json
+  signature             String
+  status                String
+  issuedAt              DateTime
+  expiresAt             DateTime
+  revokedAt             DateTime?
+  createdAt             DateTime @default(now())
+
+  @@index([commitmentId, issuedAt])
+  @@index([status, expiresAt])
+  @@map("private_attestations")
+}
+
+model CompletionCredentialShareRecord {
+  id               String   @id
+  credentialId     String
+  patientId        String
+  intendedVerifier String
+  tokenHash        String   @unique
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  accessCount      Int      @default(0)
+  lastAccessedAt   DateTime?
+
+  @@index([credentialId, createdAt])
+  @@index([patientId, createdAt])
+  @@map("credential_shares")
+}
+
+model CommitmentPatientConsentRecord {
+  id              String   @id
+  patientId       String
+  commitmentId    String
+  consentVersion  String
+  termsSnapshot   Json
+  termsHash       String
+  grantedAt       DateTime
+  revokedAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([patientId, grantedAt])
+  @@index([commitmentId])
+  @@map("patient_consents")
+}
+
+model CommitmentWebhookEventRecord {
+  id                 String   @id
+  provider           String
+  eventType          String
+  eventId            String
+  idempotencyKeyHash String   @unique
+  signatureVerified  Boolean
+  status             String
+  failureCode        String?
+  receivedAt         DateTime @default(now())
+  processedAt        DateTime?
+
+  @@index([provider, status, receivedAt])
+  @@map("webhook_events")
+}
+
+model CommitmentAuditEventRecord {
+  id             String   @id
+  commitmentId   String?
+  actorType      String
+  actorIdHash    String
+  eventType      String
+  metadata       Json
+  occurredAt     DateTime @default(now())
+  previousEventHash String?
+  eventHash      String
+
+  @@index([commitmentId, occurredAt])
+  @@index([eventType, occurredAt])
+  @@map("commitment_audit_events")
+}
+
+model CommitmentPilotAssignmentRecord {
+  id             String   @id
+  patientId      String
+  cohort         String
+  assignmentMode String
+  consentedAt    DateTime?
+  assignedAt     DateTime @default(now())
+  reviewReference String?
+
+  @@index([cohort, assignedAt])
+  @@unique([patientId])
+  @@map("pilot_assignments")
 }

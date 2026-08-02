@@ -32,6 +32,8 @@ import {
   buildX402PaymentRequired,
   decodeXPaymentHeader,
 } from "@/lib/x402"
+import { createCommitmentEligibilityToken } from "@/lib/commitments/eligibility"
+import { isCommitmentFeatureEnabled } from "@/lib/commitments/flags"
 
 type ScreeningAnalysisLevel = "preview" | "deep"
 
@@ -58,6 +60,7 @@ type ScreeningAssessmentPayload = ScreeningAssessment & {
   accessLevel: ScreeningAnalysisLevel
   isPreview: boolean
   upgradeMessage?: string
+  commitmentEligibility?: Record<string, { token: string; expiresAt: string }>
 }
 
 const CARE_MATCH_LIMIT = 10
@@ -104,6 +107,39 @@ const POLYPOSIS_MARKERS = [
   "mutyh",
 ]
 const LYNCH_MARKERS = ["lynch", "mlh1", "msh2", "msh6", "pms2", "epcam"]
+
+function commitmentEligibilityFor(
+  assessment: ScreeningAssessmentPayload,
+  subjectId: string,
+): Record<string, { token: string; expiresAt: string }> | undefined {
+  if (!isCommitmentFeatureEnabled("SCREENING_COMMITMENT_PILOT")) return undefined
+  const eligible = (assessment.structuredRecommendations || []).filter(
+    (recommendation) =>
+      recommendation.status === "due" &&
+      Boolean(
+        recommendation.sourceUrl &&
+          recommendation.sourceVersion &&
+          recommendation.engineVersion,
+      ),
+  )
+  if (!eligible.length) return undefined
+  return Object.fromEntries(
+    eligible.map((recommendation) => [
+      recommendation.id,
+      createCommitmentEligibilityToken({
+        subjectId,
+        recommendation: {
+          recommendationId: recommendation.id,
+          screeningLabel: recommendation.screeningName,
+          guidelineSource: recommendation.sourceSystem,
+          guidelineVersion: recommendation.sourceVersion || "",
+          engineVersion: recommendation.engineVersion || "",
+          sourceUrl: recommendation.sourceUrl || "",
+        },
+      }),
+    ]),
+  )
+}
 
 function resolveAnalysisLevel(value?: string | null): ScreeningAnalysisLevel {
   return value === "deep" ? "deep" : "preview"
@@ -705,7 +741,10 @@ export async function GET(request: NextRequest) {
       { patientId: effectivePatientId, walletAddress: effectiveWalletAddress, locationZip },
       { analysisLevel }
     )
-    return NextResponse.json(assessment)
+    return NextResponse.json({
+      ...assessment,
+      commitmentEligibility: commitmentEligibilityFor(assessment, auth.session.userId),
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to compute screening assessment."
     return NextResponse.json(
@@ -769,7 +808,10 @@ export async function POST(request: NextRequest) {
       { ...body, patientId: effectivePatientId, walletAddress: effectiveWalletAddress },
       { analysisLevel }
     )
-    return NextResponse.json(assessment)
+    return NextResponse.json({
+      ...assessment,
+      commitmentEligibility: commitmentEligibilityFor(assessment, auth.session.userId),
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to compute screening assessment."
     return NextResponse.json(

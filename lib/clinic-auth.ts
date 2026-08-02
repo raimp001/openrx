@@ -2,7 +2,14 @@ import type { NextRequest } from "next/server"
 import crypto from "crypto"
 import { prisma } from "@/lib/db"
 
-export type ClinicRole = "admin" | "staff" | "service" | "patient"
+export type ClinicRole =
+  | "admin"
+  | "staff"
+  | "service"
+  | "patient"
+  | "provider"
+  | "support"
+  | "compliance"
 
 export interface ClinicSession {
   userId: string
@@ -18,6 +25,9 @@ function normalizeRole(value?: string | null): ClinicRole | null {
   if (["admin", "administrator"].includes(lowered)) return "admin"
   if (["staff", "doctor", "pharmacist", "operator"].includes(lowered)) return "staff"
   if (["service", "system", "agent"].includes(lowered)) return "service"
+  if (lowered === "provider") return "provider"
+  if (lowered === "support") return "support"
+  if (["compliance", "privacy", "security"].includes(lowered)) return "compliance"
   if (["patient", "user"].includes(lowered)) return "patient"
   return null
 }
@@ -26,11 +36,21 @@ function dbRoleToClinicRole(value?: string | null): ClinicRole {
   const role = (value || "").toUpperCase()
   if (role === "ADMIN") return "admin"
   if (role === "DOCTOR" || role === "PHARMACIST") return "staff"
+  if (role === "PROVIDER") return "provider"
+  if (role === "SUPPORT") return "support"
+  if (role === "COMPLIANCE") return "compliance"
   return "patient"
 }
 
 export function canAccessCareTeam(role: ClinicRole): boolean {
-  return role === "admin" || role === "staff" || role === "service"
+  return role === "admin" || role === "staff" || role === "service" || role === "provider"
+}
+
+export function toCareTeamActorRole(
+  role: ClinicRole,
+): "admin" | "staff" | "service" | "patient" {
+  if (role === "provider" || role === "support" || role === "compliance") return "staff"
+  return role
 }
 
 function getDefaultRole(): ClinicRole {

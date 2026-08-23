@@ -14,6 +14,17 @@ describe("deterministic clinical screening response", () => {
     expect(response).not.toContain("Direct answer")
   })
 
+  it("answers the homepage screening example without asking for age again", () => {
+    const response = deterministicClinicalResponse(
+      "45, male, no symptoms, no family cancer history, never screened for colorectal cancer. What's due?"
+    )
+    expect(response).toContain("Due now")
+    expect(response).toContain("Colorectal cancer screening")
+    expect(response).toContain("Rule: uspstf-average-risk-colorectal")
+    expect(response).not.toContain("share the missing details")
+    expect(response).not.toContain("Share one line with your age")
+  })
+
   it("garbage input is not answered by the simple rules", () => {
     expect(deterministicClinicalResponse("asdf qwerty")).toBeNull()
   })

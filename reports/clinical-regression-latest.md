@@ -1,6 +1,6 @@
 # OpenRx Clinical Answer Regression Report
 
-Generated: 2026-07-12T03:41:22.330Z
+Generated: 2026-08-23T05:36:55.005Z
 Endpoint: http://127.0.0.1:3000
 Scenarios: 50
 Pass rate: 100.0%
@@ -17,7 +17,7 @@ Ship gate: PASS (threshold 90%, any RED blocks)
 | clinical-breast-40 | clinical | GREEN | GREEN | YELLOW | GREEN | GREEN | YELLOW |
 | clinical-breast-50 | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-breast-73 | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
-| clinical-cervical-30 | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
+| clinical-cervical-30 | clinical | GREEN | GREEN | YELLOW | GREEN | GREEN | YELLOW |
 | clinical-cervical-50 | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-lung-current-smoker | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |
 | clinical-lung-former-smoker | clinical | GREEN | GREEN | GREEN | GREEN | GREEN | GREEN |

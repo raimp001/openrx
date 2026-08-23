@@ -1,5 +1,24 @@
 import { expect, test } from "@playwright/test"
 
+test("homepage screening example returns a source-backed plan without re-asking for age", async ({ request }) => {
+  const response = await request.post("/api/openclaw/chat/stream", {
+    data: {
+      message:
+        "45, male, no symptoms, no family cancer history, never screened for colorectal cancer. What's due?",
+      agentId: "screening",
+    },
+  })
+
+  expect(response.ok()).toBeTruthy()
+  expect(response.headers()["content-type"]).toContain("text/event-stream")
+
+  const body = await response.text()
+  expect(body).toContain("Due now")
+  expect(body).toContain("Colorectal cancer screening")
+  expect(body).toContain("Rule: uspstf-average-risk-colorectal")
+  expect(body).not.toContain("Share one line with your age")
+})
+
 test("OpenClaw platform APIs expose status, routing, actions, and improvement state", async ({ request }) => {
   const statusResponse = await request.get("/api/openclaw/status")
   expect(statusResponse.ok()).toBeTruthy()

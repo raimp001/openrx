@@ -306,6 +306,7 @@ export function parseScreeningIntakeNarrative(input: string): ScreeningIntakeRes
     lowered.match(/(?<!\bat\s)\bage\s*(?:is|=|:)?\s*(\d{1,3})\b/) ||
     lowered.match(/\b(\d{1,3})\s*(?:years?\s*old|yo|y\/o)\b/) ||
     lowered.match(/\bi am\s+(\d{1,3})\b/) ||
+    lowered.match(/(?:^|\n)\s*(\d{1,3})(?=\s*[,;|/]\s*(?:m|male|man|f|female|woman)\b)/) ||
     lowered.match(/\b(\d{2})\s*(?:m|male|man|f|female|woman)\b/) ||
     lowered.match(
       /(?:^|\n)\s*(\d{1,3})(?=\s+(?:hx\b|history\b|male\b|female\b|man\b|woman\b|m\b|f\b|father\b|mother\b|parent\b|family\b|smok\w*\b|brca\w*\b|lynch\b|mutation\b|cancer\b|lymphoma\b|with\b)|\s*$)/

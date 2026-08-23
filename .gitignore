@@ -37,6 +37,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# legacy nested checkouts
+/openrx/
+/openrx-1/
+/openrx-2/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

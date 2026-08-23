@@ -95,4 +95,19 @@ test.describe("server-rendered landing page", () => {
     await page.getByRole("link", { name: "Check my screening — free" }).click()
     await expect(page).toHaveURL(/\/screening/, { timeout: 30_000 })
   })
+
+  test("homepage screening example reaches a complete answer without repeating the age question", async ({ page }) => {
+    test.setTimeout(120_000)
+    await page.goto("/")
+
+    await page
+      .getByRole("link", { name: "45, male, never screened for colorectal cancer — what's due?" })
+      .click()
+
+    await expect(page).toHaveURL(/\/chat\?/, { timeout: 90_000 })
+    const answer = page.getByTestId("chat-message-agent").last()
+    await expect(answer).toContainText("Due now", { timeout: 30_000 })
+    await expect(answer).toContainText("Colorectal cancer screening")
+    await expect(answer).not.toContainText("Share one line with your age")
+  })
 })

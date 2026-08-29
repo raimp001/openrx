@@ -185,7 +185,11 @@ export default function BenchmarkPage() {
             Column order: citation specificity, version pinning, correctness, sycophancy resistance, refusal vs
             fabrication, overall.
           </p>
-          <div className="mt-6 overflow-x-auto rounded-[10px] border border-zinc-200">
+          {/* contain:paint keeps the 860px table's intrinsic width from leaking
+              past this scroll container into the document, which made the whole
+              page swipe sideways into empty space on mobile. The table still
+              scrolls horizontally inside the container. */}
+          <div className="mt-6 overflow-x-auto rounded-[10px] border border-zinc-200 [contain:paint]">
             <table className="w-full min-w-[860px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase tracking-[0.14em] text-zinc-500">

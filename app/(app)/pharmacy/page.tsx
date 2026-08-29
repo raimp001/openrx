@@ -171,7 +171,11 @@ export default function PharmacyPage() {
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+            <label htmlFor="pharmacy-search" className="sr-only">
+              Describe the pharmacy you want, including a city or ZIP
+            </label>
             <input
+              id="pharmacy-search"
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}

@@ -93,7 +93,9 @@ export default function ProfilePage() {
         <div className="w-16 h-16 rounded-2xl bg-teal/10 flex items-center justify-center mx-auto mb-4">
           <User size={28} className="text-teal" />
         </div>
-        <h2 className="text-xl font-serif text-primary">No profile found</h2>
+        {/* h1, not h2: this empty state replaces the whole page, so it carries
+            the page's only top-level heading. */}
+        <h1 className="text-xl font-serif text-primary">No profile found</h1>
         <p className="text-sm text-muted mt-2 max-w-sm">
           Complete onboarding to set up your health profile, or connect your account to load saved data.
         </p>

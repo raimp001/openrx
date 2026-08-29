@@ -42,18 +42,40 @@ function tailwindHexToken(name: string) {
   return match[1]
 }
 
-test("light app text tokens meet WCAG AA contrast for small clinical UI text", () => {
-  const surface = [255, 255, 255] as [number, number, number]
+// Text sits on three brand grounds, not just white: raised surfaces (#FFFFFF),
+// the paper page background, and muted panels. Checking only white lets a token
+// pass here while failing in the browser, which is how `subtle` and `warning`
+// shipped at 4.24:1 and 3.83:1 on paper. Every text token is checked against
+// all three.
+const TEXT_GROUNDS: Array<[string, [number, number, number]]> = [
+  ["white surface", [255, 255, 255]],
+  ["paper background", [247, 244, 238]],
+  ["muted panel", [242, 237, 227]],
+]
 
-  expect(contrastRatio(cssRgbVariable("--color-muted-rgb"), surface)).toBeGreaterThanOrEqual(4.5)
-  expect(contrastRatio(cssRgbVariable("--color-subtle-rgb"), surface)).toBeGreaterThanOrEqual(4.5)
-  expect(contrastRatio(cssRgbVariable("--color-secondary-rgb"), surface)).toBeGreaterThanOrEqual(4.5)
+function expectReadableOnEveryGround(variable: string) {
+  for (const [name, ground] of TEXT_GROUNDS) {
+    const ratio = contrastRatio(cssRgbVariable(variable), ground)
+    expect(ratio, `${variable} on ${name} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
+  }
+}
+
+test("light app text tokens meet WCAG AA contrast on every brand ground", () => {
+  expectReadableOnEveryGround("--color-muted-rgb")
+  expectReadableOnEveryGround("--color-subtle-rgb")
+  expectReadableOnEveryGround("--color-secondary-rgb")
+  expectReadableOnEveryGround("--color-warning-rgb")
+  expectReadableOnEveryGround("--color-danger-rgb")
+  expectReadableOnEveryGround("--color-success-rgb")
 })
 
 test("interactive accent tokens stay readable on their actual light backgrounds", () => {
   expect(contrastRatio([255, 255, 255], hexToRgb(tailwindHexToken("midnight")))).toBeGreaterThanOrEqual(4.5)
   expect(contrastRatio(hexToRgb(tailwindHexToken('"soft-blue"')), hexToRgb("#FFFFFF"))).toBeGreaterThanOrEqual(4.5)
-  expect(contrastRatio(cssRgbVariable("--color-accent-rgb"), [255, 255, 255])).toBeGreaterThanOrEqual(4.5)
+  // Ember is used as link/label text on paper and muted panels, not just white.
+  expectReadableOnEveryGround("--color-accent-rgb")
+  // ...and as a button fill, where the white label on top must clear AA too.
+  expect(contrastRatio([255, 255, 255], cssRgbVariable("--color-accent-rgb"))).toBeGreaterThanOrEqual(4.5)
 })
 
 test("exported design tokens keep muted copy readable in light and dark themes", () => {

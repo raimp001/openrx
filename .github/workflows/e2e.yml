@@ -62,6 +62,40 @@ jobs:
           path: playwright-report
           if-no-files-found: ignore
 
+  commitment-sandbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # The screening-commitment pilot is switched off in production by design,
+      # so it is exercised against a dev server with the pilot flags on rather
+      # than in the production-build suite, where it cannot authenticate.
+      - name: Run screening-commitment pilot suite (sandbox)
+        run: npm run test:e2e:sandbox
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-commitment-sandbox
+          path: playwright-report
+          if-no-files-found: ignore
+
   llm-failure-modes:
     runs-on: ubuntu-latest
     timeout-minutes: 25

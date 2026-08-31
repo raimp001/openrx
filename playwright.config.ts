@@ -50,6 +50,13 @@ const appServer = {
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  // The screening-commitment pilot is a sandbox feature that is switched off in
+  // production by design: `getTrustedRole` refuses role headers when
+  // NODE_ENV=production, and `isCommitmentFeatureEnabled` needs an explicit
+  // sandbox marker. This suite builds and serves in production mode, so those
+  // tests cannot authenticate here. They run against a dev server in
+  // playwright.sandbox.config.ts instead (npm run test:e2e:sandbox).
+  testIgnore: ["**/screening-commitment-pilot.spec.ts"],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

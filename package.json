@@ -23,7 +23,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "test:contracts": "cd contracts && forge test",
-    "commitments:deploy:sepolia": "node scripts/deploy-commitment-escrow.mjs"
+    "commitments:deploy:sepolia": "node scripts/deploy-commitment-escrow.mjs",
+    "test:e2e:sandbox": "playwright test --config=playwright.sandbox.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

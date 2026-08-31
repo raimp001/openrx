@@ -44,7 +44,7 @@ const softwareApplicationJsonLd = {
 
 const ink = "#211c16"
 const paper = "#f7f4ee"
-const ember = "#c2451e"
+const ember = "#ba421c"
 
 const exampleQuestions = [
   "What cancer screening does a 50-year-old woman need?",
@@ -96,7 +96,7 @@ function MonoLabel({ children, tone = "dark" }: { children: React.ReactNode; ton
   return (
     <span
       className="font-landing-mono text-[11px] uppercase tracking-[0.08em]"
-      style={{ color: tone === "dark" ? "rgba(33,28,22,.45)" : "rgba(247,244,238,.45)" }}
+      style={{ color: tone === "dark" ? "rgba(33,28,22,.65)" : "rgba(247,244,238,.6)" }}
     >
       {children}
     </span>
@@ -185,7 +185,7 @@ export default function HomePage() {
               <br />
               built for <span style={{ color: ember }}>verification</span>
             </h1>
-            <p className="max-w-[46ch] text-[17px] leading-relaxed sm:text-[19px]" style={{ color: "rgba(33,28,22,.6)" }}>
+            <p className="max-w-[46ch] text-[17px] leading-relaxed sm:text-[19px]" style={{ color: "rgba(33,28,22,.7)" }}>
               One question returns the answer, the guideline behind it, and the next care step
             </p>
 
@@ -230,7 +230,7 @@ export default function HomePage() {
                 </Link>
               ))}
             </div>
-            <p className="max-w-[52ch] text-[13.5px] leading-relaxed" style={{ color: "rgba(33,28,22,.55)" }}>
+            <p className="max-w-[52ch] text-[13.5px] leading-relaxed" style={{ color: "rgba(33,28,22,.68)" }}>
               Answers drawn from USPSTF, CDC, NCCN, ACS, and CMS guidance — every recommendation names its source,
               grade, and publication date.
             </p>
@@ -255,14 +255,14 @@ export default function HomePage() {
                   <span className="rounded-md px-3 py-1.5 font-medium" style={{ background: ink, color: paper }}>
                     Screening
                   </span>
-                  <Link href={{ pathname: "/chat", query: { topic: "coverage" } }} className="rounded-md px-3 py-1.5" style={{ color: "rgba(33,28,22,.6)" }}>
+                  <Link href={{ pathname: "/chat", query: { topic: "coverage" } }} className="rounded-md px-3 py-1.5" style={{ color: "rgba(33,28,22,.7)" }}>
                     Coverage
                   </Link>
-                  <Link href="/providers" className="rounded-md px-3 py-1.5" style={{ color: "rgba(33,28,22,.6)" }}>
+                  <Link href="/providers" className="rounded-md px-3 py-1.5" style={{ color: "rgba(33,28,22,.7)" }}>
                     Find care
                   </Link>
                 </div>
-                <div className="hidden items-center gap-2 font-landing-mono text-[11.5px] sm:flex" style={{ color: "rgba(33,28,22,.5)" }}>
+                <div className="hidden items-center gap-2 font-landing-mono text-[11.5px] sm:flex" style={{ color: "rgba(33,28,22,.65)" }}>
                   <span>input</span>
                   <span className="flex overflow-hidden rounded-md border" style={{ borderColor: "rgba(33,28,22,.15)" }}>
                     <span className="px-2.5 py-1" style={{ background: "#f2ede3", color: ink }}>
@@ -291,7 +291,7 @@ export default function HomePage() {
                       </div>
                     ))}
                   </dl>
-                  <span className="font-landing-mono text-[11.5px]" style={{ color: "rgba(33,28,22,.4)" }}>
+                  <span className="font-landing-mono text-[11.5px]" style={{ color: "rgba(33,28,22,.65)" }}>
                     engine/{example.result.engineVersion}
                   </span>
                 </div>
@@ -371,7 +371,7 @@ export default function HomePage() {
             {/* Sources strip */}
             <div
               className="mt-7 flex flex-wrap items-center justify-center gap-x-9 gap-y-2 font-landing-mono text-[13px]"
-              style={{ color: "rgba(33,28,22,.45)" }}
+              style={{ color: "rgba(33,28,22,.65)" }}
             >
               <span className="text-[11px] uppercase tracking-[0.08em]">Guideline sources</span>
               {["USPSTF", "ACS", "NCCN", "CDC", "CMS"].map((source) => (
@@ -491,7 +491,7 @@ export default function HomePage() {
                   style={{ borderColor: "rgba(247,244,238,.2)", background: "rgba(247,244,238,.06)" }}
                 >
                   <span>3 · Prepare prior-auth packet</span>
-                  <span style={{ color: "rgba(247,244,238,.5)" }}>awaits clinician ✎</span>
+                  <span style={{ color: "rgba(247,244,238,.6)" }}>awaits clinician ✎</span>
                 </span>
               </div>
             </div>
@@ -533,20 +533,20 @@ export default function HomePage() {
                 <div className="h-[34px] w-full rounded-md" style={{ background: ember }} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between font-landing-mono text-[12.5px]" style={{ color: "rgba(33,28,22,.55)" }}>
+                <div className="flex justify-between font-landing-mono text-[12.5px]" style={{ color: "rgba(33,28,22,.68)" }}>
                   <span>Frontier LLM, unassisted</span>
                   <span>39/50</span>
                 </div>
                 <div className="h-[34px] w-[78%] rounded-md" style={{ background: "rgba(33,28,22,.25)" }} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between font-landing-mono text-[12.5px]" style={{ color: "rgba(33,28,22,.55)" }}>
+                <div className="flex justify-between font-landing-mono text-[12.5px]" style={{ color: "rgba(33,28,22,.68)" }}>
                   <span>Web search, general</span>
                   <span>24/50</span>
                 </div>
                 <div className="h-[34px] w-[48%] rounded-md" style={{ background: "rgba(33,28,22,.12)" }} />
               </div>
-              <span className="font-landing-mono text-[11px]" style={{ color: "rgba(33,28,22,.4)" }}>
+              <span className="font-landing-mono text-[11px]" style={{ color: "rgba(33,28,22,.65)" }}>
                 scenario pass rate · openrx.health/benchmark · illustrative figures — see published results
               </span>
             </div>
@@ -615,7 +615,7 @@ export default function HomePage() {
                 </span>
                 <span className="text-[15px] font-semibold">OpenRx</span>
               </div>
-              <p className="max-w-[40ch] text-[11.5px] leading-[1.6]" style={{ color: "rgba(247,244,238,.45)" }}>
+              <p className="max-w-[40ch] text-[11.5px] leading-[1.6]" style={{ color: "rgba(247,244,238,.6)" }}>
                 Educational, not medical advice or a diagnosis. OpenRx does not place clinical orders or replace
                 clinician judgment. OpenRx does not claim HIPAA compliance or SOC 2 certification for public workflows.
               </p>

@@ -21,18 +21,18 @@
   --color-text-rgb: 33 28 22;
   --color-secondary-rgb: 74 65 55;
   --color-muted-rgb: 107 97 85;
-  --color-subtle-rgb: 125 115 101;
+  --color-subtle-rgb: 115 105 92;
   --color-border-rgb: 227 220 208;
   --color-border-strong-rgb: 210 201 186;
-  --color-navy-rgb: 194 69 30;
+  --color-navy-rgb: 186 66 28;
   --color-navy-hover-rgb: 150 51 18;
-  --color-accent-rgb: 194 69 30;
+  --color-accent-rgb: 186 66 28;
   --color-accent-light-rgb: 247 231 224;
   --color-accent-dark-rgb: 150 51 18;
   --color-accent-50-rgb: 251 243 240;
   --color-accent-100-rgb: 247 231 224;
   --color-success-rgb: 31 122 77;
-  --color-warning-rgb: 176 108 20;
+  --color-warning-rgb: 150 91 15;
   --color-danger-rgb: 185 45 32;
   --focus-ring: 0 0 0 2px rgb(var(--color-bg-rgb)), 0 0 0 4px rgb(var(--color-accent-rgb) / 0.45);
   --shell-shadow: 0 1px 2px rgba(33, 28, 22, 0.04), 0 12px 32px rgba(33, 28, 22, 0.07);
@@ -583,14 +583,14 @@ a {
 /* Cyan-200/300 dark-theme accents map to the single cyan-700 accent on light. */
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-2"],
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-3"] {
-  color: #c2451e !important;
+  color: #ba421c !important;
 }
 
 /* Pale 50/100-shade dark-theme text becomes readable 700-shade text on light. */
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-5"],
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-cyan-1"],
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-teal-1"] {
-  color: #c2451e !important;
+  color: #ba421c !important;
 }
 
 [data-openrx-app-shell]:not(:has([data-openrx-chat-workspace])) [class*="text-amber-1"],
@@ -700,18 +700,18 @@ a {
   --color-text-rgb: 33 28 22;
   --color-secondary-rgb: 74 65 55;
   --color-muted-rgb: 107 97 85;
-  --color-subtle-rgb: 125 115 101;
+  --color-subtle-rgb: 115 105 92;
   --color-border-rgb: 227 220 208;
   --color-border-strong-rgb: 210 201 186;
-  --color-navy-rgb: 194 69 30;
+  --color-navy-rgb: 186 66 28;
   --color-navy-hover-rgb: 150 51 18;
-  --color-accent-rgb: 194 69 30;
+  --color-accent-rgb: 186 66 28;
   --color-accent-light-rgb: 247 231 224;
   --color-accent-dark-rgb: 150 51 18;
   --color-accent-50-rgb: 251 243 240;
   --color-accent-100-rgb: 247 231 224;
   --color-success-rgb: 31 122 77;
-  --color-warning-rgb: 176 108 20;
+  --color-warning-rgb: 150 91 15;
   --color-danger-rgb: 185 45 32;
   --focus-ring: 0 0 0 2px #f7f4ee, 0 0 0 4px rgb(194 69 30 / 0.5);
   --shell-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 12px 32px rgba(63, 42, 24, 0.1);
@@ -781,7 +781,7 @@ body:has([data-openrx-warm]) {
 
 /* Cyan accents become the burnt-orange brand accent. */
 [data-openrx-app-shell] [data-openrx-warm] [class*="text-cyan-"] {
-  color: #c2451e !important;
+  color: #ba421c !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="border-cyan-"] {
@@ -789,13 +789,13 @@ body:has([data-openrx-warm]) {
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="bg-cyan-"] {
-  background-color: #c2451e !important;
+  background-color: #ba421c !important;
   color: #ffffff !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="bg-cyan-200/["] {
   background-color: rgb(194 69 30 / 0.1) !important;
-  color: #c2451e !important;
+  color: #ba421c !important;
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="hover:bg-cyan-"]:hover {
@@ -815,7 +815,7 @@ body:has([data-openrx-warm]) {
 }
 
 [data-openrx-app-shell] [data-openrx-warm] [class*="accent-cyan-"] {
-  accent-color: #c2451e !important;
+  accent-color: #ba421c !important;
 }
 
 /* Hard-coded near-black panels become warm paper. */

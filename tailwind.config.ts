@@ -6,21 +6,19 @@ const opacityScale = Object.fromEntries(
 
 const withAlpha = (variable: string) => `rgb(var(${variable}) / <alpha-value>)`
 
-// The accent ramp is ember, the brand's single voice of action. Legacy surfaces
-// reach for `cyan-*`/`teal-*` as "the accent", so those scales resolve here
-// instead of to Tailwind's stock blue-greens — one accent, sitewide.
 // Warm neutral ramp. Surfaces reach for `zinc-*` as the neutral scale, so it
 // resolves to the brand's paper/ink greys rather than Tailwind's cool greys —
 // keeping every page on the same warm ground as the landing site.
-// The 500/600/700 steps match --color-subtle/muted/secondary and clear WCAG AA
-// on white (4.65:1, 6.06:1, 9.99:1).
+// The 500/600/700 steps mirror --color-subtle/muted/secondary. Text shades are
+// checked against every brand ground (white, paper #F7F4EE, muted #F2EDE3),
+// not just white, since real pages render on paper.
 const warmNeutral = {
   50: "#F7F4EE",
   100: "#F2EDE3",
   200: "#E3DCD0",
   300: "#D2C9BA",
   400: "#A79B8B",
-  500: "#7D7365",
+  500: "#73695C",
   600: "#6B6155",
   700: "#4A4137",
   800: "#33291F",
@@ -28,6 +26,9 @@ const warmNeutral = {
   950: "#16120E",
 }
 
+// The accent ramp is ember, the brand's single voice of action. Legacy surfaces
+// reach for `cyan-*`/`teal-*` as "the accent", so those scales resolve here
+// instead of to Tailwind's stock blue-greens — one accent, sitewide.
 const ember = {
   50: "#FDF6F3",
   100: "#F9E7E0",
@@ -35,8 +36,8 @@ const ember = {
   300: "#E9A88F",
   400: "#DD8360",
   500: "#CF5730",
-  600: "#C2451E",
-  700: "#C2451E",
+  600: "#BA421C",
+  700: "#BA421C",
   800: "#A13818",
   900: "#7F2C13",
   950: "#4A1709",

@@ -1,5 +1,5 @@
-import type { Metadata } from "next"
-import Link from "next/link"
+import type { Metadata } from "next";
+import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
@@ -13,21 +13,22 @@ import {
   MapPinned,
   ShieldCheck,
   Stethoscope,
-} from "lucide-react"
+  Wallet,
+} from "lucide-react";
 
-import { BrandMark } from "@/components/brand-logo"
+import { BrandMark } from "@/components/brand-logo";
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: "OpenRx | Guideline-grounded screening and prior-auth workflows",
+  title: "OpenRx | Cancer screening without the maze",
   description:
-    "OpenRx turns version-stamped clinical guidelines into patient screening plans, care navigation, consented referrals, and auditable prior-authorization preparation.",
+    "OpenRx helps people know what screening may be due, find who can help, save the plan, and support useful recommendations with optional wallet rails.",
   alternates: {
     canonical: "/",
   },
-}
+};
 
 const softwareApplicationJsonLd = {
   "@context": "https://schema.org",
@@ -37,20 +38,20 @@ const softwareApplicationJsonLd = {
   operatingSystem: "Web",
   url: "https://openrx.health",
   description:
-    "OpenRx provides source-linked, version-stamped screening navigation and prior-authorization workflow infrastructure from deterministic guideline and audit engines.",
+    "OpenRx provides source-linked screening navigation, care handoff preparation, optional wallet-linked plan saving, and prior-authorization workflow infrastructure from deterministic guideline and audit engines.",
   offers: {
     "@type": "Offer",
     price: "0",
     priceCurrency: "USD",
     description: "Free guideline-based screening preview",
   },
-}
+};
 
 const audiences = [
   {
     eyebrow: "Patient",
-    title: "See what screening may be due.",
-    body: "Answer in plain language, review the source and grade, then find the right clinician, lab, or imaging center.",
+    title: "Know what screening may be due.",
+    body: "Start with one sentence. Get the source, the uncertainty, and the next useful action — then find who to call.",
     href: "/screening",
     label: "Check my screening",
     icon: HeartPulse,
@@ -58,47 +59,56 @@ const audiences = [
   },
   {
     eyebrow: "Clinician",
-    title: "Turn a question into a sourced next step.",
-    body: "Prepare concise summaries, clarify missing history, and draft messages without letting a model invent a recommendation.",
+    title: "Turn questions into reviewable next steps.",
+    body: "Prepare concise summaries, clarify missing history, and keep deterministic rules separate from model explanation.",
     href: "/chat",
     label: "Open clinician workspace",
     icon: Stethoscope,
     primary: false,
   },
   {
-    eyebrow: "Health system or builder",
-    title: "Evaluate the workflow infrastructure.",
-    body: "Inspect deterministic rules, audit traces, consent gates, and prior-auth preparation through the working sandbox.",
+    eyebrow: "Builder / health system",
+    title: "Inspect the workflow rails.",
+    body: "Evaluate guideline rules, audit traces, consent gates, wallet-adjacent actions, and prior-auth preparation in the sandbox.",
     href: "/demo",
     label: "View API and workflow demo",
     icon: Code2,
     primary: false,
   },
-]
+];
 
 const workflows = [
   {
-    title: "Consumer screening check",
-    input: "Age, sex used for screening, history, smoking exposure, and prior tests.",
-    decision: "The rules engine returns only the recommendations it can support.",
-    action: "Clarify missing details or connect to nearby care.",
+    title: "Screening check",
+    input: "Age, sex used for screening, family history, symptoms, smoking exposure, and prior tests.",
+    decision:
+      "Rules return only the recommendations they can support and suppress certainty when high-risk review may apply.",
+    action: "Clarify missing details, find nearby care, draft a call script, or save the plan.",
     icon: HeartPulse,
   },
   {
-    title: "Pre-visit planning",
-    input: "Family cancer history, diagnosis ages, and known inherited-risk variants.",
-    decision: "Average-risk certainty is suppressed when a high-risk pathway may apply.",
-    action: "Prepare genetic-counseling or specialist review.",
+    title: "Care handoff",
+    input: "Recommendation, location, requested service, and the minimum fields needed for a safe handoff.",
+    decision:
+      "Directory results are separated from verified network providers and consented referrals.",
+    action: "Show who to call, what to verify, and what OpenRx can prepare without placing an order.",
     icon: ClipboardCheck,
   },
   {
-    title: "Denial-to-appeal preparation",
+    title: "Prior-auth preparation",
     input: "Payer denial, requested treatment, prior therapies, and supporting records.",
-    decision: "OpenRx organizes source metadata and missing documentation.",
-    action: "Create a clinician-reviewable appeal packet, never an approval guarantee.",
+    decision: "OpenRx organizes source metadata and missing documentation for clinician review.",
+    action: "Create a reviewable appeal packet, never an approval guarantee.",
     icon: FileCheck2,
   },
-]
+];
+
+const journeySteps = [
+  "Maria types: ‘I am 47 and my dad had colon cancer. What should I do?’",
+  "OpenRx shows what it understood, flags routine versus high-risk pathways, and cites the source.",
+  "She gets the next practical step: what to ask, who can help nearby, and what still needs clinician review.",
+  "After value is delivered, she can tip OpenRx, save the plan with wallet, or continue without saving.",
+];
 
 const standards = [
   {
@@ -121,7 +131,7 @@ const standards = [
     detail: "Candidate trial discovery",
     href: "https://clinicaltrials.gov/",
   },
-]
+];
 
 function SourcedPreview() {
   return (
@@ -131,13 +141,18 @@ function SourcedPreview() {
     >
       <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(0,0.38fr)_minmax(0,0.62fr)] lg:items-start">
         <div className="pt-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-100">Working example</p>
-          <h2 id="preview-heading" className="mt-3 text-3xl font-semibold leading-tight text-white sm:text-4xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-100">
+            Working example
+          </p>
+          <h2
+            id="preview-heading"
+            className="mt-3 text-3xl font-semibold leading-tight text-white sm:text-4xl"
+          >
             A recommendation you can inspect before you act.
           </h2>
           <p className="mt-4 max-w-md text-sm leading-7 text-zinc-300">
-            OpenRx shows what it understood, what rule fired, and what information could change the answer. The
-            example is educational, not personal medical advice.
+            OpenRx shows what it understood, what rule fired, what could change the answer, and what to do next.
+            The example is educational, not personal medical advice.
           </p>
         </div>
 
@@ -147,12 +162,16 @@ function SourcedPreview() {
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />
               Source-stamped screening output
             </span>
-            <span className="text-[11px] font-medium text-zinc-400">Deterministic response</span>
+            <span className="text-[11px] font-medium text-zinc-400">
+              Deterministic response
+            </span>
           </div>
 
           <div className="grid gap-0 md:grid-cols-[0.9fr_1.1fr]">
             <div className="border-b border-white/10 p-5 md:border-b-0 md:border-r">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-400">Plain-English input</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                Plain-English input
+              </p>
               <p className="mt-3 text-sm leading-7 text-zinc-100">
                 45 male, no symptoms, no personal or family cancer history, never screened for colorectal cancer.
               </p>
@@ -160,8 +179,12 @@ function SourcedPreview() {
             <div className="bg-cyan-200/[0.045] p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-cyan-100">Recommendation</p>
-                  <h3 className="mt-2 text-xl font-semibold text-white">Colorectal cancer screening</h3>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-cyan-100">
+                    Recommendation
+                  </p>
+                  <h3 className="mt-2 text-xl font-semibold text-white">
+                    Colorectal cancer screening
+                  </h3>
                 </div>
                 <span className="rounded-full bg-cyan-200 px-2.5 py-1 text-[10px] font-bold uppercase text-black">
                   Due
@@ -180,25 +203,29 @@ function SourcedPreview() {
             </div>
           </div>
 
-          <div className="grid border-t border-white/10 sm:grid-cols-3">
+          <div className="grid border-t border-white/10 sm:grid-cols-4">
             {[
-              { label: "Find a clinician", icon: Stethoscope },
+              { label: "Find who to call", icon: Stethoscope },
               { label: "Find a screening site", icon: MapPinned },
               { label: "Draft a clinician message", icon: Bot },
+              { label: "Tip or save after value", icon: Wallet },
             ].map((item) => {
-              const Icon = item.icon
+              const Icon = item.icon;
               return (
-                <div key={item.label} className="flex items-center gap-3 border-b border-white/10 p-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+                <div
+                  key={item.label}
+                  className="flex items-center gap-3 border-b border-white/10 p-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
+                >
                   <Icon size={15} className="shrink-0 text-cyan-100" />
                   <p className="text-xs font-semibold text-zinc-200">{item.label}</p>
                 </div>
-              )
+              );
             })}
           </div>
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 export default function HomePage() {
@@ -222,8 +249,8 @@ export default function HomePage() {
             <a href="#how-it-works" className="transition hover:text-white">
               How it works
             </a>
-            <a href="#health-systems" className="transition hover:text-white">
-              For health systems
+            <a href="#value-wallet" className="transition hover:text-white">
+              Wallet
             </a>
             <Link href="/trust" className="transition hover:text-white">
               Trust
@@ -236,7 +263,7 @@ export default function HomePage() {
             href="/screening"
             className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-cyan-200 px-4 text-sm font-semibold text-black transition hover:bg-cyan-100"
           >
-            Patient screening
+            Check screening
             <ArrowRight size={14} />
           </Link>
         </div>
@@ -247,14 +274,13 @@ export default function HomePage() {
           <div className="mx-auto max-w-5xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.055] px-3 py-1 text-[12px] font-medium text-zinc-300">
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-200" />
-              Screening, care navigation, and prior authorization
+              Screening navigation, care handoffs, and optional wallet support
             </span>
             <h1 className="orx-display-heading mx-auto mt-5 max-w-5xl text-[clamp(3rem,7vw,5.7rem)] text-white">
-              OpenRx turns guidelines into care.
+              Cancer screening, without the maze.
             </h1>
             <p className="mx-auto mt-6 max-w-3xl text-[17px] leading-8 text-zinc-300 sm:text-xl">
-              Guideline-grounded cancer screening and prior-auth workflows for patients, clinicians, and health
-              systems. Recommendations come from version-stamped rules, not model guesses.
+              OpenRx helps people understand what screening may be due, find who can help nearby, and move from a sourced recommendation to the next useful action.
             </p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -262,31 +288,56 @@ export default function HomePage() {
                 href="/screening"
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-cyan-200 px-6 text-sm font-bold text-black transition hover:bg-cyan-100 sm:w-auto"
               >
-                I am a patient: check my screening
+                Check my screening
                 <HeartPulse size={16} />
               </Link>
               <Link
-                href="/chat"
+                href="/providers"
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-white/14 bg-white/[0.055] px-5 text-sm font-semibold text-white transition hover:border-cyan-200/35 hover:bg-white/[0.08] sm:w-auto"
               >
-                I am a clinician
+                Find care
                 <ArrowRight size={15} />
               </Link>
               <Link
-                href="/demo"
+                href="/wallet"
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 px-4 text-sm font-semibold text-zinc-300 transition hover:text-white sm:w-auto"
               >
-                Health systems and API
-                <ArrowRight size={15} />
+                Tip or save after value
+                <Wallet size={15} />
               </Link>
             </div>
-
           </div>
         </section>
 
         <SourcedPreview />
 
-        <section className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8" aria-labelledby="audience-heading">
+        <section className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8" aria-labelledby="journey-heading">
+          <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[0.42fr_0.58fr] lg:items-start">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-100">
+                The product ritual
+              </p>
+              <h2 id="journey-heading" className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
+                One sentence in. Next step out.
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-zinc-300">
+                The product should feel like relief: no portal maze, no generic chatbot loop, and no wallet gate before the user receives value.
+              </p>
+            </div>
+            <div className="grid gap-3">
+              {journeySteps.map((step, index) => (
+                <div key={step} className="rounded-[18px] border border-white/10 bg-white/[0.035] p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-100">
+                    Step {index + 1}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-zinc-300">{step}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-y border-white/10 bg-white/[0.025] px-4 py-12 sm:px-6 sm:py-16 lg:px-8" aria-labelledby="audience-heading">
           <div className="mx-auto w-full max-w-6xl">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-100">Choose your path</p>
@@ -296,7 +347,7 @@ export default function HomePage() {
             </div>
             <div className="mt-8 grid gap-3 lg:grid-cols-3">
               {audiences.map((item) => {
-                const Icon = item.icon
+                const Icon = item.icon;
                 return (
                   <Link
                     key={item.eyebrow}
@@ -309,7 +360,9 @@ export default function HomePage() {
                   >
                     <div>
                       <div className="flex items-center justify-between gap-4">
-                        <span className="text-xs font-semibold uppercase tracking-[0.1em] text-cyan-100">{item.eyebrow}</span>
+                        <span className="text-xs font-semibold uppercase tracking-[0.1em] text-cyan-100">
+                          {item.eyebrow}
+                        </span>
                         <Icon size={18} className="text-zinc-300" />
                       </div>
                       <h3 className="mt-6 text-xl font-semibold leading-snug text-white">{item.title}</h3>
@@ -320,25 +373,26 @@ export default function HomePage() {
                       <ArrowRight size={14} className="transition group-hover:translate-x-0.5" />
                     </span>
                   </Link>
-                )
+                );
               })}
             </div>
           </div>
         </section>
 
-        <section id="how-it-works" className="border-y border-white/10 bg-white/[0.025] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+        <section id="how-it-works" className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
           <div className="mx-auto w-full max-w-6xl">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-100">How it works</p>
-              <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">From a question to the next useful action.</h2>
+              <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
+                From a question to the next useful action.
+              </h2>
               <p className="mt-4 text-sm leading-7 text-zinc-300">
-                Each workflow separates the information supplied, the deterministic decision, and the action that
-                follows.
+                Each workflow separates the information supplied, the deterministic decision, and the action that follows.
               </p>
             </div>
             <div className="mt-9 grid gap-4 lg:grid-cols-3">
               {workflows.map((item) => {
-                const Icon = item.icon
+                const Icon = item.icon;
                 return (
                   <article key={item.title} className="rounded-[20px] border border-white/10 bg-[#080a0a] p-5 sm:p-6">
                     <Icon size={19} className="text-cyan-100" />
@@ -358,8 +412,37 @@ export default function HomePage() {
                       </div>
                     </dl>
                   </article>
-                )
+                );
               })}
+            </div>
+          </div>
+        </section>
+
+        <section id="value-wallet" className="border-y border-white/10 bg-[#080a0a] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+          <div className="mx-auto grid w-full max-w-6xl gap-9 lg:grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)] lg:items-start">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-100">
+                Value first, wallet second
+              </p>
+              <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
+                Wallet should feel like applause, not a front door.
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-zinc-300">
+                Users can receive a useful screening recommendation before connecting anything. If OpenRx helps, wallet actions become a lightweight way to tip, save the plan, or unlock deeper navigation.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                "Free screening preview before payment or wallet connection.",
+                "Optional tip after a recommendation, call script, or care handoff helps.",
+                "Wallet-linked save path for returning later without another password.",
+                "No personal health information is intentionally written on-chain.",
+              ].map((item) => (
+                <div key={item} className="flex gap-3 rounded-[16px] border border-white/10 bg-white/[0.035] p-4">
+                  <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-cyan-100" />
+                  <p className="text-sm leading-6 text-zinc-300">{item}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -401,7 +484,7 @@ export default function HomePage() {
                   icon: BadgeCheck,
                 },
               ].map((item) => {
-                const Icon = item.icon
+                const Icon = item.icon;
                 return (
                   <div key={item.title} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 py-5">
                     <Icon size={18} className="mt-0.5 text-cyan-100" />
@@ -410,7 +493,7 @@ export default function HomePage() {
                       <p className="mt-2 text-sm leading-6 text-zinc-400">{item.body}</p>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
@@ -467,11 +550,7 @@ export default function HomePage() {
             </div>
             <div className="mt-6 grid gap-px overflow-hidden rounded-[16px] border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
               {standards.map((standard) => (
-                <a
-                  key={standard.label}
-                  href={standard.href}
-                  className="group bg-[#080a0a] p-4 transition hover:bg-white/[0.055]"
-                >
+                <a key={standard.label} href={standard.href} className="group bg-[#080a0a] p-4 transition hover:bg-white/[0.055]">
                   <p className="flex items-center justify-between gap-3 text-sm font-semibold text-white">
                     {standard.label}
                     <ArrowRight size={13} className="text-zinc-500 transition group-hover:text-cyan-100" />
@@ -487,7 +566,7 @@ export default function HomePage() {
           <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 border-t border-white/10 pt-8 sm:flex-row sm:items-center">
             <div>
               <p className="text-xl font-semibold text-white">Start with one patient question.</p>
-              <p className="mt-2 text-sm text-zinc-400">Get the source, the uncertainty, and the next useful action.</p>
+              <p className="mt-2 text-sm text-zinc-400">Get the source, uncertainty, next action, and optional save/tip path.</p>
             </div>
             <Link
               href="/screening"
@@ -500,5 +579,5 @@ export default function HomePage() {
         </section>
       </main>
     </div>
-  )
+  );
 }

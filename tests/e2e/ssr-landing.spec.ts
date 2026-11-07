@@ -32,6 +32,16 @@ test.describe("server-rendered landing page", () => {
     expect(html).toContain("Colorectal cancer screening")
     expect(html).toContain("uspstf-average-risk-colorectal")
     expect(html).toContain("https://www.uspreventiveservicestaskforce.org/uspstf/recommendation/colorectal-cancer-screening")
+    expect(html).toContain("gastroenterology+providers+for+colonoscopy")
+    expect(html).toContain("handoff=screening")
+    expect(html).not.toContain("kind=lab")
+    expect(html).not.toContain("Frontier LLM")
+    expect(html).not.toContain("smoking pack-years")
+    expect(html).toContain("Encoded guideline sources")
+    expect(html).toContain("NCCN intervals are not encoded")
+    expect(html).not.toContain(">ACS<")
+    expect(html).not.toContain(">CDC<")
+    expect(html).not.toContain(">CMS<")
 
     // noscript fallback so the page is never blank
     expect(html).toContain("<noscript>")
@@ -61,6 +71,8 @@ test.describe("server-rendered landing page", () => {
     await expect(page.getByText("Deterministic response")).toBeVisible()
     await expect(page.getByText("Colorectal cancer screening", { exact: true })).toBeVisible()
     await expect(page.getByRole("link", { name: /uspstf-average-risk-colorectal/ })).toBeVisible()
+    await expect(page.getByRole("link", { name: "Find colonoscopy care" })).toHaveAttribute("href", /gastroenterology\+providers\+for\+colonoscopy/)
+    await expect(page.getByRole("link", { name: "Run this example" })).toHaveAttribute("href", /\/screening\?/)
     await expect(page.getByRole("link", { name: "Check my screening — free" })).toBeVisible()
     await expect(page.getByRole("link", { name: "Try OpenRx" })).toBeVisible()
     await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Trust" })).toBeVisible()
@@ -77,6 +89,8 @@ test.describe("server-rendered landing page", () => {
     await expect(page.getByRole("link", { name: "Try OpenRx" })).toBeVisible()
     await expect(page.getByText("Deterministic response")).toBeVisible()
     await expect(page.getByRole("navigation", { name: "Main" })).toBeHidden()
+    await page.locator("summary", { hasText: "Menu" }).click()
+    await expect(page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Trust" })).toBeVisible()
 
     const widths = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
@@ -94,5 +108,18 @@ test.describe("server-rendered landing page", () => {
     await page.goto("/")
     await page.getByRole("link", { name: "Check my screening — free" }).click()
     await expect(page).toHaveURL(/\/screening/, { timeout: 30_000 })
+  })
+
+  test("landing example opens colonoscopy care search and the same screening plan", async ({ page }) => {
+    await page.goto("/")
+    await page.getByRole("link", { name: "Find colonoscopy care" }).click()
+    await expect(page).toHaveURL(/handoff=screening/, { timeout: 30_000 })
+    await expect(page.getByTestId("provider-search-input")).toHaveValue("gastroenterology providers for colonoscopy")
+    await expect(page.getByTestId("provider-handoff-notice")).toContainText(/screening recommendation/i)
+
+    await page.goto("/")
+    await page.getByRole("link", { name: "Run this example" }).click()
+    await expect(page).toHaveURL(/\/screening\?/, { timeout: 30_000 })
+    await expect(page.getByTestId("screening-narrative-input")).toHaveValue(/never screened for colorectal cancer/i)
   })
 })

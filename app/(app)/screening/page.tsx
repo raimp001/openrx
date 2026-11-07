@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/clinical-forms"
 import { cn } from "@/lib/utils"
 import type { ScreeningAssessment } from "@/lib/basehealth"
+import { careSearchQueryForRecommendation } from "@/lib/screening/care-search"
 import { nextStepLabel } from "@/lib/screening/recommend"
 import { getGuidelineSource } from "@/lib/screening/sources"
 import type {
@@ -352,10 +353,6 @@ function parseScreeningHandoff(raw: string | null): ScreeningHandoffPayload | nu
 
 const LOCATION_SIGNAL = /\b(?:near|in|around)\b|\b\d{5}(?:-\d{4})?\b/i
 
-function recommendationHasAnyStep(rec: StructuredScreeningRecommendation, steps: ScreeningNextStep[]) {
-  return steps.some((step) => rec.nextSteps.includes(step))
-}
-
 function recommendationActionRank(rec: StructuredScreeningRecommendation): number {
   if (rec.status === "urgent_clinician_review") return 0
   if (rec.status === "due") return 1
@@ -364,31 +361,6 @@ function recommendationActionRank(rec: StructuredScreeningRecommendation): numbe
   if (rec.status === "discuss") return 4
   if (rec.status === "unknown") return 5
   return 6
-}
-
-function careSearchQueryForRecommendation(rec: StructuredScreeningRecommendation): string {
-  const signal = `${rec.screeningName} ${rec.cancerType} ${rec.recommendedNextStep}`.toLowerCase()
-
-  if (recommendationHasAnyStep(rec, ["request_colonoscopy"]) || /colorectal|colonoscop|colon/.test(signal)) {
-    return "gastroenterology providers for colonoscopy"
-  }
-  if (recommendationHasAnyStep(rec, ["request_mammogram"]) || /mammogram|breast/.test(signal)) {
-    return "mammogram imaging centers"
-  }
-  if (recommendationHasAnyStep(rec, ["request_ldct", "request_imaging"]) || /lung|ldct|low-dose ct/.test(signal)) {
-    return "radiology centers for low-dose CT screening"
-  }
-  if (recommendationHasAnyStep(rec, ["request_cervical_screening"]) || /cervical|pap|hpv/.test(signal)) {
-    return "primary care or gynecology providers for cervical cancer screening"
-  }
-  if (recommendationHasAnyStep(rec, ["request_psa_discussion"]) || /prostate|psa/.test(signal)) {
-    return "primary care or urology providers for prostate screening discussion"
-  }
-  if (recommendationHasAnyStep(rec, ["request_genetic_counseling"]) || /genetic|hereditary|brca|lynch/.test(signal)) {
-    return "genetic counseling providers"
-  }
-
-  return `providers for ${rec.screeningName}`
 }
 
 function appendLocationHint(query: string, locationHint: string) {

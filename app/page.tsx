@@ -1,9 +1,12 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
-import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
+import benchmark from "@/lib/benchmark/published.json"
 import { BrandMark } from "@/components/brand-logo"
-import { getGuidelineSource } from "@/lib/screening/sources"
+import { providerSearchHrefFromHandoff } from "@/lib/care-handoff"
+import { careSearchQueryForRecommendation } from "@/lib/screening/care-search"
+import { recommendScreenings, screeningIntakeFromLegacy } from "@/lib/screening/recommend"
+import { getGuidelineSource, guidelineSources } from "@/lib/screening/sources"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -62,6 +65,43 @@ const navItems = [
   { label: "Trust", href: "/trust" },
 ]
 
+const screeningExamplePrompt =
+  "45 male, no symptoms, no personal or family cancer history, never screened for colorectal cancer."
+
+const encodedGuidelineOrganizations = Array.from(
+  new Set(
+    Object.values(guidelineSources)
+      .map((source) => source.organization)
+      .filter((organization) => organization !== "PENDING")
+  )
+)
+
+type PublishedColor = "green" | "yellow" | "red"
+type PublishedResult = {
+  citation: PublishedColor
+  version: PublishedColor
+  correctness: PublishedColor
+  sycophancy: PublishedColor
+  fabrication: PublishedColor
+  overall: PublishedColor
+}
+
+const publishedResults = benchmark.results as PublishedResult[]
+const benchmarkDimensions: Array<{ label: string; key: keyof Pick<PublishedResult, "citation" | "version" | "correctness" | "sycophancy" | "fabrication"> }> = [
+  { label: "Citation specificity", key: "citation" },
+  { label: "Version pinning", key: "version" },
+  { label: "Correctness", key: "correctness" },
+  { label: "Sycophancy resistance", key: "sycophancy" },
+  { label: "Refusal vs fabrication", key: "fabrication" },
+]
+
+function publishedCount(
+  key: keyof PublishedResult,
+  color: PublishedColor
+) {
+  return publishedResults.filter((result) => result[key] === color).length
+}
+
 function buildDemoExample() {
   const result = recommendScreenings(
     screeningIntakeFromLegacy({
@@ -79,10 +119,26 @@ function buildDemoExample() {
     result.recommendations.find((item) => item.id === "uspstf-average-risk-colorectal") ||
     result.recommendations[0]
 
+  const careQuery = recommendation
+    ? careSearchQueryForRecommendation(recommendation)
+    : "colorectal cancer screening"
+  const changeSentence = recommendation?.patientFriendlyExplanation
+    .split(". ")
+    .map((part) => part.trim())
+    .find((part) => /would change|could change/i.test(part))
+    ?.replace(/\.$/, "")
+
   return {
     result,
     recommendation,
     source: getGuidelineSource(recommendation?.sourceId),
+    careHref: providerSearchHrefFromHandoff(careQuery, "screening"),
+    screeningHref: `/screening?${new URLSearchParams({
+      handoff: "link",
+      autorun: "1",
+      prompt: screeningExamplePrompt,
+    }).toString()}`,
+    changeNote: changeSentence || "Symptoms, family history, or a prior abnormal result would change the pathway",
     facts: [
       ["age", "45"],
       ["screening_context", "male"],
@@ -152,6 +208,28 @@ export default function HomePage() {
             </nav>
           </div>
           <div className="flex items-center gap-2.5">
+            <details className="relative md:hidden">
+              <summary
+                className="flex min-h-11 cursor-pointer list-none items-center rounded-md border px-3 text-[14px] font-medium [&::-webkit-details-marker]:hidden"
+                style={{ borderColor: "rgba(33,28,22,.25)", color: ink }}
+              >
+                Menu
+              </summary>
+              <nav
+                aria-label="Sections"
+                className="absolute right-0 z-20 mt-2 flex w-52 flex-col rounded-md border bg-white p-2 shadow-lg"
+                style={{ borderColor: "rgba(33,28,22,.14)" }}
+              >
+                {navItems.map((item) => (
+                  <Link key={item.href} href={item.href} className="rounded-md px-3 py-2 text-[14px]" style={{ color: ink }}>
+                    {item.label}
+                  </Link>
+                ))}
+                <Link href="/demo" className="rounded-md px-3 py-2 text-[14px]" style={{ color: ink }}>
+                  For clinicians
+                </Link>
+              </nav>
+            </details>
             <Link
               href="/demo"
               className="hidden rounded-md border px-4 py-2 text-[14px] font-medium sm:inline-block"
@@ -231,8 +309,8 @@ export default function HomePage() {
               ))}
             </div>
             <p className="max-w-[52ch] text-[13.5px] leading-relaxed" style={{ color: "rgba(33,28,22,.68)" }}>
-              Answers drawn from USPSTF, CDC, NCCN, ACS, and CMS guidance — every recommendation names its source,
-              grade, and publication date.
+              Average-risk screening answers come from version-stamped USPSTF rules. Every recommendation names its
+              source, grade, and publication date. High-risk intervals that are not encoded route to clinician review.
             </p>
             <Link
               href="/screening"
@@ -339,25 +417,28 @@ export default function HomePage() {
                       <div className="flex flex-col gap-1.5 border-t pt-3" style={{ borderColor: "rgba(33,28,22,.1)" }}>
                         <MonoLabel>What could change this</MonoLabel>
                         <span className="text-[13.5px] leading-normal" style={{ color: "rgba(33,28,22,.7)" }}>
-                          Family history, prior colonoscopy or stool testing, inflammatory bowel disease
+                          {example.changeNote}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Link
-                          href={{ pathname: "/providers", query: { kind: "lab" } }}
+                          href={example.careHref}
                           className="rounded-[7px] px-4 py-2 text-[13px] font-medium"
                           style={{ background: ink, color: paper }}
                         >
-                          Find a screening site
+                          Find colonoscopy care
                         </Link>
                         <Link
-                          href={{ pathname: "/providers", query: { kind: "provider" } }}
+                          href={example.screeningHref}
                           className="rounded-[7px] border px-4 py-2 text-[13px] font-medium"
                           style={{ borderColor: "rgba(33,28,22,.2)", color: ink }}
                         >
-                          Find a clinician
+                          Run this example
                         </Link>
                       </div>
+                      <p className="text-[12px] leading-5" style={{ color: "rgba(33,28,22,.68)" }}>
+                        Care search uses the public NPI directory for this recommendation. OpenRx does not book the test.
+                      </p>
                     </>
                   ) : (
                     <p className="text-[14px]" style={{ color: "rgba(33,28,22,.7)" }}>
@@ -369,16 +450,21 @@ export default function HomePage() {
             </div>
 
             {/* Sources strip */}
-            <div
-              className="mt-7 flex flex-wrap items-center justify-center gap-x-9 gap-y-2 font-landing-mono text-[13px]"
-              style={{ color: "rgba(33,28,22,.65)" }}
-            >
-              <span className="text-[11px] uppercase tracking-[0.08em]">Guideline sources</span>
-              {["USPSTF", "ACS", "NCCN", "CDC", "CMS"].map((source) => (
-                <span key={source} style={{ color: "rgba(33,28,22,.7)" }}>
-                  {source}
-                </span>
-              ))}
+            <div className="mt-7 flex flex-col items-center gap-2 text-center">
+              <div
+                className="flex flex-wrap items-center justify-center gap-x-9 gap-y-2 font-landing-mono text-[13px]"
+                style={{ color: "rgba(33,28,22,.65)" }}
+              >
+                <span className="text-[11px] uppercase tracking-[0.08em]">Encoded guideline sources</span>
+                {encodedGuidelineOrganizations.map((source) => (
+                  <span key={source} style={{ color: "rgba(33,28,22,.7)" }}>
+                    {source}
+                  </span>
+                ))}
+              </div>
+              <p className="max-w-[46ch] text-[13px] leading-5" style={{ color: "rgba(33,28,22,.68)" }}>
+                NCCN intervals are not encoded. Those cases route to clinician review.
+              </p>
             </div>
           </div>
         </section>
@@ -441,16 +527,19 @@ export default function HomePage() {
                   style={{ background: "#f2ede3", color: "rgba(33,28,22,.7)" }}
                 >
                   <span>
-                    <span style={{ color: "#1f7a4d" }}>✓</span> facts_used: age, sex, history
+                    <span style={{ color: "#1f7a4d" }}>✓</span> facts_used: age 45, male, no family cancer, never screened
                   </span>
                   <span>
                     <span style={{ color: "#1f7a4d" }}>✓</span> rule_fired: {recommendation?.id || "uspstf-average-risk-colorectal"}
                   </span>
                   <span>
-                    <span style={{ color: ember }}>△</span> missing: smoking pack-years
+                    <span style={{ color: example.result.clarificationQuestions.length ? ember : "#1f7a4d" }}>
+                      {example.result.clarificationQuestions.length ? "△" : "✓"}
+                    </span>{" "}
+                    missing: {example.result.clarificationQuestions[0]?.id || "none on this example"}
                   </span>
                   <span>
-                    <span style={{ color: ember }}>△</span> uncertainty: none flagged
+                    <span style={{ color: "#1f7a4d" }}>✓</span> intake: {example.result.intakeCompleteness}
                   </span>
                 </div>
               </div>
@@ -514,40 +603,39 @@ export default function HomePage() {
                 className="text-[30px] font-medium leading-[1.12] tracking-[-0.025em] sm:text-[38px]"
                 style={{ color: ink }}
               >
-                Validated on a published 50-scenario benchmark
+                Validated on a published {benchmark.scenarioCount}-scenario benchmark
               </h2>
               <p className="text-[15.5px] leading-relaxed" style={{ color: "rgba(33,28,22,.65)" }}>
-                Every engine release is regression-tested against published screening scenarios. Rules decide; models
-                only explain — so results are reproducible.
+                The published run has {publishedCount("overall", "green")} fully green scenarios,{" "}
+                {publishedCount("overall", "yellow")} yellow, and {publishedCount("overall", "red")} red. Yellow means
+                the answer stayed safe but missed some expected wording. Any red blocks a release.
               </p>
               <Link href="/benchmark" className="text-[14.5px] font-medium" style={{ color: ember }}>
                 View benchmark results →
               </Link>
             </div>
             <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between font-landing-mono text-[12.5px]">
-                  <span>OpenRx rules engine</span>
-                  <span>50/50</span>
-                </div>
-                <div className="h-[34px] w-full rounded-md" style={{ background: ember }} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between font-landing-mono text-[12.5px]" style={{ color: "rgba(33,28,22,.68)" }}>
-                  <span>Frontier LLM, unassisted</span>
-                  <span>39/50</span>
-                </div>
-                <div className="h-[34px] w-[78%] rounded-md" style={{ background: "rgba(33,28,22,.25)" }} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between font-landing-mono text-[12.5px]" style={{ color: "rgba(33,28,22,.68)" }}>
-                  <span>Web search, general</span>
-                  <span>24/50</span>
-                </div>
-                <div className="h-[34px] w-[48%] rounded-md" style={{ background: "rgba(33,28,22,.12)" }} />
-              </div>
+              {benchmarkDimensions.map((dimension) => {
+                const green = publishedCount(dimension.key, "green")
+                const width = benchmark.scenarioCount
+                  ? `${Math.round((green / benchmark.scenarioCount) * 100)}%`
+                  : "0%"
+                return (
+                  <div key={dimension.key} className="flex flex-col gap-1.5">
+                    <div className="flex justify-between gap-3 font-landing-mono text-[12.5px]">
+                      <span>{dimension.label}</span>
+                      <span>
+                        {green}/{benchmark.scenarioCount} green
+                      </span>
+                    </div>
+                    <div className="h-[34px] w-full rounded-md" style={{ background: "rgba(33,28,22,.08)" }}>
+                      <div className="h-full rounded-md" style={{ width, background: ember }} />
+                    </div>
+                  </div>
+                )
+              })}
               <span className="font-landing-mono text-[11px]" style={{ color: "rgba(33,28,22,.65)" }}>
-                scenario pass rate · openrx.health/benchmark · illustrative figures — see published results
+                published {benchmark.generatedAt.slice(0, 10)} · engine {benchmark.engineVersion} · openrx.health/benchmark
               </span>
             </div>
           </div>

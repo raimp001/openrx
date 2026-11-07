@@ -227,7 +227,7 @@ export function CareAskPanel({
 
             {!minimal ? (
               <p className={cn("mt-3 max-w-xl text-[12px] leading-5", dark ? "text-white/56" : "text-muted")}>
-                Answers drawn from USPSTF, CDC, NCCN, ACS, and CMS guidance — every recommendation names its source and date.
+                Average-risk screening answers come from version-stamped USPSTF rules. Each recommendation names its source and date. High-risk intervals that are not encoded route to clinician review.
               </p>
             ) : null}
             <div className={cn("mt-3 flex flex-wrap gap-2", minimal && "justify-center")}>

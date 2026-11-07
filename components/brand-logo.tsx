@@ -45,7 +45,7 @@ export function BrandMark({ className, iconClassName, size = "md", tone = "dark"
         {/* Open ring: arc sweeps the long way, leaving a gap at the top right */}
         <path
           d="M 16.03 5.55 A 7.6 7.6 0 1 0 19.43 10.42"
-          stroke={isLight ? "#C2451E" : "#E0704A"}
+          stroke={isLight ? "#BA421C" : "#E0704A"}
           strokeWidth="2.1"
           strokeLinecap="round"
         />
@@ -57,7 +57,7 @@ export function BrandMark({ className, iconClassName, size = "md", tone = "dark"
           strokeWidth="1.7"
           strokeLinejoin="round"
         />
-        <circle cx="18.23" cy="7.64" r="1.05" fill={isLight ? "#C2451E" : "#F9E7E0"} />
+        <circle cx="18.23" cy="7.64" r="1.05" fill={isLight ? "#BA421C" : "#F9E7E0"} />
       </svg>
     </div>
   )

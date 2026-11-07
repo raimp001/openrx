@@ -5,6 +5,6 @@
   <path d="M 30.83 19.67 A 11 11 0 1 0 35.76 26.71" stroke="#E0704A" stroke-width="2.9" stroke-linecap="round" fill="none"/>
   <path d="M 34.01 18.59 L 38.11 22.69 L 34.01 26.79 L 29.91 22.69 Z" fill="#3A2A20" stroke="#E0704A" stroke-width="2.4" stroke-linejoin="round"/>
   <circle cx="34.01" cy="22.69" r="1.5" fill="#F9E7E0"/>
-  <text x="60" y="32" fill="#F7FAFA" font-family="Geist, Inter, system-ui, sans-serif" font-size="24" font-weight="680" letter-spacing="-1.4">OpenRx</text>
-  <text x="61" y="47" fill="#8EA2A6" font-family="Geist, Inter, system-ui, sans-serif" font-size="9" font-weight="650" letter-spacing="1.7">CARE HANDOFFS</text>
+  <text x="60" y="32" fill="#F7F4EE" font-family="Archivo, Inter, system-ui, sans-serif" font-size="24" font-weight="680" letter-spacing="-1.4">OpenRx</text>
+  <text x="61" y="47" fill="#A79B8B" font-family="Archivo, Inter, system-ui, sans-serif" font-size="9" font-weight="650" letter-spacing="1.7">CARE HANDOFFS</text>
 </svg>
